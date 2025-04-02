@@ -1,0 +1,49 @@
+.container {
+    border: 1px solid var(--primary-color);
+    margin-left: auto;
+    border-radius: 8px;
+    width: 300px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    font-family: "Poppins", sans-serif;
+}
+
+.icon {
+    margin-right: 5px;
+}
+
+.title {
+    margin: 10px;
+    border-radius: 8px;
+    font-weight: 500;
+    color: var(--color-white);
+    width: 280px;
+    padding: 15px;
+
+    background-color: var(--background-color);
+    background-image: var(--background-image);
+}
+
+.list {
+    visibility: hidden;
+    margin-top: 10px;
+    margin-left: 10px;
+}
+
+.container:hover .list {
+    visibility: visible;
+    transition: ease 0.6;
+}
+
+.item {
+    padding: 13px 10px;
+    border-bottom: 1px solid #cccccc8f;
+}
+
+.item:hover {
+    border-left: 4px solid var(--primary-color);
+    background-color: antiquewhite;
+}
+
+.action_Link {
+    color: #000;
+}

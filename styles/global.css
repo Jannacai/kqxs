@@ -1,0 +1,123 @@
+* {
+    box-sizing: border-box;
+}
+
+:root {
+    --primary-color: #2d3483;
+    --color-xam: #ccc;
+    --color-white: #fff;
+    --background-color: #0093E9;
+    --background-image: linear-gradient(160deg, #0093E9 0%, #80D0C7 100%);
+}
+
+html {
+    font-size: 62.5%;
+}
+
+body {
+    font-size: 1.6rem;
+}
+
+a {
+    text-decoration: none;
+}
+
+.container {
+    margin-top: 20px;
+    align-items: flex-start;
+    display: grid;
+    gap: 20px;
+    grid-template-columns: 1fr 2fr 1fr;
+    width: 1300px;
+    max-width: calc(100vw - 48px);
+    margin: 0 auto;
+}
+
+.header {
+    padding: 20px 0;
+}
+
+.header__logo {
+    display: flex;
+    justify-content: center;
+    display: block;
+    height: 100px;
+    width: 100%;
+    text-align: center;
+}
+
+.react-datepicker__month-container {
+    display: inline-block;
+    width: 100px;
+    height: 100px;
+}
+
+.header__logo a {}
+
+.header__logo--img {
+    object-fit: cover;
+    display: inline-block;
+    width: 400px;
+    height: 100%;
+}
+
+
+
+/* Clendarr */
+.CalendarWrapper {
+    width: 200px;
+    height: 200px;
+    border: 1px solid #ccc;
+    font-family: sans-serif;
+    font-size: 12px;
+}
+
+.calendar {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px;
+    border-bottom: 1px solid #eee;
+}
+
+.MonthYearPicker {
+    display: flex;
+    align-items: center;
+}
+
+.Select {
+    font-size: 12px;
+    margin: 0 5px;
+    padding: 2px;
+}
+
+.Weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    padding: 5px;
+    text-align: center;
+}
+
+.Days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    padding: 5px;
+    text-align: center;
+}
+
+.DayLink {
+    cursor: pointer;
+    color: inherit;
+}
+
+/* Trang chur index */
+.trangchu {
+    display: flex;
+    gap: 20px;
+}
+
+/* -------Icon......... */
+.iconRight,
+.iconLeft {
+    font-size: 30px;
+    color: var(--primary-color);
+}
