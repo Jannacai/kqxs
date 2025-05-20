@@ -1,7 +1,7 @@
 import { apiMB } from "../api/kqxs/kqxsMB";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import styles from '../../public/css/kqxsMB.module.css';
-import { getFilteredNumber } from "../utils/filterUtils";
+import { getFilteredNumber } from "../../library/utils/filterUtils";
 import { useRouter } from 'next/router';
 import React from 'react';
 import LiveResult from './LiveResult';

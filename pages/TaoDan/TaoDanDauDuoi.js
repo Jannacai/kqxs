@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styles from '../../styles/taodandacbiet.module.css';
-import { taoDanDauDuoi } from '../../pages/utils/lotteryUtils';
+import { taoDanDauDuoi } from '../../library/utils/lotteryUtils';
 
 const DauDuoi = () => {
     const [dauInput, setDauInput] = useState('');

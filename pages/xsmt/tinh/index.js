@@ -1,7 +1,7 @@
 import { apiMT } from "../../api/kqxs/kqxsMT";
 import { useState, useEffect } from "react";
 import styles from '../../../styles/kqxsMTTinh.module.css';
-import { getFilteredNumber } from "../../utils/filterUtils";
+import { getFilteredNumber } from "../../../library/utils/filterUtils";
 import { useRouter } from 'next/router';
 
 const KQXS = (props) => {

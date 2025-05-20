@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styles from '../../styles/taodandacbiet.module.css';
-import { soDanhSach, dauChanList, dauLeList, dauBeList, dauLonList, duoiChanList, duoiLeList, duoiBeList, duoiLonList, tongChanList, tongLeList, tongBeList, tongLonList, chanChanList, chanLeList, leChanList, leLeList, beBeList, beLonList, lonBeList, lonLonList, kepBangList, kepLechList, kepAmList, satKepList } from '../../pages/Constants/lotteryLists';
-import { checkCondition } from '../../pages/utils/lotteryUtils';
+import { soDanhSach, dauChanList, dauLeList, dauBeList, dauLonList, duoiChanList, duoiLeList, duoiBeList, duoiLonList, tongChanList, tongLeList, tongBeList, tongLonList, chanChanList, chanLeList, leChanList, leLeList, beBeList, beLonList, lonBeList, lonLonList, kepBangList, kepLechList, kepAmList, satKepList } from '../../library/Constants/lotteryLists';
+import { checkCondition } from '../../library/utils/lotteryUtils';
 
 const LayNhanhDanDacBiet = () => {
     const [filter, setFilter] = useState({ category: null, value: null });

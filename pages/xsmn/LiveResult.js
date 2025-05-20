@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import styles from '../../styles/kqxsMN.module.css';
 import { apiMN } from '../api/kqxs/kqxsMN';
-import { getFilteredNumber } from '../utils/filterUtils';
+import { getFilteredNumber } from '../../library/utils/filterUtils';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 

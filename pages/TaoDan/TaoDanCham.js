@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styles from '../../styles/taodandacbiet.module.css';
-import { taoDanCham } from '../../pages/utils/lotteryUtils';
+import { taoDanCham } from '../../library/utils/lotteryUtils';
 
 const Cham = () => {
     const [chamInput, setChamInput] = useState('');

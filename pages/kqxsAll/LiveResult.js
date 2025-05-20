@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import styles from '../../public/css/kqxsMB.module.css';
-import { getFilteredNumber } from "../utils/filterUtils";
+import { getFilteredNumber } from "../../library/utils/filterUtils";
 import { apiMB } from "../api/kqxs/kqxsMB";
 import React from 'react';
 

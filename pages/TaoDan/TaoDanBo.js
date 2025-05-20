@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import styles from '../../styles/taodandacbiet.module.css';
-import { taoDanBo } from '../../pages/utils/lotteryUtils';
-import { kepBangList, kepLechList, kepAmList, satKepList } from '../../pages/Constants/lotteryLists';
+import { taoDanBo } from '../../library/utils/lotteryUtils';
+import { kepBangList, kepLechList, kepAmList, satKepList } from '../../library/Constants/lotteryLists';
 
 const Bo = () => {
     const [boInput, setBoInput] = useState('');

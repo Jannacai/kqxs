@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import styles from '../../styles/kqxsMT.module.css';
-import { getFilteredNumber } from "../utils/filterUtils";
+import { getFilteredNumber } from "../../library/utils/filterUtils";
 import { apiMT } from "../api/kqxs/kqxsMT";
 import React from 'react';
 
