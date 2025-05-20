@@ -2,7 +2,7 @@
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
-import styles from '../styles/UserAvatar.module.css';
+import styles from '../styles/userAvatar.module.css';
 
 const UserAvatar = () => {
     const { data: session, status } = useSession();
