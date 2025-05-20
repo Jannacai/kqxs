@@ -1,0 +1,73 @@
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.date {
+    margin-top: 20px;
+    font-size: 1.2rem;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    width: 180px;
+    height: 35px;
+    line-height: 35px;
+    background-image: linear-gradient(135deg, #90F7EC 10%, #32CCBC 100%);
+    font-family: "Poppins", sans-serif;
+}
+
+.title {
+    font-family: "Poppins", sans-serif;
+    font-weight: 600;
+    line-height: 1.4;
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+.author {
+    font-style: italic;
+    color: #666;
+    margin-bottom: 20px;
+}
+
+.description {
+    font-family: "Poppins", sans-serif;
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin-bottom: 10px;
+}
+
+.image {
+    object-fit: cover;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.chuthich {
+    padding: 10px;
+    text-align: center;
+    font-style: italic;
+}
+
+.nguon {
+    margin: 20px 0;
+    font-style: italic;
+}
+
+.backButton {
+    padding: 10px 20px;
+    background-color: #0070f3;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.backButton:hover {
+    background-color: #005bb5;
+}
+
+.error {
+    color: red;
+    text-align: center;
+}

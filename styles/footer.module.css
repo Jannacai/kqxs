@@ -1,0 +1,337 @@
+.footer {
+    margin-top: 50px;
+    font-family: "Roboto", sans-serif;
+    padding: 20px;
+    box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
+    color: #4b5563;
+    width: 100%;
+    /* Container footer chiếm toàn màn hình */
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 40px;
+}
+
+.img {
+    height: 100px;
+    width: 350px;
+    object-fit: cover;
+}
+
+.desc {
+    width: 400px;
+    line-height: 1.5;
+}
+
+.group {
+    display: flex;
+    gap: 40px;
+}
+
+.h3 {
+    font-weight: 600;
+    font-size: 1.2rem;
+    color: var(--primary-color);
+    text-transform: uppercase;
+}
+
+.list {
+    margin-top: 20px;
+    margin-left: 20px;
+}
+
+.item {
+    padding: 7px 0;
+    position: relative;
+}
+
+.item::before {
+    content: "";
+    position: absolute;
+    left: -20px;
+    top: 12px;
+    display: block;
+    border-radius: 50%;
+    width: 7px;
+    height: 7px;
+    background-color: var(--primary-color);
+}
+
+.action {
+    color: #4b5563;
+}
+
+.item:hover .action {
+    cursor: pointer;
+    color: var(--background-color);
+}
+
+.endFooter {
+    position: relative;
+    margin-top: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 50px;
+    padding: 20px 30px;
+}
+
+.endFooter::before {
+    content: "";
+     position: absolute;
+    display: block;
+    top: -10px;
+    width: 100%;
+    height: 1px;
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+.contact {}
+
+.email {
+    display: block;
+    margin-top: 10px;
+}
+
+.contact strong {
+    display: block;
+    margin-top: 10px;
+}
+
+.icon i {
+    font-size: 20px;
+    color: var(--background-color);
+}
+
+.groupIcon {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .header {
+        gap: 30px;
+    }
+
+    .img {
+        width: 300px;
+        height: 90px;
+    }
+
+    .desc {
+        width: 350px;
+        font-size: 0.9rem;
+    }
+
+    .group {
+        gap: 30px;
+    }
+
+    .h3 {
+        font-size: 1.1rem;
+    }
+
+    .endFooter {
+        gap: 40px;
+        padding: 15px 20px;
+    }
+
+    .groupIcon {
+        gap: 30px;
+    }
+
+    .icon i {
+        font-size: 24px;
+        /* Tăng kích thước icon */
+    }
+}
+
+@media (max-width: 768px) {
+    .footer {
+        width: 100%;
+    }
+
+    .header {
+        flex-direction: column;
+        text-align: center;
+        gap: 20px;
+        width: 100%;
+    }
+
+    .img {
+        width: 250px;
+        height: 75px;
+    }
+
+    .desc {
+        width: 90%;
+        /* Thẻ p chiếm 90% màn hình */
+        max-width: 300px;
+        font-size: 0.85rem;
+        margin: 0 auto;
+        /* Căn giữa thẻ p */
+    }
+
+    .group {
+        flex-wrap: wrap;
+        /* Chia thành 2 hàng, mỗi hàng 2 danh sách */
+        gap: 20px;
+        justify-content: space-between;
+        width: 100%;
+        margin-left: 25px;
+    }
+
+    .group>li {
+        width: calc(50% - 10px);
+        /* Mỗi danh sách chiếm 50% chiều rộng, trừ gap */
+        text-align: left;
+        /* Căn trái để dấu chấm thẳng hàng */
+    }
+
+    .list {
+        margin-left: 20px;
+        padding: 10px 0;
+    }
+
+    .item {
+        padding: 5px 0;
+        display: flex;
+        /* Dùng flex để căn chỉnh dấu chấm */
+        align-items: center;
+        position: relative;
+    }
+
+    .item::before {
+        left: -15px;
+        top: 50%;
+        transform: translateY(-50%);
+        /* Căn giữa dấu chấm theo chiều dọc */
+    }
+
+    .endFooter {
+        flex-direction: column;
+        gap: 20px;
+        padding: 15px;
+        width: 100%;
+    }
+
+    .groupIcon {
+        gap: 20px;
+    }
+
+    .icon i {
+        font-size: 28px;
+        /* Tăng kích thước icon trên mobile */
+    }
+
+    .h3 {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .footer {
+        padding: 15px;
+        width: 100%;
+        /* Container footer toàn màn hình */
+    }
+
+    .img {
+        width: 350px;
+        height: 100px;
+    }
+
+    .desc {
+        width: 100%;
+        /* Thẻ p chiếm 90% màn hình */
+        font-size: 0.8rem;
+    }
+
+    .group {
+        gap: 15px;
+    }
+
+    .group>li {
+        width: calc(50% - 7.5px);
+        /* Điều chỉnh trên mobile nhỏ */
+    }
+
+    .list {
+        margin-top: 15px;
+    }
+
+    .item::before {
+        left: -20px;
+        /* Điều chỉnh vị trí dấu chấm */
+    }
+
+    .endFooter {
+        padding: 10px;
+    }
+
+    .groupIcon {
+        gap: 15px;
+    }
+
+    .icon i {
+        font-size: 26px;
+        /* Kích thước icon */
+    }
+
+    .h3 {
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 430px) {
+    .footer {
+        padding: 10px;
+        width: 100%;
+        /* Container footer toàn màn hình */
+    }
+
+    .img {
+        width: 350px;
+        height: 100px;
+    }
+
+    .desc {
+        /* width: 90%; */
+        /* Thẻ p chiếm 90% màn hình */
+        font-size: 0.75rem;
+        /* max-width: 200px; */
+        margin: 0 auto;
+    }
+
+    .group {
+        gap: 10px;
+    }
+
+    .group>li {
+        width: calc(50% - 5px);
+        /* Điều chỉnh trên mobile rất nhỏ */
+    }
+
+    .item::before {
+        left: -20px;
+        /* Điều chỉnh vị trí dấu chấm */
+    }
+
+    .endFooter {
+        gap: 15px;
+    }
+
+    .groupIcon {
+        gap: 10px;
+    }
+
+    .icon i {
+        font-size: 24px;
+        /* Kích thước icon */
+    }
+}

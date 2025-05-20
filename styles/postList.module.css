@@ -1,0 +1,47 @@
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.title {
+    text-align: center;
+    font-size: 2rem;
+    margin-bottom: 20px;
+}
+
+.postList {
+    list-style: none;
+    padding: 0;
+}
+
+.postItem {
+    border-bottom: 1px solid #ddd;
+    padding: 10px 0;
+    margin-bottom: 10px;
+}
+
+.postTitle {
+    font-size: 1.5rem;
+    color: #0070f3;
+    cursor: pointer;
+}
+
+.postTitle:hover {
+    text-decoration: underline;
+}
+
+.postDescription {
+    color: #666;
+}
+
+.postImage {
+    max-width: 200px;
+    height: auto;
+    margin-top: 10px;
+}
+
+.error {
+    color: red;
+    text-align: center;
+}

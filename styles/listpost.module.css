@@ -1,0 +1,189 @@
+.postContainer {
+    padding: 50px 0;
+    overflow: hidden;
+}
+
+.itemClassName {
+    font-family: "Poppins", sans-serif;
+}
+
+.listPost {
+    margin-top: 20px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    min-height: 300px;
+
+}
+
+
+
+.postTitle {
+    border-left: 5px solid var(--primary-color);
+    padding-left: 10px;
+    margin-left: 10px;
+    font-size: 2rem;
+    color: var(--primary-color);
+    font-weight: 600;
+
+}
+
+.postDate {
+    margin-top: 20px;
+    display: inline-block;
+    font-weight: 600;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    border-radius: 8px;
+    padding: 5px;
+    color: #fff;
+}
+
+.itemPost {
+    width: 100%;
+    border-radius: 10px;
+    background-color: #fff;
+    padding: 10px 10px 20px 10px;
+    border: 2px solid transparent;
+    transition: transform 0.4s ease-out, box-shadow 0.4s ease-out, border-color 0.4s ease-out;
+}
+
+.itemPost:hover {
+    scale: 1.03;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    opacity: 0.8;
+}
+
+.itemPost:hover .imgPost {
+    scale: 1.03;
+    text-decoration: underline;
+    color: #43CBFF;
+}
+
+.imgPost {
+    height: 200px;
+    object-fit: cover;
+    width: 100%;
+    display: block;
+    /* Thêm display: block để đảm bảo không có khoảng trống thừa */
+    border-radius: 6px;
+    /* Có thể thêm bo góc cho ảnh nếu muốn */
+}
+
+.title {
+    font-family: "Poppins", sans-serif;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: var(--line-clamp, 2);
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    cursor: pointer;
+    margin-top: 10px;
+    font-weight: 600;
+    padding: 5px 0;
+}
+
+
+
+.desc {
+    font-family: "Poppins", sans-serif;
+    line-height: 1.2;
+    opacity: 0.6;
+    font-size: 12px;
+    display: -webkit-box;
+    -webkit-line-clamp: var(--line-clamp, 2);
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-weight: 400;
+    margin-top: 10px;
+
+}
+
+.itemPost.active {
+    transform: scale(1.03);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    border-color: #43CBFF;
+
+}
+
+.listPostWrapper {
+    position: relative;
+    margin-top: 20px;
+}
+
+
+.controls {
+    position: absolute;
+    top: 50%;
+    left: -15px;
+    right: -15px;
+    transform: translateY(-50%);
+    display: flex;
+    justify-content: space-between;
+    pointer-events: none;
+    z-index: 10;
+}
+
+
+/* --- Style cho từng nút điều khiển (Trước/Sau) --- */
+.controls button {
+    pointer-events: all;
+    background-color: rgba(51, 51, 51, 0.6);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 24px;
+    line-height: 40px;
+    text-align: center;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.3s ease, background-color 0.3s ease;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.controls button:hover {
+    background-color: rgba(0, 0, 0, 0.8);
+    opacity: 1;
+}
+
+/* --- CSS Responsive (Thêm vào) --- */
+/* Điều chỉnh layout và nút trên màn hình nhỏ hơn */
+
+@media (max-width: 992px) {
+    .controls {
+        left: -10px;
+        right: -10px;
+    }
+
+    .controls button {
+        width: 35px;
+        height: 35px;
+        line-height: 35px;
+        font-size: 20px;
+    }
+}
+
+@media (max-width: 576px) {
+
+
+    .controls {
+        top: auto;
+        bottom: -45px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 120px;
+        justify-content: space-around;
+        background: none;
+        pointer-events: all;
+    }
+
+    .controls button {
+        background-color: #444;
+        /* Nền nút rõ hơn */
+        opacity: 0.9;
+    }
+}

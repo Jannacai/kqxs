@@ -1,0 +1,43 @@
+/* styles/Clock.module.css */
+.clockContainer {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    padding: 15px;
+    text-align: center;
+    border-radius: 8px;
+}
+
+.date {
+    font-size: 1.2rem;
+    color: var(--primary-color);
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.time {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #007bff;
+}
+
+/* Responsive Styles */
+
+/* PC */
+@media screen and (min-width: 992px) {}
+
+
+
+/*Tablet and mobile */
+@media screen and (max-width: 991px) {
+    .clockContainer {
+        display: none;
+    }
+
+}
+
+/* Tablet */
+@media screen and (min-width: 768px) and (max-width:991.98px) {}
+
+/* Mobile */
+@media screen and (max-width: 767px) {}

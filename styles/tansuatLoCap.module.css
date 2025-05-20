@@ -1,0 +1,580 @@
+/* Style cơ bản cho container và các thành phần chung */
+.container {
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+    font-family: "Inter", sans-serif;
+    padding: 32px;
+    background-color: #f5f7fa;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.titleGroup {
+    text-align: center;
+    padding: 28px 16px;
+    background: linear-gradient(135deg, #e0f2fe 0%, #f9fafb 100%);
+    border: 1px solid #dbeafe;
+    border-radius: 16px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    margin-bottom: 40px;
+}
+
+.title {
+    font-family: "Sora", sans-serif;
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: #1e40af;
+    margin-bottom: 12px;
+    letter-spacing: 0.5px;
+    line-height: 1.3;
+    text-align: center;
+}
+
+.content {
+    margin-top: 32px;
+    padding: 40px;
+    border: 2px solid #1e40af;
+    border-radius: 16px;
+    background-color: #ffffff;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.content:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.14);
+}
+
+.group_Select {
+    margin-top: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.selectGroup {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 220px;
+}
+
+.dateTime {
+    padding: 8px 0;
+    font-size: 1.1rem;
+    color: #1e40af;
+    font-weight: 600;
+}
+
+.dateTime span {
+    color: #111827;
+    font-weight: 500;
+}
+
+.seclect {
+    border: 2px solid #1e40af;
+    border-radius: 10px;
+    width: 100%;
+    max-width: 220px;
+    height: 48px;
+    padding: 0 16px;
+    font-size: 1.1rem;
+    background-color: #ffffff;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231e40af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    background-size: 18px;
+}
+
+.seclect:hover,
+.seclect:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+    background-color: #f8fafc;
+    outline: none;
+}
+
+.options {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #374151;
+    white-space: nowrap;
+}
+
+/* Style cho container chứa bảng */
+.tableContainer {
+    margin-top: 32px;
+}
+
+/* Wrapper cho bảng */
+.tableWrapper {
+    width: 100%;
+    max-width: 100%;
+    /* Chiếm toàn bộ chiều rộng */
+    background-color: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    overflow-x: auto;
+}
+
+/* Tiêu đề cho bảng */
+.tableTitle {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1e40af;
+    padding: 20px;
+    background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%);
+    border-bottom: 3px solid #1e40af;
+    border-radius: 16px 16px 0 0;
+    text-align: center;
+    letter-spacing: 0.5px;
+}
+
+/* Style cho bảng Tần Suất Loto */
+.tableTanSuatLoto {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 1.05rem;
+    background-color: #ffffff;
+    border-radius: 0 0 16px 16px;
+}
+
+.tableTanSuatLoto th,
+.tableTanSuatLoto td {
+    padding: 12px 16px;
+    border: 1px solid #d1d5db;
+    text-align: center;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    min-width: 100px;
+    /* Tăng min-width để cột rộng hơn */
+}
+
+.tableTanSuatLoto th {
+    background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+    color: #ffffff;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-size: 0.95rem;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+/* Điều chỉnh chiều rộng cột để tận dụng không gian rộng hơn */
+.tableTanSuatLoto th:nth-child(1),
+.tableTanSuatLoto td:nth-child(1) {
+    width: 15%;
+}
+
+.tableTanSuatLoto th:nth-child(2),
+.tableTanSuatLoto td:nth-child(2) {
+    width: 15%;
+}
+
+.tableTanSuatLoto th:nth-child(3),
+.tableTanSuatLoto td:nth-child(3) {
+    width: 25%;
+}
+
+.tableTanSuatLoto th:nth-child(4),
+.tableTanSuatLoto td:nth-child(4) {
+    width: 25%;
+}
+
+.tableTanSuatLoto th:nth-child(5),
+.tableTanSuatLoto td:nth-child(5) {
+    width: 20%;
+}
+
+.tableTanSuatLoto td {
+    color: #111827;
+    font-weight: 500;
+    font-size: 1rem;
+}
+
+.tableTanSuatLoto tr:nth-child(even) {
+    background-color: #f9fafb;
+}
+
+.tableTanSuatLoto tr:hover {
+    background-color: #e0f2fe;
+}
+
+/* Highlight các số loto có tần suất cao */
+.tableTanSuatLoto tr.highlight {
+    background-color: #fef08a;
+    font-weight: 600;
+}
+
+.tableTanSuatLoto tr.highlight td {
+    color: #b91c1c;
+}
+
+/* Style cho thanh ngang biểu thị phần trăm */
+.progressBar {
+    background: linear-gradient(90deg, #6d28d9 0%, #a855f7 100%);
+    height: 20px;
+    border-radius: 8px;
+    transition: width 0.6s ease-in-out;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+    min-width: 10px;
+}
+
+.appearance {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 1rem;
+    color: #111827;
+    justify-content: center;
+}
+
+.appearance span {
+    white-space: nowrap;
+    color: #4b5563;
+    font-weight: 600;
+}
+
+/* Style cho skeleton loading */
+.skeleton {
+    background: linear-gradient(90deg, #e5e7eb 25%, #d1d5db 50%, #e5e7eb 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    height: 24px;
+    border-radius: 8px;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Style cho metadata và thông báo */
+.metadata {
+    text-align: center;
+    margin-bottom: 32px;
+    font-size: 1.25rem;
+    color: #374151;
+    font-weight: 600;
+    background: #f8fafc;
+    padding: 12px;
+    border-radius: 10px;
+}
+
+.error {
+    color: #dc2626;
+    text-align: center;
+    margin: 32px 0;
+    font-weight: 600;
+    font-size: 1.1rem;
+    background-color: #fef2f2;
+    padding: 16px;
+    border-radius: 10px;
+    border: 1px solid #fecaca;
+}
+
+.noData {
+    text-align: center;
+    color: #6b7280;
+    margin: 32px 0;
+    font-style: italic;
+    font-size: 1.1rem;
+    background-color: #f3f4f6;
+    padding: 16px;
+    border-radius: 10px;
+}
+
+/* Style cho phần nội dung mô tả */
+.Group_Content {
+    margin-top: 40px;
+    padding: 32px;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    background-color: #ffffff;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+
+.heading {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1e40af;
+    padding-bottom: 16px;
+    border-bottom: 3px solid #1e40af;
+    margin-bottom: 20px;
+}
+
+.h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #111827;
+    margin-top: 20px;
+    margin-bottom: 12px;
+}
+
+.desc {
+    font-size: 1.1rem;
+    line-height: 1.7;
+    color: #4b5563;
+    margin-bottom: 16px;
+}
+
+.action {
+    color: #1e40af;
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.3s ease, text-decoration 0.3s ease;
+}
+
+.action:hover {
+    color: #3b82f6;
+    text-decoration: underline;
+}
+
+/* Style cho nút "Quay lại đầu trang" */
+.scrollToTopBtn {
+    position: fixed;
+    bottom: 40px;
+    right: 40px;
+    display: none;
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+    color: #ffffff;
+    font-size: 1.75rem;
+    font-weight: 700;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    transition: opacity 0.3s ease, transform 0.3s ease, background 0.3s ease;
+    z-index: 1000;
+}
+
+.scrollToTopBtn:hover {
+    opacity: 0.95;
+    transform: scale(1.1);
+    background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+}
+
+.scrollToTopBtn:active {
+    transform: scale(0.95);
+}
+
+/* Style cho chức năng thu gọn/xem thêm */
+.contentWrapper {
+    transition: max-height 0.5s ease-in-out, opacity 0.3s ease;
+    overflow: hidden;
+}
+
+.contentWrapper.collapsed {
+    max-height: 300px;
+    opacity: 0.9;
+}
+
+.contentWrapper.expanded {
+    max-height: none;
+    opacity: 1;
+}
+
+.toggleBtn {
+    display: block;
+    margin: 32px auto;
+    padding: 14px 32px;
+    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+    color: #ffffff;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+.toggleBtn:hover {
+    background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+}
+
+.toggleBtn:active {
+    transform: translateY(0);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .container {
+        padding: 24px;
+    }
+
+    .titleGroup {
+        padding: 24px 12px;
+    }
+
+    .title {
+        font-size: 2rem;
+    }
+
+    .content {
+        padding: 32px;
+    }
+
+    .group_Select {
+        flex-direction: column;
+        gap: 16px;
+        align-items: flex-start;
+    }
+
+    .selectGroup {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .seclect {
+        max-width: 100%;
+    }
+
+    .tableTanSuatLoto {
+        font-size: 1rem;
+    }
+
+    .tableTanSuatLoto th,
+    .tableTanSuatLoto td {
+        padding: 10px 14px;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 16px;
+    }
+
+    .title {
+        font-size: 1.75rem;
+    }
+
+    .content {
+        padding: 24px;
+    }
+
+    .tableTanSuatLoto {
+        font-size: 0.95rem;
+    }
+
+    .tableTanSuatLoto th,
+    .tableTanSuatLoto td {
+        padding: 8px 12px;
+    }
+
+    .scrollToTopBtn {
+        bottom: 32px;
+        right: 32px;
+        width: 48px;
+        height: 48px;
+        font-size: 1.5rem;
+    }
+
+    .progressBar {
+        height: 16px;
+    }
+
+    .appearance {
+        gap: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 12px;
+    }
+
+    .title {
+        font-size: 1.5rem;
+    }
+
+    .content {
+        padding: 16px;
+    }
+
+    .seclect {
+        max-width: 100%;
+        height: 44px;
+        font-size: 1rem;
+    }
+
+    .tableTanSuatLoto {
+        font-size: 0.9rem;
+    }
+
+    .tableTanSuatLoto th,
+    .tableTanSuatLoto td {
+        padding: 6px 10px;
+    }
+
+    /* Ẩn cột "Số lần xuất hiện số 1" và "Số lần xuất hiện số 2" trên mobile */
+    .tableTanSuatLoto th:nth-child(3),
+    .tableTanSuatLoto td:nth-child(3),
+    .tableTanSuatLoto th:nth-child(4),
+    .tableTanSuatLoto td:nth-child(4) {
+        display: none;
+    }
+
+    .tableTanSuatLoto th:nth-child(1),
+    .tableTanSuatLoto td:nth-child(1) {
+        width: 25%;
+    }
+
+    .tableTanSuatLoto th:nth-child(2),
+    .tableTanSuatLoto td:nth-child(2) {
+        width: 25%;
+    }
+
+    .tableTanSuatLoto th:nth-child(5),
+    .tableTanSuatLoto td:nth-child(5) {
+        width: 50%;
+    }
+
+    .scrollToTopBtn {
+        bottom: 24px;
+        right: 24px;
+        width: 40px;
+        height: 40px;
+        font-size: 1.25rem;
+    }
+
+    .progressBar {
+        height: 14px;
+    }
+
+    .appearance {
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .tableTitle {
+        font-size: 1.25rem;
+        padding: 16px;
+    }
+
+    .metadata {
+        font-size: 1.1rem;
+    }
+
+    .error,
+    .noData {
+        font-size: 1rem;
+    }
+}

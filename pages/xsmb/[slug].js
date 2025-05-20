@@ -3,6 +3,11 @@ import { useState, useEffect } from 'react';
 import KQXS from '../kqxsAll/index';
 import Calendar from '../../component/caledar';
 import styles from "../../public/css/itemsKQXS.module.css";
+import ThongKe from '../../component/thongKe';
+import ListXSMT from '../../component/listXSMT';
+import ListXSMB from '../../component/listXSMB';
+import ListXSMN from '../../component/listXSMN';
+
 import Image from 'next/image';
 // Giả lập API để lấy thông tin ngày
 
@@ -10,7 +15,6 @@ import Image from 'next/image';
 export default function XsmbPage() {
     const router = useRouter();
     const { slug } = router.query; // slug sẽ là mảng hoặc undefined
-    const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     // Xử lý slug thành chuỗi (nếu có)
@@ -18,25 +22,6 @@ export default function XsmbPage() {
     const station = 'xsmb'; // Slug cố định cho xsmb
 
     console.log("Station:", station, "Slug:", slugDayofweek);
-    useEffect(() => {
-        // Giả lập tải dữ liệu (bỏ logic ngày tháng)
-        setTimeout(() => {
-            setLoading(false);
-        }, 1000);
-    }, [slugDayofweek]);
-
-    if (loading) {
-        return (
-            <div className={styles.containerStyle}>
-                <div className={styles.Lazyloading}>
-                    <Image width={500}
-                        height={300}
-                        objectFit="cover"
-                        className={styles.imggg} src='/asset/img/loading.png' />
-                </div>
-            </div>
-        );
-    }
     console.log('Slug DayOfWeek---', slugDayofweek);
 
     if (error) {
@@ -52,24 +37,15 @@ export default function XsmbPage() {
 
     return (
 
-        <div className={styles.containerStyle}>
-            <Calendar></Calendar>
+        <div className="container">
+            <div>
+                <Calendar></Calendar>
+                <ListXSMB></ListXSMB>
+                <ListXSMT></ListXSMT>
+                <ListXSMN></ListXSMN>
+            </div>
             <KQXS data3={slugDayofweek}></KQXS>
-
-            {/* <h1 className={styles.titleStyle} >Thông tin ngày {dayInfo.date}</h1>
-            <h2 className={styles.subtitleStyle}>Sự kiện:</h2>
-            <ul className={styles.listStyle}>
-                {dayInfo.events.map((event, index) => (
-                    <li key={index} className={styles.listItemStyle}>
-                        {event}
-                    </li>
-                ))}
-            </ul>
-            <h2 className={styles.subtitleStyle}>Ghi chú:</h2>
-            <p className={styles.noteStyle}>{dayInfo.note}</p> */}
-            {/* <button className={styles.buttonStyle} onClick={() => router.push('/')}>
-                Quay lại lịch
-            </button> */}
+            <ThongKe></ThongKe>
         </div>
     );
 }

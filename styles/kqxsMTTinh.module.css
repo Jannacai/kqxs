@@ -1,0 +1,320 @@
+.containerKQ {
+    width: 100%;
+    min-width: 660px;
+    max-width: 1200px;
+    font-family: "Poppins", sans-serif;
+    font-weight: 500;
+    margin: 0 auto;
+}
+
+.kqxs {
+    background-color: #f9f9f9;
+    width: 100%;
+    border: 3px solid #2d3483;
+    border-radius: 8px;
+    text-align: center;
+    padding: 20px 0;
+    margin-bottom: 30px;
+    box-shadow: 0px 6px 10px 0px rgba(0, 0, 0, 0.1);
+}
+
+.kqxs__title {
+    color: #2d3483;
+    font-size: 26px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.kqxs__title span {
+    text-transform: uppercase;
+}
+
+.kqxs__action {
+    display: flex;
+    justify-content: center;
+    margin: 15px 0;
+    gap: 10px;
+}
+
+.kqxs__actionLink {
+    font-size: 20px;
+    font-weight: 500;
+    text-decoration: underline;
+    color: var(--primary-color);
+}
+
+.kqxs__actionLink.dayOfWeek {
+    text-transform: none;
+}
+
+.kqxs__actionLink:hover {
+    color: red;
+}
+
+.kqxs__action span {
+    font-size: 20px;
+    color: #000;
+    margin: 0 5px;
+}
+
+/* Điều chỉnh bảng kết quả xổ số */
+.tableXS {
+    border-collapse: collapse;
+    text-align: center;
+    width: 100%;
+    margin: 0 auto;
+    display: table;
+}
+
+.tableXS th,
+.tableXS td {
+    border: 1px solid #ccc;
+    font-weight: 700;
+}
+
+.tableXS th {
+    padding: 10px 0;
+    background-color: #007bff21;
+    font-size: 18px;
+    font-weight: 600;
+    color: #2d3483;
+    text-transform: uppercase;
+}
+
+.tableXS th:first-child {
+    width: 60px;
+    background-color: #f0f0f0;
+}
+
+.tableXS th:not(:first-child),
+.tableXS td:not(.tdTitle) {
+    flex: 1;
+    width: auto;
+    text-align: center;
+}
+
+.tableXS td.tdTitle {
+    width: 60px;
+    background-color: #f0f0f0;
+    font-size: 20px;
+    color: #000;
+}
+
+.tableXS td.tdTitle.highlight {
+    color: red;
+    font-size: 28px;
+}
+
+.tableXS td.rowXS {
+    /* width: calc(100% - 60px); */
+    display: flex;
+    justify-content: space-evenly;
+    flex-wrap: wrap;
+}
+
+.tableXS td:not(.tdTitle):hover {
+    background-color: #fff4c3;
+}
+
+.tableXS tr:nth-child(odd):not(:first-child) {
+    background-color: #e7f5fe;
+    /* Màu xanh nhạt giống hình ảnh */
+}
+
+/* Định dạng các số trong ô */
+.prizeNumber {
+    font-weight: 700;
+    font-size: 28px;
+    /* Tăng kích thước chữ giống hình ảnh */
+    min-width: 60px;
+    text-align: center;
+    line-height: 1.5;
+    margin: 5px 0;
+}
+
+.prizeNumber.highlight {
+    color: red;
+}
+
+.highlight1 {
+    color: red;
+}
+
+.prizeNumber.gdb {
+    font-size: 34px;
+    /* Tăng kích thước chữ cho giải Đặc Biệt */
+}
+
+/* Bỏ khoảng cách giữa các số vì không cần hiển thị trên cùng một dòng */
+.prizeSeparator {}
+
+/* Bộ lọc */
+.action {
+    margin-top: 40px;
+}
+
+.filter__options {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 80px;
+    border: 2px solid #2d3483;
+    width: 500px;
+    height: 50px;
+    border-radius: 6px;
+    margin: 0 auto;
+}
+
+.optionInput input {
+    display: none;
+}
+
+.optionInput label {
+    display: flex;
+    align-items: center;
+    position: relative;
+    font-size: 18px;
+    font-weight: 600;
+    color: #2d3483;
+    cursor: pointer;
+}
+
+.optionInput label::before {
+    content: "";
+    position: absolute;
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    left: -30px;
+    border-radius: 50%;
+    border: 2px solid #ccc;
+}
+
+.optionInput input[type='radio']:checked+label::before {
+    background-color: transparent;
+    border: 2px solid #000;
+}
+
+.optionInput input[type='radio']:checked+label::after {
+    content: "";
+    position: absolute;
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    top: 2px;
+    left: -25.5px;
+    z-index: 1;
+    border-radius: 50%;
+    background-color: #2d3483;
+}
+
+/* Container cho bảng lô tô gộp */
+.TKe_container {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+/* Bảng thống kê lô tô */
+.TKe_content {
+    background-color: #F8F8F8;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    max-width: 1200px;
+    border: 1px solid #ccc;
+    border-right: 4px solid #ccc;
+    margin-bottom: 20px;
+}
+
+.TKe_contentTitle {
+    padding: 10px 0;
+    text-align: center;
+}
+
+.TKe_contentTitle .title {
+    font-weight: 600;
+    font-style: normal;
+    color: #000;
+    text-transform: uppercase;
+}
+
+.TKe_contentTitle .desc,
+.TKe_contentTitle .dayOfWeek {
+    color: #2d3483;
+    font-weight: 700;
+    font-style: italic;
+}
+
+.TKe_contentTitle .desc {
+    text-transform: uppercase;
+    margin-right: 20px;
+}
+
+.tableKey {
+    border-collapse: collapse;
+    box-shadow: 0px 6px 10px 0px rgba(0, 0, 0, 0.1);
+    width: 100%;
+}
+
+.tableKey th,
+.tableKey td {
+    border: 1px solid #ccc;
+    text-align: center;
+    font-weight: 600;
+    padding: 10px;
+}
+
+.tableKey th {
+    background-color: #f0f0f0;
+    font-size: 18px;
+    color: #000;
+    text-transform: uppercase;
+}
+
+.tableKey th.t_h,
+.tableKey td.t_h {
+    width: 60px;
+    padding: 10px 0;
+    font-weight: 700;
+}
+
+.tableKey th:not(.t_h),
+.tableKey td:not(.t_h) {
+    width: calc((100% - 120px) / 2);
+    text-align: center;
+}
+
+.tableKey tr:nth-child(odd) {
+    background-color: #61c1d01f;
+}
+
+.tableKey td:first-child,
+.tableKey td:nth-child(3) {
+    background-color: #F8F8F8;
+}
+
+/* Phân trang */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 20px;
+    gap: 10px;
+}
+
+.paginationButton {
+    width: 70px;
+    font-weight: 600;
+    padding: 8px 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.paginationButton:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}

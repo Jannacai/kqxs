@@ -2,6 +2,7 @@
   "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
-  "/": "pages/index.js",
-  "/xsmb/[slug]": "pages/xsmb/[slug].js"
+  "/soicau/soicauMB": "pages/soicau/soicauMB.js",
+  "/TaoDanD/Ngaunhien9x0x": "pages/TaoDanD/Ngaunhien9x0x.js",
+  "/TaoDan": "pages/TaoDan.js"
 }

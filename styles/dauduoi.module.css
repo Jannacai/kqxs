@@ -1,0 +1,710 @@
+/* Style cơ bản cho container và các thành phần chung */
+.container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    font-family: "Inter", sans-serif;
+    padding: 20px;
+    background-color: #f8fafc;
+}
+
+.titleGroup {
+    text-align: center;
+    padding: 30px 15px;
+    border: 1px solid #e2e8f0;
+    background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    margin-bottom: 30px;
+}
+
+.title {
+    font-family: "Sora", sans-serif;
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1e40af;
+    margin-bottom: 10px;
+    letter-spacing: 0.5px;
+    line-height: 1.4;
+    text-align: center;
+}
+
+.content {
+    margin-top: 30px;
+    padding: 30px;
+    border: 2px solid #1e40af;
+    border-radius: 16px;
+    background-color: #ffffff;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+    transition: transform 0.2s ease;
+}
+
+.content:hover {
+    transform: translateY(-2px);
+}
+
+.group_Select {
+    margin-top: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.selectGroup {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.dateTime {
+    padding: 5px 0;
+    font-size: 1rem;
+    color: #1e40af;
+    font-weight: 600;
+}
+
+.dateTime span {
+    color: #1f2937;
+}
+
+.seclect {
+    border: 2px solid #1e40af;
+    border-radius: 8px;
+    width: 160px;
+    height: 42px;
+    padding: 0 12px;
+    font-size: 1rem;
+    background-color: #ffffff;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.seclect:hover {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.options {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #374151;
+}
+
+.table {
+    margin-top: 15px;
+    text-align: center;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th {
+    font-size: 1rem;
+    font-weight: 600;
+    background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+    color: #1f2937;
+}
+
+.table th,
+.table td {
+    border: 1px solid #e5e7eb;
+    padding: 12px 15px;
+    transition: background-color 0.3s ease;
+}
+
+.table tr:nth-child(even) {
+    background-color: #f9fafb;
+}
+
+.table tr:hover {
+    background-color: #f1f5f9;
+}
+
+.number {
+    color: #1e40af;
+    font-weight: 700;
+    font-size: 1.2rem;
+    background-color: #fefce8;
+    padding: 5px 10px;
+    border-radius: 6px;
+}
+
+.date {
+    color: #1e40af;
+    font-weight: 500;
+}
+
+.gapDraws {
+    color: #d97706;
+    font-weight: 600;
+}
+
+.maxGap {
+    font-weight: 500;
+    color: #ef4444;
+}
+
+.gapDraws span,
+.maxGap span {
+    color: #1f2937;
+    font-weight: 400;
+}
+
+.Group_Content {
+    margin-top: 40px;
+    padding: 30px;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    background-color: #ffffff;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+}
+
+.heading {
+    padding: 15px 0;
+    font-weight: 700;
+    font-size: 1.5rem;
+    line-height: 1.5;
+    color: #1e40af;
+    border-bottom: 2px solid #1e40af;
+}
+
+.h3 {
+    padding: 10px 0;
+    font-weight: 600;
+    font-size: 1.2rem;
+    line-height: 1.2;
+    color: #1f2937;
+}
+
+.desc {
+    padding: 5px 0;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #4b5563;
+}
+
+.action {
+    color: #1e40af;
+    font-weight: 600;
+    transition: color 0.3s ease;
+}
+
+.action:hover {
+    color: #2563eb;
+}
+
+/* Style cho bảng Đầu Đuôi (bảng 1: tất cả các giải) */
+.tableDauDuoi {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 1rem;
+    margin-top: 15px;
+    background-color: #ffffff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.tableDauDuoi th,
+.tableDauDuoi td {
+    padding: 14px 18px;
+    border: 1px solid #e5e7eb;
+    text-align: center;
+    transition: background-color 0.3s ease;
+}
+
+.tableDauDuoi th {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: #ffffff;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.tableDauDuoi td:first-child {
+    width: 10%;
+    font-weight: 600;
+    color: #1f2937;
+    background-color: #f3f4f6;
+}
+
+.tableDauDuoi td:nth-child(2),
+.tableDauDuoi td:nth-child(3) {
+    width: 45%;
+}
+
+.tableDauDuoi tr:hover {
+    background-color: #f1f5f9;
+}
+
+/* Style cho bảng Đầu/Đuôi giải Đặc Biệt (bảng 2) */
+.tableSpecialDauDuoi {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 1rem;
+    margin-top: 15px;
+    background-color: #ffffff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.tableSpecialDauDuoi th,
+.tableSpecialDauDuoi td {
+    padding: 14px 18px;
+    border: 1px solid #e5e7eb;
+    text-align: center;
+    transition: background-color 0.3s ease;
+}
+
+.tableSpecialDauDuoi th {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #ffffff;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.tableSpecialDauDuoi td:first-child {
+    width: 10%;
+    font-weight: 600;
+    color: #1f2937;
+    background-color: #f3f4f6;
+}
+
+.tableSpecialDauDuoi td:nth-child(2),
+.tableSpecialDauDuoi td:nth-child(3) {
+    width: 45%;
+}
+
+.tableSpecialDauDuoi tr:hover {
+    background-color: #f1f5f9;
+}
+
+/* Style cho thanh ngang biểu thị phần trăm */
+.progressBar {
+    background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
+    height: 16px;
+    display: inline-block;
+    margin-right: 10px;
+    border-radius: 4px;
+    transition: width 0.5s ease-in-out;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Style cho phần lần xuất hiện */
+.appearance {
+    display: flex;
+    align-items: center;
+    font-size: 0.95rem;
+    color: #1f2937;
+}
+
+.appearance span {
+    white-space: nowrap;
+    color: #4b5563;
+}
+
+/* Style cho skeleton loading */
+.skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    height: 20px;
+    border-radius: 4px;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Style bổ sung để đảm bảo bố cục và các thông báo */
+.metadata {
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 1.1rem;
+    color: #4b5563;
+}
+
+.error {
+    color: #ef4444;
+    text-align: center;
+    margin: 20px 0;
+    font-weight: 500;
+    font-size: 1rem;
+}
+
+.noData {
+    text-align: center;
+    color: #6b7280;
+    margin: 20px 0;
+    font-style: italic;
+    font-size: 1rem;
+}
+
+/* Style cho bảng mới (hiển thị Đầu/Đuôi theo ngày) */
+.tableDauDuoiByDate {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 1rem;
+    margin-top: 15px;
+    background-color: #ffffff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.tableDauDuoiByDate th,
+.tableDauDuoiByDate td {
+    padding: 14px 16px;
+    border: 1px solid #e5e7eb;
+    text-align: center;
+    transition: background-color 0.3s ease;
+}
+
+.tableDauDuoiByDate th {
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    color: #ffffff;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.tableDauDuoiByDate td:first-child {
+    width: 15%;
+    font-weight: 600;
+    color: #1f2937;
+    background-color: #f3f4f6;
+}
+
+.tableDauDuoiByDate td:not(:first-child) {
+    width: calc(85% / 10);
+    /* Chia đều cho 10 cột số (0-9) */
+}
+
+/* Highlight các số xuất hiện từ 4 lần trở lên */
+.tableDauDuoiByDate td.highlight {
+    background-color: #fef08a;
+    font-weight: 700;
+    color: #b91c1c;
+    border-radius: 4px;
+}
+
+/* Hàng tổng ở dưới cùng */
+.tableDauDuoiByDate tr.totalRow {
+    background-color: #e5e7eb;
+    font-weight: 600;
+}
+
+.tableDauDuoiByDate tr.totalRow td:first-child {
+    background-color: #d1d5db;
+    color: #1f2937;
+}
+
+.tableDauDuoiByDate tr:hover:not(.totalRow) {
+    background-color: #f1f5f9;
+}
+
+/* Đảm bảo viền của hàng tổng rõ ràng */
+.tableDauDuoiByDate tr.totalRow td {
+    border-top: 2px solid #93c5fd;
+    /* Viền trên đậm hơn, màu xanh nhạt */
+    border-bottom: 2px solid #93c5fd;
+    /* Viền dưới đậm hơn, màu xanh nhạt */
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .container {
+        padding: 15px;
+    }
+
+    .titleGroup {
+        padding: 20px 10px;
+    }
+
+    .title {
+        font-size: 1.5rem;
+    }
+
+    .group_Select {
+        flex-direction: column;
+        gap: 15px;
+        align-items: flex-start;
+    }
+
+    .selectGroup {
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .seclect {
+        width: 100%;
+        max-width: 200px;
+    }
+
+    .tableDauDuoi,
+    .tableSpecialDauDuoi,
+    .tableDauDuoiByDate {
+        font-size: 0.95rem;
+    }
+
+    .tableDauDuoi th,
+    .tableDauDuoi td,
+    .tableSpecialDauDuoi th,
+    .tableSpecialDauDuoi td,
+    .tableDauDuoiByDate th,
+    .tableDauDuoiByDate td {
+        padding: 10px 12px;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        min-width: 100%;
+        padding: 10px;
+    }
+
+    .title {
+        font-size: 1.3rem;
+    }
+
+    .tableDauDuoi,
+    .tableSpecialDauDuoi,
+    .tableDauDuoiByDate {
+        font-size: 0.9rem;
+    }
+
+    .tableDauDuoi th,
+    .tableDauDuoi td,
+    .tableSpecialD هوش Duoi th,
+    .tableSpecialDauDuoi td,
+    .tableDauDuoiByDate th,
+    .tableDauDuoiByDate td {
+        padding: 8px 10px;
+    }
+
+    .tableDauDuoiByDate td:first-child {
+        width: 20%;
+    }
+
+    .tableDauDuoiByDate td:not(:first-child) {
+        width: calc(80% / 10);
+    }
+}
+
+@media (max-width: 480px) {
+    .title {
+        font-size: 1.2rem;
+    }
+
+    .seclect {
+        max-width: 100%;
+    }
+
+    .tableDauDuoi,
+    .tableSpecialDauDuoi,
+    .tableDauDuoiByDate {
+        font-size: 0.85rem;
+    }
+
+    .tableDauDuoi th,
+    .tableDauDuoi td,
+    .tableSpecialDauDuoi th,
+    .tableSpecialDauDuoi td,
+    .tableDauDuoiByDate th,
+    .tableDauDuoiByDate td {
+        padding: 6px 8px;
+    }
+
+    .tableDauDuoiByDate td:first-child {
+        width: 25%;
+    }
+
+    .tableDauDuoiByDate td:not(:first-child) {
+        width: calc(75% / 10);
+    }
+}
+
+/* Các phần CSS khác giữ nguyên, chỉ cập nhật phần .totalRow */
+
+/* Hàng tổng ở dưới cùng */
+.tableDauDuoiByDate tr.totalRow {
+    background-color: #fef9c3;
+    /* Đổi màu thành vàng nhạt để dễ thấy */
+    font-weight: 600;
+}
+
+.tableDauDuoiByDate tr.totalRow td:first-child {
+    background-color: var(--background-color);
+    /* Đồng bộ màu với hàng tổng */
+    color: #1f2937;
+}
+
+
+/* Style cho nút "Quay lại đầu trang" */
+.scrollToTopBtn {
+    position: fixed;
+    bottom: 40px;
+    right: 40px;
+    display: none;
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #1e3a8a 0%, #93c5fd 100%);
+    color: #ffffff;
+    font-size: 1.5rem;
+    font-weight: 700;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    z-index: 1000;
+}
+
+.scrollToTopBtn:hover {
+    opacity: 0.9;
+    transform: translateY(-4px);
+}
+
+.scrollToTopBtn:active {
+    transform: translateY(0);
+}
+
+/* Style cho chức năng thu gọn/xem thêm */
+.contentWrapper {
+    transition: max-height 0.5s ease-in-out, opacity 0.3s ease;
+    overflow: hidden;
+}
+
+.contentWrapper.collapsed {
+    max-height: 300px;
+    opacity: 0.8;
+}
+
+.contentWrapper.expanded {
+    max-height: none;
+    opacity: 1;
+}
+
+.toggleBtn {
+    display: block;
+    margin: 20px auto;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #1e3a8a 0%, #93c5fd 100%);
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.toggleBtn:hover {
+    background: linear-gradient(135deg, #93c5fd 0%, #1e3a8a 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.toggleBtn:active {
+    transform: translateY(0);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .container {
+        padding: 15px;
+    }
+
+    .titleGroup {
+        padding: 20px 10px;
+    }
+
+    .title {
+        font-size: 1.5rem;
+    }
+
+    .group_Select {
+        flex-direction: column;
+        gap: 15px;
+        align-items: flex-start;
+    }
+
+    .select {
+        width: 100%;
+        max-width: 200px;
+    }
+
+    .table {
+        font-size: 0.95rem;
+    }
+
+    .table th,
+    .table td {
+        padding: 10px 12px;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        min-width: 100%;
+        padding: 10px;
+    }
+
+    .title {
+        font-size: 1.3rem;
+    }
+
+    .table {
+        font-size: 0.9rem;
+    }
+
+    .table th,
+    .table td {
+        padding: 8px 10px;
+    }
+
+    .scrollToTopBtn {
+        bottom: 20px;
+        right: 20px;
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .title {
+        font-size: 1.2rem;
+    }
+
+    .select {
+        max-width: 100%;
+    }
+
+    .table {
+        font-size: 0.85rem;
+    }
+
+    .table th,
+    .table td {
+        padding: 6px 8px;
+    }
+
+    .scrollToTopBtn {
+        bottom: 15px;
+        right: 15px;
+        width: 36px;
+        height: 36px;
+        font-size: 1rem;
+    }
+}

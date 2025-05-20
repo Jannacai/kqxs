@@ -1,0 +1,80 @@
+.container {
+    position: relative;
+    margin-top: 20px;
+    border: 1px solid #10b981;
+    border-radius: 8px;
+    width: 300px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    font-family: "Poppins", sans-serif;
+    background-color: #f9f9f9;
+}
+
+.icon {
+    margin-right: 5px;
+    font-size: 20px;
+}
+
+.iconDown {
+    rotate: -90deg;
+    position: absolute;
+    right: 20px;
+}
+
+.iconDown i {
+    border-radius: 50%;
+    font-size: 30px;
+    background-color: #10b981;
+}
+
+.title {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin: 10px;
+    border-radius: 8px;
+    font-weight: 500;
+    color: var(--color-white);
+    width: 280px;
+    padding: 15px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.list.onClick {
+    display: block;
+}
+
+.item {
+    padding: 13px 10px;
+    border-bottom: 1px solid #cccccc8f;
+}
+
+.item:hover {
+    border-left: 4px solid #10b981;
+    background-color: antiquewhite;
+}
+
+.action_Link {
+    display: block;
+    width: 100%;
+    color: #000;
+}
+/* Responsive Styles */
+
+/* PC */
+@media screen and (min-width: 992px) {}
+
+
+
+/*Tablet and mobile */
+@media screen and (max-width: 991px) {
+    .container {
+        display: none;
+    }
+
+}
+
+/* Tablet */
+@media screen and (min-width: 768px) and (max-width:991.98px) {}
+
+/* Mobile */
+@media screen and (max-width: 767px) {}

@@ -1,40 +1,129 @@
 // pages/posts/[id].js
-import Head from 'next/head';
-import NavBar from '../../components/NavBar';
-import styles from '../../styles/LotteryPage.module.css';
+import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
+import { getPostById } from "../api/post/index";
+import styles from "../../styles/postDetail.module.css";
+import Calendar from "../../component/caledar";
+import ThongKe from "../../component/thongKe"
+import ListXSMB from "../../component/listXSMB"
+import ListXSMT from "../../component/listXSMT"
+import ListXSMN from "../../component/listXSMN"
+import PostList from "./list"
+const PostDetail = () => {
+    const router = useRouter();
+    const { id } = router.query; // Lấy ID từ URL
+    const [post, setPost] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-export async function getStaticPaths() {
-    const res = await fetch(`${process.env.BACKEND_URL}/api/posts`);
-    const posts = await res.json();
-    const paths = posts.map(post => ({
-        params: { id: post._id },
-    }));
-    return { paths, fallback: false };
-}
+    useEffect(() => {
+        if (!id) return; // Đợi id được lấy từ router
 
-export async function getStaticProps({ params }) {
-    const res = await fetch(`${process.env.BACKEND_URL}/api/posts/${params.id}`);
-    const post = await res.json();
-    return {
-        props: {
-            post,
-        },
-        revalidate: 60,
-    };
-}
+        const fetchPost = async () => {
+            try {
+                // console.log("Fetching post with ID:", id);
+                const data = await getPostById(id);
+                // console.log("Post data:", data);
+                setPost(data);
+                setLoading(false);
+            } catch (err) {
+                // console.error("Error fetching post:", err);
+                setError(err.message || "Đã có lỗi xảy ra khi lấy chi tiết bài viết");
+                setLoading(false);
+            }
+        };
 
-export default function Post({ post }) {
+        fetchPost();
+    }, [id]);
+
+    if (loading) {
+        return <p>Đang tải...</p>;
+    }
+
+    if (error) {
+        return <p className={styles.error}>{error}</p>;
+    }
+
+    if (!post) {
+        return <p>Bài viết không tồn tại.</p>;
+    }
+    // --- PHẦN ĐỊNH DẠNG NGÀY THÁNG ---
+    let formattedDate = 'Ngày đăng';
+    if (post.createdAt) {
+        try {
+            const date = new Date(post.createdAt);
+            // Lấy ngày, tháng (+1 vì getMonth trả về từ 0-11), năm
+            const day = date.getDate();
+            const month = date.getMonth() + 1;
+            const year = date.getFullYear();
+
+            // Dùng padStart để thêm '0' nếu ngày/tháng nhỏ hơn 10
+            const formattedDay = String(day).padStart(2, '0');
+            const formattedMonth = String(month).padStart(2, '0');
+
+            // Kết hợp lại theo định dạng dd/MM/yyyy
+            formattedDate = `${formattedDay}/${formattedMonth}/${year}`;
+        } catch (error) {
+            console.error("Error formatting date:", post.createdAt, error);
+            // Giữ giá trị mặc định nếu có lỗi
+        }
+    }
     return (
-        <div className={styles.container}>
-            <Head>
-                <title>{post.title} - Xoso.com.vn</title>
-                <meta name="description" content={post.content.slice(0, 150)} />
-            </Head>
-            <NavBar />
-            <h1>{post.title}</h1>
-            <p>Tác giả: {post.author.username}</p>
-            <p>Ngày đăng: {new Date(post.createdAt).toLocaleDateString('vi-VN')}</p>
-            <div>{post.content}</div>
+        <div>
+            <div className="container">
+                <div>
+                    <Calendar></Calendar>
+                    <ListXSMB></ListXSMB>
+                    <ListXSMT></ListXSMT>
+                    <ListXSMN></ListXSMN>
+                </div>
+
+                <div>
+                    <p className={styles.date}>Ngày {formattedDate}</p>
+                    <h1 className={styles.title}>{post.title}</h1>
+                    <p className={styles.author}>Tác giả: {post.author?.username || "Admin"}</p>
+                    {/* <p className={styles.description}>{post.description}</p> */}
+                    {post.img ? (
+                        <img
+                            src={post.img}
+                            alt={post.title}
+                            className={styles.image}
+                        />
+                    ) : (<p>ko có hình</p>)}
+                    <p className={styles.chuthich}>{post.title}</p>
+                    <RenderContent content={post.description} />
+                    <p className={styles.nguon}>Nguồn: { }</p>
+
+                    <button className={styles.backButton} onClick={() => router.push("/news")}>
+                        Đến Trang Tin Tức
+                    </button>
+                </div>
+                <ThongKe></ThongKe>
+            </div>
+            <PostList></PostList>
         </div>
     );
-}
+};
+
+export default PostDetail;
+
+const RenderContent = ({ content }) => {
+    if (!content) {
+        return null;
+    }
+
+    const paragraphs = content
+        .split(/\n\s*\n/) // Regex để tách đoạn
+        .filter(paragraph => paragraph.trim() !== '');
+
+    return (
+        // Thêm một div bao bọc với class để có thể style nếu cần
+        <div >
+            {paragraphs.map((paragraph, index) => (
+                <p className={styles.description} key={index}>
+                    {paragraph}
+                </p>
+            ))}
+        </div>
+    );
+};

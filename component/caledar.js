@@ -24,20 +24,40 @@ const Calendar = ({ onDateChange }) => {
     const [currentYear, setCurrentYear] = useState(today.getFullYear());
     const [currentMonth, setCurrentMonth] = useState(today.getMonth());
     const [selectedDate, setSelectedDate] = useState(new Date(today));
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     // Đồng bộ selectedDate với slug từ URL khi component mount hoặc URL thay đổi
     useEffect(() => {
+        if (!router.isReady) return; // Wait for router to be ready
+
         const slug = pathname.split('/xsmb/')[1];
-        if (slug) {
+        if (slug && typeof slug === 'string' && slug.includes('-')) { // Ensure slug exists, is a string, and has the expected format
             const [day, month, year] = slug.split('-').map(Number);
             const dateFromSlug = new Date(year, month - 1, day);
             if (!isNaN(dateFromSlug.getTime())) {
                 setSelectedDate(dateFromSlug);
                 setCurrentMonth(dateFromSlug.getMonth());
                 setCurrentYear(dateFromSlug.getFullYear());
+            } else {
+                console.error('Invalid date from slug:', slug);
+                // Fallback to today's date if the slug date is invalid
+                setSelectedDate(new Date(today));
+                setCurrentMonth(today.getMonth());
+                setCurrentYear(today.getFullYear());
             }
+        } else {
+            console.warn('No valid slug found, using default date (today)');
+            // If no valid slug, default to today's date
+            setSelectedDate(new Date(today));
+            setCurrentMonth(today.getMonth());
+            setCurrentYear(today.getFullYear());
+            // Optionally redirect to a default date URL
+            const dayFormatted = formatNumber(today.getDate());
+            const monthFormatted = formatNumber(today.getMonth() + 1);
+            const defaultSlug = `${dayFormatted}-${monthFormatted}-${today.getFullYear()}`;
+            router.replace(`/xsmb/${defaultSlug}`);
         }
-    }, [pathname]);
+    }, [router.isReady, pathname, router, today]);
 
     // Gọi onDateChange khi selectedDate thay đổi
     useEffect(() => {
@@ -112,6 +132,9 @@ const Calendar = ({ onDateChange }) => {
 
         return days;
     };
+    const toggleMenu = () => {
+        setIsMenuOpen(true);
+    };
 
     return (
         <div className={styles.calendarContainer}>
@@ -153,7 +176,6 @@ const Calendar = ({ onDateChange }) => {
                     className={styles.navButton}
                 >
                     <i className="iconRight fa-solid fa-circle-chevron-right"></i>
-
                 </button>
             </div>
             <div className={styles.calendarDays}>

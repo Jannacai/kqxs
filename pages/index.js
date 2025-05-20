@@ -4,6 +4,15 @@ import Regiter from './register'
 import NavBar from '../component/navbar';
 import KQXS from './kqxsAll/index';
 import Calendar from "../component/caledar"
+import ListPost from '../component/listPost';
+import ThongKe from '../component/thongKe';
+import ListXSMT from '../component/listXSMT';
+import ListXSMB from '../component/listXSMB';
+import ListXSMN from '../component/listXSMN';
+import PostList from './post/list';
+import TableDate from '../component/tableDateKQXS';
+import Footer from '../component/footer';
+
 export default function Home(req, res) {
     const [username, setName] = useState('');
     const [password, setEmail] = useState('');
@@ -34,11 +43,26 @@ export default function Home(req, res) {
     };
 
     return (
-        <div className='trangchu'>
-            <div className='navigation'>
-                <Calendar></Calendar>
+        <div>
+
+            <div className='container'>
+                <div className='navigation'>
+                    <Calendar></Calendar>
+                    <ListXSMB></ListXSMB>
+                    <ListXSMT></ListXSMT>
+                    <ListXSMN></ListXSMN>
+                </div>
+                <div>
+                    <TableDate></TableDate>
+                    <KQXS>{"Miền Bắc"}</KQXS>
+                </div>
+
+                <ThongKe></ThongKe>
             </div>
-            <KQXS>{"Miền Bắc"}</KQXS>
+            <div className='container'>
+                <PostList></PostList>
+            </div>
+
         </div>
     );
 }

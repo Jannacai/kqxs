@@ -137,3 +137,81 @@
     background-color: #007bff;
     color: var(--color-white);
 }
+
+
+/* Responsive Styles */
+
+/* PC */
+@media screen and (min-width: 992px) {
+    .calendarContainerMobile {
+        display: none;
+    }
+    .iconMenu {
+        display: none;
+    }
+}
+
+
+
+/*Tablet and mobile */
+@media screen and (max-width: 991px) {
+    .calendarContainer {
+        display: none;
+    }
+
+    .calendarContainerMobile {
+        color: var(--primary-color);
+        width: 300px;
+        font-weight: 550;
+        min-height: 330px;
+        height: 340px;
+        border: 3px solid var(--primary-color);
+        border-radius: 10px;
+        padding: 10px;
+        font-family: Arial, sans-serif;
+        background-color: #f9f9f9;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        visibility: hidden;
+        top: 70px;
+        right: 30px;
+        z-index: 100;
+        transition: all 0.5s ease;
+        position: absolute;
+    }
+
+
+    .CalendarToggle {
+        visibility: visible;
+    }
+
+    .iconMenu {
+        position: absolute;
+        display: block;
+        top: 20px;
+        right: 10px;
+        width: 60px;
+        font-size: 40px;
+        color: var(--primary-color);
+    }
+
+    .iconMenu:hover {
+        color: var(--background-color);
+    }
+}
+
+/* Tablet */
+@media screen and (min-width: 768px) and (max-width:991.98px) {}
+
+/* Mobile */
+@media screen and (max-width: 767px) {
+    .nav_itemLink {
+        padding: 0 12px;
+        font-size: 14px;
+    }
+
+    .nav__menu {
+        min-width: 150px;
+    }
+}

@@ -1,0 +1,436 @@
+/* Tổng thể container */
+.container {
+    width: 100%;
+    min-width: 770px;
+    font-family: "Poppins", sans-serif;
+    background-color: #f9fafb;
+    /* Màu nền nhẹ nhàng */
+    padding: 20px;
+}
+
+/* Tiêu đề chính */
+.titleGroup {
+    text-align: center;
+    padding: 30px 10px;
+    background-color: #ffffff;
+    border: 2px solid #1e3a8a;
+    /* Viền xanh đậm */
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    /* Bóng nhẹ */
+    margin-bottom: 20px;
+}
+
+.title {
+    font-family: "Sora", sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #1e3a8a;
+    /* Màu xanh đậm */
+    letter-spacing: 0.5px;
+}
+
+/* Nội dung chính */
+.content {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #ffffff;
+    border: 2px solid #93c5fd;
+    /* Viền xanh nhạt */
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    /* Bóng nhẹ */
+}
+
+/* Nhóm chọn tỉnh và thời gian */
+.group_Select {
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    /* Khoảng cách giữa các phần tử */
+    flex-wrap: wrap;
+}
+
+.dateTime {
+    padding: 5px 0;
+    font-size: 1rem;
+    color: #1e3a8a;
+    /* Màu xanh đậm */
+    font-weight: 600;
+}
+
+.dateTime span {
+    color: #374151;
+    /* Màu xám đậm */
+}
+
+/* Đổi tên class "seclect" thành "select" để đúng chính tả */
+.select {
+    border: 2px solid #1e3a8a;
+    /* Viền xanh đậm */
+    border-radius: 8px;
+    width: 160px;
+    height: 40px;
+    padding: 5px;
+    font-size: 1rem;
+    color: #1e3a8a;
+    background-color: #ffffff;
+    transition: border-color 0.3s ease;
+}
+
+.select:focus {
+    outline: none;
+    border-color: #93c5fd;
+    /* Viền xanh nhạt khi focus */
+    box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.3);
+    /* Hiệu ứng focus */
+}
+
+.options {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1e3a8a;
+    /* Màu xanh đậm */
+}
+
+/* Bảng dữ liệu */
+.table {
+    margin-top: 20px;
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #ffffff;
+    border-radius: 8px;
+    overflow: hidden;
+    /* Đảm bảo border-radius áp dụng đúng */
+}
+
+.table th {
+    font-size: 1.1rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: #ffffff;
+    /* Nền xanh lam nhạt */
+    padding: 15px 10px;
+    border-bottom: 2px solid #93c5fd;
+    /* Viền dưới xanh nhạt */
+}
+
+.table td {
+    text-align: center;
+    padding: 15px 10px;
+    border: 1px solid #e5e7eb;
+    /* Viền xám nhạt */
+    font-size: 1.3rem;
+    color: #374151;
+    /* Màu xám đậm */
+}
+
+.table tr:nth-child(even) {
+    background-color: #f9fafb;
+    /* Nền xen kẽ nhẹ nhàng */
+}
+
+.table tr:hover {
+    background-color: #eff6ff;
+    /* Hiệu ứng hover xanh nhạt */
+    transition: background-color 0.2s ease;
+}
+
+/* Số liệu chính (bộ số lô gan) */
+.number {
+    color: #1e3a8a;
+    /* Màu xanh đậm */
+    font-weight: 700;
+    font-size: 1.6rem;
+    background-color: #dbeafe;
+    /* Nền xanh lam nhạt */
+    padding: 5px 10px;
+    border-radius: 5px;
+    display: inline-block;
+    width: 100%;
+    text-align: center;
+}
+
+/* Ngày ra cuối cùng */
+.date {
+    color: #374151;
+    /* Màu xám đậm */
+    font-size: 0.95rem;
+}
+
+/* Số ngày gan (gapDraws) */
+.gapDraws {
+    color: #f97316;
+    /* Màu cam đậm */
+    font-weight: 600;
+}
+
+.gapDraws span {
+    color: #374151;
+    /* Màu xám đậm */
+    font-weight: 400;
+}
+
+/* Gan cực đại (maxGap) */
+.maxGap {
+    color: #dc2626;
+    /* Màu đỏ */
+    font-weight: 600;
+}
+
+.maxGap span {
+    color: #374151;
+    /* Màu xám đậm */
+    font-weight: 400;
+}
+
+/* Thông báo lỗi */
+.error {
+    color: #dc2626;
+    /* Màu đỏ */
+    text-align: center;
+    margin: 20px 0;
+    font-weight: 500;
+}
+
+/* Thông báo không có dữ liệu */
+.noData {
+    text-align: center;
+    color: #6b7280;
+    /* Màu xám nhạt */
+    margin: 20px 0;
+    font-weight: 500;
+}
+
+/* Phần nội dung mô tả */
+.Group_Content {
+    margin-top: 30px;
+    padding: 25px;
+    background-color: #ffffff;
+    border: 2px solid #93c5fd;
+    /* Viền xanh nhạt */
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    /* Bóng nhẹ */
+}
+
+.heading {
+    padding: 15px 0;
+    font-weight: 700;
+    font-size: 1.3rem;
+    line-height: 1.5;
+    color: #1e3a8a;
+    /* Màu xanh đậm */
+    text-align: center;
+}
+
+.h3 {
+    padding: 10px 0;
+    font-weight: 600;
+    font-size: 1.1rem;
+    line-height: 1.3;
+    color: #1e3a8a;
+    /* Màu xanh đậm */
+}
+
+.desc {
+    padding: 5px 0;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #374151;
+    /* Màu xám đậm */
+}
+
+.action {
+    color: #1e3a8a;
+    /* Màu xanh đậm */
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.action:hover {
+    color: #93c5fd;
+    /* Màu xanh nhạt khi hover */
+    text-decoration: underline;
+}
+
+.skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    height: 20px;
+    border-radius: 4px;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Style cho nút "Quay lại đầu trang" */
+.scrollToTopBtn {
+    position: fixed;
+    bottom: 40px;
+    right: 40px;
+    display: none;
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #1e3a8a 0%, #93c5fd 100%);
+    color: #ffffff;
+    font-size: 1.5rem;
+    font-weight: 700;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    z-index: 1000;
+}
+
+.scrollToTopBtn:hover {
+    opacity: 0.9;
+    transform: translateY(-4px);
+}
+
+.scrollToTopBtn:active {
+    transform: translateY(0);
+}
+
+/* Style cho chức năng thu gọn/xem thêm */
+.contentWrapper {
+    transition: max-height 0.5s ease-in-out, opacity 0.3s ease;
+    overflow: hidden;
+}
+
+.contentWrapper.collapsed {
+    max-height: 300px;
+    opacity: 0.8;
+}
+
+.contentWrapper.expanded {
+    max-height: none;
+    opacity: 1;
+}
+
+.toggleBtn {
+    display: block;
+    margin: 20px auto;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #1e3a8a 0%, #93c5fd 100%);
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.toggleBtn:hover {
+    background: linear-gradient(135deg, #93c5fd 0%, #1e3a8a 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.toggleBtn:active {
+    transform: translateY(0);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .container {
+        padding: 15px;
+    }
+
+    .titleGroup {
+        padding: 20px 10px;
+    }
+
+    .title {
+        font-size: 1.5rem;
+    }
+
+    .group_Select {
+        flex-direction: column;
+        gap: 15px;
+        align-items: flex-start;
+    }
+
+    .select {
+        width: 100%;
+        max-width: 200px;
+    }
+
+    .table {
+        font-size: 0.95rem;
+    }
+
+    .table th,
+    .table td {
+        padding: 10px 12px;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        min-width: 100%;
+        padding: 10px;
+    }
+
+    .title {
+        font-size: 1.3rem;
+    }
+
+    .table {
+        font-size: 0.9rem;
+    }
+
+    .table th,
+    .table td {
+        padding: 8px 10px;
+    }
+
+    .scrollToTopBtn {
+        bottom: 20px;
+        right: 20px;
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .title {
+        font-size: 1.2rem;
+    }
+
+    .select {
+        max-width: 100%;
+    }
+
+    .table {
+        font-size: 0.85rem;
+    }
+
+    .table th,
+    .table td {
+        padding: 6px 8px;
+    }
+
+    .scrollToTopBtn {
+        bottom: 15px;
+        right: 15px;
+        width: 36px;
+        height: 36px;
+        font-size: 1rem;
+    }
+}

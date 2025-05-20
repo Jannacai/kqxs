@@ -4,4 +4,7 @@ module.exports = {
     experimental: {
         allowedDevOrigins: ['http://localhost:3000', '192.168.2.198'], // Thêm địa chỉ IP hoặc domain của bạn
     },
+    env: {
+        BACKEND_URL: process.env.BACKEND_URL,
+    },
 };

@@ -13,10 +13,10 @@
   "rootMainFiles": [],
   "rootMainFilesTree": {},
   "pages": {
-    "/": [
+    "/TaoDanD/Ngaunhien9x0x": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
-      "static/chunks/pages/index.js"
+      "static/chunks/pages/TaoDanD/Ngaunhien9x0x.js"
     ],
     "/_app": [
       "static/chunks/webpack.js",
@@ -28,10 +28,10 @@
       "static/chunks/main.js",
       "static/chunks/pages/_error.js"
     ],
-    "/xsmb/[slug]": [
+    "/soicau/soicauMB": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
-      "static/chunks/pages/xsmb/[slug].js"
+      "static/chunks/pages/soicau/soicauMB.js"
     ]
   },
   "ampFirstPages": []

@@ -1,0 +1,782 @@
+.container {
+    width: 90%;
+    max-width: 1200px;
+    padding: 30px;
+    font-family: "Roboto", sans-serif;
+    background: linear-gradient(135deg, #f0f4f8, #e0e7ff);
+    border-radius: 15px;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+    position: relative;
+    margin: 0 auto;
+    margin-bottom: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-x: hidden;
+    overscroll-behavior: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.title {
+    text-align: center;
+    color: #1e3a8a;
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+    font-weight: 600;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+    line-height: 1.2;
+}
+
+.form {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 30px;
+    padding: 25px;
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    width: 100%;
+    margin: 0;
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.fullWidth {
+    grid-column: span 1;
+}
+
+.groupTitle {
+    font-size: 1.3rem;
+    color: #1e3a8a;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: 0.5px;
+    line-height: 1.5;
+}
+
+.buttonGroup {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+}
+
+.filterButton {
+    padding: 8px 16px;
+    border: 2px solid #1e3a8a;
+    border-radius: 8px;
+    background-color: #fff;
+    color: #1e3a8a;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+    text-decoration: none;
+}
+
+.filterButton:hover,
+.filterButton:focus {
+    background: linear-gradient(135deg, #93c5fd, #3b82f6);
+    color: #fff;
+    transform: translateY(-2px);
+}
+
+.filterButton:active {
+    transform: translateY(0);
+}
+
+.filterButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.filterButton.active {
+    background: linear-gradient(135deg, #60a5fa, #3b82f6);
+    color: #fff;
+    border-color: #1e40af;
+}
+
+.createButton {
+    background: linear-gradient(135deg, #60a5fa, #3b82f6);
+    color: #fff;
+}
+
+.createButton:hover,
+.createButton:focus {
+    background: linear-gradient(135deg, #93c5fd, #60a5fa);
+}
+
+.createButton:active {
+    background: linear-gradient(135deg, #93c5fd, #60a5fa);
+}
+
+.resetButton {
+    background: linear-gradient(135deg, #f87171, #ef4444);
+    color: #fff;
+}
+
+.resetButton:hover,
+.resetButton:focus {
+    background: linear-gradient(135deg, #fca5a5, #f87171);
+}
+
+.resetButton:active {
+    background: linear-gradient(135deg, #fca5a5, #f87171);
+}
+
+.copyButton {
+    background: linear-gradient(135deg, #6ee7b7, #10b981);
+    color: #fff;
+}
+
+.copyButton:hover,
+.copyButton:focus {
+    background: linear-gradient(135deg, #a7f3d0, #6ee7b7);
+}
+
+.copyButton:active {
+    background: linear-gradient(135deg, #a7f3d0, #6ee7b7);
+}
+
+.undoButton {
+    background: linear-gradient(135deg, #fb923c, #f97316);
+    color: #fff;
+    border: 2px solid #1e3a8a;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.undoButton:hover,
+.undoButton:focus {
+    background: linear-gradient(135deg, #fed7aa, #fb923c);
+    transform: translateY(-2px);
+}
+
+.undoButton:active {
+    transform: translateY(0);
+}
+
+.input {
+    padding: 12px;
+    resize: none;
+    border: 2px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    color: #374151;
+    transition: border-color 0.3s ease;
+    height: 180px;
+    width: 100%;
+    max-width: 100%;
+    overflow-y: auto;
+    user-select: text;
+    -webkit-user-select: text;
+}
+
+.input::-webkit-scrollbar {
+    width: 8px;
+}
+
+.input::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.input::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+.input::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+.input:focus {
+    border-color: #3b82f6;
+    outline: none;
+    box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+}
+
+.input:disabled {
+    background-color: #f3f4f6;
+    cursor: not-allowed;
+}
+
+.totalSelected {
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #1e3a8a;
+    margin-top: 15px;
+    background-color: #f0f4f8;
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.result {
+    margin-top: 35px;
+    padding: 15px;
+    border: 3px solid var(--primary-color, #1e3a8a);
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 100%;
+    color: #fff;
+    font-size: 1rem;
+    margin: 0;
+    user-select: text;
+    -webkit-user-select: text;
+}
+
+.levelBox {
+    margin-bottom: 20px;
+    padding: 10px;
+    border: 1px solid var(--background-color, #ffffff);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
+    max-height: 150px;
+}
+
+.levelBox::-webkit-scrollbar {
+    width: 8px;
+}
+
+.levelBox::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.levelBox::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+.levelBox::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+.levelTitle {
+    color: #1e3a8a;
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin: 0 0 12px 0;
+}
+
+.list {
+    list-style-type: none;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 4px;
+    justify-content: flex-start;
+}
+
+.listItem {
+    background-color: #f3f4f6;
+    padding: 5px 8px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    border-radius: 8px;
+    color: #1e3a8a;
+    transition: all 0.3s ease;
+    min-width: 40px;
+    text-align: center;
+    user-select: text;
+    -webkit-user-select: text;
+}
+
+.listItem:hover,
+.listItem:focus {
+    background: linear-gradient(135deg, #60a5fa, #3b82f6);
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.listItem:active {
+    transform: translateY(0);
+}
+
+.noResult {
+    text-align: center;
+    color: #dc2626;
+    font-size: 1.2rem;
+    margin-top: 25px;
+    font-weight: 600;
+}
+
+.error {
+    color: #dc2626;
+    font-size: 1rem;
+    margin-top: 8px;
+    font-weight: 600;
+    text-align: left;
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    min-height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    overflow: auto;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modalContent {
+    background: #ffffff;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    border: 2px solid #1e3a8a;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.modalMessage {
+    font-size: 1.1rem;
+    color: #1e3a8a;
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+
+.closeButton {
+    background: linear-gradient(135deg, #f87171, #ef4444);
+    color: #fff;
+    border: 2px solid #1e3a8a;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.closeButton:hover,
+.closeButton:focus {
+    background: linear-gradient(135deg, #fca5a5, #f87171);
+    transform: translateY(-2px);
+}
+
+.closeButton:active {
+    transform: translateY(0);
+}
+
+.scrollTopButton {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    color: #fff;
+    border: none;
+    padding: 17px 25px;
+    border-radius: 50%;
+    font-size: 1rem;
+    font-weight: 600;
+    background: linear-gradient(135deg, #1e3a8a 0%, #93c5fd 100%);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.scrollTopButton:hover,
+.scrollTopButton:focus {
+    background: linear-gradient(135deg, #1e3a8a 0%, #93c5fd 100%);
+    transform: translateY(-2px);
+}
+
+.scrollTopButton:active {
+    transform: translateY(0);
+}
+
+/* CSS cho phần nội dung, đồng bộ với taodan2D.module.css */
+.contentSection {
+    margin-top: 30px;
+    padding: 25px;
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+.contentSectionInner {
+    font-size: 1rem;
+    color: #374151;
+    line-height: 1.6;
+}
+
+.contentSectionInner.collapsed {
+    max-height: 200px;
+    overflow: hidden;
+    position: relative;
+}
+
+.contentSectionInner.collapsed::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 50px;
+    background: linear-gradient(transparent, #ffffff);
+}
+
+.contentSectionInner.expanded {
+    max-height: none;
+}
+
+.contentSection h3 {
+    font-size: 1.5rem;
+    color: #1e3a8a;
+    font-weight: 600;
+    margin: 20px 0 10px;
+}
+
+.contentSection p {
+    font-size: 1rem;
+    color: #374151;
+    line-height: 1.6;
+    margin-bottom: 15px;
+}
+
+.contentSection a {
+    color: #3b82f6;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.contentSection a:hover {
+    color: #1e40af;
+    text-decoration: underline;
+}
+
+.toggleContentButton {
+    background: linear-gradient(135deg, #93c5fd, #3b82f6);
+    color: #fff;
+    border: 2px solid #1e3a8a;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: block;
+    margin: 20px auto 0;
+}
+
+.toggleContentButton:hover,
+.toggleContentButton:focus {
+    background: linear-gradient(135deg, #60a5fa, #3b82f6);
+    transform: translateY(-2px);
+}
+
+.toggleContentButton:active {
+    transform: translateY(0);
+}
+
+/* Responsive Design, đồng bộ với taodan2D.module.css */
+@media (max-width: 1200px) {
+    .container {
+        width: 95%;
+        padding: 25px;
+    }
+
+    .title {
+        font-size: 2.2rem;
+    }
+
+    .form {
+        gap: 25px;
+        padding: 20px;
+    }
+
+    .input {
+        height: 160px;
+        font-size: 1rem;
+    }
+
+    .groupTitle {
+        font-size: 1.2rem;
+    }
+
+    .totalSelected {
+        font-size: 1.1rem;
+    }
+
+    .result {
+        padding: 12px;
+        font-size: 0.95rem;
+    }
+
+    .levelBox {
+        padding: 8px;
+    }
+
+    .levelTitle {
+        font-size: 1.2rem;
+    }
+
+    .listItem {
+        font-size: 1.1rem;
+        padding: 4px 6px;
+        min-width: 38px;
+    }
+
+    .contentSection {
+        padding: 20px;
+    }
+
+    .contentSection h3 {
+        font-size: 1.3rem;
+    }
+
+    .contentSection p {
+        font-size: 0.95rem;
+    }
+
+    .toggleContentButton {
+        padding: 10px 18px;
+        font-size: 0.95rem;
+    }
+}
+
+@media (max-width: 992px) {
+    .container {
+        width: 100%;
+        padding: 10px;
+    }
+
+    .title {
+        font-size: 2rem;
+    }
+
+    .form {
+        gap: 20px;
+        padding: 18px;
+    }
+
+    .formGroup {
+        gap: 12px;
+    }
+
+    .input {
+        height: 150px;
+        font-size: 0.95rem;
+    }
+
+    .groupTitle {
+        font-size: 1.15rem;
+    }
+
+    .buttonGroup {
+        gap: 10px;
+    }
+
+    .filterButton {
+        padding: 7px 14px;
+        font-size: 0.85rem;
+    }
+
+    .totalSelected {
+        font-size: 1rem;
+    }
+
+    .result {
+        padding: 10px;
+        font-size: 0.9rem;
+    }
+
+    .levelBox {
+        padding: 7px;
+    }
+
+    .levelTitle {
+        font-size: 1.15rem;
+    }
+
+    .list {
+        grid-template-columns: repeat(5, 1fr);
+    }
+
+    .listItem {
+        font-size: 1rem;
+        min-width: 36px;
+    }
+
+    .modalContent {
+        max-width: 350px;
+        padding: 18px;
+    }
+
+    .modalMessage {
+        font-size: 0.95rem;
+    }
+
+    .closeButton {
+        padding: 10px 18px;
+        font-size: 0.95rem;
+    }
+
+    .contentSection {
+        padding: 18px;
+    }
+
+    .contentSection h3 {
+        font-size: 1.2rem;
+    }
+
+    .contentSection p {
+        font-size: 0.9rem;
+        line-height: 1.5;
+    }
+
+    .toggleContentButton {
+        padding: 10px 16px;
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 768px) {
+    /* .container {
+        width: 100%;
+        padding: 15px;
+        border-radius: 8px;
+    }
+
+    .title {
+        font-size: 1.8rem;
+    }
+
+    .form {
+        gap: 15px;
+        padding: 15px;
+    }
+
+    .formGroup {
+        gap: 10px;
+    }
+
+    .input {
+        height: 140px;
+        font-size: 0.9rem;
+    }
+
+    .groupTitle {
+        font-size: 1.1rem;
+    }
+
+    .buttonGroup {
+        gap: 8px;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .filterButton {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        width: 100%;
+        max-width: 200px;
+    }
+
+    .totalSelected {
+        font-size: 0.95rem;
+        padding: 8px;
+    }
+
+    .result {
+        padding: 8px;
+        font-size: 0.85rem;
+    }
+
+    .levelBox {
+        padding: 6px;
+    }
+
+    .levelTitle {
+        font-size: 1.1rem;
+    }
+
+    .list {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .listItem {
+        font-size: 0.9rem;
+        min-width: 34px;
+        padding: 3px 5px;
+    }
+
+    .noResult {
+        font-size: 1rem;
+    }
+
+    .error {
+        font-size: 0.9rem;
+    }
+
+    .modalContent {
+        max-width: 320px;
+        padding: 15px;
+    }
+
+    .modalMessage {
+        font-size: 0.9rem;
+    }
+
+    .closeButton {
+        padding: 8px 16px;
+        font-size: 0.9rem;
+    }
+
+    .scrollTopButton {
+        padding: 14px 20px;
+        font-size: 0.9rem;
+    }
+
+    .contentSection {
+        padding: 15px;
+    }
+
+    .contentSection h3 {
+        font-size: 1.1rem;
+    }
+
+    .contentSection p {
+        font-size: 0.85rem;
+        line-height: 1.4;
+    }
+
+    .toggleContentButton {
+        padding: 8px 14px;
+        font-size: 0.85rem;
+    } */
+}
