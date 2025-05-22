@@ -33,14 +33,14 @@ const XSMN = ({ initialData }) => {
     const drawDate = initialData[0]?.drawDate || 'Hôm Nay';
     const title = `Kết Quả Xổ Số Miền Nam - ${initialData[0]?.drawDate || 'Hôm Nay'}`;
     const description = `Xem kết quả xổ số Miền Nam ngày ${initialData[0]?.drawDate || 'hôm nay'} với thông tin chi tiết về giải đặc biệt, lô tô, đầu đuôi.`;
-    const canonicalUrl = 'https://xsmb.win/xsmn';
+    const canonicalUrl = 'https://xsmb.win/xosomn';
 
     return (
         <>
             <Head>
                 <title>{title}</title>
                 <meta name="description" content={description} />
-                <meta name="keywords" content="xổ số miền nam, kqxs, lô tô, đầu đuôi, xsmn" />
+                <meta name="keywords" content="xổ số miền nam, kqxs, lô tô, đầu đuôi, xsmn, xosomn, kqxsmn" />
                 <meta name="robots" content="index, follow" />
 
                 {/* Open Graph Tags (Tối ưu cho các mạng xã hội) */}
