@@ -288,12 +288,12 @@ const NavBar = () => {
                                     </ul>
                                 </li>
                                 <li
-                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith("/xsmn") ? styles.active : ""
+                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith("xosomn") ? styles.active : ""
                                         }`}
                                 >
                                     <div className={styles.grouplinkMobile}>
                                         <Link
-                                            href="/xsmn"
+                                            href="/xosomn"
                                             className={styles.nav_itemLinkMobile}
                                             onClick={toggleMenu}
                                         >
@@ -388,12 +388,12 @@ const NavBar = () => {
                                     </ul>
                                 </li>
                                 <li
-                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith("/xsmt") ? styles.active : ""
+                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith("/xosomt") ? styles.active : ""
                                         }`}
                                 >
                                     <div className={styles.grouplinkMobile}>
                                         <Link
-                                            href="/xsmt"
+                                            href="/xosomt"
                                             className={styles.nav_itemLinkMobile}
                                             onClick={toggleMenu}
                                         >
@@ -890,9 +890,9 @@ const NavBar = () => {
                                     <li><Link className={styles.nav_menuLink} href="/xsmb/dayofweek/chu-nhat">Chủ Nhật</Link></li>
                                 </ul>
                             </li>
-                            <li className={`${styles.nav_item} ${router.pathname.startsWith('/xsmn') ? styles.active : ''}`}>
+                            <li className={`${styles.nav_item} ${router.pathname.startsWith('/xosomn') ? styles.active : ''}`}>
                                 <div className={styles.grouplink}>
-                                    <Link href="/xsmn" className={styles.nav_itemLink}>XSMN </Link>
+                                    <Link href="/xosomn" className={styles.nav_itemLink}>XSMN </Link>
                                     <span className={styles.icon}><i className="fa-solid fa-chevron-down"></i></span>
                                 </div>
                                 <ul className={styles.nav__menu}>
@@ -905,9 +905,9 @@ const NavBar = () => {
                                     <li><Link className={styles.nav_menuLink} href="/xsmn/chu-nhat">Chủ Nhật</Link></li>
                                 </ul>
                             </li>
-                            <li className={`${styles.nav_item} ${router.pathname.startsWith('/xsmt') ? styles.active : ''}`}>
+                            <li className={`${styles.nav_item} ${router.pathname.startsWith('/xosomt') ? styles.active : ''}`}>
                                 <div className={styles.grouplink}>
-                                    <Link href="/xsmt" className={styles.nav_itemLink}>XSMT </Link>
+                                    <Link href="/xosomt" className={styles.nav_itemLink}>XSMT </Link>
                                     <span className={styles.icon}><i className="fa-solid fa-chevron-down"></i></span>
                                 </div>
                                 <ul className={styles.nav__menu}>

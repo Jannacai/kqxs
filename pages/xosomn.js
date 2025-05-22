@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import KQXS from '../pages/kqxsAll/index';
+import KQXS from './xsmn/index';
 import Calendar from '../component/caledar';
 import ThongKe from '../component/thongKe';
 import ListXSMT from '../component/listXSMT';
@@ -7,11 +7,11 @@ import ListXSMB from '../component/listXSMB';
 import ListXSMN from '../component/listXSMN';
 import PostList from './post/list';
 import TableDate from '../component/tableDateKQXS';
-import { apiMB } from '../pages/api/kqxs/kqxsMB';
+import { apiMN } from './api/kqxs/kqxsMN';
 
 export async function getStaticProps() {
     try {
-        const initialData = await apiMB.getLottery('xsmb', null, null);
+        const initialData = await apiMN.getLottery('xsmn', null, null);
         return {
             props: {
                 initialData,
@@ -29,18 +29,18 @@ export async function getStaticProps() {
     }
 }
 
-const XSMB = ({ initialData }) => {
+const XSMN = ({ initialData }) => {
     const drawDate = initialData[0]?.drawDate || 'Hôm Nay';
-    const title = `Kết Quả Xổ Số Miền Bắc - ${initialData[0]?.drawDate || 'Hôm Nay'}`;
-    const description = `Xem kết quả xổ số Miền Bắc ngày ${initialData[0]?.drawDate || 'hôm nay'} với thông tin chi tiết về giải đặc biệt, lô tô, đầu đuôi.`;
-    const canonicalUrl = 'https://xsmb.win/xsmb';
+    const title = `Kết Quả Xổ Số Miền Nam - ${initialData[0]?.drawDate || 'Hôm Nay'}`;
+    const description = `Xem kết quả xổ số Miền Nam ngày ${initialData[0]?.drawDate || 'hôm nay'} với thông tin chi tiết về giải đặc biệt, lô tô, đầu đuôi.`;
+    const canonicalUrl = 'https://xsmb.win/xsmn';
 
     return (
         <>
             <Head>
                 <title>{title}</title>
                 <meta name="description" content={description} />
-                <meta name="keywords" content="xổ số miền bắc, kqxs, lô tô, đầu đuôi, xsmb" />
+                <meta name="keywords" content="xổ số miền nam, kqxs, lô tô, đầu đuôi, xsmn" />
                 <meta name="robots" content="index, follow" />
 
                 {/* Open Graph Tags (Tối ưu cho các mạng xã hội) */}
@@ -53,8 +53,8 @@ const XSMB = ({ initialData }) => {
                 <meta property="og:image:height" content="630" />
                 <meta property="og:image:secure_url" content="https://xsmb.win/facebook.png" />
                 <meta property="og:image:type" content="image/png" />
-                <meta property="og:image:alt" content="Kết quả xổ số miền Bắc 2025" />
-                <meta property="og:site_name" content="XSMB" />
+                <meta property="og:image:alt" content="Kết quả xổ số miền Nam 2025" />
+                <meta property="og:site_name" content="XSMN" />
                 <meta property="og:locale" content="vi_VN" />
                 <meta property="fb:app_id" content="your-facebook-app-id" /> {/* Thay bằng App ID thực tế */}
 
@@ -69,7 +69,7 @@ const XSMB = ({ initialData }) => {
                 {/* Telegram */}
                 <meta name="telegram:channel" content="@YourChannel" />
                 <meta name="telegram:share_url" content={canonicalUrl} />
-                <meta name="telegram:description" content={`Cập nhật XSMB nhanh nhất ngày ${drawDate} tại @YourChannel!`} />
+                <meta name="telegram:description" content={`Cập nhật XSMN nhanh nhất ngày ${drawDate} tại @YourChannel!`} />
                 <meta name="telegram:og:image" content="https://xsmb.win/zalotelegram.png" />
 
                 {/* Twitter Cards */}
@@ -77,7 +77,7 @@ const XSMB = ({ initialData }) => {
                 <meta name="twitter:title" content={title} />
                 <meta name="twitter:description" content={description} />
                 <meta name="twitter:image" content="https://xsmb.win/facebook.png" />
-                <meta name="twitter:image:alt" content="Kết quả xổ số miền Bắc 2025" /> {/* Sửa lỗi */}
+                <meta name="twitter:image:alt" content="Kết quả xổ số miền Nam 2025" /> {/* Sửa lỗi */}
 
                 {/* Canonical */}
                 <link rel="canonical" href={canonicalUrl} />
@@ -87,10 +87,10 @@ const XSMB = ({ initialData }) => {
                     {JSON.stringify({
                         "@context": "https://schema.org",
                         "@type": "Dataset",
-                        "name": `Kết Quả Xổ Số Miền Bắc ${drawDate}`,
-                        "description": `Kết quả xổ số Miền Bắc ngày ${drawDate} với các giải thưởng và thống kê.`,
+                        "name": `Kết Quả Xổ Số Miền Nam ${drawDate}`,
+                        "description": `Kết quả xổ số Miền Nam ngày ${drawDate} với các giải thưởng và thống kê.`,
                         "temporalCoverage": drawDate,
-                        "keywords": ["xổ số", "miền bắc", "kết quả", "xsmb"],
+                        "keywords": ["xổ số", "miền nam", "kết quả", "xsmn"],
                         "url": canonicalUrl,
                     })}
                 </script>
@@ -105,7 +105,7 @@ const XSMB = ({ initialData }) => {
                     </div>
                     <div>
                         <TableDate />
-                        <KQXS data={initialData} station="xsmb">Miền Bắc</KQXS>
+                        <KQXS data={initialData} station="xsmn">Miền Nam</KQXS>
                     </div>
                     <ThongKe />
                 </div>
@@ -117,4 +117,4 @@ const XSMB = ({ initialData }) => {
     );
 };
 
-export default XSMB;
+export default XSMN;
