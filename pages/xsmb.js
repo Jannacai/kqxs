@@ -29,7 +29,7 @@ export async function getStaticProps() {
     }
 }
 
-const XSMN = ({ initialData }) => {
+const XSMB = ({ initialData }) => {
     const drawDate = initialData[0]?.drawDate || 'Hôm Nay';
     const title = `Kết Quả Xổ Số Miền Bắc - ${initialData[0]?.drawDate || 'Hôm Nay'}`;
     const description = `Xem kết quả xổ số Miền Bắc ngày ${initialData[0]?.drawDate || 'hôm nay'} với thông tin chi tiết về giải đặc biệt, lô tô, đầu đuôi.`;
@@ -117,4 +117,4 @@ const XSMN = ({ initialData }) => {
     );
 };
 
-export default XSMN;
+export default XSMB;

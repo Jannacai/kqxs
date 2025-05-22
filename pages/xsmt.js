@@ -7,7 +7,7 @@ import ListXSMB from '../component/listXSMB';
 import ListXSMN from '../component/listXSMN';
 import PostList from './post/list';
 import TableDate from '../component/tableDateKQXS'
-const XSMN = () => {
+const XSMT = () => {
     return (
         <div>
             <div className='container'>
@@ -34,4 +34,4 @@ const XSMN = () => {
         </div>
     );
 }
-export default XSMN;
+export default XSMT;
