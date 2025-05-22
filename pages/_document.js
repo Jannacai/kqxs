@@ -1,4 +1,6 @@
 import { Html, Head, Main, NextScript } from 'next/document';
+import Image from 'next/image';
+import logo from './asset/img/logo5.png';
 
 export default function Document() {
     return (
@@ -18,7 +20,7 @@ export default function Document() {
                 <meta property="og:description" content="Cập nhật XSMB nhanh nhất, tham gia cộng đồng qua Zalo và Telegram tại xsmb.win." />
                 <meta property="og:type" content="website" />
                 <meta property="og:url" content="https://xsmb.win/" />
-                <meta property="og:image" content="https://xsmb.win/favicon/android-icon-192x192.png" />
+                <meta property="og:image" content="https://xsmb.win/public/favicon/android-icon-192x192.png" />
                 <meta property="og:image:width" content="192" />
                 <meta property="og:image:height" content="192" />
                 <meta property="og:site_name" content="XSMB" />
@@ -38,7 +40,7 @@ export default function Document() {
                 <meta name="twitter:card" content="summary_large_image" />
                 <meta name="twitter:title" content="XSMB - Kết Quả Xổ Số Miền Bắc Nhanh Chóng, Chính Xác 2025" />
                 <meta name="twitter:description" content="Cập nhật XSMB nhanh nhất, kết nối qua Zalo và Telegram tại xsmb.win." />
-                <meta name="twitter:image" content="https://xsmb.win/favicon/android-icon-192x192.png" />
+                <meta name="twitter:image" content="https://xsmb.win/public/favicon/android-icon-192x192.png" />
 
                 {/* Canonical và JSON-LD Schema (Đã sửa lỗi cú pháp) */}
                 <link rel="canonical" href="https://xsmb.win/" />
