@@ -7,9 +7,8 @@ import ListXSMB from '../component/listXSMB';
 import ListXSMN from '../component/listXSMN';
 import PostList from './post/list';
 import TableDate from '../component/tableDateKQXS';
-import { apiMN } from '../pages/api/kqxs/kqxsMN'; // Đảm bảo bạn có API này
+import { apiMN } from '../pages/api/kqxs/kqxsMN';
 
-// Lấy dữ liệu động từ API
 export async function getStaticProps() {
     try {
         const initialData = await apiMN.getLottery('xsmn', null, null);
@@ -17,7 +16,7 @@ export async function getStaticProps() {
             props: {
                 initialData,
             },
-            revalidate: 60, // Tái tạo trang sau 60 giây
+            revalidate: 60,
         };
     } catch (error) {
         console.error('Lỗi khi lấy dữ liệu ban đầu:', error);
@@ -33,11 +32,11 @@ export async function getStaticProps() {
 const XSMN = ({ initialData }) => {
     const drawDate = initialData[0]?.drawDate || 'Hôm Nay';
     const title = `Kết Quả Xổ Số Miền Nam - ${initialData[0]?.drawDate || 'Hôm Nay'}`;
-    const description = `Xem kết quả xổ số Miền Nam ngày ${drawDate} với thông tin chi tiết về giải đặc biệt, lô tô, đầu đuôi.`;
+    const description = `Xem kết quả xổ số Miền Nam ngày ${initialData[0]?.drawDate || 'hôm nay'} với thông tin chi tiết về giải đặc biệt, lô tô, đầu đuôi.`;
     const canonicalUrl = 'https://xsmb.win/xsmn';
 
     return (
-        <div>
+        <>
             <Head>
                 <title>{title}</title>
                 <meta name="description" content={description} />
@@ -70,7 +69,7 @@ const XSMN = ({ initialData }) => {
                 {/* Telegram */}
                 <meta name="telegram:channel" content="@YourChannel" />
                 <meta name="telegram:share_url" content={canonicalUrl} />
-                <meta name="telegram:description" content={`Cập nhật XSMN nhanh nhất ngày ${drawDate} tại @YourChannel!`} />
+                <meta name="telegram:description" content={`Cập nhật XSMT nhanh nhất ngày ${drawDate} tại @YourChannel!`} />
                 <meta name="telegram:og:image" content="https://xsmb.win/zalotelegram.png" />
 
                 {/* Twitter Cards */}
@@ -96,23 +95,25 @@ const XSMN = ({ initialData }) => {
                     })}
                 </script>
             </Head>
-            <div className='container'>
-                <div className='navigation'>
-                    <Calendar />
-                    <ListXSMB />
-                    <ListXSMT />
-                    <ListXSMN />
+            <div>
+                <div className='container'>
+                    <div className='navigation'>
+                        <Calendar />
+                        <ListXSMB />
+                        <ListXSMT />
+                        <ListXSMN />
+                    </div>
+                    <div>
+                        <TableDate />
+                        <KQXS data={initialData} station="xsmn">Miền Nam</KQXS>
+                    </div>
+                    <ThongKe />
                 </div>
-                <div>
-                    <TableDate />
-                    <KQXS data={initialData} station="xsmn">Miền Nam</KQXS>
+                <div className='container'>
+                    <PostList />
                 </div>
-                <ThongKe />
             </div>
-            <div className='container'>
-                <PostList />
-            </div>
-        </div>
+        </>
     );
 };
 
