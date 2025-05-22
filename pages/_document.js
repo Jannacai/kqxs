@@ -19,8 +19,8 @@ export default function Document() {
                 <meta property="og:type" content="website" />
                 <meta property="og:url" content="https://xsmb.win/" />
                 <meta property="og:image" content="https://xsmb.win/xsmbwin.png" /> {/* Ảnh */}
-                <meta property="og:image:width" content="1200" />
-                <meta property="og:image:height" content="1200" />
+                <meta property="og:image:width" content="500" />
+                <meta property="og:image:height" content="500" />
                 <meta property="og:image:secure_url" content="https://xsmb.win/xsmbwin.png" />
                 <meta property="og:site_name" content="XSMB" />
                 <meta property="og:locale" content="vi_VN" />
