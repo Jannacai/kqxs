@@ -20,7 +20,7 @@ export default function Document() {
                 <meta property="og:image" content="https://xsmb.win/facebook.png" /> {/* Hình ảnh mới */}
                 <meta property="og:image:width" content="1200" /> {/* Cập nhật kích thước */}
                 <meta property="og:image:height" content="630" /> {/* Cập nhật kích thước */}
-                <meta property="og:image:secure_url" content="https://xsmb.win/facebook.png" />
+                <meta property="og:image:secure_url" content="https://xsmb.win/xsmbwin.png" />
                 <meta property="og:image:alt" content="Kết quả xổ số miền Bắc 2025" />
                 <meta property="og:site_name" content="XSMB" />
                 <meta property="og:locale" content="vi_VN" />
