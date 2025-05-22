@@ -20,8 +20,8 @@ const KQXS = (props) => {
         : (dayof = props.data3);
     const tinh = props.tinh;
 
-    const startHour = 16;
-    const startMinute = 15;
+    const startHour = 17;
+    const startMinute = 10;
     const duration = 30 * 60 * 1000;
     const itemsPerPage = 3;
 

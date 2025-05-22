@@ -7,8 +7,12 @@
     margin: 0 auto;
 }
 
+.header {
+    padding: 15px 0 10px 0;
+    background-color: #ffeca0;
+}
+
 .kqxs {
-    padding: 15px 0;
     background-color: #f9f9f9;
     width: 100%;
     border: 3px solid #2d3483;
@@ -390,12 +394,14 @@
     }
 
     .kqxs__title {
-        font-size: 22px;
+        font-size: 21px;
+        line-height: 1.4;
+        width: 100%;
     }
 
-    .tableXS th,
-    .tableXS td {
+    .tableXS th {
         padding: 6px;
+        line-height: 20px;
     }
 
     .tableXS th:not(:first-child),

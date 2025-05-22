@@ -19,12 +19,12 @@ const KQXS = (props) => {
     const minute2 = 15;
 
     const router = useRouter();
-    let dayof;
 
+    const dayof = props.data4;
+    console.log("dayof", dayof);
     const station = props.station || "xsmb";
-    const date = props.data3 && /^\d{2}-\d{2}-\d{4}$/.test(props.data3)
-        ? props.data3
-        : (dayof = props.data3);
+    const date = props.data3;
+    console.log("date", date);
 
     const itemsPerPage = 3;
 
@@ -208,7 +208,7 @@ const KQXS = (props) => {
                 />
             )}
             {currentData.map((data2) => {
-                const tableKey = data2.drawDate + data2.station;
+                const tableKey = data2.drawDate + data2.tinh;
                 const currentFilter = filterTypes[tableKey] || 'all';
                 const { heads, tails } = getHeadAndTailNumbers(data2);
                 const sevenPrizes = (data2.sevenPrizes || []).map(num => getFilteredNumber(num, 'last2'));
@@ -217,13 +217,15 @@ const KQXS = (props) => {
                 return (
                     <div key={tableKey}>
                         <div className={styles.kqxs}>
-                            <h2 className={styles.kqxs__title}>
-                                Kết Quả Xổ Số - <span>{data2.station}</span> ({data2.tentinh})
-                            </h2>
-                            <div className={styles.kqxs__action}>
-                                <a className={styles.kqxs__actionLink} href="#!">{data2.station}</a>
-                                <a className={`${styles.kqxs__actionLink} ${styles.dayOfWeek}`} href="#!">{data2.dayOfWeek}</a>
-                                <a className={styles.kqxs__actionLink} href="#!">{data2.drawDate}</a>
+                            <div className={styles.header}>
+                                <h2 className={styles.kqxs__title}>
+                                    Kết Quả Xổ Số - <span>{data2.station}</span> ({data2.tentinh})
+                                </h2>
+                                <div className={styles.kqxs__action}>
+                                    <a className={styles.kqxs__actionLink} href="#!">{data2.station}</a>
+                                    <a className={`${styles.kqxs__actionLink} ${styles.dayOfWeek}`} href="#!">{data2.dayOfWeek}</a>
+                                    <a className={styles.kqxs__actionLink} href="#!">{data2.drawDate}</a>
+                                </div>
                             </div>
                             <table className={styles.tableXS}>
                                 <tbody>

@@ -1,6 +1,6 @@
-import { apiMN } from "../api/kqxs/kqxsMN";
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import styles from '../../styles/kqxsMN.module.css';
+import { apiMT } from "../api/kqxs/kqxsMT";
+import { useState, useEffect, useCallback } from "react";
+import styles from '../../styles/kqxsMT.module.css';
 import { getFilteredNumber } from "../../library/utils/filterUtils";
 import { useRouter } from 'next/router';
 import LiveResult from './LiveResult';
@@ -12,52 +12,28 @@ const KQXS = (props) => {
     const [isRunning, setIsRunning] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [hasTriggeredScraper, setHasTriggeredScraper] = useState(false);
-    const intervalRef = useRef(null);
+
     const router = useRouter();
 
-    const hour = 14;
-    const minutes1 = 11;
-    const minutes2 = 15;
-
-    let dayof;
-
-    const station = props.station || "xsmn";
-    const date = props.data3 && /^\d{2}-\d{2}-\d{4}$/.test(props.data3)
-        ? props.data3
-        : (dayof = props.data3);
+    const dayof = props.dayofMT;
+    console.log("dayof-mt", dayof);
+    const station = props.station || "xsmt";
+    const date = props.data3;
     const tinh = props.tinh;
-
-    const startHour = hour;
-    const startMinute = minutes1;
-    const duration = 23 * 60 * 1000;
-    const itemsPerPage = 3;
-
     const today = new Date().toLocaleDateString('vi-VN', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
     });
 
-    const isLiveMode = useMemo(() => {
-        if (!props.data3) return true;
-        if (props.data3 === today) return true;
-        const dayMap = {
-            'thu-2': 'Thứ Hai',
-            'thu-3': 'Thứ Ba',
-            'thu-4': 'Thứ Tư',
-            'thu-5': 'Thứ Năm',
-            'thu-6': 'Thứ Sáu',
-            'thu-7': 'Thứ Bảy',
-            'chu-nhat': 'Chủ Nhật'
-        };
-        const todayDayOfWeek = new Date().toLocaleString('vi-VN', { weekday: 'long' });
-        const inputDayOfWeek = dayMap[props.data3?.toLowerCase()];
-        return inputDayOfWeek && inputDayOfWeek === todayDayOfWeek;
-    }, [props.data3, today]);
+    const startHour = 17;
+    const startMinute = 10;
+    const duration = 23 * 60 * 1000;
+    const itemsPerPage = 3;
 
     const fetchData = useCallback(async () => {
         try {
-            const result = await apiMN.getLottery(station, date, tinh, dayof);
+            const result = await apiMT.getLottery(station, date, tinh, dayof);
             const dataArray = Array.isArray(result) ? result : [result];
 
             const formattedData = dataArray.map(item => ({
@@ -69,7 +45,6 @@ const KQXS = (props) => {
                 }),
                 drawDateRaw: new Date(item.drawDate),
                 tentinh: item.tentinh || `Tỉnh ${dataArray.indexOf(item) + 1}`,
-                tinh: item.tinh || item.station,
             }));
 
             const groupedByDate = formattedData.reduce((acc, item) => {
@@ -118,103 +93,63 @@ const KQXS = (props) => {
             const endTime = new Date(startTime.getTime() + duration);
 
             const isLive = now >= startTime && now <= endTime;
-            // Chỉ cập nhật isRunning nếu giá trị thay đổi
-            setIsRunning(prev => {
-                if (prev !== isLive) {
-                    console.log('isRunning updated to:', isLive);
-                    return isLive;
-                }
-                return prev;
-            });
+            setIsRunning(isLive);
 
-            // Reset hasTriggeredScraper lúc 00:00:00
-            if (now.getHours() === 0 && now.getMinutes() === 0 && now.getSeconds() === 0) {
-                setHasTriggeredScraper(false);
-                console.log('Reset hasTriggeredScraper at midnight');
-            }
-
-            // Lấy provinces từ danh sách tĩnh
-            const dayOfWeekIndex = now.getDay();
-            const todayData = {
-                1: [
-                    { tinh: 'tphcm', tentinh: 'TP.HCM' },
-                    { tinh: 'dong-thap', tentinh: 'Đồng Tháp' },
-                    { tinh: 'ca-mau', tentinh: 'Cà Mau' },
-                ],
-                2: [
-                    { tinh: 'ben-tre', tentinh: 'Bến Tre' },
-                    { tinh: 'vung-tau', tentinh: 'Vũng Tàu' },
-                    { tinh: 'bac-lieu', tentinh: 'Bạc Liêu' },
-                ],
-                3: [
-                    { tinh: 'dong-nai', tentinh: 'Đồng Nai' },
-                    { tinh: 'can-tho', tentinh: 'Cần Thơ' },
-                    { tinh: 'soc-trang', tentinh: 'Sóc Trăng' },
-                ],
-                4: [
-                    { tinh: 'tay-ninh', tentinh: 'Tây Ninh' },
-                    { tinh: 'an-giang', tentinh: 'An Giang' },
-                    { tinh: 'binh-thuan', tentinh: 'Bình Thuận' },
-                ],
-                5: [
-                    { tinh: 'vinh-long', tentinh: 'Vĩnh Long' },
-                    { tinh: 'binh-duong', tentinh: 'Bình Dương' },
-                    { tinh: 'tra-vinh', tentinh: 'Trà Vinh' },
-                ],
-                6: [
-                    { tinh: 'tphcm', tentinh: 'TP.HCM' },
-                    { tinh: 'long-an', tentinh: 'Long An' },
-                    { tinh: 'binh-phuoc', tentinh: 'Bình Phước' },
-                    { tinh: 'hau-giang', tentinh: 'Hậu Giang' },
-                ],
-                0: [
-                    { tinh: 'tien-giang', tentinh: 'Tiền Giang' },
-                    { tinh: 'kien-giang', tentinh: 'Kiên Giang' },
-                    { tinh: 'da-lat', tentinh: 'Đà Lạt' },
-                ],
-            };
-
-            const provinces = todayData[dayOfWeekIndex] || [];
-
-            // Kích hoạt scraper lúc 17:51:00
             if (
                 isLive &&
-                now.getHours() === hour &&
-                now.getMinutes() === minutes2 &&
-                now.getSeconds() <= 5 &&
-                !hasTriggeredScraper &&
-                provinces.length > 0
+                now.getHours() === 17 &&
+                now.getMinutes() === 52 &&
+                now.getSeconds() === 0 &&
+                !hasTriggeredScraper
             ) {
-                console.log('Triggering scraper with provinces:', provinces);
-                apiMN.triggerScraper(today, station, provinces)
+                apiMT.triggerScraper(date || today, station)
                     .then((data) => {
                         console.log('Scraper kích hoạt thành công:', data.message);
                         setHasTriggeredScraper(true);
-                        fetchData();
                     })
                     .catch((error) => {
                         console.error('Lỗi khi kích hoạt scraper:', error.message);
                     });
             }
+
+            if (now.getHours() === 0 && now.getMinutes() === 0 && now.getSeconds() === 0) {
+                setHasTriggeredScraper(false);
+            }
         };
 
         checkTime();
-        intervalRef.current = setInterval(checkTime, 5000); // Tăng interval lên 5 giây
+        const timeCheckInterval = setInterval(checkTime, 1000);
+
+        let fetchInterval;
+        if (isRunning) {
+            console.log('Starting fetch interval...');
+            fetchInterval = setInterval(() => {
+                console.log('Fetching data at:', new Date().toLocaleTimeString());
+                fetchData();
+            }, 20000);
+
+            setTimeout(() => {
+                clearInterval(fetchInterval);
+                setIsRunning(false);
+                console.log('Fetch interval stopped after 23 minutes.');
+            }, duration);
+        }
 
         return () => {
-            console.log('Cleaning up interval...');
-            clearInterval(intervalRef.current);
+            console.log('Cleaning up intervals...');
+            clearInterval(timeCheckInterval);
+            if (fetchInterval) clearInterval(fetchInterval);
         };
-    }, [station, date, tinh, fetchData]); // Loại bỏ hasTriggeredScraper khỏi dependencies
+    }, [station, date, tinh, isRunning, hasTriggeredScraper]);
 
-    const handleFilterChange = useCallback((key, value) => {
+    const handleFilterChange = (key, value) => {
         setFilterTypes((prev) => ({
             ...prev,
             [key]: value,
         }));
-    }, []);
+    };
 
-    const getHeadAndTailNumbers = useCallback((data2) => {
+    const getHeadAndTailNumbers = (data2) => {
         const allNumbers = [
             ...(data2.eightPrizes || []).map(num => ({ num, isEighth: true })),
             ...(data2.specialPrize || []).map(num => ({ num, isSpecial: true })),
@@ -256,7 +191,7 @@ const KQXS = (props) => {
         }
 
         return { heads, tails };
-    }, []);
+    };
 
     const totalPages = Math.ceil(data.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -278,19 +213,13 @@ const KQXS = (props) => {
         });
     }, [currentPage]);
 
-    const todayData = data.find(item => item.drawDate === today);
-    const provinces = todayData ? todayData.stations.map(station => ({
-        tinh: station.tinh || station.station,
-        tentinh: station.tentinh
-    })) : [];
-
     if (loading) {
         return <div>Đang tải dữ liệu...</div>;
     }
 
     return (
         <div className={styles.containerKQ}>
-            {isLiveMode && isRunning && (
+            {isRunning && (
                 <LiveResult
                     station={station}
                     today={today}
@@ -298,7 +227,6 @@ const KQXS = (props) => {
                     handleFilterChange={handleFilterChange}
                     filterTypes={filterTypes}
                     isLiveWindow={isRunning}
-                    provinces={provinces}
                 />
             )}
             {currentData.map((dayData) => {
@@ -313,26 +241,26 @@ const KQXS = (props) => {
                         allHeads[i].push(heads[i]);
                         allTails[i].push(tails[i]);
                     }
-                    return { tentinh: stationData.tentinh, station: stationData.tinh || stationData.station };
+                    return { tentinh: stationData.tentinh, station: stationData.station };
                 });
 
                 return (
                     <div key={tableKey}>
                         <div className={styles.kqxs}>
-                           <div className={styles.header}>
-                                <h2 className={styles.kqxs__title}>Kết Quả Xổ Số Miền Nam - {dayData.drawDate}</h2>
+                            <div className={styles.header}>
+                                <h2 className={styles.kqxs__title}>Kết Quả Xổ Số Miền Trung - {dayData.drawDate}</h2>
                                 <div className={styles.kqxs__action}>
-                                    <a className={`${styles.kqxs__actionLink}`} href="#!">XSMN</a>
+                                    <a className={styles.kqxs__actionLink} href="#!">XSMT</a>
                                     <a className={`${styles.kqxs__actionLink} ${styles.dayOfWeek}`} href="#!">{dayData.dayOfWeek}</a>
                                     <a className={styles.kqxs__actionLink} href="#!">{dayData.drawDate}</a>
                                 </div>
-                           </div>
+                            </div>
                             <table className={styles.tableXS}>
                                 <thead>
                                     <tr>
                                         <th></th>
                                         {dayData.stations.map(stationData => (
-                                            <th key={stationData.tinh || stationData.station} className={styles.stationName}>
+                                            <th key={stationData.tinh} className={styles.stationName}>
                                                 {stationData.tentinh || `Tỉnh ${dayData.stations.indexOf(stationData) + 1}`}
                                             </th>
                                         ))}
@@ -342,7 +270,7 @@ const KQXS = (props) => {
                                     <tr>
                                         <td className={`${styles.tdTitle} ${styles.highlight}`}>G8</td>
                                         {dayData.stations.map(stationData => (
-                                            <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
+                                            <td key={stationData.tinh} className={styles.rowXS}>
                                                 <span className={`${styles.prizeNumber} ${styles.highlight}`}>
                                                     {(stationData.eightPrizes || [])[0] ? getFilteredNumber(stationData.eightPrizes[0], currentFilter) : '-'}
                                                 </span>
@@ -352,7 +280,7 @@ const KQXS = (props) => {
                                     <tr>
                                         <td className={styles.tdTitle}>G7</td>
                                         {dayData.stations.map(stationData => (
-                                            <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
+                                            <td key={stationData.tinh} className={styles.rowXS}>
                                                 <span className={styles.prizeNumber}>
                                                     {(stationData.sevenPrizes || [])[0] ? getFilteredNumber(stationData.sevenPrizes[0], currentFilter) : '-'}
                                                 </span>
@@ -362,7 +290,7 @@ const KQXS = (props) => {
                                     <tr>
                                         <td className={styles.tdTitle}>G6</td>
                                         {dayData.stations.map(stationData => (
-                                            <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
+                                            <td key={stationData.tinh} className={styles.rowXS}>
                                                 {(stationData.sixPrizes || []).slice(0, 3).map((kq, idx) => (
                                                     <span key={idx} className={styles.prizeNumber}>
                                                         {getFilteredNumber(kq, currentFilter)}
@@ -375,7 +303,7 @@ const KQXS = (props) => {
                                     <tr>
                                         <td className={`${styles.tdTitle} ${styles.g3}`}>G5</td>
                                         {dayData.stations.map(stationData => (
-                                            <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
+                                            <td key={stationData.tinh} className={styles.rowXS}>
                                                 {(stationData.fivePrizes || []).slice(0, 3).map((kq, idx) => (
                                                     <span key={idx} className={`${styles.prizeNumber} ${styles.g3}`}>
                                                         {getFilteredNumber(kq, currentFilter)}
@@ -388,7 +316,7 @@ const KQXS = (props) => {
                                     <tr>
                                         <td className={styles.tdTitle}>G4</td>
                                         {dayData.stations.map(stationData => (
-                                            <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
+                                            <td key={stationData.tinh} className={styles.rowXS}>
                                                 {(stationData.fourPrizes || []).slice(0, 7).map((kq, idx) => (
                                                     <span key={idx} className={styles.prizeNumber}>
                                                         {getFilteredNumber(kq, currentFilter)}
@@ -401,7 +329,7 @@ const KQXS = (props) => {
                                     <tr>
                                         <td className={`${styles.tdTitle} ${styles.g3}`}>G3</td>
                                         {dayData.stations.map(stationData => (
-                                            <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
+                                            <td key={stationData.tinh} className={styles.rowXS}>
                                                 {(stationData.threePrizes || []).slice(0, 2).map((kq, idx) => (
                                                     <span key={idx} className={`${styles.prizeNumber} ${styles.g3}`}>
                                                         {getFilteredNumber(kq, currentFilter)}
@@ -414,7 +342,7 @@ const KQXS = (props) => {
                                     <tr>
                                         <td className={styles.tdTitle}>G2</td>
                                         {dayData.stations.map(stationData => (
-                                            <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
+                                            <td key={stationData.tinh} className={styles.rowXS}>
                                                 <span className={styles.prizeNumber}>
                                                     {(stationData.secondPrize || [])[0] ? getFilteredNumber(stationData.secondPrize[0], currentFilter) : '-'}
                                                 </span>
@@ -424,7 +352,7 @@ const KQXS = (props) => {
                                     <tr>
                                         <td className={styles.tdTitle}>G1</td>
                                         {dayData.stations.map(stationData => (
-                                            <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
+                                            <td key={stationData.tinh} className={styles.rowXS}>
                                                 <span className={styles.prizeNumber}>
                                                     {(stationData.firstPrize || [])[0] ? getFilteredNumber(stationData.firstPrize[0], currentFilter) : '-'}
                                                 </span>
@@ -434,9 +362,9 @@ const KQXS = (props) => {
                                     <tr>
                                         <td className={`${styles.tdTitle} ${styles.highlight}`}>ĐB</td>
                                         {dayData.stations.map(stationData => (
-                                            <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
+                                            <td key={stationData.tinh} className={styles.rowXS}>
                                                 <span className={`${styles.prizeNumber} ${styles.highlight} ${styles.gdb}`}>
-                                                    {(stationData.specialPrize || [])[0] ? getFilteredNumber(stationData.specialPrize[0], currentFilter) : '-'}
+                                                    {(stationData.specialPrize || [])[0] || '-'}
                                                 </span>
                                             </td>
                                         ))}
@@ -481,7 +409,6 @@ const KQXS = (props) => {
                                 </div>
                             </div>
                         </div>
-
                         <div className={styles.TKe_container}>
                             <div className={styles.TKe_content}>
                                 <div className={styles.TKe_contentTitle}>
@@ -494,7 +421,7 @@ const KQXS = (props) => {
                                         <tr>
                                             <th className={styles.t_h}>Đầu</th>
                                             {stationsData.map(station => (
-                                                <th key={station.station}>
+                                                <th key={station.tinh}>
                                                     {station.tentinh || `Tỉnh ${stationsData.indexOf(station) + 1}`}
                                                 </th>
                                             ))}
@@ -526,7 +453,6 @@ const KQXS = (props) => {
                                     </tbody>
                                 </table>
                             </div>
-
                             <div className={styles.TKe_content}>
                                 <div className={styles.TKe_contentTitle}>
                                     <span className={styles.title}>Thống kê lô tô theo Đuôi - </span>
@@ -538,7 +464,7 @@ const KQXS = (props) => {
                                         <tr>
                                             <th className={styles.t_h}>Đuôi</th>
                                             {stationsData.map(station => (
-                                                <th key={station.station}>
+                                                <th key={station.tinh}>
                                                     {station.tentinh || `Tỉnh ${stationsData.indexOf(station) + 1}`}
                                                 </th>
                                             ))}
@@ -574,7 +500,6 @@ const KQXS = (props) => {
                     </div>
                 );
             })}
-
             {data.length > 1 && (
                 <div className={styles.pagination}>
                     <button

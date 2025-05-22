@@ -47,11 +47,11 @@ const ListXSMT = () => {
                 </li>
 
                 <li className={styles.item}>
-                    <Link title="Thống Kê Lô Gan" href="/xsmt/tinh/dak-nong" className={styles.action_Link}>Đắk Nông</Link>
+                    <Link title="Kết Quả Xổ Số Đắk Nông" href="/xsmt/tinh/dak-nong" className={styles.action_Link}>Đắk Nông</Link>
                 </li>
 
                 <li className={styles.item}>
-                    <Link title="Thống Kê Lô Gan" href="/xsmt/tinh/kon-tum" className={styles.action_Link}>Kon Tum</Link>
+                    <Link title="Kết Quả Xổ Số Kon Tum" href="/xsmt/tinh/kon-tum" className={styles.action_Link}>Kon Tum</Link>
                 </li>
             </ul>
         </div>

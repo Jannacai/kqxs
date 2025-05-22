@@ -52,7 +52,35 @@ export const apiMB = {
             throw new Error('Không thể tải dữ liệu xổ số, vui lòng thử lại sau');
         }
     },
+    getLotteryTinh: async (station, tinh) => {
+        let url = `${API_BASE_URL}/api/kqxs`;
 
+        if (tinh) {
+            if (!station || !tinh || station.trim() === '' || tinh.trim() === '') {
+                throw new Error('Station and tinh cannot be empty');
+            }
+            url = `${API_BASE_URL}/api/kqxs/${station}/tinh/${tinh}`;
+        }
+        try {
+            const response = await fetch(url, {
+                cache: 'no-store',
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'x-user-id': getUserId(),
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`Lỗi khi gọi API: ${response.status} - ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            return data || [];
+        } catch (error) {
+            console.error('Lỗi khi lấy dữ liệu xổ số:', error);
+            throw new Error('Không thể tải dữ liệu xổ số, vui lòng thử lại sau');
+        }
+    },
     getLoGanStats: async (days) => {
         if (!days || !['6', '7', '14', '30', '60'].includes(days.toString())) {
             throw new Error('Invalid days parameter. Valid options are: 6, 7, 14, 30, 60.');

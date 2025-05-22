@@ -1,29 +1,22 @@
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
-import KQXS from '../kqxsAll/index';
-import Calendar from '../../component/caledar';
-import styles from "../../public/css/itemsKQXS.module.css";
-import ThongKe from '../../component/thongKe';
-import ListXSMT from '../../component/listXSMT';
-import ListXSMB from '../../component/listXSMB';
-import ListXSMN from '../../component/listXSMN';
+import KQXS from './index';
+import Calendar from '../../../component/caledar';
+import styles from "../../../public/css/itemsKQXS.module.css";
+import ThongKe from '../../../component/thongKe';
+import ListXSMT from '../../../component/listXSMT';
+import ListXSMB from '../../../component/listXSMB';
+import ListXSMN from '../../../component/listXSMN';
 
 import Image from 'next/image';
 // Giả lập API để lấy thông tin ngày
 
 
-export default function XsmbPage() {
+export default function XsmtPage() {
     const router = useRouter();
-    const { slug } = router.query; // slug sẽ là mảng hoặc undefined
+    const { tinh } = router.query; // slug sẽ là mảng hoặc undefined
     const [error, setError] = useState(null);
-
-    // Xử lý slug thành chuỗi (nếu có)
-    const slugDayofweek = Array.isArray(slug) ? slug.join('-') : slug; // Ví dụ: "thu-2" hoặc null
-    const station = 'xsmb'; // Slug cố định cho xsmb
-
-    console.log("Station:", station, "Slug:", slugDayofweek);
-    console.log('Slug Date---', slugDayofweek);
-
+    console.log("tinh", tinh);
     if (error) {
         return (
             <div className={styles.containerStyle}>
@@ -44,7 +37,7 @@ export default function XsmbPage() {
                 <ListXSMT></ListXSMT>
                 <ListXSMN></ListXSMN>
             </div>
-            <KQXS data3={slugDayofweek}></KQXS>
+            <KQXS tinh={tinh}></KQXS>
             <ThongKe></ThongKe>
         </div>
     );

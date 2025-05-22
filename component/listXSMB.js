@@ -13,22 +13,22 @@ const ListXSMB = () => {
             </h3>
             <ul className={styles.list}>
                 <li className={styles.item}>
-                    <Link as="/thong-ke-lo-gan" title="Thống Kê Lô Gan" href="" className={styles.action_Link}>Nam Định</Link>
+                    <Link title="Xổ Số Miền Bắc - Nam Định" href="/xsmb/tinh/nam-dinh" className={styles.action_Link}>Nam Định</Link>
                 </li>
                 <li className={styles.item}>
-                    <Link as="/thong-ke-lo-gan" title="Thống Kê Lô Gan" href="" className={styles.action_Link}>Hà Nội</Link>
+                    <Link title="Xổ Số Miền Bắc - Hà Nội" href="/xsmb/tinh/ha-noi" className={styles.action_Link}>Hà Nội</Link>
                 </li>
                 <li className={styles.item}>
-                    <Link as="/thong-ke-lo-gan" title="Thống Kê Lô Gan" href="" className={styles.action_Link}>Thái Bình</Link>
+                    <Link title="Xổ Số Miền Bắc - Thái Bình" href="/xsmb/tinh/thai-binh" className={styles.action_Link}>Thái Bình</Link>
                 </li>
                 <li className={styles.item}>
-                    <Link as="/thong-ke-lo-gan" title="Thống Kê Lô Gan" href="" className={styles.action_Link}>Quảng Ninh </Link>
+                    <Link title="Xổ Số Miền Bắc - Quảng Ninh" href="/xsmb/tinh/quang-ninh" className={styles.action_Link}>Quảng Ninh </Link>
                 </li>
                 <li className={styles.item}>
-                    <Link as="/thong-ke-lo-gan" title="Thống Kê Lô Gan" href="" className={styles.action_Link}>Bắc Ninh</Link>
+                    <Link title="Xổ Số Miền Bắc - Bắc Ninh" href="/xsmb/tinh/bac-ninh" className={styles.action_Link}>Bắc Ninh</Link>
                 </li>
                 <li className={styles.item}>
-                    <Link as="/thong-ke-lo-gan" title="Thống Kê Lô Gan" href="" className={styles.action_Link}>Hải Phòng</Link>
+                    <Link title="Xổ Số Miền Bắc - Hải Phòng" href="/xsmb/tinh/hai-phong" className={styles.action_Link}>Hải Phòng</Link>
                 </li>
             </ul>
         </div>

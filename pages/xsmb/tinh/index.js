@@ -1,4 +1,4 @@
-import { apiMN } from "../../api/kqxs/kqxsMN";
+import { apiMB } from "../../api/kqxs/kqxsMB";
 import { useState, useEffect } from "react";
 import styles from '../../../styles/kqxsMTTinh.module.css';
 import { getFilteredNumber } from "../../../library/utils/filterUtils";
@@ -14,20 +14,20 @@ const KQXS = (props) => {
     const router = useRouter();
     let dayof;
 
-    const station = props.station || "xsmn";
+    const station = props.station || "xsmb";
     const date = props.data3 && /^\d{2}-\d{2}-\d{4}$/.test(props.data3)
         ? props.data3
         : (dayof = props.data3);
     const tinh = props.tinh;
-
-    const startHour = 16;
-    const startMinute = 10;
+    console.log("tinh 1", tinh);
+    const startHour = 18;
+    const startMinute = 14;
     const duration = 30 * 60 * 1000;
     const itemsPerPage = 3;
 
     const fetchData = async () => {
         try {
-            const result = await apiMN.getLottery(station, date, tinh, dayof);
+            const result = await apiMB.getLotteryTinh(station, tinh);
             const dataArray = Array.isArray(result) ? result : [result];
 
             const formattedData = dataArray.map(item => ({
@@ -137,7 +137,6 @@ const KQXS = (props) => {
             ...(data2.fivePrizes || []),
             ...(data2.sixPrizes || []),
             ...(data2.sevenPrizes || []),
-            ...(data2.eightPrizes || []),
         ]
             .filter(num => num != null && num !== '')
             .map((num) => getFilteredNumber(num, 'last2'))
@@ -214,43 +213,58 @@ const KQXS = (props) => {
                             </div>
                             <table className={styles.tableXS}>
                                 <tbody>
-                                    {/* G8 */}
+
+                                    {/* ĐB */}
                                     <tr>
-                                        <td className={`${styles.tdTitle} ${styles.highlight}`}>G8</td>
+                                        <td className={`${styles.tdTitle} ${styles.highlight}`}>ĐB</td>
                                         <td className={styles.rowXS}>
-                                            <span className={`${styles.prizeNumber} ${styles.highlight}`}>
-                                                {(stationData.eightPrizes || [])[0] ? getFilteredNumber(stationData.eightPrizes[0], currentFilter) : '-'}
+                                            <span className={`${styles.prizeNumber} ${styles.highlight} ${styles.gdb}`}>
+                                                {(stationData.specialPrize || [])[0] ? getFilteredNumber(stationData.specialPrize[0], currentFilter) : '-'}
                                             </span>
                                         </td>
                                     </tr>
-                                    {/* G7 */}
+                                    {/* G1 */}
                                     <tr>
-                                        <td className={styles.tdTitle}>G7</td>
+                                        <td className={styles.tdTitle}>G1</td>
                                         <td className={styles.rowXS}>
                                             <span className={styles.prizeNumber}>
-                                                {(stationData.sevenPrizes || [])[0] ? getFilteredNumber(stationData.sevenPrizes[0], currentFilter) : '-'}
+                                                {(stationData.firstPrize || [])[0] ? getFilteredNumber(stationData.firstPrize[0], currentFilter) : '-'}
                                             </span>
                                         </td>
                                     </tr>
-                                    {/* G6 */}
+                                    {/* G2 */}
                                     <tr>
-                                        <td className={styles.tdTitle}>G6</td>
+                                        <td className={styles.tdTitle}>G2</td>
                                         <td className={styles.rowXS}>
-                                            {(stationData.sixPrizes || []).slice(0, 3).map((kq, idx) => (
+                                            {(stationData.secondPrize || []).slice(0, 2).map((kq, idx) => (
                                                 <span key={idx} className={styles.prizeNumber}>
                                                     {getFilteredNumber(kq, currentFilter)}
-                                                    {idx < (stationData.sixPrizes || []).slice(0, 3).length - 1 && <span className={styles.prizeSeparator}></span>}
+                                                    {idx < (stationData.secondPrize || []).slice(0, 2).length - 1 && <span className={styles.prizeSeparator}></span>}
                                                 </span>
                                             ))}
                                         </td>
                                     </tr>
-                                    {/* G5 */}
+                                    {/* G3 */}
                                     <tr>
-                                        <td className={`${styles.tdTitle} ${styles.g3}`}>G5</td>
+                                        <td className={styles.tdTitle}>G3</td>
                                         <td className={styles.rowXS}>
-                                            <span className={`${styles.prizeNumber} ${styles.g3}`}>
-                                                {(stationData.fivePrizes || [])[0] ? getFilteredNumber(stationData.fivePrizes[0], currentFilter) : '-'}
-                                            </span>
+                                            {(stationData.threePrizes || []).slice(0, 3).map((kq, idx) => (
+                                                <span key={idx} className={styles.prizeNumber}>
+                                                    {getFilteredNumber(kq, currentFilter)}
+                                                    {idx < (stationData.threePrizes || []).slice(0, 3).length - 1 && <span className={styles.prizeSeparator}></span>}
+                                                </span>
+                                            ))}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td className={`${styles.tdTitle} ${styles.g3}`}>G3</td>
+                                        <td className={styles.rowXS}>
+                                            {(stationData.threePrizes || []).slice(3, 6).map((kq, idx) => (
+                                                <span key={idx} className={`${styles.prizeNumber} ${styles.g3}`}>
+                                                    {getFilteredNumber(kq, currentFilter)}
+                                                    {idx < (stationData.threePrizes || []).slice(3, 6).length - 1 && <span className={styles.prizeSeparator}></span>}
+                                                </span>
+                                            ))}
                                         </td>
                                     </tr>
                                     {/* G4 */}
@@ -265,54 +279,51 @@ const KQXS = (props) => {
                                             ))}
                                         </td>
                                     </tr>
+                                    {/* G5 */}
                                     <tr>
-                                        <td className={styles.tdTitle}>G4</td>
+                                        <td className={styles.tdTitle}>G5</td>
                                         <td className={styles.rowXS}>
-                                            {(stationData.fourPrizes || []).slice(4, 7).map((kq, idx) => (
+                                            {(stationData.fivePrizes || []).slice(0, 3).map((kq, idx) => (
                                                 <span key={idx} className={styles.prizeNumber}>
                                                     {getFilteredNumber(kq, currentFilter)}
-                                                    {idx < (stationData.fourPrizes || []).slice(4, 7).length - 1 && <span className={styles.prizeSeparator}></span>}
+                                                    {idx < (stationData.fivePrizes || []).slice(0, 3).length - 1 && <span className={styles.prizeSeparator}></span>}
                                                 </span>
                                             ))}
                                         </td>
                                     </tr>
-                                    {/* G3 */}
                                     <tr>
-                                        <td className={`${styles.tdTitle} ${styles.g3}`}>G3</td>
+                                        <td className={`${styles.tdTitle} ${styles.g3}`}>G5</td>
                                         <td className={styles.rowXS}>
-                                            {(stationData.threePrizes || []).slice(0, 2).map((kq, idx) => (
+                                            {(stationData.fivePrizes || []).slice(3, 6).map((kq, idx) => (
                                                 <span key={idx} className={`${styles.prizeNumber} ${styles.g3}`}>
                                                     {getFilteredNumber(kq, currentFilter)}
-                                                    {idx < (stationData.threePrizes || []).slice(0, 2).length - 1 && <span className={styles.prizeSeparator}></span>}
+                                                    {idx < (stationData.fivePrizes || []).slice(3, 6).length - 1 && <span className={styles.prizeSeparator}></span>}
                                                 </span>
                                             ))}
                                         </td>
                                     </tr>
-                                    {/* G2 */}
+                                    {/* G6 */}
                                     <tr>
-                                        <td className={styles.tdTitle}>G2</td>
+                                        <td className={styles.tdTitle}>G6</td>
                                         <td className={styles.rowXS}>
-                                            <span className={styles.prizeNumber}>
-                                                {(stationData.secondPrize || [])[0] ? getFilteredNumber(stationData.secondPrize[0], currentFilter) : '-'}
-                                            </span>
+                                            {(stationData.sixPrizes || []).slice(0, 3).map((kq, idx) => (
+                                                <span key={idx} className={styles.prizeNumber}>
+                                                    {getFilteredNumber(kq, currentFilter)}
+                                                    {idx < (stationData.sixPrizes || []).slice(0, 3).length - 1 && <span className={styles.prizeSeparator}></span>}
+                                                </span>
+                                            ))}
                                         </td>
                                     </tr>
-                                    {/* G1 */}
+                                    {/* G7 */}
                                     <tr>
-                                        <td className={styles.tdTitle}>G1</td>
+                                        <td className={`${styles.tdTitle} ${styles.highlight}`}>G7</td>
                                         <td className={styles.rowXS}>
-                                            <span className={styles.prizeNumber}>
-                                                {(stationData.firstPrize || [])[0] ? getFilteredNumber(stationData.firstPrize[0], currentFilter) : '-'}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                    {/* ĐB */}
-                                    <tr>
-                                        <td className={`${styles.tdTitle} ${styles.highlight}`}>ĐB</td>
-                                        <td className={styles.rowXS}>
-                                            <span className={`${styles.prizeNumber} ${styles.highlight} ${styles.gdb}`}>
-                                                {(stationData.specialPrize || [])[0] ? getFilteredNumber(stationData.specialPrize[0], currentFilter) : '-'}
-                                            </span>
+                                            {(stationData.sevenPrizes || []).slice(0, 4).map((kq, idx) => (
+                                                <span key={idx} className={`${styles.prizeNumber} ${styles.highlight}`}>
+                                                    {getFilteredNumber(kq, currentFilter)}
+                                                    {idx < (stationData.sevenPrizes || []).slice(0, 4).length - 1 && <span className={styles.prizeSeparator}></span>}
+                                                </span>
+                                            ))}
                                         </td>
                                     </tr>
                                 </tbody>

@@ -48,9 +48,9 @@ export default function Login() {
     return (
         <div className={styles.loginForm}>
             <h1 className={styles.title}>Đăng nhập</h1>
-            <p className={styles.dangky}>
+            {/* <p className={styles.dangky}>
                 Chưa có tài khoản? <Link href="/register">Đăng ký ngay</Link>
-            </p>
+            </p> */}
 
             <form className={styles.formContainer} onSubmit={handleSubmit}>
                 <div className={styles.formGroup}>
