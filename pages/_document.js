@@ -1,6 +1,4 @@
 import { Html, Head, Main, NextScript } from 'next/document';
-import Image from 'next/image';
-import logo from './asset/img/logo5.png';
 
 export default function Document() {
     return (
@@ -8,41 +6,53 @@ export default function Document() {
             <Head>
                 {/* Meta Tags SEO Nâng Cao */}
                 <title>XSMB - Kết Quả Xổ Số Miền Bắc Nhanh Chóng, Chính Xác 2025</title>
-                <meta name="description" content="Cập nhật kết quả xổ số miền Bắc (XSMB) nhanh nhất, chính xác nhất. Thống kê, dự đoán XSMB, kết nối qua Zalo và Telegram tại xsmb.win." />
+                <meta name="description" content="Cập nhật kết quả xổ số miền Bắc (XSMB) nhanh nhất, chính xác nhất. Thống kê, dự đoán XSMB, kết nối qua Zalo, Telegram tại xsmb.win." />
                 <meta name="keywords" content="xsmb, kết quả xổ số miền bắc, xổ số 2025, xsmb hôm nay, xsmb trực tiếp, zalo xsmb, telegram xsmb" />
                 <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
                 <meta name="author" content="XSMB Team" />
                 <meta charset="UTF-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
 
-                {/* Open Graph Tags (Chung và tối ưu cho Zalo/Telegram) */}
-                <meta property="og:title" content="XSMB - Kết Quả Xổ Số Miền Bắc Nhanh Chóng, Chính Xác 2025" />
-                <meta property="og:description" content="Cập nhật XSMB nhanh nhất, tham gia cộng đồng qua Zalo và Telegram tại xsmb.win." />
+                {/* Open Graph Tags (Tối ưu cho tất cả mạng xã hội) */}
+                <meta property="og:title" content="XSMB - Kết Quả Xổ Số Miền Bắc Nhanh Chóng, Chính Xác 2025" /> {/* Header */}
+                <meta property="og:description" content="Cập nhật kết quả XSMB nhanh nhất, chính xác nhất. Tham gia cộng đồng tại Zalo và Telegram để nhận thông tin mới nhất tại xsmb.win!" /> {/* Content */}
                 <meta property="og:type" content="website" />
                 <meta property="og:url" content="https://xsmb.win/" />
-                <meta property="og:image" content="https://xsmb.win/public/favicon/android-icon-192x192.png" />
-                <meta property="og:image:width" content="192" />
-                <meta property="og:image:height" content="192" />
+                <meta property="og:image" content="https://xsmb.win/og-image-1200x1200.png" /> {/* Ảnh */}
+                <meta property="og:image:width" content="1200" />
+                <meta property="og:image:height" content="1200" />
+                <meta property="og:image:secure_url" content="https://xsmb.win/og-image-1200x1200.png" />
                 <meta property="og:site_name" content="XSMB" />
                 <meta property="og:locale" content="vi_VN" />
 
                 {/* Thêm OG Tags cụ thể cho Zalo */}
-                <meta property="og:app_id" content="your-zalo-app-id" /> {/* Thay bằng App ID của Zalo OA nếu có */}
-                <meta property="zalo:official_account_id" content="your-zalo-oa-id" /> {/* Thay bằng ID Zalo OA */}
-                <meta property="zalo:share_url" content="https://xsmb.win/" /> {/* URL chia sẻ mặc định */}
+                <meta property="og:app_id" content="your-zalo-app-id" />
+                <meta property="zalo:official_account_id" content="your-zalo-oa-id" />
+                <meta property="zalo:share_url" content="https://xsmb.win/" />
 
                 {/* Thêm OG Tags cụ thể cho Telegram */}
-                <meta name="telegram:channel" content="@YourChannel" /> {/* Thay bằng username Telegram, ví dụ @XSMB2025 */}
-                <meta name="telegram:share_url" content="https://xsmb.win/" /> {/* URL chia sẻ mặc định */}
-                <meta name="telegram:description" content="Cập nhật XSMB nhanh nhất, tham gia Telegram tại @YourChannel." />
+                <meta name="telegram:channel" content="@YourChannel" />
+                <meta name="telegram:share_url" content="https://xsmb.win/" />
+                <meta name="telegram:description" content="Cập nhật XSMB nhanh nhất, tham gia Telegram tại @YourChannel để nhận kết quả!" />
 
-                {/* Twitter Cards (Hỗ trợ Telegram và tối ưu chung) */}
+                {/* Twitter Cards (Tối ưu cho Twitter/X) */}
                 <meta name="twitter:card" content="summary_large_image" />
-                <meta name="twitter:title" content="XSMB - Kết Quả Xổ Số Miền Bắc Nhanh Chóng, Chính Xác 2025" />
-                <meta name="twitter:description" content="Cập nhật XSMB nhanh nhất, kết nối qua Zalo và Telegram tại xsmb.win." />
-                <meta name="twitter:image" content="https://xsmb.win/public/favicon/android-icon-192x192.png" />
+                <meta name="twitter:title" content="XSMB - Kết Quả Xổ Số Miền Bắc Nhanh Chóng, Chính Xác 2025" /> {/* Header */}
+                <meta name="twitter:description" content="Cập nhật XSMB nhanh nhất, chính xác nhất. Kết nối qua Zalo và Telegram tại xsmb.win!" /> {/* Content */}
+                <meta name="twitter:image" content="https://xsmb.win/og-image-1200x1200.png" /> {/* Ảnh */}
+                <meta name="twitter:image:alt" content="Kết quả xổ số miền Bắc 2025" />
 
-                {/* Canonical và JSON-LD Schema (Đã sửa lỗi cú pháp) */}
+                {/* LinkedIn OG Tags */}
+                <meta property="og:image" content="https://xsmb.win/og-image-1200x1200.png" />
+                <meta property="og:image:width" content="1200" />
+                <meta property="og:image:height" content="627" />
+
+                {/* Pinterest Rich Pins */}
+                <meta property="og:image" content="https://xsmb.win/og-image-1200x1200.png" />
+                <meta property="og:image:width" content="1000" />
+                <meta property="og:image:height" content="1500" />
+
+                {/* Canonical và JSON-LD Schema */}
                 <link rel="canonical" href="https://xsmb.win/" />
                 <script type="application/ld+json">
                     {JSON.stringify({
@@ -57,8 +67,8 @@ export default function Document() {
                             "query-input": "required name=search_term_string"
                         },
                         "sameAs": [
-                            "https://zalo.me/your-zalo-oa-link", // Thay bằng link Zalo OA
-                            "https://t.me/YourChannel" // Thay bằng link Telegram
+                            "https://zalo.me/your-zalo-oa-link",
+                            "https://t.me/YourChannel"
                         ]
                     })}
                 </script>
