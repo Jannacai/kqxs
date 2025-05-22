@@ -19,7 +19,7 @@ export default function Document() {
                 <meta property="og:url" content="https://xsmb.win/" /> {/* Đảm bảo URL nhất quán */}
                 <meta property="og:image" content="https://xsmb.win/xsmbwin.png" />
                 <meta property="og:image:width" content="600" />
-                <meta property="og:image:height" content="400" />
+                <meta property="og:image:height" content="300" />
                 <meta property="og:image:secure_url" content="https://xsmb.win/xsmbwin.png" />
                 <meta property="og:image:alt" content="Kết quả xổ số miền Bắc 2025" /> {/* Thêm alt cho hình ảnh */}
                 <meta property="og:site_name" content="XSMB" />
