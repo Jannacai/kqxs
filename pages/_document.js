@@ -18,10 +18,10 @@ export default function Document() {
                 <meta property="og:description" content="Cập nhật kết quả XSMB nhanh nhất, chính xác nhất. Tham gia cộng đồng tại Zalo và Telegram để nhận thông tin mới nhất tại xsmb.win!" /> {/* Content */}
                 <meta property="og:type" content="website" />
                 <meta property="og:url" content="https://xsmb.win/" />
-                <meta property="og:image" content="https://xsmb.win/tagicon.png" /> {/* Ảnh */}
+                <meta property="og:image" content="https://xsmb.win/xsmbwin.png" /> {/* Ảnh */}
                 <meta property="og:image:width" content="1200" />
                 <meta property="og:image:height" content="1200" />
-                <meta property="og:image:secure_url" content="https://xsmb.win/tagicon.png" />
+                <meta property="og:image:secure_url" content="https://xsmb.win/xsmbwin.png" />
                 <meta property="og:site_name" content="XSMB" />
                 <meta property="og:locale" content="vi_VN" />
 
@@ -39,16 +39,16 @@ export default function Document() {
                 <meta name="twitter:card" content="summary_large_image" />
                 <meta name="twitter:title" content="XSMB - Kết Quả Xổ Số Miền Bắc Nhanh Chóng, Chính Xác 2025" /> {/* Header */}
                 <meta name="twitter:description" content="Cập nhật XSMB nhanh nhất, chính xác nhất. Kết nối qua Zalo và Telegram tại xsmb.win!" /> {/* Content */}
-                <meta name="twitter:image" content="https://xsmb.win/tagicon.png" /> {/* Ảnh */}
+                <meta name="twitter:image" content="https://xsmb.win/xsmbwin.png" /> {/* Ảnh */}
                 <meta name="twitter:image:alt" content="Kết quả xổ số miền Bắc 2025" />
 
                 {/* LinkedIn OG Tags */}
-                <meta property="og:image" content="https://xsmb.win/tagicon.png" />
+                <meta property="og:image" content="https://xsmb.win/xsmbwin.png" />
                 <meta property="og:image:width" content="1200" />
                 <meta property="og:image:height" content="627" />
 
                 {/* Pinterest Rich Pins */}
-                <meta property="og:image" content="https://xsmb.win/tagicon.png" />
+                <meta property="og:image" content="https://xsmb.win/xsmbwin.png" />
                 <meta property="og:image:width" content="1000" />
                 <meta property="og:image:height" content="1500" />
 
