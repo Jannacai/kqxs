@@ -9,6 +9,21 @@ export default function Document() {
                 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
                 <meta name="robots" content="index, follow" />
 
+                <meta property="og:image" content="https://xsmb.win/facebook.png" />
+                <meta property="og:image:width" content="1200" />
+                <meta property="og:image:height" content="630" />
+                <meta property="og:image:secure_url" content="https://xsmb.win/facebook.png" />
+                <meta property="og:image:type" content="image/png" />
+
+                {/* Zalo */}
+                <meta property="zalo:og:image" content="https://xsmb.win/zalotelegram.png" />
+                <meta property="zalo:og:image:width" content="600" />
+                <meta property="zalo:og:image:height" content="600" />
+
+                {/* { twitter} */}
+                <meta name="twitter:image" content="https://xsmb.win/facebook.png" />
+
+
                 {/* JSON-LD Schema Cơ Bản (Không chứa thông tin động) */}
                 <script type="application/ld+json">
                     {JSON.stringify({
