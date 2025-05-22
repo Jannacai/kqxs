@@ -1,5 +1,5 @@
 
-import KQXS from '../pages/xsmt/index';
+import KQXSMT from '../pages/xsmt/index';
 import Calendar from '../component/caledar';
 import ThongKe from '../component/thongKe';
 import ListXSMT from '../component/listXSMT';
@@ -21,7 +21,7 @@ const XSMT = () => {
 
                 <div>
                     <TableDate></TableDate>
-                    <KQXS>{"Miền Trung"}</KQXS>
+                    <KQXSMT>{"Miền Trung"}</KQXSMT>
                 </div>
 
 

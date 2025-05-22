@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import KQXS from '../pages/xsmn/index';
+import KQXSMN from '../pages/xsmn/index';
 import Calendar from '../component/caledar';
 import ThongKe from '../component/thongKe';
 import ListXSMT from '../component/listXSMT';
@@ -105,7 +105,7 @@ const XSMN = ({ initialData }) => {
                     </div>
                     <div>
                         <TableDate />
-                        <KQXS data={initialData} station="xsmn">Miền Nam</KQXS>
+                        <KQXSMN data={initialData} station="xsmn">Miền Nam</KQXSMN>
                     </div>
                     <ThongKe />
                 </div>
