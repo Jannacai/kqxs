@@ -53,7 +53,16 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     const retryCounts = useRef({});
     const initialDataTimeout = useRef({});
 
-    const dateObj = new Date(today.split('-').reverse().join('-'));
+    const todayValue = today || new Date().toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+    });
+
+
+    const dateObj = new Date(todayValue.split('/').reverse().join('/'));
+
+
     const dayOfWeekIndex = dateObj.getDay();
     const provinces = provincesByDay[dayOfWeekIndex] || provincesByDay[0];
 

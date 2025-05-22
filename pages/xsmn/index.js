@@ -15,8 +15,8 @@ const KQXS = (props) => {
     const intervalRef = useRef(null);
     const router = useRouter();
 
-    const hour = 14;
-    const minutes1 = 11;
+    const hour = 12;
+    const minutes1 = 15;
     const minutes2 = 15;
 
     let dayof;
@@ -319,14 +319,14 @@ const KQXS = (props) => {
                 return (
                     <div key={tableKey}>
                         <div className={styles.kqxs}>
-                           <div className={styles.header}>
+                            <div className={styles.header}>
                                 <h2 className={styles.kqxs__title}>Kết Quả Xổ Số Miền Nam - {dayData.drawDate}</h2>
                                 <div className={styles.kqxs__action}>
                                     <a className={`${styles.kqxs__actionLink}`} href="#!">XSMN</a>
                                     <a className={`${styles.kqxs__actionLink} ${styles.dayOfWeek}`} href="#!">{dayData.dayOfWeek}</a>
                                     <a className={styles.kqxs__actionLink} href="#!">{dayData.drawDate}</a>
                                 </div>
-                           </div>
+                            </div>
                             <table className={styles.tableXS}>
                                 <thead>
                                     <tr>
