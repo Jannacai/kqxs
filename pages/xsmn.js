@@ -32,7 +32,7 @@ export async function getStaticProps() {
 
 const XSMN = ({ initialData }) => {
     const drawDate = initialData[0]?.drawDate || 'Hôm Nay';
-    const title = `Kết Quả Xổ Số Miền Nam - ${drawDate}`;
+    const title = `Kết Quả Xổ Số Miền Nam - ${initialData[0]?.drawDate || 'Hôm Nay'}`;
     const description = `Xem kết quả xổ số Miền Nam ngày ${drawDate} với thông tin chi tiết về giải đặc biệt, lô tô, đầu đuôi.`;
     const canonicalUrl = 'https://xsmb.win/xsmn';
 
