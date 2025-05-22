@@ -4,61 +4,19 @@ export default function Document() {
     return (
         <Html lang="vi">
             <Head>
-                {/* Meta Tags SEO Nâng Cao */}
-                <title>XSMB - Kết Quả Xổ Số Miền Bắc Nhanh Chóng, Chính Xác 2025</title>
-                <meta name="description" content="Cập nhật kết quả xổ số miền Bắc (XSMB) nhanh nhất, chính xác nhất. Thống kê, dự đoán XSMB, kết nối qua Zalo, Telegram tại xsmb.win." />
-                <meta name="keywords" content="xsmb, kết quả xổ số miền bắc, xổ số 2025, xsmb hôm nay, xsmb trực tiếp, zalo xsmb, telegram xsmb" />
-                <meta name="robots" content="index, follow" />
+                {/* Meta Tags Cơ Bản */}
                 <meta charset="UTF-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <meta name="robots" content="index, follow" />
 
-                {/* Open Graph Tags (Tối ưu cho đăng bài và tin nhắn) */}
-                <meta property="og:title" content="XSMB - Kết Quả Xổ Số Miền Bắc Nhanh Nhất 2025" />
-                <meta property="og:description" content="Cập nhật XSMB nhanh nhất, chính xác. Kết nối Zalo & Telegram tại xsmb.win!" />
-                <meta property="og:type" content="website" />
-                <meta property="og:url" content="https://xsmb.win/" />
-                <meta property="og:image" content="https://xsmb.win/facebook.png" /> {/* Hình ảnh cho Facebook */}
-                <meta property="og:image:width" content="1200" />
-                <meta property="og:image:height" content="630" />
-                <meta property="og:image:secure_url" content="https://xsmb.win/facebook.png" /> {/* Sửa đường dẫn */}
-                <meta property="og:image:type" content="image/png" />
-                <meta property="og:image:alt" content="Kết quả xổ số miền Bắc 2025" />
-                <meta property="og:site_name" content="XSMB" />
-                <meta property="og:locale" content="vi_VN" />
-                <meta property="fb:app_id" content="your-facebook-app-id" /> {/* Thay bằng App ID thực tế */}
-
-                {/* Thêm OG Tags cụ thể cho Zalo */}
-                <meta property="og:app_id" content="your-zalo-app-id" />
-                <meta property="zalo:official_account_id" content="your-zalo-oa-id" />
-                <meta property="zalo:share_url" content="https://xsmb.win/" />
-                <meta property="zalo:og:image" content="https://xsmb.win/zalotelegram.png" /> {/* Hình ảnh riêng cho Zalo */}
-                <meta property="zalo:og:image:width" content="600" />
-                <meta property="zalo:og:image:height" content="600" />
-
-                {/* Thêm OG Tags cụ thể cho Telegram */}
-                <meta name="telegram:channel" content="@YourChannel" />
-                <meta name="telegram:share_url" content="https://xsmb.win/" />
-                <meta name="telegram:description" content="Cập nhật XSMB nhanh nhất tại @YourChannel!" />
-                <meta name="telegram:og:image" content="https://xsmb.win/zalotelegram.png" /> {/* Sử dụng chung với Zalo */}
-
-                {/* Twitter Cards */}
-                <meta name="twitter:card" content="summary_large_image" />
-                <meta name="twitter:title" content="XSMB - Kết Quả Xổ Số Miền Bắc Nhanh Nhất 2025" />
-                <meta name="twitter:description" content="Cập nhật XSMB nhanh nhất. Kết nối Zalo & Telegram tại xsmb.win!" />
-                <meta name="twitter:image" content="https://xsmb.win/facebook.png" /> {/* Sử dụng chung với Facebook */}
-                <meta name="twitter:image:alt" content="Kết quả xổ số miền Bắc 2025" />
-
-                {/* Canonical */}
-                <link rel="canonical" href="https://xsmb.win/" />
-
-                {/* JSON-LD Schema */}
+                {/* JSON-LD Schema Cơ Bản (Không chứa thông tin động) */}
                 <script type="application/ld+json">
                     {JSON.stringify({
                         "@context": "https://schema.org",
                         "@type": "WebSite",
                         "name": "XSMB",
                         "url": "https://xsmb.win/",
-                        "description": "Cập nhật nhanh kết quả xổ số miền Bắc (XSMB) chính xác nhất năm 2025.",
+                        "description": "Cập nhật nhanh kết quả xổ số miền Bắc (XSMB), miền Trung (XSMT), miền Nam (XSMN) chính xác nhất năm 2025.",
                         "potentialAction": {
                             "@type": "SearchAction",
                             "target": "https://xsmb.win/search?q={search_term_string}",
