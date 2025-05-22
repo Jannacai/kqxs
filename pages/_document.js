@@ -16,12 +16,12 @@ export default function Document() {
                 <meta property="og:title" content="XSMB - Kết Quả Xổ Số Miền Bắc Nhanh Chóng, Chính Xác 2025" />
                 <meta property="og:description" content="Cập nhật XSMB nhanh nhất, chính xác nhất. Tham gia cộng đồng tại Zalo và Telegram để nhận thông tin mới nhất tại xsmb.win!" />
                 <meta property="og:type" content="website" />
-                <meta property="og:url" content="https://xsmb.win/" /> {/* Đảm bảo URL nhất quán */}
-                <meta property="og:image" content="https://xsmb.win/xsmbwin.png" />
-                <meta property="og:image:width" content="600" />
-                <meta property="og:image:height" content="300" />
+                <meta property="og:url" content="https://xsmb.win/" />
+                <meta property="og:image" content="https://xsmb.win/xsmbwin.png" /> {/* Hình ảnh mới */}
+                <meta property="og:image:width" content="1200" /> {/* Cập nhật kích thước */}
+                <meta property="og:image:height" content="630" /> {/* Cập nhật kích thước */}
                 <meta property="og:image:secure_url" content="https://xsmb.win/xsmbwin.png" />
-                <meta property="og:image:alt" content="Kết quả xổ số miền Bắc 2025" /> {/* Thêm alt cho hình ảnh */}
+                <meta property="og:image:alt" content="Kết quả xổ số miền Bắc 2025" />
                 <meta property="og:site_name" content="XSMB" />
                 <meta property="og:locale" content="vi_VN" />
                 <meta property="fb:app_id" content="your-facebook-app-id" /> {/* Thay bằng App ID thực tế */}
@@ -40,7 +40,7 @@ export default function Document() {
                 <meta name="twitter:card" content="summary_large_image" />
                 <meta name="twitter:title" content="XSMB - Kết Quả Xổ Số Miền Bắc Nhanh Chóng, Chính Xác 2025" />
                 <meta name="twitter:description" content="Cập nhật XSMB nhanh nhất, chính xác nhất. Kết nối qua Zalo và Telegram tại xsmb.win!" />
-                <meta name="twitter:image" content="https://xsmb.win/xsmbwin.png" />
+                <meta name="twitter:image" content="https://xsmb.win/xsmbwin.png" /> {/* Hình ảnh mới */}
                 <meta name="twitter:image:alt" content="Kết quả xổ số miền Bắc 2025" />
 
                 {/* Canonical */}
