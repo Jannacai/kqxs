@@ -1,6 +1,6 @@
 import { apiMT } from "../api/kqxs/kqxsMT";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import styles from '../../styles/kqxsMN.module.css';
+import styles from '../../styles/kqxsMT.module.css';
 import { getFilteredNumber } from "../../library/utils/filterUtils";
 import { useRouter } from 'next/router';
 import LiveResult from './LiveResult';

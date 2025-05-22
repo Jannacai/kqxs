@@ -1,7 +1,7 @@
 .containerKQ {
     width: 100%;
-    min-width: 660px;
     max-width: 1200px;
+    min-width: 660px;
     font-family: "Poppins", sans-serif;
     font-weight: 500;
     margin: 0 auto;
@@ -22,15 +22,11 @@
     box-shadow: 0px 6px 10px 0px rgba(0, 0, 0, 0.1);
 }
 
-.highlightPrize {
-    color: red;
-    font-weight: 700;
-}
-
 .kqxs__title {
     color: #2d3483;
     font-size: 26px;
     font-weight: 600;
+    margin-bottom: 15px;
 }
 
 .kqxs__title span {
@@ -49,6 +45,8 @@
     margin: 0 10px;
     font-weight: 500;
     text-decoration: underline;
+    color: #2d3483;
+    transition: color 0.3s ease;
 }
 
 .kqxs__actionLink.dayOfWeek {
@@ -59,13 +57,55 @@
     color: red;
 }
 
+/* Style cho thông báo lỗi và đang tải */
+.error {
+    background-color: #ffe6e6;
+    color: #d32f2f;
+    font-size: 18px;
+    font-weight: 500;
+    padding: 20px;
+    margin: 10px 0px;
+    border-radius: 6px;
+    text-align: center;
+    border: 1px solid #d32f2f;
+}
+
+.loading {
+    background-color: #e3f2fd;
+    color: #1565c0;
+    font-size: 18px;
+    font-weight: 500;
+    padding: 15px;
+    margin: 10px 0px;
+    border-radius: 6px;
+    text-align: center;
+    border: 1px solid #1565c0;
+}
+
+/* Style cho spinner xoay tròn khi dữ liệu đang chờ */
+.spinner {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    border: 3px solid #ccc;
+    border-top-color: #2d3483;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    vertical-align: middle;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 /* Điều chỉnh bảng kết quả xổ số */
 .tableXS {
     border-collapse: collapse;
     text-align: center;
     width: 100%;
-    display: table;
-    /* Đảm bảo bảng hoạt động đúng với layout */
+    table-layout: fixed;
 }
 
 .tableXS th,
@@ -76,35 +116,33 @@
 
 /* Định dạng hàng tên tỉnh trong thead */
 .tableXS th {
-    padding: 10px 0;
     background-color: #007bff21;
     font-size: 18px;
+    padding: 8px 0;
     font-weight: 600;
     color: #2d3483;
     text-transform: uppercase;
 }
 
+.stationName {
+    word-break: break-word;
+}
+
 /* Định dạng ô trống trong thead (ô trên cột đại diện giải) */
 .tableXS th:first-child {
     width: 60px;
-    /* Cùng chiều rộng với cột đại diện giải */
     background-color: #f0f0f0;
-    /* Màu nền giống cột đại diện giải */
 }
 
-/* Định dạng các cột kết quả trong thead và tbody */
+/* Định dạng các cột kết quả */
 .tableXS th:not(:first-child),
 .tableXS td:not(.tdTitle) {
-    flex: 1;
-    /* Các cột kết quả nới rộng đều nhau */
-    width: auto;
-    /* Bỏ min-width để cột linh hoạt */
-    text-align: center;
+    width: calc((100% - 60px) / var(--num-columns, 3));
 }
 
+/* Định dạng cột đại diện giải */
 .tableXS td.tdTitle {
     width: 60px;
-    /* Cột đại diện giải giữ chiều rộng cố định */
     background-color: #f0f0f0;
     font-size: 20px;
     color: #000;
@@ -115,7 +153,12 @@
     font-size: 28px;
 }
 
-.tableXS td:not(.tdTitle):hover {
+/* Định dạng ô kết quả */
+.tableXS td.rowXS {
+    transition: background-color 0.2s ease;
+}
+
+.tableXS td.rowXS:hover {
     background-color: #fff4c3;
 }
 
@@ -126,16 +169,10 @@
 /* Định dạng các số trong ô */
 .prizeNumber {
     display: block;
-    /* Đảm bảo mỗi số chiếm một dòng riêng biệt */
     font-weight: 700;
     font-size: 24px;
-    min-width: 60px;
-    /* Đảm bảo kích thước số cố định */
     text-align: center;
-    line-height: 1.5;
-    /* Khoảng cách giữa các dòng */
-    margin: 5px 0;
-    /* Thêm khoảng cách trên dưới giữa các số */
+    line-height: 1.6;
 }
 
 .prizeNumber.highlight {
@@ -144,6 +181,10 @@
 
 .prizeNumber.gdb {
     font-size: 30px;
+}
+
+.prizeNumber.g3 {
+    font-size: 22px;
 }
 
 /* Bộ lọc */
@@ -155,12 +196,18 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 80px;
+    gap: 60px;
     border: 2px solid var(--primary-color);
     width: 500px;
     height: 50px;
     border-radius: 6px;
     margin: 0 auto;
+    background-color: #fff;
+    transition: box-shadow 0.3s ease;
+}
+
+.filter__options:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .optionInput input {
@@ -175,6 +222,11 @@
     font-weight: 600;
     color: var(--primary-color);
     cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.optionInput label:hover {
+    color: #d32f2f;
 }
 
 .optionInput label::before {
@@ -185,11 +237,10 @@
     height: 20px;
     left: -30px;
     border-radius: 50%;
-    border: 2px solid var(--color-xam);
+    border: 2px solid #ccc;
 }
 
 .optionInput input[type='radio']:checked+label::before {
-    background-color: transparent;
     border: 2px solid #000;
 }
 
@@ -200,8 +251,7 @@
     width: 14px;
     height: 14px;
     top: 2px;
-    left: -25.5px;
-    z-index: 1;
+    left: -25px;
     border-radius: 50%;
     background-color: var(--primary-color);
 }
@@ -210,30 +260,31 @@
 .TKe_container {
     display: flex;
     flex-direction: column;
-    gap: 30px;
-    /* Khoảng cách giữa hai bảng */
+    gap: 40px;
 }
 
 /* Bảng thống kê lô tô */
 .TKe_content {
-    background-color: #F8F8F8;
-    margin-left: auto;
-    margin-right: auto;
+    background-color: #f8f8f8;
     width: 100%;
     max-width: 1200px;
     border: 1px solid #ccc;
     border-right: 4px solid #ccc;
-    margin-bottom: 20px;
+    margin: 0 auto 20px;
+    border-radius: 6px;
 }
 
 .TKe_contentTitle {
-    padding: 10px 0;
+    padding: 15px 0;
     text-align: center;
+    background-color: #e3f2fd;
+    border-bottom: 1px solid #ccc;
 }
 
 .TKe_contentTitle .title {
     font-weight: 600;
     font-style: italic;
+    font-size: 20px;
 }
 
 .TKe_contentTitle .desc,
@@ -241,17 +292,19 @@
     color: #2d3483;
     font-weight: 700;
     font-style: italic;
+    font-size: 18px;
 }
 
 .TKe_contentTitle .desc {
     text-transform: uppercase;
-    margin-right: 20px;
+    margin-left: 10px;
 }
 
 .tableKey {
     border-collapse: collapse;
     box-shadow: 0px 6px 10px 0px rgba(0, 0, 0, 0.1);
     width: 100%;
+    table-layout: fixed;
 }
 
 .tableKey th,
@@ -259,7 +312,7 @@
     border: 1px solid #ccc;
     text-align: center;
     font-weight: 600;
-    padding: 10px;
+    padding: 12px 8px;
 }
 
 .tableKey th {
@@ -271,9 +324,7 @@
 
 .tableKey th:not(:first-child),
 .tableKey td:not(:first-child) {
-    flex: 1;
-    /* Các cột tỉnh nới rộng đều nhau */
-    width: auto;
+    width: calc((100% - 60px) / var(--num-columns, 3));
 }
 
 .tableKey tr:nth-child(odd) {
@@ -281,13 +332,19 @@
 }
 
 .tableKey td:first-child {
-    background-color: #F8F8F8;
+    background-color: #f8f8f8;
 }
 
 .tableKey .t_h {
     width: 60px;
-    /* Cột Đầu/Đuôi cố định chiều rộng */
     padding: 10px 0;
+    font-weight: 700;
+    background-color: #f0f0f0;
+}
+
+/* Style cho số của giải tám và đặc biệt trong bảng lô tô */
+.highlightPrize {
+    color: red;
     font-weight: 700;
 }
 
@@ -296,22 +353,106 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-top: 20px;
-    gap: 10px;
+    gap: 1rem;
+    margin-top: 2rem;
+    font-family: "Poppins", sans-serif;
+    font-weight: 500;
 }
 
 .paginationButton {
-    width: 70px;
-    font-weight: 600;
-    padding: 8px 16px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
+    padding: 0.5rem 1rem;
+    border: 1px solid #2d3483;
+    background-color: #fff;
+    color: #2d3483;
+    border-radius: 0.25rem;
+    font-size: 1rem;
+    font-weight: 500;
     cursor: pointer;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.paginationButton:hover:not(:disabled) {
+    background-color: #2d3483;
+    color: #fff;
 }
 
 .paginationButton:disabled {
-    background-color: #cccccc;
+    opacity: 0.5;
     cursor: not-allowed;
+}
+
+.paginationButton:focus {
+    outline: 2px solid #2d3483;
+    outline-offset: 2px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .containerKQ {
+        min-width: 320px;
+        padding: 10px;
+    }
+
+    .kqxs__title {
+        font-size: 21px;
+        line-height: 1.4;
+        width: 100%;
+    }
+
+    .tableXS th {
+        padding: 6px;
+        line-height: 20px;
+    }
+
+    .tableXS th:not(:first-child),
+    .tableXS td:not(.tdTitle) {
+        font-size: 16px;
+    }
+
+    .prizeNumber {
+        font-size: 20px;
+        margin: 4px 0;
+    }
+
+    .prizeNumber.gdb {
+        font-size: 24px;
+    }
+
+    .spinner {
+        width: 20px;
+        height: 20px;
+        border-width: 2px;
+    }
+
+    .filter__options {
+        width: 100%;
+        gap: 20px;
+        padding: 0 10px;
+    }
+
+    .optionInput label {
+        font-size: 16px;
+    }
+
+    .TKe_contentTitle .title,
+    .TKe_contentTitle .desc,
+    .TKe_contentTitle .dayOfWeek {
+        font-size: 16px;
+    }
+
+    .tableKey th,
+    .tableKey td {
+        padding: 8px 4px;
+        font-size: 14px;
+    }
+
+    .pagination {
+        gap: 0.5rem;
+        margin-top: 1.5rem;
+    }
+
+    .paginationButton {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.875rem;
+    }
 }

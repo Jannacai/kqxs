@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import styles from '../../styles/kqxsMN.module.css';
+import styles from '../../styles/kqxsMT.module.css';
 import { getFilteredNumber } from "../../library/utils/filterUtils";
 import { apiMT } from "../api/kqxs/kqxsMT";
 import React from 'react';
