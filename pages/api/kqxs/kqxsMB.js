@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backendkqxs.onrender.com';
 const API_BASE_URL2 = process.env.NEXT_PUBLIC_BACKEND_URL2 || 'http://localhost:4000';
 
 // Hàm tạo userId ngẫu nhiên nếu không có hệ thống đăng nhập
