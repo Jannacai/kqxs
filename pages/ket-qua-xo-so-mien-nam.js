@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import KQXS from './xsmn/index';
+import KQXS from './xsmn/xosomn';
 import Calendar from '../component/caledar';
 import ThongKe from '../component/thongKe';
 import ListXSMT from '../component/listXSMT';

@@ -109,14 +109,14 @@ const NavBar = () => {
                         <Link href="/xsmb" className={styles.nav_itemLinkNgang}>XSMB </Link>
 
                     </li>
-                    <li className={`${styles.nav_itemNgang} ${router.pathname.startsWith('/xsmn') ? styles.active : ''}`}>
+                    <li className={`${styles.nav_itemNgang} ${router.pathname.startsWith('/xosomn') ? styles.active : ''}`}>
 
-                        <Link href="/xsmn" className={styles.nav_itemLinkNgang}>XSMN </Link>
+                        <Link href="/xosomn" className={styles.nav_itemLinkNgang}>XSMN </Link>
 
                     </li>
-                    <li className={`${styles.nav_itemNgang} ${router.pathname.startsWith('/xsmt') ? styles.active : ''}`}>
+                    <li className={`${styles.nav_itemNgang} ${router.pathname.startsWith('/xosomt') ? styles.active : ''}`}>
 
-                        <Link href="/xsmt" className={styles.nav_itemLinkNgang}>XSMT </Link>
+                        <Link href="/xosomt" className={styles.nav_itemLinkNgang}>XSMT </Link>
 
                     </li>
                     <li className={`${styles.nav_itemNgang} ${router.pathname.startsWith('/thongke') ? styles.active : ''}`}>
@@ -877,7 +877,7 @@ const NavBar = () => {
                             </li>
                             <li className={`${styles.nav_item} ${router.pathname.startsWith('/xsmb') ? styles.active : ''}`}>
                                 <div className={styles.grouplink}>
-                                    <Link href="/xsmb" className={styles.nav_itemLink}>XSMB </Link>
+                                    <Link href="/ket-qua-xo-so-mien-bac" className={styles.nav_itemLink}>XSMB </Link>
                                     <span className={styles.icon}><i className="fa-solid fa-chevron-down"></i></span>
                                 </div>
                                 <ul className={styles.nav__menu}>
@@ -892,7 +892,7 @@ const NavBar = () => {
                             </li>
                             <li className={`${styles.nav_item} ${router.pathname.startsWith('/xosomn') ? styles.active : ''}`}>
                                 <div className={styles.grouplink}>
-                                    <Link href="/xosomn" className={styles.nav_itemLink}>XSMN </Link>
+                                    <Link href="/ket-qua-xo-so-mien-nam" className={styles.nav_itemLink}>XSMN </Link>
                                     <span className={styles.icon}><i className="fa-solid fa-chevron-down"></i></span>
                                 </div>
                                 <ul className={styles.nav__menu}>
@@ -907,7 +907,7 @@ const NavBar = () => {
                             </li>
                             <li className={`${styles.nav_item} ${router.pathname.startsWith('/xosomt') ? styles.active : ''}`}>
                                 <div className={styles.grouplink}>
-                                    <Link href="/xosomt" className={styles.nav_itemLink}>XSMT </Link>
+                                    <Link href="/ket-qua-xo-so-mien-trung" className={styles.nav_itemLink}>XSMT </Link>
                                     <span className={styles.icon}><i className="fa-solid fa-chevron-down"></i></span>
                                 </div>
                                 <ul className={styles.nav__menu}>

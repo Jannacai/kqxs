@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
-import KQXS from './index';
+import KQXS from './xosomt';
 import Calendar from '../../../component/caledar';
 import styles from "../../../public/css/itemsKQXS.module.css";
 import ThongKe from '../../../component/thongKe';

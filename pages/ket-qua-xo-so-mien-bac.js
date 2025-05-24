@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import KQXS from '../pages/kqxsAll/index';
+import KQXS from './kqxsAll/index';
 import Calendar from '../component/caledar';
 import ThongKe from '../component/thongKe';
 import ListXSMT from '../component/listXSMT';
@@ -7,7 +7,7 @@ import ListXSMB from '../component/listXSMB';
 import ListXSMN from '../component/listXSMN';
 import PostList from './post/list';
 import TableDate from '../component/tableDateKQXS';
-import { apiMB } from '../pages/api/kqxs/kqxsMB';
+import { apiMB } from './api/kqxs/kqxsMB';
 
 export async function getStaticProps() {
     try {

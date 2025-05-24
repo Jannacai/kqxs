@@ -1,7 +1,7 @@
 // pages/api/postApi.js
 import { getSession } from "next-auth/react";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://backendkqxs.onrender.com";
 
 export const getPosts = async (context) => {
     const session = await getSession(context);
