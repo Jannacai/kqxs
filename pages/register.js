@@ -30,7 +30,7 @@ export default function Register() {
 
         try {
             // Gọi API đăng ký
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/register`, {
+            const res = await fetch('https://backendkqxs.onrender.com/api/auth/register', {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -44,7 +44,7 @@ export default function Register() {
             }
 
             // Gọi API đăng nhập để lấy thông tin phù hợp với NextAuth
-            const loginRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/login`, {
+            const loginRes = await fetch('https://backendkqxs.onrender.com/api/auth/login', {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
