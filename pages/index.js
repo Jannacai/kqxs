@@ -21,7 +21,7 @@ export default function Home(req, res) {
         e.preventDefault();
 
         try {
-            const response = await fetch('http://localhost:5000/api/auth/register', { // Đường dẫn API back-end của bạn
+            const response = await fetch('https://backendkqxs.onrender.com/api/auth/register', { // Đường dẫn API back-end của bạn
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
