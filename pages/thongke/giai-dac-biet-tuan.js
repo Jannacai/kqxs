@@ -434,9 +434,9 @@ const GiaiDacBietTheoTuan = ({ initialStats, initialMetadata, initialMonth, init
                 <meta property="og:title" content={pageTitle} />
                 <meta property="og:description" content={pageDescription} />
                 <meta property="og:type" content="website" />
-                <meta property="og:url" content={`https://yourdomain.com/thongke/giai-dac-biet-theo-tuan`} />
-                <meta property="og:image" content="https://yourdomain.com/images/thongke-giaidacbiet-theo-tuan.jpg" />
-                <link rel="canonical" href="https://yourdomain.com/thongke/giai-dac-biet-theo-tuan" />
+                <meta property="og:url" content={`https://xsmb.win/thongke/giai-dac-biet-theo-tuan`} />
+                <meta property="og:image" content="https://xsmb.win/zalotelegram.png" />
+                <link rel="canonical" href="https://xsmb.win/thongke/giai-dac-biet-theo-tuan" />
             </Head>
 
             <div className={styles.container}>

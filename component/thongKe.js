@@ -9,12 +9,12 @@ const ThongKe = () => {
     const router = useRouter();
 
     const items = [
-        { title: "Thống Kê Lô Gan", href: "/thongke/logan" },
-        { title: "Thống kê giải đặc biệt", href: "/thongke/giaidacbiet" },
-        { title: "Thống kê đầu đuôi loto", href: "/thongke/dauduoi" },
-        { title: "Bảng đặc biệt tuần/tháng", href: "/thongke/giaidacbiettuan" },
-        { title: "Tần suất Loto", href: "/thongke/TanSuatLoto" },
-        { title: "Tần suất Lô Cặp", href: "/thongke/TanSuatLoCap" },
+        { title: "Thống Kê Lô Gan", href: "/thongke/lo-gan" },
+        { title: "Thống kê giải đặc biệt", href: "/thongke/giai-dac-biet" },
+        { title: "Thống kê đầu đuôi loto", href: "/thongke/dau-duoi" },
+        { title: "Bảng đặc biệt tuần/tháng", href: "/thongke/giai-dac-biet-tuan" },
+        { title: "Tần suất Loto", href: "/thongke/Tan-Suat-Lo-to" },
+        { title: "Tần suất Lô Cặp", href: "/thongke/Tan-Suat-Lo-Cap" },
     ];
 
     return (

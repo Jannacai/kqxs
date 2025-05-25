@@ -68,7 +68,7 @@ const ShareButtons = ({ url, title }) => {
 
 const TaoDan2DPage = () => {
     // URL và tiêu đề của trang (thay bằng URL thực tế)
-    const pageUrl = "https://yourwebsite.com/tao-dan-2d";
+    const pageUrl = "https://xsmb.win/tao-dan-2d";
     const pageTitle = "Tạo Dàn Đề 2D - Chuẩn Xác, Nhanh Chóng | Xổ Số 3 Miền";
 
     return (

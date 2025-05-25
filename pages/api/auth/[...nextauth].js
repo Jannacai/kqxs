@@ -2,6 +2,7 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { jwtDecode } from "jwt-decode"; // Sửa import: dùng named export jwtDecode
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backendkqxs.onrender.com';
 
 export default NextAuth({
     providers: [
@@ -14,7 +15,7 @@ export default NextAuth({
             async authorize(credentials) {
                 const { username, password } = credentials;
 
-                const res = await fetch("http://localhost:5000/api/auth/login", {
+                const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -63,7 +64,7 @@ export default NextAuth({
 
                 // Access token hết hạn, gọi API refresh token
                 console.log("Access token expired, refreshing...");
-                const res = await fetch("http://localhost:5000/api/auth/refresh-token", {
+                const res = await fetch(`${API_BASE_URL}/api/auth/refresh-token`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",

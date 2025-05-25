@@ -44,9 +44,9 @@ const TaoDanDac3D4D = () => {
                     <meta property="og:title" content={getTitle()} />
                     <meta property="og:description" content={getDescription()} />
                     <meta property="og:type" content="website" />
-                    <meta property="og:url" content="https://yourdomain.com/tao-dan-3d-4d" />
-                    <meta property="og:image" content="https://yourdomain.com/images/tao-dan-3d-4d.jpg" />
-                    <link rel="canonical" href="https://yourdomain.com/tao-dan-3d-4d" />
+                <meta property="og:url" content="https://xsmb.win/tao-dan-3d-4d" />
+                <meta property="og:image" content="https://xsmb.win/images/tao-dan-3d-4d.jpg" />
+                <link rel="canonical" href="https://xsmb.win/tao-dan-3d-4d" />
                 </Head>
                 <script type="application/ld+json">
                     {JSON.stringify({
@@ -56,12 +56,12 @@ const TaoDanDac3D4D = () => {
                         "description": "Tạo dàn số 3D (000-999) hoặc 4D (0000-9999) với công cụ tối ưu từ Xổ Số 3 Miền. Hỗ trợ người chơi lựa chọn dàn số hiệu quả nhất.",
                         "publisher": {
                             "@type": "Organization",
-                            // "name": "Xổ Số 3 Miền",
-                            // "url": "https://yourdomain.com"
+                            "name": "Xổ Số 3 Miền",
+                            "url": "https://xsmb.win"
                         },
                         "mainEntityOfPage": {
                             "@type": "WebPage",
-                            "@id": "https://yourdomain.com/tao-dan-3d-4d"
+                            "@id": "https://xsmb.win/tao-dan-3d-4d"
                         },
                         "datePublished": "2025-05-12",
                         "dateModified": "2025-05-12"

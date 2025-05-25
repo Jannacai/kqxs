@@ -16,7 +16,7 @@ const TaoDanDacBiet = () => {
                     <meta name="description" content="Tạo dàn số đặc biệt từ 00-99 với các bộ lọc Đầu, Đuôi, Tổng, Đầu-Đuôi, Bé/Lớn, và Kép. Công cụ hỗ trợ người chơi xổ số hiệu quả." />
                     <meta name="keywords" content="tạo dàn đặc biệt, xổ số, bộ lọc số, đầu chẵn, đầu lẻ, tổng chẵn, kép, bé lớn" />
                     <meta name="robots" content="index, follow" />
-                    <link rel="canonical" href="https://yourdomain.com/tao-dan-dac-biet" />
+                    <link rel="canonical" href="https://xsmb.win/tao-dan-dac-biet" />
                 </Head>
                 <LayNhanhDanDacBiet />
                 <DauDuoi />

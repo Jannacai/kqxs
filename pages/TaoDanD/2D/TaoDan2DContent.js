@@ -28,12 +28,12 @@ const TaoDan2DContent = () => {
                     "description": "Hướng dẫn tạo dàn đề 2D tự động, chuẩn xác, nhanh chóng với công cụ trực tuyến tại Xổ Số 3 Miền",
                     "publisher": {
                         "@type": "Organization",
-                        // "name": "B52 Club",
-                        // "url": "https://b52club.games"
+                        "name": "XSMB.WIN",
+                        "url": "https://xsmb.win"
                     },
                     "mainEntityOfPage": {
                         "@type": "WebPage",
-                        "@id": "https://your-site.com/tao-dan-2d"
+                        "@id": "https://xsmb.win/tao-dan-2d"
                     },
                     "datePublished": "2025-05-09",
                     "dateModified": "2025-05-09"

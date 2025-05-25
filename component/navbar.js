@@ -121,7 +121,7 @@ const NavBar = () => {
                     </li>
                     <li className={`${styles.nav_itemNgang} ${router.pathname.startsWith('/thongke') ? styles.active : ''}`}>
 
-                        <Link href="/thongke/logan" className={styles.nav_itemLinkNgang}>Thống kê </Link>
+                        <Link href="/thongke/lo-gan" className={styles.nav_itemLinkNgang}>Thống kê </Link>
 
                     </li>
                     <li className={`${styles.nav_itemNgang} ${router.pathname.startsWith('/taodan') ? styles.active : ''}`}>
@@ -493,7 +493,7 @@ const NavBar = () => {
                                 >
                                     <div className={styles.grouplinkMobile}>
                                         <Link
-                                            href="/thongke/logan"
+                                            href="/thongke/lo-gan"
                                             className={styles.nav_itemLinkMobile}
                                             onClick={toggleMenu}
                                         >
@@ -517,9 +517,9 @@ const NavBar = () => {
                                     >
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/logan" ? styles.active : ""
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/lo-gan" ? styles.active : ""
                                                     }`}
-                                                href="/thongke/logan"
+                                                href="/thongke/lo-gan"
                                                 onClick={toggleMenu}
                                             >
                                                 Thống Kê Logan
@@ -527,9 +527,9 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/giaidacbiet" ? styles.active : ""
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/giai-dac-biet" ? styles.active : ""
                                                     }`}
-                                                href="/thongke/giaidacbiet"
+                                                href="/thongke/giai-dac-biet"
                                                 onClick={toggleMenu}
                                             >
                                                 Thống Kê giải đặc biệt
@@ -537,9 +537,9 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/dauduoi" ? styles.active : ""
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/dau-duoi" ? styles.active : ""
                                                     }`}
-                                                href="/thongke/dauduoi"
+                                                href="/thongke/dau-duoi"
                                                 onClick={toggleMenu}
                                             >
                                                 Thống Kê đầu đuôi loto
@@ -547,9 +547,9 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/giaidacbiettuan" ? styles.active : ""
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/giai-dac-biet-tuan" ? styles.active : ""
                                                     }`}
-                                                href="/thongke/giaidacbiettuan"
+                                                href="/thongke/giai-dac-biet-tuan"
                                                 onClick={toggleMenu}
                                             >
                                                 Bảng đặc biệt tuần/tháng
@@ -557,9 +557,9 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/TanSuatLoto" ? styles.active : ""
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/Tan-Suat-Lo-to" ? styles.active : ""
                                                     }`}
-                                                href="/thongke/TanSuatLoto"
+                                                href="/thongke/Tan-Suat-Lo-to"
                                                 onClick={toggleMenu}
                                             >
                                                 Tần Suất Loto
@@ -567,9 +567,9 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/TanSuatLoCap" ? styles.active : ""
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/Tan-Suat-Lo-Cap" ? styles.active : ""
                                                     }`}
-                                                href="/thongke/TanSuatLoCap"
+                                                href="/thongke/Tan-Suat-Lo-Cap"
                                                 onClick={toggleMenu}
                                             >
                                                 Tần Suất Lô Cặp
@@ -687,7 +687,7 @@ const NavBar = () => {
                                     >
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/logan" ? styles.active : ""
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/lo-gan" ? styles.active : ""
                                                     }`}
                                                 href="#"
                                                 onClick={toggleMenu}
@@ -697,7 +697,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/giaidacbiet" ? styles.active : ""
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/giai-dac-biet" ? styles.active : ""
                                                     }`}
                                                 href="#"
                                                 onClick={toggleMenu}
@@ -737,7 +737,7 @@ const NavBar = () => {
                                     >
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/logan" ? styles.active : ""
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/soicau/soicauMB" ? styles.active : ""
                                                     }`}
                                                 href="/soicau/soicauMB"
                                                 onClick={toggleMenu}
@@ -747,7 +747,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/giaidacbiet" ? styles.active : ""
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/soicau/soicauMT" ? styles.active : ""
                                                     }`}
                                                 href="/soicau/soicauMT"
                                                 onClick={toggleMenu}
@@ -757,7 +757,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/dauduoi" ? styles.active : ""
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/dau-duoi" ? styles.active : ""
                                                     }`}
                                                 href="#"
                                                 onClick={toggleMenu}
@@ -922,16 +922,16 @@ const NavBar = () => {
                             </li>
                             <li className={`${styles.nav_item} ${router.pathname.startsWith('/thongke') ? styles.active : ''}`}>
                                 <div className={styles.grouplink}>
-                                    <Link href="/thongke/logan" className={styles.nav_itemLink}>Thống kê </Link>
+                                    <Link href="/thongke/lo-gan" className={styles.nav_itemLink}>Thống kê </Link>
                                     <span className={styles.icon}><i className="fa-solid fa-chevron-down"></i></span>
                                 </div>
                                 <ul className={styles.nav__menu}>
-                                    <li><Link className={styles.nav_menuLink} href="/thongke/logan">Thống Kê Logan</Link></li>
-                                    <li><Link className={styles.nav_menuLink} href="/thongke/giaidacbiet">Thống Kê giải đặc biệt</Link></li>
-                                    <li><Link className={styles.nav_menuLink} href="/thongke/dauduoi">Thống Kê đầu đuôi loto</Link></li>
-                                    <li><Link className={styles.nav_menuLink} href="/thongke/giaidacbiettuan">Bảng đặc biệt tuần/tháng</Link></li>
-                                    <li><Link className={styles.nav_menuLink} href="/thongke/TanSuatLoto">Tần Suất Loto</Link></li>
-                                    <li><Link className={styles.nav_menuLink} href="/thongke/TanSuatLoCap">Tần Suất Lô Cặp</Link></li>
+                                    <li><Link className={styles.nav_menuLink} href="/thongke/lo-gan">Thống Kê Logan</Link></li>
+                                    <li><Link className={styles.nav_menuLink} href="/thongke/giai-dac-biet">Thống Kê giải đặc biệt</Link></li>
+                                    <li><Link className={styles.nav_menuLink} href="/thongke/dau-duoi">Thống Kê đầu đuôi loto</Link></li>
+                                    <li><Link className={styles.nav_menuLink} href="/thongke/giai-dac-biet-tuan">Bảng đặc biệt tuần/tháng</Link></li>
+                                    <li><Link className={styles.nav_menuLink} href="/thongke/Tan-Suat-Lo-to">Tần Suất Loto</Link></li>
+                                    <li><Link className={styles.nav_menuLink} href="/thongke/Tan-Suat-Lo-Cap">Tần Suất Lô Cặp</Link></li>
                                 </ul>
                             </li>
                             <li className={`${styles.nav_item} ${router.pathname.startsWith('/TaoDan') ? styles.active : ''}`}>

@@ -19,37 +19,37 @@ const Footer = () => {
                         <h3 className={styles.h3}>Kết Quả Xổ Số</h3>
                         <ul className={styles.list}>
                             <li className={styles.item}><a className={styles.action} title='Kết Quả Xổ Số Miền Bắc' href='/xsmb/'>Xổ số Miền Bắc</a></li>
-                            <li className={styles.item}><a className={styles.action} title='Kết Quả Xổ Số Miền Trung' href='/xsmt/'>Xổ số Miền Trung</a></li>
-                            <li className={styles.item}><a className={styles.action} title='Kết Quả Xổ Số Miền Nam' href='/xsmn/'>Xổ số Miền Nam</a></li>
-                            <li className={styles.item}><a className={styles.action} title='Kết Quả Xổ Số VietLot' href='/xsvietlot/'>Xổ số VietLot</a></li>
+                            <li className={styles.item}><a className={styles.action} title='Kết Quả Xổ Số Miền Trung' href='/xsmt/xosomt'>Xổ số Miền Trung</a></li>
+                            <li className={styles.item}><a className={styles.action} title='Kết Quả Xổ Số Miền Nam' href='/xsmn/xosomn'>Xổ số Miền Nam</a></li>
+                            <li className={styles.item}><a className={styles.action} title='Kết Quả Xổ Số VietLot' href='#'>Xổ số VietLot</a></li>
                         </ul>
                     </li>
                     <li>
                         <h3 className={styles.h3}>Thống Kê Hot</h3>
                         <ul className={styles.list}>
-                            <li className={styles.item}><a className={styles.action} title='Kết Quả Xổ Số Miền Bắc' href='/thongke/logan'>Thống Kê Logan</a></li>
-                            <li className={styles.item}><a className={styles.action} title='Kết Quả Xổ Số Miền Trung' href='/thongke/dauduoi'>Thống Kê Đầu Đuôi</a></li>
-                            <li className={styles.item}><a className={styles.action} title='Kết Quả Xổ Số Miền Nam' href='/thongke/giaidacbiet'>Thống Kê Đặc Biệt</a></li>
+                            <li className={styles.item}><a className={styles.action} title='Thống Kê Logan' href='/thongke/lo-gan'>Thống Kê Logan</a></li>
+                            <li className={styles.item}><a className={styles.action} title='Thống Kê Đầu Đuôi' href='/thongke/dau-duoi'>Thống Kê Đầu Đuôi</a></li>
+                            <li className={styles.item}><a className={styles.action} title='Thống Kê Đặc Biệt' href='/thongke/giai-dac-biet'>Thống Kê Đặc Biệt</a></li>
                         </ul>
                     </li>
                     <li>
                         <h3 className={styles.h3}>Thống Kê Cầu</h3>
                         <ul className={styles.list}>
-                            <li className={styles.item}><a className={styles.action} title='Kết Quả Xổ Số Miền Bắc' href='/xsmb/'>Cầu Bạch Thủ</a></li>
-                            <li className={styles.item}><a className={styles.action} title='Kết Quả Xổ Số Miền Trung' href='/xsmt/'>Cầu Miền Trung</a></li>
-                            <li className={styles.item}><a className={styles.action} title='Kết Quả Xổ Số Miền Nam' href='/xsmn/'>Cầu Miền Nam</a></li>
-                            <li className={styles.item}><a className={styles.action} title='Kết Quả Xổ Số VietLot' href='/xsvietlot/'>Cầu giải Đặc Biệt</a></li>
-                            <li className={styles.item}><a className={styles.action} title='Kết Quả Xổ Số VietLot' href='/xsvietlot/'>Cầu 3 càng</a></li>
+                            <li className={styles.item}><a className={styles.action} title='Cầu Bạch Thủ' href='#'>Cầu Bạch Thủ</a></li>
+                            <li className={styles.item}><a className={styles.action} title='Cầu Miền Trung' href='#'>Cầu Miền Trung</a></li>
+                            <li className={styles.item}><a className={styles.action} title='Cầu Miền Nam' href='/xsmn/'>Cầu Miền Nam</a></li>
+                            <li className={styles.item}><a className={styles.action} title='Cầu giải Đặc Biệt' href='#'>Cầu giải Đặc Biệt</a></li>
+                            <li className={styles.item}><a className={styles.action} title='Cầu 3 càng' href='#'>Cầu 3 càng</a></li>
 
                         </ul>
                     </li>
                     <li>
                         <h3 className={styles.h3}>Tiện ích mở rộng</h3>
                         <ul className={styles.list}>
-                            <li className={styles.item}><a className={styles.action} title='Kết Quả Xổ Số Miền Bắc' href='/xsmb/'>Xổ Kết Quả</a></li>
-                            <li className={styles.item}><a className={styles.action} title='Kết Quả Xổ Số Miền Trung' href='/xsmt/'>Tạo Phôi</a></li>
-                            <li className={styles.item}><a className={styles.action} title='Kết Quả Xổ Số Miền Nam' href='/xsmn/'>Tạo Dàn Số</a></li>
-                            <li className={styles.item}><a className={styles.action} title='Kết Quả Xổ Số VietLot' href='/xsvietlot/'>Loại Dàn Đặc Biệt</a></li>
+                            <li className={styles.item}><a className={styles.action} title='Xổ Kết Quả' href='#'>Xổ Kết Quả</a></li>
+                            <li className={styles.item}><a className={styles.action} title='Tạo Phôi' href='#'>Tạo Phôi</a></li>
+                            <li className={styles.item}><a className={styles.action} title='Tạo Dàn Số' href='/TaoDan/'>Tạo Dàn Số</a></li>
+                            <li className={styles.item}><a className={styles.action} title='Loại Dàn Đặc Biệt' href='#'>Loại Dàn Đặc Biệt</a></li>
                         </ul>
                     </li>
 

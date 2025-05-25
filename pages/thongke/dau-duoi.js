@@ -479,9 +479,9 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                 <meta property="og:title" content={pageTitle} />
                 <meta property="og:description" content={pageDescription} />
                 <meta property="og:type" content="website" />
-                <meta property="og:url" content={`https://yourdomain.com/thongke/dau-duoi`} />
-                <meta property="og:image" content="https://yourdomain.com/images/thongke-dau-duoi.jpg" />
-                <link rel="canonical" href="https://yourdomain.com/thongke/dau-duoi" />
+                <meta property="og:url" content={`https://xsmb.win/thongke/dau-duoi`} />
+                <meta property="og:image" content="https://xsmb.win/zalotelegram.png" />
+                <link rel="canonical" href="https://xsmb.win/thongke/dau-duoi" />
             </Head>
 
             <div className={styles.container}>
