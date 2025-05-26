@@ -5,10 +5,10 @@ import ThongKe from '../component/thongKe';
 import ListXSMT from '../component/listXSMT';
 import ListXSMB from '../component/listXSMB';
 import ListXSMN from '../component/listXSMN';
-import PostList from './post/list';
+
 import TableDate from '../component/tableDateKQXS';
 const KQXS = dynamic(() => import('./kqxsAll/index'), { ssr: false });
-
+const PostList = dynamic(() => import('./post/list'), { ssr: false });
 export default function Home() {
     const today = new Date();
     const drawDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
