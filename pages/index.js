@@ -1,7 +1,5 @@
-import { useState } from 'react';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
-import NavBar from '../component/navbar';
 import Calendar from '../component/caledar';
 import ThongKe from '../component/thongKe';
 import ListXSMT from '../component/listXSMT';
@@ -9,7 +7,6 @@ import ListXSMB from '../component/listXSMB';
 import ListXSMN from '../component/listXSMN';
 import PostList from './post/list';
 import TableDate from '../component/tableDateKQXS';
-import Footer from '../component/footer';
 const KQXS = dynamic(() => import('./kqxsAll/index'), { ssr: false });
 
 export default function Home() {
@@ -17,15 +14,18 @@ export default function Home() {
     const drawDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
 
     const title = `XSMB - Kết Quả Xổ Số Miền Bắc - KQXSMB Hôm Nay ${drawDate}`;
-    const description = `Xem kết quả xổ số Miền Bắc ngày ${drawDate} nhanh nhất, chính xác với thông tin giải đặc biệt, lô tô, đầu đuôi, thống kê, tạo dàn 2D, 3D, 4D, dàn ngẫu nhiên 9x0x.`;
-    const canonicalUrl = 'https://www.xsmb.win';
+    const description = `Xem kết quả xổ số Miền Bắc ngày ${drawDate} nhanh nhất, chính xác với thông tin giải đặc biệt, lô tô, đầu đuôi, thống kê đa dạng, tạo dàn 2D, 3D, 4D, dàn ngẫu nhiên 9x0x đặc biệt.`;
+    const canonicalUrl = 'https://xsmb.win';
 
     return (
         <div>
             <Head>
                 <title>{title}</title>
                 <meta name="description" content={description} />
-                <meta name="keywords" content="xổ số miền bắc, kqxs, lô tô, đầu đuôi, xsmb, xsmt, xsmn, xosomb, xosomt, xosomn, taodan, thống kê xổ số miền bắc" />
+                <meta
+                    name="keywords"
+                    content="xổ số miền bắc, kqxs, lô tô, đầu đuôi, xsmb, xsmt, xsmn, xosomb, xosomt, xosomn, taodan, thống kê xổ số miền bắc, xổ số hôm nay, kết quả xổ số trực tiếp, dự đoán xsmb, xsmb hôm nay, kết quả xổ số miền bắc hôm nay, lô đề, xổ số miền bắc trực tiếp, thống kê lô đề, soi cầu xsmb, xsmb 2025"
+                />
                 <meta name="robots" content="index, follow" />
                 <link rel="alternate" hrefLang="vi" href={canonicalUrl} />
 
@@ -77,24 +77,34 @@ export default function Home() {
                             "name": `Kết Quả Xổ Số Miền Bắc ${drawDate}`,
                             "description": `Kết quả xổ số Miền Bắc ngày ${drawDate} với các giải thưởng và thống kê.`,
                             "temporalCoverage": drawDate,
-                            "keywords": ["xổ số", "miền bắc", "kết quả", "xsmb"],
+                            "keywords": ["xổ số", "miền bắc", "kết quả", "xsmb", "lô tô", "đầu đuôi", "soi cầu xsmb"],
                             "url": canonicalUrl,
                         },
                         {
                             "@context": "https://schema.org",
                             "@type": "Organization",
                             "name": "XSMB",
-                            "url": "https://www.xsmb.win",
+                            "url": "https://xsmb.win",
                             "logo": "https://xsmb.win/logo.png",
                             "sameAs": [
                                 "https://zalo.me/your-zalo-oa-link",
                                 "https://t.me/YourChannel"
                             ]
+                        },
+                        {
+                            "@context": "https://schema.org",
+                            "@type": "WebSite",
+                            "name": "XSMB",
+                            "url": "https://xsmb.win",
+                            "potentialAction": {
+                                "@type": "SearchAction",
+                                "target": "https://xsmb.win/search?q={search_term_string}",
+                                "query-input": "required name=search_term_string"
+                            }
                         }
                     ])}
                 </script>
             </Head>
-            <NavBar />
             <div className='container'>
                 <div className='navigation'>
                     <Calendar />
@@ -111,7 +121,6 @@ export default function Home() {
             <div className='container'>
                 <PostList />
             </div>
-            <Footer />
         </div>
     );
 }
