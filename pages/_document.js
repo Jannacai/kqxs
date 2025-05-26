@@ -5,7 +5,7 @@ export default function Document() {
         <Html lang="vi">
             <Head>
                 {/* Meta Tags Cơ Bản */}
-                <meta charset="UTF-8" />
+                <meta charSet="UTF-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
                 <meta name="robots" content="index, follow" />
 
@@ -20,9 +20,19 @@ export default function Document() {
                 <meta property="zalo:og:image:width" content="600" />
                 <meta property="zalo:og:image:height" content="600" />
 
-                {/* { twitter} */}
+                {/* Twitter */}
                 <meta name="twitter:image" content="https://xsmb.win/facebook.png" />
 
+                {/* Google Tag Manager */}
+                <script async src="https://www.googletagmanager.com/gtag/js?id=G-32BNFX1ZW5"></script>
+                <script>
+                    {`window.dataLayer = window.dataLayer || [];
+                    function gtag(){dataLayer
+
+.push(arguments);}
+                    gtag('js', new Date());
+                    gtag('config', 'G-32BNFX1ZW5');`}
+                </script>
 
                 {/* JSON-LD Schema Cơ Bản (Không chứa thông tin động) */}
                 <script type="application/ld+json">
@@ -46,7 +56,7 @@ export default function Document() {
 
                 {/* Font và Icon */}
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
-                <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
                 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Sora:wght@400;600&display=swap" rel="stylesheet" />
                 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
 
