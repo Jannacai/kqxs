@@ -1,10 +1,8 @@
 import { useState } from 'react';
-import Head from 'next/head'; // Thêm import Head
-import Regiter from './register';
+import Head from 'next/head';
+import dynamic from 'next/dynamic';
 import NavBar from '../component/navbar';
-import KQXS from './kqxsAll/index';
 import Calendar from '../component/caledar';
-import ListPost from '../component/listPost';
 import ThongKe from '../component/thongKe';
 import ListXSMT from '../component/listXSMT';
 import ListXSMB from '../component/listXSMB';
@@ -12,40 +10,14 @@ import ListXSMN from '../component/listXSMN';
 import PostList from './post/list';
 import TableDate from '../component/tableDateKQXS';
 import Footer from '../component/footer';
+const KQXS = dynamic(() => import('./kqxsAll/index'), { ssr: false });
 
-export default function Home(req, res) {
-    const [username, setName] = useState('');
-    const [password, setEmail] = useState('');
-
-    // Lấy ngày hiện tại và định dạng theo DD/MM/YYYY
+export default function Home() {
     const today = new Date();
     const drawDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-
-        try {
-            const response = await fetch('https://backendkqxs.onrender.com/api/auth/register', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ username, password }),
-            });
-
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-
-            const data = await response.json();
-            console.log('Success:', data);
-        } catch (error) {
-            console.error('Error:', error);
-        }
-    };
-
-    const title = `Kết Quả Xổ Số Miền Bắc - ${drawDate}`;
-    const description = `Xem kết quả xổ số Miền Bắc ngày ${drawDate} với thông tin chi tiết về giải đặc biệt, lô tô, đầu đuôi.`;
+    const title = `XSMB - Kết Quả Xổ Số Miền Bắc - KQXSMB Hôm Nay ${drawDate}`;
+    const description = `Xem kết quả xổ số Miền Bắc ngày ${drawDate} nhanh nhất, chính xác với thông tin giải đặc biệt, lô tô, đầu đuôi, thống kê, tạo dàn 2D, 3D, 4D, dàn ngẫu nhiên 9x0x.`;
     const canonicalUrl = 'https://www.xsmb.win';
 
     return (
@@ -53,8 +25,9 @@ export default function Home(req, res) {
             <Head>
                 <title>{title}</title>
                 <meta name="description" content={description} />
-                <meta name="keywords" content="xổ số miền bắc, kqxs, lô tô, đầu đuôi, xsmb, xsmt, xsmn, xosomb, xosomt,xosomn,taodan,thống kê xổ số miền bắc" />
+                <meta name="keywords" content="xổ số miền bắc, kqxs, lô tô, đầu đuôi, xsmb, xsmt, xsmn, xosomb, xosomt, xosomn, taodan, thống kê xổ số miền bắc" />
                 <meta name="robots" content="index, follow" />
+                <link rel="alternate" hrefLang="vi" href={canonicalUrl} />
 
                 {/* Open Graph Tags */}
                 <meta property="og:title" content={title} />
@@ -97,17 +70,31 @@ export default function Home(req, res) {
 
                 {/* JSON-LD Schema */}
                 <script type="application/ld+json">
-                    {JSON.stringify({
-                        "@context": "https://schema.org",
-                        "@type": "Dataset",
-                        "name": `Kết Quả Xổ Số Miền Bắc ${drawDate}`,
-                        "description": `Kết quả xổ số Miền Bắc ngày ${drawDate} với các giải thưởng và thống kê.`,
-                        "temporalCoverage": drawDate,
-                        "keywords": ["xổ số", "miền bắc", "kết quả", "xsmb"],
-                        "url": canonicalUrl,
-                    })}
+                    {JSON.stringify([
+                        {
+                            "@context": "https://schema.org",
+                            "@type": "Dataset",
+                            "name": `Kết Quả Xổ Số Miền Bắc ${drawDate}`,
+                            "description": `Kết quả xổ số Miền Bắc ngày ${drawDate} với các giải thưởng và thống kê.`,
+                            "temporalCoverage": drawDate,
+                            "keywords": ["xổ số", "miền bắc", "kết quả", "xsmb"],
+                            "url": canonicalUrl,
+                        },
+                        {
+                            "@context": "https://schema.org",
+                            "@type": "Organization",
+                            "name": "XSMB",
+                            "url": "https://www.xsmb.win",
+                            "logo": "https://xsmb.win/logo.png",
+                            "sameAs": [
+                                "https://zalo.me/your-zalo-oa-link",
+                                "https://t.me/YourChannel"
+                            ]
+                        }
+                    ])}
                 </script>
             </Head>
+            <NavBar />
             <div className='container'>
                 <div className='navigation'>
                     <Calendar />
@@ -124,6 +111,7 @@ export default function Home(req, res) {
             <div className='container'>
                 <PostList />
             </div>
+            <Footer />
         </div>
     );
 }

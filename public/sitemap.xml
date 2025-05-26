@@ -1,38 +1,71 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://xsmb.win/</loc>
-    <lastmod>2025-05-22</lastmod>
-    <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>https://xsmb.win/xsmb</loc>
-    <lastmod>2025-05-22</lastmod>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://xsmb.win/xsmt</loc>
-    <lastmod>2025-05-22</lastmod>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://xsmb.win/xsmn</loc>
-    <lastmod>2025-05-22</lastmod>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://xsmb.win/TaoDan</loc>
-    <lastmod>2025-05-22</lastmod>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://xsmb.win/soicau/soicauMB</loc>
-    <lastmod>2025-05-22</lastmod>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://xsmb.win/thongke/logan</loc>
-    <lastmod>2025-05-22</lastmod>
-    <priority>0.8</priority>
-  </url>
+    <!-- Trang chủ -->
+    <url>
+        <loc>https://xsmb.win/</loc>
+        <lastmod>2025-05-26</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>1.0</priority>
+    </url>
+    <!-- Trang XSMB -->
+    <url>
+        <loc>https://xsmb.win/xsmb</loc>
+        <lastmod>2025-05-26</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.9</priority>
+    </url>
+    <!-- Trang XSMT -->
+    <url>
+        <loc>https://xsmb.win/xsmt</loc>
+        <lastmod>2025-05-26</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <!-- Trang XSMN -->
+    <url>
+        <loc>https://xsmb.win/xsmn</loc>
+        <lastmod>2025-05-26</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <!-- Trang Tạo Dàn -->
+    <url>
+        <loc>https://xsmb.win/TaoDan</loc>
+        <lastmod>2025-05-26</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <!-- Trang Soi Cầu Miền Bắc -->
+    <url>
+        <loc>https://xsmb.win/soicau/soicauMB</loc>
+        <lastmod>2025-05-26</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <!-- Trang Thống Kê Lô Gần -->
+    <url>
+        <loc>https://xsmb.win/thongke/logan</loc>
+        <lastmod>2025-05-26</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <!-- Kết quả XSMB theo ngày (30 ngày gần nhất) -->
+    <url>
+        <loc>https://xsmb.win/xsmb/2025-05-26</loc>
+        <lastmod>2025-05-26</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>https://xsmb.win/xsmb/2025-05-25</loc>
+        <lastmod>2025-05-25</lastmod>
+        <changefreq>never</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>https://xsmb.win/xsmb/2025-05-24</loc>
+        <lastmod>2025-05-24</lastmod>
+        <changefreq>never</changefreq>
+        <priority>0.7</priority>
+    </url>
 </urlset>
