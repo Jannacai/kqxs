@@ -452,6 +452,8 @@
 
     .kqxs {
         font-weight: 700;
+        border-radius: 3px;
+        border: 1px solid #e80000;
     }
 
     .kqxs__title {

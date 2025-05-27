@@ -389,6 +389,11 @@
         font-size: 12px;
     }
 
+    .kqxs {
+        border-radius: 3px;
+        border: 1px solid #e80000;
+    }
+
     .kqxs__title span {
         font-weight: 700;
     }
