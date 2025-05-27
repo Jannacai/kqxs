@@ -188,7 +188,7 @@ const NavBar = () => {
                                     </div>
                                 </li>
                                 <li
-                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith("/") ? styles.active : ""
+                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith("ket-qua-xo-so-mien-bac") ? styles.active : ""
                                         }`}
                                 >
                                     <div className={styles.grouplinkMobile}>
@@ -204,7 +204,7 @@ const NavBar = () => {
                                             className={styles.icon}
                                         >
                                             <i
-                                                className={`fa-solid ${isMenuOpenList === "xsmb"
+                                                className={`fa-solid ${isMenuOpenList === "ket-qua-xo-so-mien-bac"
                                                     ? "fa-chevron-up"
                                                     : "fa-chevron-down"
                                                     }`}
@@ -212,7 +212,7 @@ const NavBar = () => {
                                         </span>
                                     </div>
                                     <ul
-                                        className={`${styles.nav__menuMobile} ${isMenuOpenList === "xsmb" ? styles.menuList : ""
+                                        className={`${styles.nav__menuMobile} ${isMenuOpenList === "ket-qua-xo-so-mien-bac" ? styles.menuList : ""
                                             }`}
                                     >
                                         <li>
