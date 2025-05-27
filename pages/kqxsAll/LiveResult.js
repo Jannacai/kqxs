@@ -202,11 +202,10 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     const currentFilter = filterTypes[tableKey] || 'all';
 
     const getPrizeNumbers = () => {
-        // SỬA: Thu thập 2 số cuối từ tất cả các giải hợp lệ
         const lastTwoNumbers = [];
         const addNumber = (num) => {
             if (num && num !== '...' && num !== '***' && /^\d+$/.test(num)) {
-                const last2 = num.slice(-2).padStart(2, '0'); // Lấy 2 số cuối, đảm bảo định dạng '01'
+                const last2 = num.slice(-2).padStart(2, '0');
                 lastTwoNumbers.push(last2);
             }
         };
@@ -233,7 +232,6 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             addNumber(liveData[`sevenPrizes_${i}`]);
         }
 
-        // Tạo heads và tails từ lastTwoNumbers
         const heads = Array(10).fill().map(() => []);
         const tails = Array(10).fill().map(() => []);
 
@@ -270,13 +268,16 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                 <div className={styles.loading}>Đang chờ kết quả ngày {today}...</div>
             )}
             <div className={styles.kqxs}>
-                <h2 className={styles.kqxs__title}>
-                    Kết Quả Xổ Số - <span>{liveData.station}</span> ({liveData.tentinh})
-                </h2>
-                <div className={styles.kqxs__action}>
-                    <a className={styles.kqxs__actionLink} href="#!">{liveData.station}</a>
-                    <a className={`${styles.kqxs__actionLink} ${styles.dayOfWeek}`} href="#!">{liveData.dayOfWeek}</a>
-                    <a className={styles.kqxs__actionLink} href="#!">{liveData.drawDate}</a>
+                {/* Thêm div header để đồng bộ với KQXS */}
+                <div className={styles.header}>
+                    <h2 className={styles.kqxs__title}>
+                        Kết Quả Xổ Số - <span>{liveData.station}</span> ({liveData.tentinh})
+                    </h2>
+                    <div className={styles.kqxs__action}>
+                        <a className={styles.kqxs__actionLink} href="#!">{liveData.station}</a>
+                        <a className={`${styles.kqxs__actionLink} ${styles.dayOfWeek}`} href="#!">{liveData.dayOfWeek}</a>
+                        <a className={styles.kqxs__actionLink} href="#!">{liveData.drawDate}</a>
+                    </div>
                 </div>
                 <table className={styles.tableXS}>
                     <tbody>
@@ -589,7 +590,6 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             <tr key={index}>
                                 <td className={styles.t_h}>{index}</td>
                                 <td>
-                                    {/* SỬA: Hiển thị heads[index] với định dạng đúng */}
                                     {heads && heads[index] && heads[index].length > 0 ? (
                                         heads[index].map((num, idx) => (
                                             <span
@@ -607,7 +607,6 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                                 </td>
                                 <td className={styles.t_h}>{index}</td>
                                 <td>
-                                    {/* SỬA: Hiển thị tails[index] với định dạng đúng */}
                                     {tails && tails[index] && tails[index].length > 0 ? (
                                         tails[index].map((num, idx) => (
                                             <span

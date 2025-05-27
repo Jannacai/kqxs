@@ -10,12 +10,13 @@
 .header {
     padding: 15px 0 10px 0;
     background-color: #ffeca0;
+    /* width: 100%; */
 }
 
 .kqxs {
     background-color: #f9f9f9;
     width: 100%;
-    border: 3px solid #2d3483;
+    border: 3px solid #e80000;
     border-radius: 8px;
     text-align: center;
     margin-bottom: 30px;
@@ -23,10 +24,9 @@
 }
 
 .kqxs__title {
-    color: #2d3483;
+    color: #e80000;
     font-size: 26px;
     font-weight: 600;
-    margin-bottom: 15px;
 }
 
 .kqxs__title span {
@@ -36,12 +36,12 @@
 .kqxs__action {
     display: flex;
     justify-content: center;
-    margin: 15px 0;
+    padding: 5px 0;
 }
 
 .kqxs__actionLink {
     text-transform: uppercase;
-    font-size: 20px;
+    font-size: 18px;
     margin: 0 10px;
     font-weight: 500;
     text-decoration: underline;
@@ -130,7 +130,7 @@
 
 /* Định dạng ô trống trong thead (ô trên cột đại diện giải) */
 .tableXS th:first-child {
-    width: 60px;
+    width: 40px;
     background-color: #f0f0f0;
 }
 
@@ -143,14 +143,14 @@
 /* Định dạng cột đại diện giải */
 .tableXS td.tdTitle {
     width: 60px;
-    background-color: #f0f0f0;
-    font-size: 20px;
+    height: 30px;
+    font-size: 18px;
     color: #000;
 }
 
 .tableXS td.tdTitle.highlight {
     color: red;
-    font-size: 28px;
+    font-size: 24px;
 }
 
 /* Định dạng ô kết quả */
@@ -170,9 +170,9 @@
 .prizeNumber {
     display: block;
     font-weight: 700;
-    font-size: 24px;
+    font-size: 23px;
     text-align: center;
-    line-height: 1.6;
+    line-height: 1.4;
 }
 
 .prizeNumber.highlight {
@@ -180,16 +180,18 @@
 }
 
 .prizeNumber.gdb {
-    font-size: 30px;
+    font-size: 26px;
 }
 
 .prizeNumber.g3 {
-    font-size: 22px;
+    font-size: 24px;
 }
 
 /* Bộ lọc */
 .action {
-    margin-top: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .filter__options {
@@ -197,7 +199,6 @@
     justify-content: center;
     align-items: center;
     gap: 60px;
-    border: 2px solid var(--primary-color);
     width: 500px;
     height: 50px;
     border-radius: 6px;
@@ -218,7 +219,7 @@
     display: flex;
     align-items: center;
     position: relative;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
     color: var(--primary-color);
     cursor: pointer;
@@ -250,8 +251,8 @@
     display: inline-block;
     width: 14px;
     height: 14px;
-    top: 2px;
-    left: -25px;
+    top: 1.5px;
+    left: -25.2px;
     border-radius: 50%;
     background-color: var(--primary-color);
 }
@@ -260,7 +261,6 @@
 .TKe_container {
     display: flex;
     flex-direction: column;
-    gap: 40px;
 }
 
 /* Bảng thống kê lô tô */
@@ -390,11 +390,37 @@
 @media (max-width: 768px) {
     .containerKQ {
         min-width: 320px;
-        padding: 10px;
+        padding: 13px;
+        font-size: 12px;
+    }
+
+    .tableXS th:first-child {
+        width: 30px;
+        background-color: #f0f0f0;
+    }
+
+    .tableXS td.tdTitle.highlight {
+        color: red;
+        font-size: 20px;
+    }
+
+    .header {
+        padding: 15px 0 10px 0;
+        background-color: #ffeca0;
+        /* width: 100%; */
+    }
+
+    .action {
+        margin-left: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 5px 0;
+        /* Giảm margin-top để tiết kiệm không gian trên mobile */
     }
 
     .kqxs__title {
-        font-size: 21px;
+        font-size: 18px;
         line-height: 1.4;
         width: 100%;
     }
@@ -410,12 +436,12 @@
     }
 
     .prizeNumber {
-        font-size: 20px;
+        font-size: 24px;
         margin: 4px 0;
     }
 
     .prizeNumber.gdb {
-        font-size: 24px;
+        font-size: 23px;
     }
 
     .spinner {
@@ -425,13 +451,34 @@
     }
 
     .filter__options {
+        flex-direction: row;
+        /* Giữ bố cục ngang */
+        flex-wrap: nowrap;
+        /* Không cho phép wrap, đảm bảo các nút trên cùng một hàng */
         width: 100%;
-        gap: 20px;
-        padding: 0 10px;
+        max-width: 320px;
+        height: auto;
+        padding: 8px 10px 8px 30px;
+        gap: 50px;
+        border-radius: 6px;
+        background-color: #fff;
+        margin: 0 auto;
+    }
+
+    .optionInput input[type='radio']:checked+label::after {
+        content: "";
+        position: absolute;
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        top: 1px;
+        left: -25.5px;
+        border-radius: 50%;
+        background-color: var(--primary-color);
     }
 
     .optionInput label {
-        font-size: 16px;
+        font-size: 14px;
     }
 
     .TKe_contentTitle .title,
@@ -443,7 +490,7 @@
     .tableKey th,
     .tableKey td {
         padding: 8px 4px;
-        font-size: 14px;
+        font-size: 16px;
     }
 
     .pagination {

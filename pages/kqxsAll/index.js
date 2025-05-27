@@ -14,8 +14,8 @@ const KQXS = (props) => {
     const [currentPage, setCurrentPage] = useState(1);
     const [isLiveWindow, setIsLiveWindow] = useState(false);
     const [hasTriggeredScraper, setHasTriggeredScraper] = useState(false);
-    const hour = 18;
-    const minute1 = 10;
+    const hour = 11;
+    const minute1 = 21;
     const minute2 = 15;
 
     const router = useRouter();
@@ -391,7 +391,7 @@ const KQXS = (props) => {
                         <div className={styles.TKe_content}>
                             <div className={styles.TKe_contentTitle}>
                                 <span className={styles.title}>Bảng Lô Tô - </span>
-                                <span className={styles.desc}>{data2.tentinh}</span>
+                                <span className={styles.desc}>{data2.tentinh} -</span>
                                 <span className={styles.dayOfWeek}>{`${data2.dayOfWeek} - `}</span>
                                 <span className={styles.desc}>{data2.drawDate}</span>
                             </div>

@@ -1,6 +1,6 @@
 .container {
-    font-family: "Poppins", sans-serif;
-    padding: 20px;
+    font-family: "Roboto", sans-serif;
+    /* padding: 20px; */
     width: 100%;
     max-width: 1200px;
     margin: 0 auto;
@@ -10,6 +10,7 @@
 }
 
 .title {
+    margin-top: 15px;
     font-size: 1.3rem;
     text-align: center;
     font-weight: 600;
@@ -122,4 +123,151 @@
     font-size: 1rem;
 }
 
+/* Responsive cho tablet và mobile (dưới 768px) */
+@media (max-width: 768px) {
+    .container {
+        min-width: 320px;
+        margin-bottom: 15px;
+        padding: 13px;
+        border: none;
+    }
 
+    .containerTB {
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    .title {
+        margin-top: 10px;
+        font-size: 1.1rem;
+        padding: 0px 50px;
+        /* Giảm kích thước tiêu đề */
+        line-height: 1.4;
+        text-align: center;
+    }
+
+    .group {
+        flex-direction: column;
+        /* Chuyển thành cột trên mobile */
+        padding: 6px 0;
+        gap: 8px;
+    }
+
+    .desc {
+        font-size: 0.9rem;
+        /* Giảm kích thước chữ */
+        text-align: center;
+    }
+
+    .action {
+        margin-left: 0;
+        /* Bỏ margin-left vì đã chuyển thành cột */
+        padding: 5px 12px;
+        font-size: 0.85rem;
+    }
+
+    .table {
+        margin-top: 15px;
+        display: block;
+        /* Cho phép cuộn ngang */
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        /* Hỗ trợ cuộn mượt trên iOS */
+    }
+
+    .titleTable {
+        font-size: 0.9rem;
+        /* Giảm kích thước chữ */
+        padding: 8px;
+    }
+
+    .table td {
+        padding: 8px;
+    }
+
+    .stationRow {
+        flex-wrap: wrap;
+        gap: 5px;
+        /* Thêm khoảng cách giữa các phần tử */
+        justify-content: center;
+    }
+
+    .stationName {
+        font-size: 0.9rem;
+        /* Giảm kích thước chữ */
+        min-width: 80px;
+        /* Giảm chiều rộng tối thiểu */
+    }
+
+    .time {
+        padding: 3px 8px;
+        font-size: 0.85rem;
+        border-radius: 10px;
+    }
+
+    .check {
+        font-size: 0.9rem;
+    }
+}
+
+/* Responsive cho mobile nhỏ (dưới 480px) */
+@media (max-width: 480px) {
+    .container {
+        margin-bottom: 10px;
+    }
+
+    .title {
+        font-size: 1rem;
+        /* Giảm kích thước tiêu đề thêm */
+    }
+
+    .group {
+        padding: 5px 0;
+        gap: 6px;
+    }
+
+    .desc {
+        font-size: 0.85rem;
+        /* Giảm kích thước chữ thêm */
+    }
+
+    .action {
+        padding: 4px 10px;
+        font-size: 0.8rem;
+    }
+
+    .table {
+        margin-top: 10px;
+    }
+
+    .titleTable {
+        font-size: 0.85rem;
+        /* Giảm kích thước chữ thêm */
+        padding: 6px;
+    }
+
+    .table td {
+        padding: 6px;
+    }
+
+    .stationRow {
+        gap: 4px;
+    }
+
+    .stationName {
+        font-size: 0.85rem;
+        /* Giảm kích thước chữ thêm */
+        min-width: 60px;
+        /* Giảm chiều rộng tối thiểu thêm */
+    }
+
+    .time {
+        padding: 2px 6px;
+        font-size: 0.8rem;
+        border-radius: 8px;
+    }
+
+    .check {
+        font-size: 0.85rem;
+    }
+}

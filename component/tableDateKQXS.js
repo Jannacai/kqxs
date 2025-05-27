@@ -168,74 +168,76 @@ const TableDate = () => {
 
     return (
         <div className={styles.container}>
-            <div className={styles.header}>
-                <h1 className={styles.title}>XỔ SỐ VN - Kết quả xổ số 3 miền - KQXS Hôm nay</h1>
-            </div>
-            {approachingRegion && (
-                <div className={styles.group}>
-                    <p className={styles.desc}>
-                        Tường thuật trực tiếp KQXS {approachingRegion} lúc {approachingTime}
-                    </p>
-                    <Link href={`/${approachingRegion === "Miền Nam" ? "xsmn" : approachingRegion === "Miền Trung" ? "xsmt" : "xsmb"}`} className={styles.action}>
-                        Xem Ngay
-                    </Link>
+            <div className={styles.containerTB}>
+                <div className={styles.header}>
+                    <h1 className={styles.title}>XỔ SỐ VN - Kết quả xổ số 3 miền - KQXS Hôm nay</h1>
                 </div>
-            )}
-            <table className={styles.table}>
-                <tbody>
-                    <tr>
-                        <td className={styles.titleTable}>Miền Bắc</td>
-                        <td className={styles.titleTable}>Miền Trung</td>
-                        <td className={styles.titleTable}>Miền Nam</td>
-                    </tr>
-                    {Array.from({ length: maxRows }).map((_, rowIndex) => (
-                        <tr key={rowIndex}>
-                            {/* Miền Bắc */}
-                            <td>
-                                {currentStations.north[rowIndex] ? (
-                                    <div className={styles.stationRow}>
-                                        <span className={styles.stationName}>{currentStations.north[rowIndex].name}</span>
-                                        <span className={styles.time}>
-                                            {currentStations.north[rowIndex].time}
-                                        </span>
-                                        {hasBroadcasted.north && (
-                                            <span className={styles.check}>✅</span>
-                                        )}
-                                    </div>
-                                ) : null}
-                            </td>
-                            {/* Miền Trung */}
-                            <td>
-                                {currentStations.central[rowIndex] ? (
-                                    <div className={styles.stationRow}>
-                                        <span className={styles.stationName}>{currentStations.central[rowIndex].name}</span>
-                                        <span className={styles.time}>
-                                            {currentStations.central[rowIndex].time}
-                                        </span>
-                                        {hasBroadcasted.central && (
-                                            <span className={styles.check}>✅</span>
-                                        )}
-                                    </div>
-                                ) : null}
-                            </td>
-                            {/* Miền Nam */}
-                            <td>
-                                {currentStations.south[rowIndex] ? (
-                                    <div className={styles.stationRow}>
-                                        <span className={styles.stationName}>{currentStations.south[rowIndex].name}</span>
-                                        <span className={styles.time}>
-                                            {currentStations.south[rowIndex].time}
-                                        </span>
-                                        {hasBroadcasted.south && (
-                                            <span className={styles.check}>✅</span>
-                                        )}
-                                    </div>
-                                ) : null}
-                            </td>
+                {approachingRegion && (
+                    <div className={styles.group}>
+                        <p className={styles.desc}>
+                            Tường thuật trực tiếp KQXS {approachingRegion} lúc {approachingTime}
+                        </p>
+                        <Link href={`/${approachingRegion === "Miền Nam" ? "xsmn" : approachingRegion === "Miền Trung" ? "xsmt" : "xsmb"}`} className={styles.action}>
+                            Xem Ngay
+                        </Link>
+                    </div>
+                )}
+                <table className={styles.table}>
+                    <tbody>
+                        <tr>
+                            <td className={styles.titleTable}>Miền Bắc</td>
+                            <td className={styles.titleTable}>Miền Trung</td>
+                            <td className={styles.titleTable}>Miền Nam</td>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
+                        {Array.from({ length: maxRows }).map((_, rowIndex) => (
+                            <tr key={rowIndex}>
+                                {/* Miền Bắc */}
+                                <td>
+                                    {currentStations.north[rowIndex] ? (
+                                        <div className={styles.stationRow}>
+                                            <span className={styles.stationName}>{currentStations.north[rowIndex].name}</span>
+                                            <span className={styles.time}>
+                                                {currentStations.north[rowIndex].time}
+                                            </span>
+                                            {hasBroadcasted.north && (
+                                                <span className={styles.check}>✅</span>
+                                            )}
+                                        </div>
+                                    ) : null}
+                                </td>
+                                {/* Miền Trung */}
+                                <td>
+                                    {currentStations.central[rowIndex] ? (
+                                        <div className={styles.stationRow}>
+                                            <span className={styles.stationName}>{currentStations.central[rowIndex].name}</span>
+                                            <span className={styles.time}>
+                                                {currentStations.central[rowIndex].time}
+                                            </span>
+                                            {hasBroadcasted.central && (
+                                                <span className={styles.check}>✅</span>
+                                            )}
+                                        </div>
+                                    ) : null}
+                                </td>
+                                {/* Miền Nam */}
+                                <td>
+                                    {currentStations.south[rowIndex] ? (
+                                        <div className={styles.stationRow}>
+                                            <span className={styles.stationName}>{currentStations.south[rowIndex].name}</span>
+                                            <span className={styles.time}>
+                                                {currentStations.south[rowIndex].time}
+                                            </span>
+                                            {hasBroadcasted.south && (
+                                                <span className={styles.check}>✅</span>
+                                            )}
+                                        </div>
+                                    ) : null}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 };
