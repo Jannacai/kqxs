@@ -2,7 +2,7 @@ import '../styles/global.css'
 import '../styles/reset.css'
 import Image from 'next/image';
 import NavBar from '../component/navbar';
-import logo from './asset/img/logo5.png';
+import logo from './asset/img/LOGOxsmn_win';
 import { useEffect, useState } from 'react';
 import Clock from '../component/clock';
 import { SessionProvider, useSession } from "next-auth/react";

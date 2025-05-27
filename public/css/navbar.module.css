@@ -226,7 +226,7 @@
         left: 20px;
         width: 60px;
         font-size: 40px;
-        color: #EA5455;
+        color: #e80000;
     }
 
     .nav_listMobile {
@@ -265,7 +265,7 @@
     }
 
     .nav_itemLinkMobile {
-        font-weight: 400;
+        font-weight: 700;
         width: 100%;
         padding: 10px 0;
         text-decoration: none;

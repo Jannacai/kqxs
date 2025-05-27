@@ -4,7 +4,7 @@ import styles from '../public/css/navbar.module.css';
 import { apiMB } from '../pages/api/kqxs/kqxsMB';
 import UserAvatar from './UserAvatar';
 import { useRouter } from 'next/router';
-import logo from '../public/asset/img/logo5.png';
+import logo from '../public/asset/img/LOGOxsmn_win.png';
 import Image from 'next/image';
 
 const NavBar = () => {
