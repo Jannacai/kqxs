@@ -226,7 +226,7 @@
         left: 20px;
         width: 60px;
         font-size: 40px;
-        color: #c80505;
+        color: #EA5455;
     }
 
     .nav_listMobile {
@@ -256,7 +256,8 @@
     }
 
     .nav_itemMobile.active {
-        color: #c80505;
+        background-color: #EA5455;
+        color: #ffffff;
     }
 
     .nav_itemMobile.active .nav_itemLinkMobile {
@@ -333,12 +334,14 @@
     }
 
     .nav_menuLinkMobile.active {
-        color: #c80505;
+        background-color: #EA5455;
+        color: #ffffff;
     }
 
     .iconNav {
         display: inline-block;
         padding: 10px 20px 10px 5px;
+        background-color: #EA5455;
         width: 30px;
         height: 30px;
         border-radius: 50%;
