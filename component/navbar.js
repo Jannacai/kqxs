@@ -217,7 +217,7 @@ const NavBar = () => {
                                     >
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmb/dayofweek/[dayOfWeek]" ? styles.active : ""
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmb/dayofweek/[dayOfWeek]:thu-2" ? styles.active : ""
                                                     }`}
                                                 href="/xsmb/dayofweek/thu-2"
                                                 onClick={toggleMenu}
@@ -227,7 +227,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmb/dayofweek/thu-3" ? styles.active : ""
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmb/dayofweek/[dayOfWeek]/thu-3" ? styles.active : ""
                                                     }`}
                                                 href="/xsmb/dayofweek/thu-3"
                                                 onClick={toggleMenu}
