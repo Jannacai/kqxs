@@ -188,7 +188,7 @@ const NavBar = () => {
                                     </div>
                                 </li>
                                 <li
-                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith("xsmb") ? styles.active : ""
+                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith("/ket-qua-xo-so-mien-bac") ? styles.active : ""
                                         }`}
                                 >
                                     <div className={styles.grouplinkMobile}>
@@ -200,7 +200,7 @@ const NavBar = () => {
                                             <span className={styles.iconNav}><i class="fa-solid fa-globe"></i></span> XSMB
                                         </Link>
                                         <span
-                                            onClick={() => toggleMenuList("/xsmb")}
+                                            onClick={() => toggleMenuList("xsmb")}
                                             className={styles.icon}
                                         >
                                             <i
@@ -388,7 +388,7 @@ const NavBar = () => {
                                     </ul>
                                 </li>
                                 <li
-                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith("/xosomt") ? styles.active : ""
+                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith("/ket-qua-xo-so-mien-trung") ? styles.active : ""
                                         }`}
                                 >
                                     <div className={styles.grouplinkMobile}>
