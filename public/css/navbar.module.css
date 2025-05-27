@@ -256,8 +256,7 @@
     }
 
     .nav_itemMobile.active {
-        background-color: #c80505;
-        color: #ffffff;
+        color: #c80505;
     }
 
     .nav_itemMobile.active .nav_itemLinkMobile {
@@ -334,14 +333,12 @@
     }
 
     .nav_menuLinkMobile.active {
-        background-color: rgb(237, 28, 37);
-        color: #ffffff;
+        color: #c80505;
     }
 
     .iconNav {
         display: inline-block;
         padding: 10px 20px 10px 5px;
-        background-color: #c80505;
         width: 30px;
         height: 30px;
         border-radius: 50%;
