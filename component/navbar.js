@@ -217,7 +217,7 @@ const NavBar = () => {
                                     >
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmb/dayofweek/[thu-2]" ? styles.active : ""
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmb/dayofweek/[dayOfWeek]" ? styles.active : ""
                                                     }`}
                                                 href="/xsmb/dayofweek/thu-2"
                                                 onClick={toggleMenu}
