@@ -282,16 +282,17 @@
     }
 
     .icon:hover {
-        color: #c80505;
+        color: black;
         transform: scale(1.1);
     }
 
     .icon:active {
         transform: scale(0.9);
+        color: black;
     }
 
     .icon .fa-chevron-up {
-        color: #c80505;
+        color: black;
     }
 
     .nav__menuMobile {
