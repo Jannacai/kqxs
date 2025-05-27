@@ -458,6 +458,7 @@
         font-size: 21px;
         line-height: 1.4;
         width: 100%;
+        font-weight: 700;
     }
 
     .tableXS th {
@@ -756,6 +757,7 @@
 
     .tableKey td:not(.t_h) span {
         margin-right: 4px;
+        font-weight: 700;
     }
 
     .tableKey td:not(.t_h) span:last-child {
