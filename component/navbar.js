@@ -288,7 +288,7 @@ const NavBar = () => {
                                     </ul>
                                 </li>
                                 <li
-                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith("xosomn") ? styles.active : ""
+                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith("/ket-qua-xo-so-mien-nam") ? styles.active : ""
                                         }`}
                                 >
                                     <div className={styles.grouplinkMobile}>
