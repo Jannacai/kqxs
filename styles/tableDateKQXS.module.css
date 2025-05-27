@@ -141,7 +141,7 @@
         margin-top: 10px;
         font-size: 1.1rem;
         padding: 0px 50px;
-        /* Giảm kích thước tiêu đề */
+        font-weight: 700;
         line-height: 1.4;
         text-align: center;
     }
@@ -218,7 +218,7 @@
 
     .title {
         font-size: 1rem;
-        /* Giảm kích thước tiêu đề thêm */
+       
     }
 
     .group {
