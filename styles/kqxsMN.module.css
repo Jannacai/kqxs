@@ -29,9 +29,7 @@
     font-weight: 600;
 }
 
-.kqxs__title span {
-    text-transform: uppercase;
-}
+
 
 .kqxs__action {
     display: flex;
@@ -121,7 +119,6 @@
     padding: 8px 0;
     font-weight: 600;
     color: #2d3483;
-    text-transform: uppercase;
 }
 
 .stationName {
@@ -296,7 +293,6 @@
 }
 
 .TKe_contentTitle .desc {
-    text-transform: uppercase;
     margin-left: 10px;
 }
 
@@ -319,7 +315,6 @@
     background-color: #f0f0f0;
     font-size: 18px;
     color: #2d3483;
-    text-transform: uppercase;
 }
 
 .tableKey th:not(:first-child),
@@ -395,7 +390,6 @@
     }
 
     .kqxs__title span {
-        text-transform: uppercase;
         font-weight: 700;
     }
 
