@@ -139,7 +139,7 @@
 
     .title {
         margin-top: 10px;
-        font-size: 1.1rem;
+        font-size: 1.4rem;
         padding: 0px 50px;
         font-weight: 700;
         line-height: 1.4;
@@ -163,7 +163,7 @@
         margin-left: 0;
         /* Bỏ margin-left vì đã chuyển thành cột */
         padding: 5px 12px;
-        font-size: 0.85rem;
+        font-size: 1.1rem;
     }
 
     .table {
@@ -217,11 +217,6 @@
         margin-bottom: 10px;
     }
 
-    .title {
-        font-size: 1rem;
-
-    }
-
     .group {
         padding: 5px 0;
         gap: 6px;
@@ -256,7 +251,7 @@
     }
 
     .stationName {
-        font-size: 0.85rem;
+        font-size: 1rem;
         /* Giảm kích thước chữ thêm */
         min-width: 60px;
         /* Giảm chiều rộng tối thiểu thêm */
