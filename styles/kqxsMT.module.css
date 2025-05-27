@@ -394,6 +394,15 @@
         font-size: 12px;
     }
 
+    .kqxs__title span {
+        text-transform: uppercase;
+        font-weight: 700;
+    }
+
+    .stationName {
+        font-weight: 700;
+    }
+
     .tableXS th:first-child {
         width: 35px;
         background-color: #f0f0f0;
@@ -423,7 +432,7 @@
         font-size: 20px;
         line-height: 1.4;
         width: 100%;
-        font-weight: 600;
+        font-weight: 700;
     }
 
     .tableXS th {
@@ -492,6 +501,7 @@
     .tableKey td {
         padding: 8px 4px;
         font-size: 16px;
+        font-weight: 700;
     }
 
     .pagination {
