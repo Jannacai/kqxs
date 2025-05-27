@@ -432,6 +432,7 @@
     .tableXS th {
         padding: 6px;
         line-height: 20px;
+        font-weight: 700;
     }
 
     .tableXS th:not(:first-child),
