@@ -534,6 +534,14 @@
         font-size: 24px;
     }
 
+    .tableKey th,
+    .tableKey td {
+        border: 1px solid #ccc;
+        text-align: center;
+        font-weight: 600;
+        /* padding: 12px 8px; */
+    }
+
     .kqxs__title {
         font-weight: 600;
         font-size: 20px;
