@@ -197,9 +197,10 @@
     }
 
     .header__logo {
-        margin-top: 20px;
+        padding: 20px;
         display: flex;
         justify-content: center;
+        background: #FFF5C3;
     }
 
     .header__logo__img {
