@@ -425,29 +425,88 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
     }, [tinh, specialTinh, dauByDateTinh, duoiByDateTinh]);
 
     const getMessage = () => {
-        const regionText = region === 'Miền Bắc' ? 'Miền Bắc' : `${region} - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh)} `;
-        return `Thống kê Đầu / Đuôi Loto trong ${metadata.totalDraws || 0} lần quay Xổ số ${regionText} `;
+        const provinceName = region === 'Miền Bắc' ? 'Miền Bắc' : Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh);
+        const regionText = region === 'Miền Bắc' ? (
+            <span className={styles.highlightProvince}>Miền Bắc</span>
+        ) : (
+            <>
+                {region} - <span className={styles.highlightProvince}>{provinceName}</span>
+            </>
+        );
+        return (
+            <>
+                Thống kê Đầu / Đuôi Loto trong{' '}
+                <span className={styles.highlightDraws}>{metadata.totalDraws || 0} lần quay</span>{' '}
+                Xổ số {regionText}
+            </>
+        );
     };
 
     const getSpecialMessage = () => {
-        const regionText = specialRegion === 'Miền Bắc' ? 'Miền Bắc' : `${specialRegion} - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === specialTinh)} `;
-        return `Thống kê Đầu / Đuôi Giải Đặc Biệt trong ${specialMetadata.totalDraws || 0} lần quay Xổ số ${regionText} `;
+        const provinceName = specialRegion === 'Miền Bắc' ? 'Miền Bắc' : Object.keys(provinceSlugs).find(key => provinceSlugs[key] === specialTinh);
+        const regionText = specialRegion === 'Miền Bắc' ? (
+            <span className={styles.highlightProvince}>Miền Bắc</span>
+        ) : (
+            <>
+                {specialRegion} - <span className={styles.highlightProvince}>{provinceName}</span>
+            </>
+        );
+        return (
+            <>
+                Thống kê Đầu / Đuôi Giải Đặc Biệt trong{' '}
+                <span className={styles.highlightDraws}>{specialMetadata.totalDraws || 0} lần quay</span>{' '}
+                Xổ số {regionText}
+            </>
+        );
     };
 
     const getDauByDateMessage = () => {
-        const regionText = dauByDateRegion === 'Miền Bắc' ? 'Miền Bắc' : `${dauByDateRegion} - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === dauByDateTinh)} `;
-        return `Thống kê Đầu Loto theo ngày - Xổ số ${regionText} `;
+        const provinceName = dauByDateRegion === 'Miền Bắc' ? 'Miền Bắc' : Object.keys(provinceSlugs).find(key => provinceSlugs[key] === dauByDateTinh);
+        const regionText = dauByDateRegion === 'Miền Bắc' ? (
+            <span className={styles.highlightProvince}>Miền Bắc</span>
+        ) : (
+            <>
+                {dauByDateRegion} - <span className={styles.highlightProvince}>{provinceName}</span>
+            </>
+        );
+        return (
+            <>
+                Thống kê Đầu Loto theo ngày - Xổ số {regionText}
+            </>
+        );
     };
 
     const getDuoiByDateMessage = () => {
-        const regionText = duoiByDateRegion === 'Miền Bắc' ? 'Miền Bắc' : `${duoiByDateRegion} - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === duoiByDateTinh)} `;
-        return `Thống kê Đuôi Loto theo ngày - Xổ số ${regionText} `;
+        const provinceName = duoiByDateRegion === 'Miền Bắc' ? 'Miền Bắc' : Object.keys(provinceSlugs).find(key => provinceSlugs[key] === duoiByDateTinh);
+        const regionText = duoiByDateRegion === 'Miền Bắc' ? (
+            <span className={styles.highlightProvince}>Miền Bắc</span>
+        ) : (
+            <>
+                {duoiByDateRegion} - <span className={styles.highlightProvince}>{provinceName}</span>
+            </>
+        );
+        return (
+            <>
+                Thống kê Đuôi Loto theo ngày - Xổ số {regionText}
+            </>
+        );
     };
 
     const getTitle = () => {
-        const regionText = region === 'Miền Bắc' ? 'Miền Bắc' : `${region} - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh)} `;
-        return `Thống kê Đầu Đuôi Loto Xổ Số ${regionText} `;
-    };
+        const provinceName = region === 'Miền Bắc' ? 'Miền Bắc' : Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh);
+        const regionText = region === 'Miền Bắc' ? (
+            <span className={styles.highlightProvince}>Miền Bắc</span>
+        ) : (
+            <>
+                {region} - <span className={styles.highlightProvince}>{provinceName}</span>
+            </>
+        );
+        return (
+            <>
+                Thống kê Đầu Đuôi Loto Xổ Số {regionText}
+            </>
+        );
+      };
 
     const pageTitle = getTitle();
     const pageDescription = `Xem bảng thống kê Đầu Đuôi loto Xổ số ${region === 'Miền Bắc' ? 'Miền Bắc' : `${region} - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh)}`} trong ${metadata.filterType || ''}. Cập nhật dữ liệu từ ${metadata.startDate || ''} đến ${metadata.endDate || ''}.`;

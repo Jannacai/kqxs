@@ -122,6 +122,53 @@
     box-shadow: 0 0 0 2px rgba(200, 5, 5, 0.1);
 }
 
+.seclect:focus {
+    border-color: #ed1c25;
+    /* Đỏ khi focus */
+    box-shadow: 0 0 0 2px rgba(237, 28, 37, 0.2);
+    background-color: #fff5f5;
+    /* Nền đỏ nhạt */
+}
+
+.seclect.selected {
+    border-color: #ed1c25;
+    /* Viền đỏ khi được chọn */
+    background-color: #fff5f5;
+    /* Nền đỏ nhạt */
+    font-weight: 600;
+    color: #ed1c25;
+    /* Chữ đỏ */
+}
+
+/* Style cho highlight tên tỉnh trong tiêu đề */
+.highlightProvince {
+    color: var(--primary-color);
+    /* Đỏ chủ đạo */
+    font-weight: 700;
+    /* Nền đỏ nhạt */
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+/* Style cho highlight số lần quay */
+.highlightDraws {
+    color: #0396FF;
+    /* Xanh chủ đạo */
+    font-weight: 700;
+    /* Nền xanh nhạt */
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+/* Style cho option khi được chọn */
+.seclect option:checked {
+    background-color: #ed1c25;
+    /* Nền đỏ */
+    color: #ffffff;
+    /* Chữ trắng */
+    font-weight: 700;
+}
+
 .options {
     font-size: 0.95rem;
     font-weight: 500;
@@ -138,7 +185,7 @@
 
 .table th {
     font-size: 0.95rem;
-    font-weight: 600;
+    font-weight: 700;
     background: #e5e7eb;
     /* Xám nhạt */
     color: #1f2937;
@@ -165,7 +212,7 @@
 .number {
     color: #c80505;
     /* Đỏ chủ đạo */
-    font-weight: 600;
+    font-weight: 700;
     font-size: 1.1rem;
     background-color: #f3f4f6;
     /* Xám nhạt */
@@ -208,7 +255,7 @@
 
 .heading {
     padding: 12px 0;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 1.3rem;
     line-height: 1.4;
     color: #c80505;
@@ -267,7 +314,7 @@
     background: #ed1c25;
     /* Đỏ chủ đạo */
     color: #ffffff;
-    font-weight: 600;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.3px;
 }
@@ -321,14 +368,14 @@
     background: #ed1c25;
     /* Đỏ nhạt hơn để phân biệt */
     color: #ffffff;
-    font-weight: 600;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.3px;
 }
 
 .tableSpecialDauDuoi td:first-child {
     width: 10%;
-    font-weight: 600;
+    font-weight: 700;
     color: #1f2937;
     background-color: #f3f4f6;
 }
@@ -434,7 +481,7 @@
     background: #ed1c25;
     /* Đỏ chủ đạo */
     color: #ffffff;
-    font-weight: 600;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.3px;
 }
@@ -466,7 +513,7 @@
 /* Hàng tổng ở dưới cùng */
 .tableDauDuoiByDate tr.totalRow {
     background-color: #e5e7eb;
-    font-weight: 600;
+    font-weight: 700;
 }
 
 .tableDauDuoiByDate tr.totalRow td:first-child {
@@ -497,7 +544,7 @@
     /* Đỏ chủ đạo */
     color: #ffffff;
     font-size: 1.2rem;
-    font-weight: 600;
+    font-weight: 700;
     border: none;
     border-radius: 50%;
     cursor: pointer;
