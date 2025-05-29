@@ -5,6 +5,8 @@ import { apiMT } from '../api/kqxs/kqxsMT';
 import { apiMN } from '../api/kqxs/kqxsMN';
 import styles from '../../styles/dauduoi.module.css';
 import ThongKe from '../../component/thongKe';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
 
 // Skeleton Loading Component cho bảng Đầu/Đuôi
 const SkeletonRow = () => (
@@ -124,6 +126,7 @@ const mienTrungProvinces = [
 
 const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats, initialMetadata, initialDays, initialRegion, initialTinh }) => {
     // State cho bảng 1 (Đầu/Đuôi của tất cả các giải)
+    const router = useRouter();
     const [dauStats, setDauStats] = useState(initialDauStats || []);
     const [duoiStats, setDuoiStats] = useState(initialDuoiStats || []);
     const [metadata, setMetadata] = useState(initialMetadata || {});
@@ -487,13 +490,18 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
             <div className={styles.container}>
                 <div className={styles.titleGroup}>
                     <h1 className={styles.title}>{pageTitle}</h1>
+                    <div className={styles.actionBtn}>
+                        <Link className={`${styles.actionTK} ${router.pathname.startsWith('/thongke/dau-duoi') ? styles.active : ''}`} href="dau-duoi">Thống Kê Đầu Đuôi </Link>
+                        <Link className={styles.actionTK} href="giai-dac-biet">Thống Kê Giải Đặc Biệt </Link>
+                        <Link className={styles.actionTK} href="giai-dac-biet-tuan">Thống Kê Giải Đặc Biệt Tuần </Link>
+                    </div>
                 </div>
 
                 <div className={styles.content}>
                     {/* Bảng 1: Thống kê Đầu/Đuôi Loto (tất cả các giải) */}
                     <div>
                         <div className="metadata">
-                            <p className={styles.title}>{getMessage()}</p>
+                            <h2 className={styles.title}>{getMessage()}</h2>
                         </div>
 
                         <div className={styles.group_Select}>
@@ -601,7 +609,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                     {!specialLoading && !specialError && specialDauDuoiStats.length > 0 && (
                         <div className="mt-8">
                             <div className="metadata">
-                                <p className={`${styles.title} ${styles.title2}`}>{getSpecialMessage()}</p>
+                                <h2 className={`${styles.title} ${styles.title2}`}>{getSpecialMessage()}</h2>
                             </div>
 
                             <div className={styles.group_Select}>
@@ -701,7 +709,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                     {/* Bảng 3: Thống kê Đầu Loto theo ngày */}
                     <div>
                         <div className="metadata">
-                            <p className={styles.title}>{getDauByDateMessage()}</p>
+                            <h2 className={styles.title}>{getDauByDateMessage()}</h2>
                         </div>
 
                         <div className={styles.group_Select}>
@@ -756,7 +764,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                             </div>
                         </div>
 
-                        <h2 className={styles.h3}>Thống kê Đầu Loto Theo Ngày</h2>
+                        {/* <h2 className={styles.h3}>Thống kê Đầu Loto Theo Ngày</h2> */}
                         {dauByDateLoading && <SkeletonTableByDate type="dau" />}
                         {dauByDateError && <p className={styles.error}>{dauByDateError}</p>}
                         {!dauByDateLoading && !dauByDateError && dauStatsByDateArray.length > 0 && (
@@ -809,7 +817,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                     {/* Bảng 4: Thống kê Đuôi Loto theo ngày */}
                     <div>
                         <div className="metadata">
-                            <p className={styles.title}>{getDuoiByDateMessage()}</p>
+                            <h2 className={styles.title}>{getDuoiByDateMessage()}</h2>
                         </div>
 
                         <div className={styles.group_Select}>
@@ -864,7 +872,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                             </div>
                         </div>
 
-                        <h2 className={styles.h3}>Thống kê Đuôi Loto Theo Ngày</h2>
+                        {/* <h2 className={styles.h3}>Thống kê Đuôi Loto Theo Ngày</h2> */}
                         {duoiByDateLoading && <SkeletonTableByDate type="duoi" />}
                         {duoiByDateError && <p className={styles.error}>{duoiByDateError}</p>}
                         {!duoiByDateLoading && !duoiByDateError && duoiStatsByDateArray.length > 0 && (
