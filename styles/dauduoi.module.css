@@ -102,6 +102,7 @@
 
 .dateTime span {
     color: #1f2937;
+    font-weight: 500;
 }
 
 .seclect {
@@ -142,7 +143,7 @@
 
 /* Style cho highlight tên tỉnh trong tiêu đề */
 .highlightProvince {
-    color: var(--primary-color);
+    color: #0396FF;
     /* Đỏ chủ đạo */
     font-weight: 700;
     /* Nền đỏ nhạt */
@@ -349,7 +350,7 @@
     background-color: #ffffff;
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
 }
 
 .tableSpecialDauDuoi th,
@@ -466,7 +467,7 @@
     background-color: #ffffff;
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
 }
 
 .tableDauDuoiByDate th,
@@ -538,8 +539,8 @@
     right: 16px;
     display: none;
     /* Ẩn mặc định */
-    width: 36px;
-    height: 36px;
+    width: 46px;
+    height: 46px;
     background: #ed1c25;
     /* Đỏ chủ đạo */
     color: #ffffff;
