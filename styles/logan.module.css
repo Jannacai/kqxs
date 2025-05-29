@@ -61,7 +61,7 @@
 .content {
     margin-top: 24px;
     padding: 10px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--background-color);
     border-radius: 8px;
     background-color: #ffffff;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -103,10 +103,10 @@
 .selectBox {
     border: 1px solid #e5e7eb;
     border-radius: 6px;
-    width: 140px;
-    height: 36px;
+    width: 150px;
+    height: 38px;
     padding: 0 10px;
-    font-size: 0.95rem;
+    font-size: 1rem;
     background-color: #ffffff;
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
@@ -151,7 +151,7 @@
 }
 
 .options {
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 500;
     color: #1f2937;
 }
@@ -221,20 +221,22 @@
 }
 
 .number.highlight {
-    color: var(--primary-color);
+    color: #0396FF;
     font-weight: 700;
+    background-color: #e6f3ff;
     padding: 4px 8px;
     border-radius: 4px;
 }
 
 .date {
-    color: var(--background-color);
+    color: #4b5563;
     font-weight: 500;
 }
 
 .gapDraws.highlight {
     color: #ed8936;
     font-weight: 700;
+    background-color: #fff7ed;
     padding: 4px 8px;
     border-radius: 4px;
 }
@@ -242,6 +244,7 @@
 .maxGap.highlight {
     color: #b91c1c;
     font-weight: 700;
+    background-color: #fef2f2;
     padding: 4px 8px;
     border-radius: 4px;
 }
@@ -437,8 +440,12 @@
     }
 
     .selectBox {
-        width: 120px;
-        height: 34px;
+        width: 130px;
+        height: 36px;
+        font-size: 0.9rem;
+    }
+
+    .options {
         font-size: 0.9rem;
     }
 
@@ -470,18 +477,22 @@
     }
 
     .selectBox {
-        width: 100px;
-        height: 32px;
-        font-size: 0.85rem;
+        width: 130px;
+        height: 36px;
+        font-size: 0.9rem;
+    }
+
+    .options {
+        font-size: 0.9rem;
     }
 
     .tableLoGan {
-        font-size: 0.8rem;
+        font-size: 0.95rem;
     }
 
     .tableLoGan th,
     .tableLoGan td {
-        padding: 6px 8px;
+        padding: 8px 10px;
     }
 
     .tableLoGan th:nth-child(1),
@@ -505,8 +516,15 @@
     }
 
     .number {
-        font-size: 1.1rem;
+        font-size: 1.15rem;
         font-weight: 700;
+    }
+
+    .date,
+    .gapDraws,
+    .maxGap {
+        font-size: 0.95rem;
+        font-weight: 500;
     }
 }
 
@@ -516,22 +534,32 @@
     }
 
     .selectBox {
-        width: 180px;
-        height: 30px;
-        font-size: 0.8rem;
+        width: 190px;
+        height: 32px;
+        font-size: 0.85rem;
+    }
+
+    .options {
+        font-size: 0.85rem;
     }
 
     .tableLoGan {
-        font-size: 0.75rem;
+        font-size: 0.9rem;
     }
 
     .tableLoGan th,
     .tableLoGan td {
-        padding: 4px 6px;
+        padding: 6px 8px;
     }
 
     .number {
-        font-size: 1rem;
+        font-size: 1.05rem;
         font-weight: 700;
     }
-}
+
+    .date,
+    .gapDraws,
+    .maxGap {
+        font-size: 0.9rem;
+        font-weight: 500;
+    } }
