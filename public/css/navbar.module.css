@@ -256,6 +256,7 @@
         transform: scale(0.98);
     }
 
+    .NavbarMobileNgang .active,
     .nav_itemMobile.active {
         background-color: #EA5455;
         color: #ffffff;
@@ -374,15 +375,15 @@
 
     .nav_itemNgang {
         text-align: center;
+        border-radius: 12px;
         margin-top: -10px;
+        border: 1px solid #ccc;
     }
 
     .nav_itemLinkNgang {
         display: flex;
         justify-content: center;
         align-items: center;
-        border: 1px solid #ccc;
-        border-radius: 12px;
         min-width: 100px;
         line-height: 20px;
         padding: 7px 0 7px 0;

@@ -135,7 +135,7 @@
 .table tr:hover {
     background-color: #eff6ff;
     /* Hiệu ứng hover xanh nhạt */
-    transition: background-color 0.2s ease;
+    transition: background-color 0.2s0089e;
 }
 
 /* Số liệu chính (bộ số lô gan) */
@@ -345,92 +345,287 @@
     transform: translateY(0);
 }
 
-/* Responsive Design */
-@media (max-width: 1024px) {
+/* Responsive Design cho Mobile */
+@media (max-width: 768px) {
     .container {
-        padding: 15px;
+        min-width: 100%;
+        padding: 12px;
+        background-color: #f0f4ff;
+        /* Màu nền xanh pastel nhạt */
     }
 
-    .titleGroup {
-        padding: 20px 10px;
-    }
-
+    /* Tiêu đề */
     .title {
-        font-size: 1.5rem;
+        font-size: 1.3rem;
+        color: #2c5282;
+        /* Xanh dương nhạt hơn */
+        line-height: 1.4;
+        margin-bottom: 10px;
     }
 
+    /* Nhóm chọn tỉnh và thời gian */
     .group_Select {
         flex-direction: column;
-        gap: 15px;
-        align-items: flex-start;
+        align-items: center;
+        gap: 12px;
+        padding: 10px;
     }
 
     .select {
         width: 100%;
-        max-width: 200px;
+        max-width: 280px;
+        height: 44px;
+        /* Tăng chiều cao cho dễ chạm */
+        font-size: 1rem;
+        border: 2px solid #90cdf4;
+        /* Viền xanh pastel nhạt */
+        border-radius: 10px;
+        background-color: #ffffff;
+        color: #2c5282;
+        /* Xanh dương nhạt */
+        padding: 8px;
     }
 
-    .table {
+    .select:focus {
+        border-color: #63b3ed;
+        /* Xanh nhạt hơn khi focus */
+        box-shadow: 0 0 0 3px rgba(99, 179, 237, 0.2);
+    }
+
+    .options {
+        font-size: 1rem;
+        color: #2c5282;
+        /* Xanh dương nhạt */
+        font-weight: 500;
+    }
+
+    .dateTime {
         font-size: 0.95rem;
+        color: #2c5282;
+        text-align: center;
     }
 
-    .table th,
-    .table td {
-        padding: 10px 12px;
-    }
-}
-
-@media (max-width: 768px) {
-    .container {
-        min-width: 100%;
-        padding: 10px;
+    .dateTime span {
+        color: #4a5568;
+        /* Xám nhạt */
     }
 
-    .title {
-        font-size: 1.3rem;
-    }
-
+    /* Bảng dữ liệu */
     .table {
         font-size: 0.9rem;
+        border: 1px solid #e2e8f0;
+        /* Viền xám nhạt */
+        background-color: #ffffff;
     }
 
-    .table th,
+    .table th {
+        font-size: 0.95rem;
+        padding: 10px 8px;
+        background: linear-gradient(135deg, #63b3ed 0%, #4299e1 100%);
+        /* Gradient xanh pastel nhạt */
+        color: #ffffff;
+        border-bottom: 1px solid #90cdf4;
+        /* Viền xanh nhạt */
+    }
+
     .table td {
-        padding: 8px 10px;
+        padding: 10px 8px;
+        font-size: 0.9rem;
+        color: #2d3748;
+        /* Xám đậm nhẹ */
+        border: 1px solid #e2e8f0;
+        /* Viền xám nhạt */
     }
 
+    .table tr:nth-child(even) {
+        background-color: #f7fafc;
+        /* Nền xen kẽ xám nhạt */
+    }
+
+    .table tr:hover {
+        background-color: #ebf8ff;
+        /* Xanh pastel nhạt khi hover */
+    }
+
+    .number {
+        font-size: 1.2rem;
+        color: #2c5282;
+        /* Xanh dương nhạt */
+        background-color: #e6f3ff;
+        /* Nền xanh nhạt hơn */
+        padding: 6px;
+        border-radius: 6px;
+    }
+
+    .date {
+        font-size: 0.85rem;
+        color: #4a5568;
+        /* Xám nhạt */
+    }
+
+    .gapDraws {
+        color: #ed8936;
+        /* Cam nhạt */
+        font-weight: 500;
+    }
+
+    .gapDraws span {
+        color: #4a5568;
+        /* Xám nhạt */
+    }
+
+    .maxGap {
+        color: #f56565;
+        /* Đỏ nhạt */
+        font-weight: 500;
+    }
+
+    .maxGap span {
+        color: #4a5568;
+        /* Xám nhạt */
+    }
+
+    /* Nội dung mô tả */
+    .Group_Content {
+        padding: 15px;
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
+        /* Viền xám nhạt */
+        border-radius: 10px;
+    }
+
+    .heading {
+        font-size: 1.2rem;
+        color: #2c5282;
+        /* Xanh dương nhạt */
+        text-align: left;
+        margin-bottom: 10px;
+    }
+
+    .h3 {
+        font-size: 1.05rem;
+        color: #2c5282;
+        /* Xanh dương nhạt */
+        margin: 8px 0;
+    }
+
+    .desc {
+        font-size: 0.95rem;
+        color: #4a5568;
+        /* Xám nhạt */
+        line-height: 1.6;
+    }
+
+    .action {
+        color: #4299e1;
+        /* Xanh dương nhạt */
+    }
+
+    .action:hover {
+        color: #63b3ed;
+        /* Xanh nhạt hơn khi hover */
+    }
+
+    /* Nút thu gọn/xem thêm */
+    .toggleBtn {
+        padding: 10px 20px;
+        font-size: 0.95rem;
+        background: linear-gradient(135deg, #63b3ed 0%, #4299e1 100%);
+        /* Gradient xanh pastel */
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .toggleBtn:hover {
+        background: linear-gradient(135deg, #4299e1 0%, #63b3ed 100%);
+        transform: translateY(-1px);
+    }
+
+    /* Nút quay lại đầu trang */
     .scrollToTopBtn {
         bottom: 20px;
         right: 20px;
-        width: 40px;
-        height: 40px;
+        width: 44px;
+        height: 44px;
         font-size: 1.2rem;
+        background: linear-gradient(135deg, #63b3ed 0%, #4299e1 100%);
+        /* Gradient xanh pastel */
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 }
 
 @media (max-width: 480px) {
+    .container {
+        padding: 8px;
+    }
+
     .title {
-        font-size: 1.2rem;
+        font-size: 1.1rem;
+    }
+
+    .group_Select {
+        gap: 10px;
     }
 
     .select {
         max-width: 100%;
+        height: 40px;
+        font-size: 0.9rem;
+    }
+
+    .options {
+        font-size: 0.9rem;
+    }
+
+    .dateTime {
+        font-size: 0.85rem;
     }
 
     .table {
         font-size: 0.85rem;
     }
 
-    .table th,
+    .table th {
+        font-size: 0.9rem;
+        padding: 8px 6px;
+    }
+
     .table td {
-        padding: 6px 8px;
+        padding: 8px 6px;
+        font-size: 0.85rem;
+    }
+
+    .number {
+        font-size: 1.1rem;
+        padding: 5px;
+    }
+
+    .date {
+        font-size: 0.8rem;
+    }
+
+    .heading {
+        font-size: 1.1rem;
+    }
+
+    .h3 {
+        font-size: 1rem;
+    }
+
+    .desc {
+        font-size: 0.9rem;
+    }
+
+    .toggleBtn {
+        padding: 8px 16px;
+        font-size: 0.9rem;
     }
 
     .scrollToTopBtn {
         bottom: 15px;
         right: 15px;
-        width: 36px;
-        height: 36px;
-        font-size: 1rem;
+        width: 40px;
+        height: 40px;
+        font-size: 1.1rem;
     }
 }

@@ -454,7 +454,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
         return (
             <>
                 Thống kê Đầu / Đuôi Giải Đặc Biệt trong{' '}<br></br>
-                <span className={styles.highlightDraws}>{specialMetadata.totalDraws || 0}lần quay</span>{' '}
+                <span className={styles.highlightDraws}>{specialMetadata.totalDraws || 0} lần quay</span>{' '}
                 Xổ số {regionText}
             </>
         );
@@ -983,7 +983,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                 </div>
 
                 <div className={styles.Group_Content}>
-                    <h2 className={styles.heading}>Xổ Số 3 Miền - Thống Kê Đầu Đuôi Loto Chính Xác Nhất</h2>
+                    <h2 className={styles.heading}>XSMN.WIN - Thống Kê Đầu Đuôi Loto Chính Xác Nhất</h2>
                     <div className={`${styles.contentWrapper} ${isExpanded ? styles.expanded : styles.collapsed}`}>
                         <h3 className={styles.h3}>Thống Kê Đầu Đuôi Loto Là Gì?</h3>
                         <p className={styles.desc}>
@@ -1001,10 +1001,10 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                         <p className={styles.desc}>- Giúp người chơi nhận biết xu hướng xuất hiện của các chữ số, từ đó chọn số may mắn để chơi loto.</p>
                         <p className={styles.desc}>- Cung cấp dữ liệu chính xác, cập nhật nhanh chóng từ kết quả xổ số.</p>
                         <p className={styles.desc}>
-                            Xổ Số 3 Miền cung cấp công cụ thống kê Đầu Đuôi loto hoàn toàn miễn phí, giúp người chơi có thêm thông tin để tăng cơ hội trúng thưởng. Chúc bạn may mắn!
+                            XSMB.WIN cung cấp công cụ thống kê Đầu Đuôi loto hoàn toàn miễn phí, giúp người chơi có thêm thông tin để tăng cơ hội trúng thưởng. Chúc bạn may mắn!
                         </p>
                         <p className={styles.desc}>
-                            Thống kê Đầu Đuôi loto. Xem thống kê Đầu Đuôi hôm nay nhanh và chính xác nhất tại <a className={styles.action} href='/'>Xổ Số 3 Miền.</a>
+                            Thống kê Đầu Đuôi loto. Xem thống kê Đầu Đuôi hôm nay nhanh và chính xác nhất tại <a className={styles.action} href='/'>XSMB.WIN.</a>
                         </p>
                     </div>
                     <button

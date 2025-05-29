@@ -124,17 +124,17 @@ const NavBar = () => {
                         <Link href="/thongke/lo-gan" className={styles.nav_itemLinkNgang}>Thống kê </Link>
 
                     </li>
-                    <li className={`${styles.nav_itemNgang} ${router.pathname.startsWith('/taodan') ? styles.active : ''}`}>
+                    <li className={`${styles.nav_itemNgang} ${router.pathname.startsWith('/TaoDan') ? styles.active : ''}`}>
 
                         <Link href="/TaoDan/" className={styles.nav_itemLinkNgang}>Tạo Dàn</Link>
 
                     </li>
                     <li className={`${styles.nav_itemNgang} ${router.pathname.startsWith('/news') ? styles.active : ''}`}>
 
-                        <Link href="#" className={styles.nav_itemLinkNgang}>Tin TỨC</Link>
+                        <Link href="#" className={styles.nav_itemLinkNgang}>Tin Tức</Link>
 
                     </li>
-                    <li className={`${styles.nav_itemNgang} ${router.pathname === '/soicau' ? styles.active : ''}`}>
+                    <li className={`${styles.nav_itemNgang} ${router.pathname === '/soicau/soicauMB' ? styles.active : ''}`}>
 
                         <Link href="/soicau/soicauMB" className={styles.nav_itemLinkNgang}>Soi Cầu</Link>
 
