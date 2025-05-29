@@ -22,7 +22,7 @@ const SkeletonTable = () => (
     <table className={styles.tableLoGan}>
         <thead>
             <tr>
-                <th>Bộ số</th>
+                <th>Số</th>
                 <th>Ngày ra cuối</th>
                 <th>Ngày gan</th>
                 <th>Gan max</th>
@@ -315,7 +315,7 @@ const Logan = ({ initialStats, initialMetadata, initialDays, initialRegion, init
                         <table className={styles.tableLoGan}>
                             <thead>
                                 <tr>
-                                    <th>Bộ số</th>
+                                    <th>Số</th>
                                     <th>Ngày ra cuối</th>
                                     <th>Ngày gan</th>
                                     <th>Gan max</th>

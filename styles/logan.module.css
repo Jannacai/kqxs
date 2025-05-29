@@ -221,9 +221,9 @@
 }
 
 .number.highlight {
-    color: #0396FF;
+    color: var(--primary-color);
     font-weight: 700;
-    background-color: #e6f3ff;
+    background-color: #ffeca0;
     padding: 4px 8px;
     border-radius: 4px;
 }
@@ -236,7 +236,6 @@
 .gapDraws.highlight {
     color: #ed8936;
     font-weight: 700;
-    background-color: #fff7ed;
     padding: 4px 8px;
     border-radius: 4px;
 }
@@ -244,7 +243,6 @@
 .maxGap.highlight {
     color: #b91c1c;
     font-weight: 700;
-    background-color: #fef2f2;
     padding: 4px 8px;
     border-radius: 4px;
 }

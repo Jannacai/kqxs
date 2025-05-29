@@ -402,7 +402,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
 
     // Thêm trạng thái active cho select
     useEffect(() => {
-        const selects = document.querySelectorAll(`.${styles.seclect}`);
+        const selects = document.querySelectorAll(`.${styles.selectBox}`);
         selects.forEach(select => {
             select.addEventListener('change', () => {
                 selects.forEach(s => s.classList.remove('active'));
@@ -435,7 +435,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
         );
         return (
             <>
-                Thống kê Đầu / Đuôi Loto trong{' '}<br></br>
+                Thống kê Đầu / Duôi Loto trong{' '}<br></br>
                 <span className={styles.highlightDraws}>{metadata.totalDraws || 0} lần quay</span>{' '}
                 Xổ số {regionText}
             </>
@@ -569,7 +569,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                             <div className={styles.selectGroup}>
                                 <label className={styles.options}>Chọn tỉnh:</label>
                                 <select
-                                    className={styles.seclect}
+                                    className={styles.selectBox}
                                     onChange={handleTinhChange}
                                     value={tinh ? tinh : "Miền Bắc"}
                                 >
@@ -594,7 +594,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                             <div className={styles.selectGroup}>
                                 <label className={styles.options}>Chọn thời gian:</label>
                                 <select
-                                    className={styles.seclect}
+                                    className={styles.selectBox}
                                     value={days}
                                     onChange={handleDaysChange}
                                 >
@@ -677,7 +677,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                                 <div className={styles.selectGroup}>
                                     <label className={styles.options}>Chọn tỉnh:</label>
                                     <select
-                                        className={styles.seclect}
+                                        className={styles.selectBox}
                                         onChange={handleSpecialTinhChange}
                                         value={specialTinh ? specialTinh : "Miền Bắc"}
                                     >
@@ -702,7 +702,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                                 <div className={styles.selectGroup}>
                                     <label className={styles.options}>Chọn thời gian:</label>
                                     <select
-                                        className={styles.seclect}
+                                        className={styles.selectBox}
                                         value={specialDays}
                                         onChange={handleSpecialDaysChange}
                                     >
@@ -777,7 +777,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                             <div className={styles.selectGroup}>
                                 <label className={styles.options}>Chọn tỉnh:</label>
                                 <select
-                                    className={styles.seclect}
+                                    className={styles.selectBox}
                                     onChange={handleDauByDateTinhChange}
                                     value={dauByDateTinh ? dauByDateTinh : "Miền Bắc"}
                                 >
@@ -802,7 +802,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                             <div className={styles.selectGroup}>
                                 <label className={styles.options}>Chọn thời gian:</label>
                                 <select
-                                    className={styles.seclect}
+                                    className={styles.selectBox}
                                     value={dauByDateDays}
                                     onChange={handleDauByDateDaysChange}
                                 >
@@ -825,7 +825,6 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                             </div>
                         </div>
 
-                        {/* <h2 className={styles.h3}>Thống kê Đầu Loto Theo Ngày</h2> */}
                         {dauByDateLoading && <SkeletonTableByDate type="dau" />}
                         {dauByDateError && <p className={styles.error}>{dauByDateError}</p>}
                         {!dauByDateLoading && !dauByDateError && dauStatsByDateArray.length > 0 && (
@@ -885,7 +884,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                             <div className={styles.selectGroup}>
                                 <label className={styles.options}>Chọn tỉnh:</label>
                                 <select
-                                    className={styles.seclect}
+                                    className={styles.selectBox}
                                     onChange={handleDuoiByDateTinhChange}
                                     value={duoiByDateTinh ? duoiByDateTinh : "Miền Bắc"}
                                 >
@@ -910,7 +909,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                             <div className={styles.selectGroup}>
                                 <label className={styles.options}>Chọn thời gian:</label>
                                 <select
-                                    className={styles.seclect}
+                                    className={styles.selectBox}
                                     value={duoiByDateDays}
                                     onChange={handleDuoiByDateDaysChange}
                                 >
@@ -933,7 +932,6 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                             </div>
                         </div>
 
-                        {/* <h2 className={styles.h3}>Thống kê Đuôi Loto Theo Ngày</h2> */}
                         {duoiByDateLoading && <SkeletonTableByDate type="duoi" />}
                         {duoiByDateError && <p className={styles.error}>{duoiByDateError}</p>}
                         {!duoiByDateLoading && !duoiByDateError && duoiStatsByDateArray.length > 0 && (
@@ -993,10 +991,10 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                         <p className={styles.desc}>- Tần suất xuất hiện của Đầu số (0-9) và Đuôi số (0-9) trong 2 số cuối của các giải.</p>
                         <p className={styles.desc}>- Phần trăm xuất hiện của từng Đầu/Đuôi, đi kèm số lần xuất hiện cụ thể.</p>
                         <p className={styles.desc}>- Khoảng thời gian thống kê (30 ngày hoặc 60 ngày hoặc 90,...1 năm), cùng với ngày bắt đầu và ngày kết thúc.</p>
-                        <h3 className={styles.h3}>Ý Nghĩa Của Các Bảng Đầu Đuôi:</h3>
+                        <h3 className={styles.h3}>Ý Nghĩa Của Bảng Đầu Đuôi:</h3>
                         <p className={styles.desc}>- **Đầu số**: Thống kê tần suất của chữ số đầu tiên trong 2 số cuối của các giải, ví dụ Đầu 0, Đầu 1,..., Đầu 9.</p>
                         <p className={styles.desc}>- **Đuôi số**: Thống kê tần suất của chữ số cuối cùng trong 2 số cuối của các giải, ví dụ Đuôi 0, Đuôi 1,..., Đuôi 9.</p>
-                        <p className={styles.desc}>- Thanh ngang màu xanh thể hiện trực quan phần trăm xuất hiện, giúp người chơi dễ dàng nhận biết chữ số nào xuất hiện nhiều nhất hoặc ít nhất.</p>
+                        <p className={styles.desc}>- Thanh ngang màu xanh dương thể hiện trực quan phần trăm xuất hiện, giúp người chơi dễ dàng nhận biết chữ số nào xuất hiện nhiều nhất hoặc ít nhất.</p>
                         <h3 className={styles.h3}>Lợi Ích Của Thống Kê Đầu Đuôi:</h3>
                         <p className={styles.desc}>- Giúp người chơi nhận biết xu hướng xuất hiện của các chữ số, từ đó chọn số may mắn để chơi loto.</p>
                         <p className={styles.desc}>- Cung cấp dữ liệu chính xác, cập nhật nhanh chóng từ kết quả xổ số.</p>
@@ -1004,72 +1002,26 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                             XSMB.WIN cung cấp công cụ thống kê Đầu Đuôi loto hoàn toàn miễn phí, giúp người chơi có thêm thông tin để tăng cơ hội trúng thưởng. Chúc bạn may mắn!
                         </p>
                         <p className={styles.desc}>
-                            Thống kê Đầu Đuôi loto. Xem thống kê Đầu Đuôi hôm nay nhanh và chính xác nhất tại <a className={styles.action} href='/'>XSMB.WIN.</a>
+                            Thống kê Đầu Đuôi loto. Xem thống kê Đầu Đuôi hôm nay nhanh và chính xác tại <a href="https://xsmb.win" className={styles.action}>XSMB.WIN</a>.
                         </p>
                     </div>
-                    <button
-                        className={styles.toggleBtn}
-                        onClick={toggleContent}
-                    >
+                    <button className={styles.toggleBtn} onClick={toggleContent}>
                         {isExpanded ? 'Thu gọn' : 'Xem thêm'}
                     </button>
                 </div>
+
+                <ThongKe />
+
+                <button
+                    id="scrollToTopBtn"
+                    className={styles.scrollToTopBtn}
+                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                >
+                    ↑
+                </button>
             </div>
-
-            <ThongKe />
-
-            <button
-                id="scrollToTopBtn"
-                className={styles.scrollToTopBtn}
-                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                title="Quay lại đầu trang"
-            >
-                ↑
-            </button>
         </div>
     );
 };
-
-export async function getServerSideProps() {
-    try {
-        const days = 30;
-        const region = 'Miền Bắc';
-        const tinh = null;
-
-        let data;
-        if (region === 'Miền Bắc') {
-            data = await apiMB.getDauDuoiStats(days);
-        } else if (region === 'Miền Trung') {
-            data = await apiMT.getDauDuoiStats(days, tinh);
-        } else if (region === 'Miền Nam') {
-            data = await apiMN.getDauDuoiStats(days, tinh);
-        }
-
-        return {
-            props: {
-                initialDauStats: data.dauStatistics || [],
-                initialDuoiStats: data.duoiStatistics || [],
-                initialSpecialDauDuoiStats: data.specialDauDuoiStats || [],
-                initialMetadata: data.metadata || {},
-                initialDays: days,
-                initialRegion: region,
-                initialTinh: tinh,
-            },
-        };
-    } catch (error) {
-        console.error('Error in getServerSideProps:', error.message);
-        return {
-            props: {
-                initialDauStats: [],
-                initialDuoiStats: [],
-                initialSpecialDauDuoiStats: [],
-                initialMetadata: {},
-                initialDays: 30,
-                initialRegion: 'Miền Bắc',
-                initialTinh: null,
-            },
-        };
-    }
-}
 
 export default DauDuoi;

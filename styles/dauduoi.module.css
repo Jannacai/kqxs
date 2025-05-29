@@ -6,17 +6,15 @@
     font-family: "Inter", sans-serif;
     padding: 16px;
     background-color: #ffffff;
-    /* Nền trắng để sáng hơn */
 }
 
 /* Nút Điều hướng */
 .actionBtn {
     display: flex;
-    background-color: #ffff;
+    background-color: #ffffff;
     align-items: center;
     justify-content: center;
 }
-
 
 .actionTK {
     line-height: 20px;
@@ -24,15 +22,17 @@
     padding: 10px;
     width: 100%;
     color: #0396FF;
+    text-align: center;
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .actionTK:hover {
     background-color: #0396FF;
-    color: #ffff;
+    color: #ffffff;
 }
 
 .active {
-    color: #ffff;
+    color: #ffffff;
     background-color: #0396FF;
 }
 
@@ -42,9 +42,7 @@
     padding: 24px 12px;
     border: 1px solid #e5e7eb;
     box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
-    /* Viền xám nhạt */
     background: #ffeca0;
-    /* Nền trắng */
     border-radius: 8px;
     margin-bottom: 24px;
 }
@@ -54,7 +52,6 @@
     font-size: 1.5rem;
     font-weight: 700;
     color: #c80505;
-    /* Màu đỏ chủ đạo */
     margin-bottom: 8px;
     line-height: 1.4;
     text-align: center;
@@ -65,7 +62,6 @@
     margin-top: 24px;
     padding: 10px;
     border: 1px solid var(--background-color);
-    /* Viền xám nhạt */
     border-radius: 8px;
     background-color: #ffffff;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -96,7 +92,6 @@
     padding: 4px 0;
     font-size: 0.95rem;
     color: #c80505;
-    /* Màu đỏ chủ đạo */
     font-weight: 700;
 }
 
@@ -105,73 +100,59 @@
     font-weight: 500;
 }
 
-.seclect {
+.selectBox {
     border: 1px solid #e5e7eb;
-    /* Viền xám nhạt */
     border-radius: 6px;
-    width: 140px;
-    height: 36px;
+    width: 150px;
+    height: 38px;
     padding: 0 10px;
-    font-size: 0.95rem;
+    font-size: 1rem;
     background-color: #ffffff;
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-.seclect:hover {
+.selectBox:hover {
     border-color: #c80505;
-    /* Đỏ chủ đạo khi hover */
     box-shadow: 0 0 0 2px rgba(200, 5, 5, 0.1);
 }
 
-.seclect:focus {
+.selectBox:focus {
     border-color: #ed1c25;
-    /* Đỏ khi focus */
     box-shadow: 0 0 0 2px rgba(237, 28, 37, 0.2);
     background-color: #fff5f5;
-    /* Nền đỏ nhạt */
 }
 
-.seclect.selected {
+.selectBox.active {
     border-color: #ed1c25;
-    /* Viền đỏ khi được chọn */
     background-color: #fff5f5;
-    /* Nền đỏ nhạt */
     font-weight: 600;
     color: #ed1c25;
-    /* Chữ đỏ */
 }
 
 /* Style cho highlight tên tỉnh trong tiêu đề */
 .highlightProvince {
     color: #0396FF;
-    /* Đỏ chủ đạo */
     font-weight: 700;
-    /* Nền đỏ nhạt */
     padding: 2px 6px;
     border-radius: 4px;
 }
 
 /* Style cho highlight số lần quay */
 .highlightDraws {
-    color: #0396FF;
-    /* Xanh chủ đạo */
+    color: #ed8936;
     font-weight: 700;
-    /* Nền xanh nhạt */
     padding: 2px 6px;
     border-radius: 4px;
 }
 
-/* Style cho option khi được chọn */
-.seclect option:checked {
+.selectBox option:checked {
     background-color: #ed1c25;
-    /* Nền đỏ */
     color: #ffffff;
-    /* Chữ trắng */
     font-weight: 700;
 }
 
 .options {
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 500;
     color: #1f2937;
 }
@@ -188,7 +169,6 @@
     font-size: 0.95rem;
     font-weight: 700;
     background: #e5e7eb;
-    /* Xám nhạt */
     color: #1f2937;
 }
 
@@ -201,22 +181,18 @@
 
 .table tr:nth-child(even) {
     background-color: #f3f4f6;
-    /* Xám nhạt */
 }
 
 .table tr:hover {
     background-color: #e0f2fe;
-    /* Xanh nhạt khi hover */
 }
 
 /* Các style cho số liệu cụ thể */
 .number {
     color: #c80505;
-    /* Đỏ chủ đạo */
     font-weight: 700;
     font-size: 1.1rem;
     background-color: #f3f4f6;
-    /* Xám nhạt */
     padding: 4px 8px;
     border-radius: 4px;
 }
@@ -228,14 +204,12 @@
 
 .gapDraws {
     color: #ed1c25;
-    /* Đỏ nhạt hơn */
     font-weight: 500;
 }
 
 .maxGap {
     font-weight: 500;
     color: #c80505;
-    /* Đỏ chủ đạo */
 }
 
 .gapDraws span,
@@ -260,7 +234,6 @@
     font-size: 1.3rem;
     line-height: 1.4;
     color: #c80505;
-    /* Đỏ chủ đạo */
     border-bottom: 1px solid #e5e7eb;
 }
 
@@ -281,14 +254,12 @@
 
 .action {
     color: #c80505;
-    /* Đỏ chủ đạo */
     font-weight: 500;
     transition: color 0.3s ease;
 }
 
 .action:hover {
     color: #991b1b;
-    /* Đỏ nhạt hơn */
 }
 
 /* Style cho bảng Đầu Đuôi (bảng 1: tất cả các giải) */
@@ -313,7 +284,6 @@
 
 .tableDauDuoi th {
     background: #ed1c25;
-    /* Đỏ chủ đạo */
     color: #ffffff;
     font-weight: 700;
     text-transform: uppercase;
@@ -338,7 +308,6 @@
 
 .tableDauDuoi tr:hover {
     background-color: #e0f2fe;
-    /* Xanh nhạt */
 }
 
 /* Style cho bảng Đầu/Đuôi giải Đặc Biệt (bảng 2) */
@@ -367,7 +336,6 @@
 
 .tableSpecialDauDuoi th {
     background: #ed1c25;
-    /* Đỏ nhạt hơn để phân biệt */
     color: #ffffff;
     font-weight: 700;
     text-transform: uppercase;
@@ -393,7 +361,6 @@
 /* Style cho thanh ngang biểu thị phần trăm */
 .progressBar {
     background: #0396FF;
-    /* Đỏ nhạt hơn */
     height: 14px;
     display: inline-block;
     margin-right: 8px;
@@ -443,7 +410,6 @@
 
 .error {
     color: #c80505;
-    /* Đỏ chủ đạo */
     text-align: center;
     margin: 16px 0;
     font-weight: 500;
@@ -480,7 +446,6 @@
 
 .tableDauDuoiByDate th {
     background: #ed1c25;
-    /* Đỏ chủ đạo */
     color: #ffffff;
     font-weight: 700;
     text-transform: uppercase;
@@ -493,7 +458,7 @@
 
 .tableDauDuoiByDate td:first-child {
     width: 15%;
-    color: #130CB7;
+    color: var(--background-color);
     background-color: #f3f4f6;
 }
 
@@ -504,10 +469,8 @@
 /* Highlight các số xuất hiện từ 4 lần trở lên */
 .tableDauDuoiByDate td.highlight {
     background-color: #ffeca0;
-    /* Xanh nhạt */
     font-weight: 700;
     color: #130CB7;
-    /* Đỏ nhạt hơn */
     border-radius: 4px;
 }
 
@@ -538,11 +501,9 @@
     bottom: 16px;
     right: 16px;
     display: none;
-    /* Ẩn mặc định */
     width: 46px;
     height: 46px;
     background: #ed1c25;
-    /* Đỏ chủ đạo */
     color: #ffffff;
     font-size: 1.2rem;
     font-weight: 700;
@@ -555,8 +516,7 @@
 }
 
 .scrollToTopBtn:hover {
-    background: #ed1c25;
-    /* Đỏ nhạt hơn */
+    background: #c80505;
     opacity: 0.9;
     transform: translateY(-3px);
 }
@@ -586,7 +546,6 @@
     margin: 16px auto;
     padding: 10px 20px;
     background: #ed1c25;
-    /* Đỏ chủ đạo */
     color: #ffffff;
     font-size: 0.95rem;
     font-weight: 500;
@@ -598,8 +557,7 @@
 }
 
 .toggleBtn:hover {
-    background: #ed1c25;
-    /* Đỏ nhạt hơn */
+    background: #c80505;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
@@ -629,15 +587,18 @@
     }
 
     .selectGroup {
-        display: flex;
         width: 300px;
         justify-content: space-between;
         gap: 8px;
     }
 
-    .seclect {
-        width: 120px;
-        height: 34px;
+    .selectBox {
+        width: 130px;
+        height: 36px;
+        font-size: 0.9rem;
+    }
+
+    .options {
         font-size: 0.9rem;
     }
 
@@ -669,7 +630,7 @@
     .actionBtn {
         display: grid;
         grid-template-columns: minmax(100px, 1fr);
-        background-color: #ffff;
+        background-color: #ffffff;
         align-items: center;
     }
 
@@ -682,10 +643,14 @@
         font-size: 1.2rem;
     }
 
-    .seclect {
-        width: 100px;
-        height: 32px;
-        font-size: 0.85rem;
+    .selectBox {
+        width: 130px;
+        height: 36px;
+        font-size: 0.9rem;
+    }
+
+    .options {
+        font-size: 0.9rem;
     }
 
     .tableDauDuoi,
@@ -701,7 +666,7 @@
     }
 
     .tableDauDuoiByDate {
-        font-size: 0.85rem;
+        font-size: 0.95rem;
         display: block;
         overflow-x: auto;
         white-space: nowrap;
@@ -720,13 +685,13 @@
         background-color: #f3f4f6;
         z-index: 1;
         width: 25%;
+        font-size: 0.95rem;
     }
 
     .tableDauDuoiByDate td:not(:first-child) {
         width: calc(75% / 10);
+        font-size: 0.9rem;
     }
-
-
 }
 
 @media (max-width: 480px) {
@@ -734,22 +699,32 @@
         font-size: 1.1rem;
     }
 
-    .seclect {
-        width: 180px;
-        height: 30px;
-        font-size: 0.8rem;
+    .selectBox {
+        width: 190px;
+        height: 32px;
+        font-size: 0.85rem;
+    }
+
+    .options {
+        font-size: 0.85rem;
     }
 
     .tableDauDuoi,
-    .tableSpecialDauDuoi,
-    .tableDauDuoiByDate {
+    .tableSpecialDauDuoi {
         font-size: 0.8rem;
     }
 
     .tableDauDuoi th,
     .tableDauDuoi td,
     .tableSpecialDauDuoi th,
-    .tableSpecialDauDuoi td,
+    .tableSpecialDauDuoi td {
+        padding: 6px 8px;
+    }
+
+    .tableDauDuoiByDate {
+        font-size: 0.9rem;
+    }
+
     .tableDauDuoiByDate th,
     .tableDauDuoiByDate td {
         padding: 6px 8px;
@@ -757,9 +732,11 @@
 
     .tableDauDuoiByDate td:first-child {
         width: 30%;
+        font-size: 0.9rem;
     }
 
     .tableDauDuoiByDate td:not(:first-child) {
         width: calc(70% / 10);
+        font-size: 0.9rem;
     }
 }
