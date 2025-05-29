@@ -435,7 +435,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
         );
         return (
             <>
-                Thống kê Đầu / Đuôi Loto trong{' '}
+                Thống kê Đầu / Đuôi Loto trong{' '}<br></br>
                 <span className={styles.highlightDraws}>{metadata.totalDraws || 0} lần quay</span>{' '}
                 Xổ số {regionText}
             </>
@@ -453,8 +453,8 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
         );
         return (
             <>
-                Thống kê Đầu / Đuôi Giải Đặc Biệt trong{' '}
-                <span className={styles.highlightDraws}>{specialMetadata.totalDraws || 0} lần quay</span>{' '}
+                Thống kê Đầu / Đuôi Giải Đặc Biệt trong{' '}<br></br>
+                <span className={styles.highlightDraws}>{specialMetadata.totalDraws || 0}lần quay</span>{' '}
                 Xổ số {regionText}
             </>
         );
@@ -471,7 +471,8 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
         );
         return (
             <>
-                Thống kê Đầu Loto theo ngày - Xổ số {regionText}
+                Thống kê Đầu Loto theo ngày - Xổ số<br></br>
+                {regionText}
             </>
         );
     };
@@ -487,7 +488,8 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
         );
         return (
             <>
-                Thống kê Đuôi Loto theo ngày - Xổ số {regionText}
+                Thống kê Đuôi Loto theo ngày - Xổ số <br></br>
+                {regionText}
             </>
         );
     };
@@ -506,7 +508,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                 Thống kê Đầu Đuôi Loto Xổ Số {regionText}
             </>
         );
-      };
+    };
 
     const pageTitle = getTitle();
     const pageDescription = `Xem bảng thống kê Đầu Đuôi loto Xổ số ${region === 'Miền Bắc' ? 'Miền Bắc' : `${region} - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh)}`} trong ${metadata.filterType || ''}. Cập nhật dữ liệu từ ${metadata.startDate || ''} đến ${metadata.endDate || ''}.`;
