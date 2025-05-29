@@ -1,267 +1,307 @@
-/* Tổng thể container */
+/* Basic container styles */
 .container {
     width: 100%;
-    min-width: 770px;
-    font-family: "Poppins", sans-serif;
-    background-color: #f9fafb;
-    /* Màu nền nhẹ nhàng */
-    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    font-family: "Inter", sans-serif;
+    padding: 16px;
+    background-color: #ffffff;
 }
 
-/* Tiêu đề chính */
+/* Navigation buttons */
+.actionBtn {
+    display: flex;
+    background-color: #ffffff;
+    align-items: center;
+    justify-content: center;
+}
+
+.actionTK {
+    line-height: 20px;
+    border: 1px solid #0396FF;
+    padding: 10px;
+    width: 100%;
+    color: #0396FF;
+    text-align: center;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.actionTK:hover {
+    background-color: #0396FF;
+    color: #ffffff;
+}
+
+.active {
+    color: #ffffff;
+    background-color: #0396FF;
+}
+
+/* Main title group */
 .titleGroup {
     text-align: center;
-    padding: 30px 10px;
-    background-color: #ffffff;
-    border: 2px solid #1e3a8a;
-    /* Viền xanh đậm */
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    /* Bóng nhẹ */
-    margin-bottom: 20px;
+    padding: 24px 12px;
+    border: 1px solid #e5e7eb;
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
+    background: #ffeca0;
+    border-radius: 8px;
+    margin-bottom: 24px;
 }
 
 .title {
-    font-family: "Sora", sans-serif;
-    font-size: 1.6rem;
+    font-family: "Inter", sans-serif;
+    font-size: 1.5rem;
     font-weight: 700;
-    color: #1e3a8a;
-    /* Màu xanh đậm */
-    letter-spacing: 0.5px;
+    color: #c80505;
+    margin-bottom: 8px;
+    line-height: 1.4;
+    text-align: center;
 }
 
-/* Nội dung chính */
+/* Content block */
 .content {
-    margin-top: 30px;
-    padding: 20px;
+    margin-top: 24px;
+    padding: 10px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
     background-color: #ffffff;
-    border: 2px solid #93c5fd;
-    /* Viền xanh nhạt */
-    border-radius: 12px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-    /* Bóng nhẹ */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease;
 }
 
-/* Nhóm chọn tỉnh và thời gian */
-.group_Select {
-    margin-top: 20px;
+.content:hover {
+    transform: translateY(-1px);
+}
+
+/* Select box group */
+.groupSelect {
+    margin-top: 24px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 20px;
-    /* Khoảng cách giữa các phần tử */
+    justify-content: space-between;
+    gap: 16px;
     flex-wrap: wrap;
 }
 
+.selectGroup {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
 .dateTime {
-    padding: 5px 0;
-    font-size: 1rem;
-    color: #1e3a8a;
-    /* Màu xanh đậm */
-    font-weight: 600;
+    padding: 4px 0;
+    font-size: 0.95rem;
+    color: #c80505;
+    font-weight: 700;
 }
 
 .dateTime span {
-    color: #374151;
-    /* Màu xám đậm */
+    color: #1f2937;
+    font-weight: 500;
 }
 
-/* Đổi tên class "seclect" thành "select" để đúng chính tả */
-.select {
-    border: 2px solid #1e3a8a;
-    /* Viền xanh đậm */
-    border-radius: 8px;
-    width: 160px;
-    height: 40px;
-    padding: 5px;
-    font-size: 1rem;
-    color: #1e3a8a;
+.selectBox {
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    width: 140px;
+    height: 36px;
+    padding: 0 10px;
+    font-size: 0.95rem;
     background-color: #ffffff;
-    transition: border-color 0.3s ease;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-.select:focus {
-    outline: none;
-    border-color: #93c5fd;
-    /* Viền xanh nhạt khi focus */
-    box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.3);
-    /* Hiệu ứng focus */
+.selectBox:hover {
+    border-color: #c80505;
+    box-shadow: 0 0 0 2px rgba(200, 5, 5, 0.1);
+}
+
+.selectBox:focus {
+    border-color: #ed1c25;
+    box-shadow: 0 0 0 2px rgba(237, 28, 37, 0.2);
+    background-color: #fff5f5;
+}
+
+.selectBox.active {
+    border-color: #ed1c25;
+    background-color: #fff5f5;
+    font-weight: 600;
+    color: #ed1c25;
+}
+
+/* Highlight styles for province and draws */
+.highlightProvince {
+    color: #0396FF;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.highlightDraws {
+    color: #ed8936;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.selectBox option:checked {
+    background-color: #ed1c25;
+    color: #ffffff;
+    font-weight: 700;
 }
 
 .options {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #1e3a8a;
-    /* Màu xanh đậm */
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #1f2937;
 }
 
-/* Bảng dữ liệu */
-.table {
-    margin-top: 20px;
+/* Lo Gan table */
+.tableLoGan {
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
     width: 100%;
     border-collapse: collapse;
+    font-size: 0.95rem;
+    margin-top: 12px;
     background-color: #ffffff;
     border-radius: 8px;
     overflow: hidden;
-    /* Đảm bảo border-radius áp dụng đúng */
+    table-layout: fixed;
 }
 
-.table th {
-    font-size: 1.1rem;
-    font-weight: 700;
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    color: #ffffff;
-    /* Nền xanh lam nhạt */
-    padding: 15px 10px;
-    border-bottom: 2px solid #93c5fd;
-    /* Viền dưới xanh nhạt */
-}
-
-.table td {
-    text-align: center;
-    padding: 15px 10px;
+.tableLoGan th,
+.tableLoGan td {
+    padding: 12px 16px;
     border: 1px solid #e5e7eb;
-    /* Viền xám nhạt */
-    font-size: 1.3rem;
-    color: #374151;
-    /* Màu xám đậm */
+    text-align: center;
+    transition: background-color 0.3s ease;
 }
 
-.table tr:nth-child(even) {
-    background-color: #f9fafb;
-    /* Nền xen kẽ nhẹ nhàng */
-}
-
-.table tr:hover {
-    background-color: #eff6ff;
-    /* Hiệu ứng hover xanh nhạt */
-    transition: background-color 0.2s0089e;
-}
-
-/* Số liệu chính (bộ số lô gan) */
-.number {
-    color: #1e3a8a;
-    /* Màu xanh đậm */
+.tableLoGan th {
+    background: #ed1c25;
+    color: #ffffff;
     font-weight: 700;
-    font-size: 1.6rem;
-    background-color: #dbeafe;
-    /* Nền xanh lam nhạt */
-    padding: 5px 10px;
-    border-radius: 5px;
-    display: inline-block;
-    width: 100%;
-    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
 }
 
-/* Ngày ra cuối cùng */
+.tableLoGan tr:nth-child(odd) {
+    background-color: #e5e7eb63;
+}
+
+.tableLoGan tr:hover {
+    background-color: #e0f2fe;
+}
+
+.tableLoGan th:nth-child(1),
+.tableLoGan td:nth-child(1) {
+    width: 15%;
+}
+
+.tableLoGan th:nth-child(2),
+.tableLoGan td:nth-child(2) {
+    width: 35%;
+}
+
+.tableLoGan th:nth-child(3),
+.tableLoGan td:nth-child(3) {
+    width: 25%;
+}
+
+.tableLoGan th:nth-child(4),
+.tableLoGan td:nth-child(4) {
+    width: 25%;
+}
+
+/* Highlight styles for table */
+.number {
+    font-weight: 600;
+    color: #1f2937;
+    background-color: #f3f4f6;
+}
+
+.number.highlight {
+    color: var(--primary-color);
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
 .date {
-    color: #374151;
-    /* Màu xám đậm */
-    font-size: 0.95rem;
+    color: var(--background-color);
+    font-weight: 500;
 }
 
-/* Số ngày gan (gapDraws) */
-.gapDraws {
-    color: #f97316;
-    /* Màu cam đậm */
-    font-weight: 600;
+.gapDraws.highlight {
+    color: #ed8936;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 4px;
 }
 
-.gapDraws span {
-    color: #374151;
-    /* Màu xám đậm */
-    font-weight: 400;
+.maxGap.highlight {
+    color: #b91c1c;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 4px;
 }
 
-/* Gan cực đại (maxGap) */
-.maxGap {
-    color: #dc2626;
-    /* Màu đỏ */
-    font-weight: 600;
-}
-
+.gapDraws span,
 .maxGap span {
-    color: #374151;
-    /* Màu xám đậm */
+    color: #1f2937;
     font-weight: 400;
 }
 
-/* Thông báo lỗi */
-.error {
-    color: #dc2626;
-    /* Màu đỏ */
-    text-align: center;
-    margin: 20px 0;
-    font-weight: 500;
-}
-
-/* Thông báo không có dữ liệu */
-.noData {
-    text-align: center;
-    color: #6b7280;
-    /* Màu xám nhạt */
-    margin: 20px 0;
-    font-weight: 500;
-}
-
-/* Phần nội dung mô tả */
-.Group_Content {
-    margin-top: 30px;
-    padding: 25px;
+/* Description content */
+.groupContent {
+    margin-top: 32px;
+    padding: 24px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
     background-color: #ffffff;
-    border: 2px solid #93c5fd;
-    /* Viền xanh nhạt */
-    border-radius: 12px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-    /* Bóng nhẹ */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .heading {
-    padding: 15px 0;
+    padding: 12px 0;
     font-weight: 700;
     font-size: 1.3rem;
-    line-height: 1.5;
-    color: #1e3a8a;
-    /* Màu xanh đậm */
-    text-align: center;
+    line-height: 1.4;
+    color: #c80505;
+    border-bottom: 1px solid #e5e7eb;
 }
 
 .h3 {
-    padding: 10px 0;
-    font-weight: 600;
+    padding: 8px 0;
+    font-weight: 700;
     font-size: 1.1rem;
     line-height: 1.3;
-    color: #1e3a8a;
-    /* Màu xanh đậm */
+    color: #1f2937;
 }
 
 .desc {
-    padding: 5px 0;
-    font-size: 1rem;
+    padding: 4px 0;
+    font-size: 0.95rem;
     line-height: 1.5;
-    color: #374151;
-    /* Màu xám đậm */
+    color: #4b5563;
 }
 
 .action {
-    color: #1e3a8a;
-    /* Màu xanh đậm */
-    font-weight: 600;
-    text-decoration: none;
+    color: #c80505;
+    font-weight: 500;
     transition: color 0.3s ease;
 }
 
 .action:hover {
-    color: #93c5fd;
-    /* Màu xanh nhạt khi hover */
-    text-decoration: underline;
+    color: #991b1b;
 }
 
+/* Skeleton loading */
 .skeleton {
-    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background: linear-gradient(90deg, #e5e7eb 25%, #d1d5db 50%, #e5e7eb 75%);
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
-    height: 20px;
+    height: 18px;
     border-radius: 4px;
 }
 
@@ -275,43 +315,68 @@
     }
 }
 
-/* Style cho nút "Quay lại đầu trang" */
+/* Metadata and error messages */
+.metadata {
+    text-align: center;
+    margin-bottom: 16px;
+    font-size: 1rem;
+    color: #4b5563;
+}
+
+.error {
+    color: #c80505;
+    text-align: center;
+    margin: 16px 0;
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+.noData {
+    text-align: center;
+    color: #4b5563;
+    margin: 16px 0;
+    font-style: italic;
+    font-size: 0.95rem;
+}
+
+/* Scroll to top button */
 .scrollToTopBtn {
     position: fixed;
-    bottom: 40px;
-    right: 40px;
+    bottom: 16px;
+    right: 16px;
     display: none;
-    width: 50px;
-    height: 50px;
-    background: linear-gradient(135deg, #1e3a8a 0%, #93c5fd 100%);
+    width: 46px;
+    height: 46px;
+    background: #ed1c25;
     color: #ffffff;
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     font-weight: 700;
     border: none;
     border-radius: 50%;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     transition: opacity 0.3s ease, transform 0.3s ease;
     z-index: 1000;
 }
 
 .scrollToTopBtn:hover {
+    background: #c80505;
     opacity: 0.9;
-    transform: translateY(-4px);
+    transform: translateY(-3px);
 }
 
 .scrollToTopBtn:active {
     transform: translateY(0);
 }
 
-/* Style cho chức năng thu gọn/xem thêm */
+/* Collapsible content */
 .contentWrapper {
     transition: max-height 0.5s ease-in-out, opacity 0.3s ease;
     overflow: hidden;
 }
 
 .contentWrapper.collapsed {
-    max-height: 300px;
+    max-height: 280px;
     opacity: 0.8;
 }
 
@@ -322,310 +387,151 @@
 
 .toggleBtn {
     display: block;
-    margin: 20px auto;
-    padding: 12px 24px;
-    background: linear-gradient(135deg, #1e3a8a 0%, #93c5fd 100%);
+    margin: 16px auto;
+    padding: 10px 20px;
+    background: #ed1c25;
     color: #ffffff;
-    font-size: 1rem;
-    font-weight: 600;
+    font-size: 0.95rem;
+    font-weight: 500;
     border: none;
-    border-radius: 8px;
+    border-radius: 6px;
     cursor: pointer;
     transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .toggleBtn:hover {
-    background: linear-gradient(135deg, #93c5fd 0%, #1e3a8a 100%);
+    background: #c80505;
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 .toggleBtn:active {
     transform: translateY(0);
 }
 
-/* Responsive Design cho Mobile */
+/* Responsive design */
+@media (max-width: 1024px) {
+    .container {
+        padding: 12px;
+    }
+
+    .titleGroup {
+        padding: 16px 8px;
+    }
+
+    .title {
+        font-size: 1.4rem;
+    }
+
+    .groupSelect {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+    }
+
+    .selectGroup {
+        width: 300px;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .selectBox {
+        width: 120px;
+        height: 34px;
+        font-size: 0.9rem;
+    }
+
+    .tableLoGan {
+        font-size: 0.9rem;
+    }
+
+    .tableLoGan th,
+    .tableLoGan td {
+        padding: 10px 12px;
+    }
+}
+
 @media (max-width: 768px) {
+    .actionBtn {
+        display: grid;
+        grid-template-columns: minmax(100px, 1fr);
+        background-color: #ffffff;
+        align-items: center;
+    }
+
     .container {
         min-width: 100%;
-        padding: 12px;
-        background-color: #f0f4ff;
-        /* Màu nền xanh pastel nhạt */
-    }
-
-    /* Tiêu đề */
-    .title {
-        font-size: 1.3rem;
-        color: #2c5282;
-        /* Xanh dương nhạt hơn */
-        line-height: 1.4;
-        margin-bottom: 10px;
-    }
-
-    /* Nhóm chọn tỉnh và thời gian */
-    .group_Select {
-        flex-direction: column;
-        align-items: center;
-        gap: 12px;
-        padding: 10px;
-    }
-
-    .select {
-        width: 100%;
-        max-width: 280px;
-        height: 44px;
-        /* Tăng chiều cao cho dễ chạm */
-        font-size: 1rem;
-        border: 2px solid #90cdf4;
-        /* Viền xanh pastel nhạt */
-        border-radius: 10px;
-        background-color: #ffffff;
-        color: #2c5282;
-        /* Xanh dương nhạt */
         padding: 8px;
     }
 
-    .select:focus {
-        border-color: #63b3ed;
-        /* Xanh nhạt hơn khi focus */
-        box-shadow: 0 0 0 3px rgba(99, 179, 237, 0.2);
+    .title {
+        font-size: 1.2rem;
     }
 
-    .options {
-        font-size: 1rem;
-        color: #2c5282;
-        /* Xanh dương nhạt */
-        font-weight: 500;
+    .selectBox {
+        width: 100px;
+        height: 32px;
+        font-size: 0.85rem;
     }
 
-    .dateTime {
-        font-size: 0.95rem;
-        color: #2c5282;
-        text-align: center;
+    .tableLoGan {
+        font-size: 0.8rem;
     }
 
-    .dateTime span {
-        color: #4a5568;
-        /* Xám nhạt */
+    .tableLoGan th,
+    .tableLoGan td {
+        padding: 6px 8px;
     }
 
-    /* Bảng dữ liệu */
-    .table {
-        font-size: 0.9rem;
-        border: 1px solid #e2e8f0;
-        /* Viền xám nhạt */
-        background-color: #ffffff;
+    .tableLoGan th:nth-child(1),
+    .tableLoGan td:nth-child(1) {
+        width: 15%;
     }
 
-    .table th {
-        font-size: 0.95rem;
-        padding: 10px 8px;
-        background: linear-gradient(135deg, #63b3ed 0%, #4299e1 100%);
-        /* Gradient xanh pastel nhạt */
-        color: #ffffff;
-        border-bottom: 1px solid #90cdf4;
-        /* Viền xanh nhạt */
+    .tableLoGan th:nth-child(2),
+    .tableLoGan td:nth-child(2) {
+        width: 35%;
     }
 
-    .table td {
-        padding: 10px 8px;
-        font-size: 0.9rem;
-        color: #2d3748;
-        /* Xám đậm nhẹ */
-        border: 1px solid #e2e8f0;
-        /* Viền xám nhạt */
+    .tableLoGan th:nth-child(3),
+    .tableLoGan td:nth-child(3) {
+        width: 25%;
     }
 
-    .table tr:nth-child(even) {
-        background-color: #f7fafc;
-        /* Nền xen kẽ xám nhạt */
-    }
-
-    .table tr:hover {
-        background-color: #ebf8ff;
-        /* Xanh pastel nhạt khi hover */
+    .tableLoGan th:nth-child(4),
+    .tableLoGan td:nth-child(4) {
+        width: 25%;
     }
 
     .number {
-        font-size: 1.2rem;
-        color: #2c5282;
-        /* Xanh dương nhạt */
-        background-color: #e6f3ff;
-        /* Nền xanh nhạt hơn */
-        padding: 6px;
-        border-radius: 6px;
-    }
-
-    .date {
-        font-size: 0.85rem;
-        color: #4a5568;
-        /* Xám nhạt */
-    }
-
-    .gapDraws {
-        color: #ed8936;
-        /* Cam nhạt */
-        font-weight: 500;
-    }
-
-    .gapDraws span {
-        color: #4a5568;
-        /* Xám nhạt */
-    }
-
-    .maxGap {
-        color: #f56565;
-        /* Đỏ nhạt */
-        font-weight: 500;
-    }
-
-    .maxGap span {
-        color: #4a5568;
-        /* Xám nhạt */
-    }
-
-    /* Nội dung mô tả */
-    .Group_Content {
-        padding: 15px;
-        background-color: #ffffff;
-        border: 1px solid #e2e8f0;
-        /* Viền xám nhạt */
-        border-radius: 10px;
-    }
-
-    .heading {
-        font-size: 1.2rem;
-        color: #2c5282;
-        /* Xanh dương nhạt */
-        text-align: left;
-        margin-bottom: 10px;
-    }
-
-    .h3 {
-        font-size: 1.05rem;
-        color: #2c5282;
-        /* Xanh dương nhạt */
-        margin: 8px 0;
-    }
-
-    .desc {
-        font-size: 0.95rem;
-        color: #4a5568;
-        /* Xám nhạt */
-        line-height: 1.6;
-    }
-
-    .action {
-        color: #4299e1;
-        /* Xanh dương nhạt */
-    }
-
-    .action:hover {
-        color: #63b3ed;
-        /* Xanh nhạt hơn khi hover */
-    }
-
-    /* Nút thu gọn/xem thêm */
-    .toggleBtn {
-        padding: 10px 20px;
-        font-size: 0.95rem;
-        background: linear-gradient(135deg, #63b3ed 0%, #4299e1 100%);
-        /* Gradient xanh pastel */
-        border-radius: 10px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-
-    .toggleBtn:hover {
-        background: linear-gradient(135deg, #4299e1 0%, #63b3ed 100%);
-        transform: translateY(-1px);
-    }
-
-    /* Nút quay lại đầu trang */
-    .scrollToTopBtn {
-        bottom: 20px;
-        right: 20px;
-        width: 44px;
-        height: 44px;
-        font-size: 1.2rem;
-        background: linear-gradient(135deg, #63b3ed 0%, #4299e1 100%);
-        /* Gradient xanh pastel */
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        font-size: 1.1rem;
+        font-weight: 700;
     }
 }
 
 @media (max-width: 480px) {
-    .container {
-        padding: 8px;
-    }
-
     .title {
         font-size: 1.1rem;
     }
 
-    .group_Select {
-        gap: 10px;
-    }
-
-    .select {
-        max-width: 100%;
-        height: 40px;
-        font-size: 0.9rem;
-    }
-
-    .options {
-        font-size: 0.9rem;
-    }
-
-    .dateTime {
-        font-size: 0.85rem;
-    }
-
-    .table {
-        font-size: 0.85rem;
-    }
-
-    .table th {
-        font-size: 0.9rem;
-        padding: 8px 6px;
-    }
-
-    .table td {
-        padding: 8px 6px;
-        font-size: 0.85rem;
-    }
-
-    .number {
-        font-size: 1.1rem;
-        padding: 5px;
-    }
-
-    .date {
+    .selectBox {
+        width: 180px;
+        height: 30px;
         font-size: 0.8rem;
     }
 
-    .heading {
-        font-size: 1.1rem;
+    .tableLoGan {
+        font-size: 0.75rem;
     }
 
-    .h3 {
+    .tableLoGan th,
+    .tableLoGan td {
+        padding: 4px 6px;
+    }
+
+    .number {
         font-size: 1rem;
-    }
-
-    .desc {
-        font-size: 0.9rem;
-    }
-
-    .toggleBtn {
-        padding: 8px 16px;
-        font-size: 0.9rem;
-    }
-
-    .scrollToTopBtn {
-        bottom: 15px;
-        right: 15px;
-        width: 40px;
-        height: 40px;
-        font-size: 1.1rem;
+        font-weight: 700;
     }
 }

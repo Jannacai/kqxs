@@ -552,8 +552,8 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                 <div className={styles.titleGroup}>
                     <h1 className={styles.title}>{pageTitle}</h1>
                     <div className={styles.actionBtn}>
-                        <Link className={`${styles.actionTK} ${router.pathname.startsWith('/thongke/dau-duoi') ? styles.active : ''}`} href="dau-duoi">Thống Kê Đầu Đuôi </Link>
                         <Link className={styles.actionTK} href="giai-dac-biet">Thống Kê Giải Đặc Biệt </Link>
+                        <Link className={`${styles.actionTK} ${router.pathname.startsWith('/thongke/dau-duoi') ? styles.active : ''}`} href="dau-duoi">Thống Kê Đầu Đuôi </Link>
                         <Link className={styles.actionTK} href="giai-dac-biet-tuan">Thống Kê Giải Đặc Biệt Tuần </Link>
                     </div>
                 </div>
