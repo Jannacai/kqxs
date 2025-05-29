@@ -292,6 +292,7 @@
 
 /* Style cho bảng Đầu Đuôi (bảng 1: tất cả các giải) */
 .tableDauDuoi {
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
     width: 100%;
     border-collapse: collapse;
     font-size: 0.95rem;
@@ -299,7 +300,6 @@
     background-color: #ffffff;
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .tableDauDuoi th,
