@@ -1,4 +1,4 @@
-import styles from "../public/css/thongke.module.css";
+import styles from "../styles/congcuHot.module.css";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import React from "react";
@@ -23,7 +23,7 @@ const CongCuHot = () => {
             {/* <Image className={styles.hot} src={logo} alt='xổ số bắc trung nam' /> */}
             <div className={styles.container}>
                 <h3 className={styles.title}>
-                    <span className={styles.icon}><i className="fa-solid fa-chart-simple"></i></span>
+                    <span className={styles.icon}><i class="fa-solid fa-fire"></i></span>
                     Thống Kê Hot
                 </h3>
                 <ul className={styles.list}>

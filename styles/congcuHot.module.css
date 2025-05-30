@@ -1,0 +1,113 @@
+.container {
+    margin-top: 18px;
+    border: 1px solid #f97316;
+    border-radius: 8px;
+    width: 300px;
+    min-height: 400px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    font-family: "Poppins", sans-serif;
+    background-color: #f9f9f9;
+}
+
+.icon {
+    margin-right: 5px;
+}
+
+.title {
+    margin: 10px;
+    border-radius: 8px;
+    font-weight: 500;
+    color: var(--color-white);
+    width: 280px;
+    padding: 15px;
+    background: linear-gradient(135deg, #f97316, #ea580c);
+}
+
+.list.onClick {
+    display: block;
+}
+
+.container:hover .list {
+    transition: ease 0.6;
+}
+
+.item {
+
+    border-bottom: 1px solid #cccccc8f;
+}
+
+.item:hover {
+    border-left: 4px solid #ed1c25;
+    background-color: antiquewhite;
+}
+
+.action_Link {
+    padding: 13px 10px;
+    display: inline-block;
+    width: 100%;
+    color: #000;
+}
+
+/* Class để làm nổi bật tùy chọn đang active */
+.active {
+    width: 100%;
+    background-color: antiquewhite;
+    color: #000;
+    font-weight: 600;
+    border-color: #007bff;
+}
+
+.active:hover {
+    background-color: var(--background-color);
+    color: #fff;
+}
+
+.content {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+/* Responsive Styles */
+
+/* PC */
+@media screen and (min-width: 992px) {
+    .containerMobile {
+        display: none;
+    }
+}
+
+
+
+/*Tablet and mobile */
+@media screen and (max-width: 991px) {
+    .container {
+        width: 95%;
+        margin: 0 auto;
+        /* display: none; */
+    }
+
+    .title {
+        text-align: center;
+        width: 95%;
+        margin: 10px auto 0 auto;
+    }
+
+    .list {
+        text-align: center;
+    }
+
+    .hot {
+        position: absolute;
+        width: 50px;
+        height: 50px;
+    }
+}
+
+/* Tablet */
+@media screen and (min-width: 768px) and (max-width:991.98px) {}
+
+/* Mobile */
+@media screen and (max-width: 767px) {}
