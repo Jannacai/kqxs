@@ -5,6 +5,7 @@ import { apiMT } from '../api/kqxs/kqxsMT';
 import { apiMN } from '../api/kqxs/kqxsMN';
 import styles from '../../styles/dauduoi.module.css';
 import ThongKe from '../../component/thongKe';
+import CongCuHot from '../../component/CongCuHot';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 
@@ -1010,7 +1011,6 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                     </button>
                 </div>
 
-                <ThongKe />
 
                 <button
                     id="scrollToTopBtn"
@@ -1019,6 +1019,10 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                 >
                     ↑
                 </button>
+            </div>
+            <div>
+                <ThongKe />
+                <CongCuHot />
             </div>
         </div>
     );

@@ -7,7 +7,7 @@ import styles from '../../styles/logan.module.css';
 import ThongKe from '../../component/thongKe';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-
+import CongCuHot from '../../component/CongCuHot';
 // Skeleton Loading Component
 const SkeletonRow = () => (
     <tr>
@@ -396,8 +396,10 @@ const Logan = ({ initialStats, initialMetadata, initialDays, initialRegion, init
                     ↑
                 </button>
             </div>
-            <ThongKe />
-
+            <div>
+                <ThongKe />
+                <CongCuHot />
+            </div>
         </div>
     );
 };
