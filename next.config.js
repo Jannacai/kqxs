@@ -7,7 +7,7 @@ module.exports = {
     env: {
         BACKEND_URL: process.env.BACKEND_URL,
     },
-    async rewrites() {
+    async redirects() {
         return [
             { source: '/xsmb', destination: '/ket-qua-xo-so-mien-bac' },
             { source: '/xosomn', destination: '/ket-qua-xo-so-mien-nam' },
