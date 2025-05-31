@@ -1,12 +1,14 @@
-/* Tối ưu bảng kết quả trong .kqxs */
+/* Tối ưu bảng kết quả trong .kqxs, học theo xsmn */
 .containerKQ {
     width: 100%;
     max-width: 1200px;
     min-width: 320px;
+    /* Giảm min-width để hỗ trợ mobile nhỏ */
     font-family: "Roboto", sans-serif;
     font-weight: 800;
     margin: 0 auto;
     padding: 0 10px;
+    /* Thêm padding nhẹ cho mobile */
 }
 
 .kqxs {
@@ -16,19 +18,20 @@
     border-radius: 8px;
     text-align: center;
     margin-bottom: 20px;
-    font-size: 24px;
+    /* Giảm margin để tiết kiệm không gian */
     font-weight: 900;
+    font-size: 26px;
 }
 
 .header {
-    padding: 10px 0;
+    padding: 15px 0 10px;
     background-color: #ffeca0;
     border-radius: 4px 4px 0 0;
 }
 
 .kqxs__title {
     color: #e80000;
-    font-size: 24px;
+    font-size: 26px;
     font-weight: 600;
     margin-bottom: 5px;
 }
@@ -41,15 +44,18 @@
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
+    /* Hỗ trợ wrap trên mobile */
     gap: 10px;
+    /* Thay margin bằng gap */
 }
 
 .kqxs__actionLink {
     text-transform: uppercase;
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 500;
     text-decoration: underline;
     color: #2d3483;
+    transition: color 0.3s ease;
 }
 
 .kqxs__actionLink.dayOfWeek {
@@ -73,13 +79,8 @@
     border-bottom: 1px solid #ccc;
 }
 
-.tableXS tr:nth-child(5),
-.tableXS tr:nth-child(8) {
-    border-bottom: none;
-}
-
-.tableXS tr:nth-child(even),
 .tableXS tr:nth-child(4),
+.tableXS tr:nth-child(even),
 .tableXS tr:nth-child(7) {
     background-color: #61c1d01f;
 }
@@ -89,11 +90,13 @@
 .tableXS tr:nth-child(8),
 .tableXS tr:nth-child(9) {
     background-color: white;
+    border-bottom: none;
+    /* Gộp border-bottom: none cho G3, G5 */
 }
 
 .tableXS td {
     border-left: 1px solid #ccc;
-    padding: 6px;
+    padding: 8px;
 }
 
 .tableXS td.tdTitle {
@@ -106,9 +109,10 @@
     align-items: center;
 }
 
+.highlight,
 .tableXS td.tdTitle.highlight {
     color: red;
-    font-size: 24px;
+    font-size: 28px;
 }
 
 .tableXS td.code {
@@ -126,7 +130,11 @@
     justify-content: space-around;
     align-items: center;
     flex: 1;
-    gap: 8px;
+    gap: 10px;
+}
+
+.rowXS.code {
+    border-top: 1px solid #ccc;
 }
 
 .tableXS td:not(.tdTitle):hover {
@@ -134,28 +142,30 @@
 }
 
 .prizeNumber {
+    display: inline-flex;
     font-weight: 800;
-    font-size: 22px;
-    line-height: 1.6;
-    padding: 4px 6px;
-    min-width: 50px;
+    font-size: 24px;
     text-align: center;
+    line-height: 1.6;
+    padding: 4px 8px;
+    min-width: 60px;
 }
 
 .prizeNumber.highlight {
     color: red;
+    font-size: 30px;
 }
 
 .prizeNumber.gdb {
-    font-size: 28px;
+    font-size: 30px;
 }
 
 .prizeNumber.g3 {
-    font-size: 20px;
+    font-size: 22px;
 }
 
 .action {
-    padding: 8px 0;
+    padding: 10px 0;
 }
 
 .filter__options {
@@ -163,9 +173,10 @@
     justify-content: center;
     align-items: center;
     gap: 20px;
+    /* Giảm gap để tránh chen lấn trên mobile */
     width: 100%;
-    max-width: 400px;
-    height: 40px;
+    max-width: 500px;
+    height: 50px;
     border-radius: 6px;
     margin: 0 auto;
     background-color: #fff;
@@ -176,22 +187,27 @@
 }
 
 .optionInput label {
-    font-size: 16px;
+    display: flex;
+    align-items: center;
+    position: relative;
+    font-size: 18px;
     font-weight: 600;
     color: var(--primary-color);
     cursor: pointer;
-    position: relative;
-    padding-left: 25px;
+    padding-left: 30px;
+    /* Dịch label để căn chỉnh radio */
+}
+
+.optionInput label:hover {
+    color: #d32f2f;
 }
 
 .optionInput label::before {
     content: "";
     position: absolute;
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     left: 0;
-    top: 50%;
-    transform: translateY(-50%);
     border-radius: 50%;
     border: 2px solid #ccc;
 }
@@ -203,11 +219,10 @@
 .optionInput input[type='radio']:checked+label::after {
     content: "";
     position: absolute;
-    width: 12px;
-    height: 12px;
-    top: 50%;
-    left: 3px;
-    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    top: 3px;
+    left: 5px;
     border-radius: 50%;
     background-color: var(--primary-color);
 }
@@ -215,21 +230,22 @@
 /* Tối ưu spinner ellipsis */
 .ellipsis {
     display: inline-block;
-    width: 30px;
-    height: 12px;
+    width: 40px;
+    height: 13px;
     vertical-align: middle;
     position: relative;
 }
 
 .ellipsis::after {
     content: "";
-    display: inline-block;
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    /* Giảm kích thước để nhẹ hơn */
+    height: 24px;
     border: 2px solid rgba(104, 93, 216, 0.3);
     border-top: 2px solid var(--primary-color);
     border-radius: 50%;
     animation: spin 1.5s linear infinite;
+    /* Tăng thời gian animation */
     position: absolute;
     top: 50%;
     left: 50%;
@@ -246,19 +262,20 @@
     }
 }
 
-/* Bảng thống kê lô tô */
+/* Table Thống Kê */
 .TKe_content {
     background-color: #f8f8f8;
     width: 100%;
-    max-width: 800px;
+    max-width: 656px;
     border: 1px solid #ccc;
     border-right: 4px solid #ccc;
     margin: 0 auto 20px;
+    /* Giảm margin-bottom */
     border-radius: 6px;
 }
 
 .TKe_contentTitle {
-    padding: 10px 0;
+    padding: 15px 0;
     text-align: center;
     background-color: #e3f2fd;
     border-bottom: 1px solid #ccc;
@@ -267,7 +284,7 @@
 .TKe_contentTitle .title {
     font-weight: 600;
     font-style: italic;
-    font-size: 18px;
+    font-size: 20px;
 }
 
 .TKe_contentTitle .desc,
@@ -275,12 +292,12 @@
     color: #2d3483;
     font-weight: 700;
     font-style: italic;
-    font-size: 16px;
+    font-size: 18px;
 }
 
 .TKe_contentTitle .desc {
     text-transform: uppercase;
-    margin-left: 8px;
+    margin-left: 10px;
 }
 
 .tableKey {
@@ -295,11 +312,12 @@
     text-align: center;
     font-weight: 600;
     padding: 10px 6px;
+    /* Giảm padding để nhẹ hơn */
 }
 
 .tableKey th {
     background-color: #f0f0f0;
-    font-size: 16px;
+    font-size: 18px;
     color: #2d3483;
     text-transform: uppercase;
 }
@@ -311,11 +329,19 @@
 }
 
 .tableKey td:not(.t_h) {
-    font-size: 15px;
+    font-size: 16px;
 }
 
 .tableKey tr:nth-child(even) {
     background-color: #61c1d01f;
+}
+
+.tableKey td:not(.t_h) span {
+    margin-right: 4px;
+}
+
+.tableKey td:not(.t_h) span:last-child {
+    margin-right: 0;
 }
 
 .highlight1 {
@@ -329,10 +355,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 16px;
+    /* Giữ font-size để nhất quán */
     color: #888;
-    font-size: 14px;
     background-color: #f9f9f9;
-    border: 1px solid #ddd;
+    border: 1px solid #ccc;
     border-radius: 4px;
 }
 
@@ -341,19 +368,19 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    margin: 15px 0;
-    gap: 8px;
+    margin-top: 20px;
+    gap: 10px;
 }
 
 .paginationButton {
-    padding: 6px 12px;
+    width: 70px;
+    font-weight: 600;
+    padding: 8px 16px;
     background-color: #007bff;
     color: white;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-weight: 600;
-    font-size: 14px;
 }
 
 .paginationButton:disabled {
@@ -362,18 +389,18 @@
 }
 
 .loading {
-    text-align: center;
-    padding: 15px;
-    font-size: 16px;
     opacity: 0.7;
+    text-align: center;
+    padding: 20px;
+    font-size: 18px;
     animation: pulse 1.5s infinite;
 }
 
 .error {
     color: red;
     text-align: center;
-    padding: 15px;
-    font-size: 14px;
+    padding: 20px;
+    font-size: 16px;
 }
 
 @keyframes pulse {
@@ -395,23 +422,28 @@
 /* Tablet and mobile */
 @media screen and (max-width: 991px) {
     .containerKQ {
-        padding: 8px;
+        min-width: 320px;
+        padding: 10px;
     }
 
     .kqxs {
+        font-weight: 700;
+        border-radius: 3px;
         border: 1px solid #e80000;
-        border-radius: 4px;
-        font-size: 20px;
     }
 
     .kqxs__title {
-        font-size: 20px;
-        padding: 0 8px;
+        font-size: 21px;
+        line-height: 1.4;
+        width: 100%;
+        font-weight: 700;
     }
 
     .TKe_content {
         max-width: 100%;
-        margin-bottom: 15px;
+        /* Linh hoạt trên mobile */
+        margin: 0 auto 20px;
+        border-radius: 6px;
     }
 }
 
@@ -427,89 +459,93 @@
     }
 
     .tableXS td.rowXS {
-        gap: 10px;
+        gap: 15px;
     }
 
     .prizeNumber {
         font-size: 18px;
-        min-width: 45px;
+        padding: 2px 4px;
+        min-width: 50px;
     }
 
     .prizeNumber.gdb {
-        font-size: 20px;
+        font-size: 22px;
     }
 
     .prizeNumber.g3 {
-        font-size: 16px;
+        font-size: 18px;
     }
 
-    .filter__options {
-        max-width: 350px;
-        gap: 15px;
+    .tableXS tr:nth-child(5) td,
+    .tableXS tr:nth-child(8) td {
+        border-bottom: none;
     }
 
-    .optionInput label {
-        font-size: 14px;
-        padding-left: 22px;
-    }
-
-    .optionInput label::before {
-        width: 16px;
-        height: 16px;
-    }
-
-    .optionInput input[type='radio']:checked+label::after {
-        width: 10px;
-        height: 10px;
-        left: 3px;
+    .tableXS tr:nth-child(6) td.tdTitle,
+    .tableXS tr:nth-child(9) td.tdTitle {
+        border-right: none;
     }
 }
 
 /* Mobile */
 @media screen and (max-width: 767px) {
     .containerKQ {
-        padding: 5px;
+        padding: 10px;
+        /* Giữ padding nhẹ */
     }
 
     .kqxs {
-        margin-bottom: 15px;
-        font-size: 18px;
+        margin-bottom: 20px;
+        font-size: 24px;
     }
 
     .kqxs__title {
-        font-size: 18px;
+        font-size: 20px;
+        line-height: 1.4;
+        padding: 0 10px;
+    }
+
+    .kqxs__action {
+        flex-wrap: wrap;
+        padding: 0;
     }
 
     .kqxs__actionLink {
-        font-size: 14px;
+        font-size: 16px;
         margin: 0 5px;
+        /* Giảm margin để tiết kiệm không gian */
+    }
+
+    .tableXS {
+        table-layout: auto;
     }
 
     .tableXS td {
+        border-bottom: none;
         padding: 4px;
+        /* Giảm padding */
     }
 
     .tableXS td.tdTitle {
         width: 40px;
-        font-size: 16px;
-    }
-
-    .tableXS td.tdTitle.highlight {
         font-size: 18px;
+        padding: 4px;
     }
 
     .tableXS td.code {
-        font-size: 16px;
+        font-size: 18px;
+        flex: 1;
     }
 
     .tableXS td.rowXS {
         gap: 6px;
+        /* Giảm gap để gọn hơn */
     }
 
     .prizeNumber {
         font-size: 14px;
-        min-width: 30px;
         padding: 2px 4px;
+        min-width: 25px;
     }
 
     .prizeNumber.gdb {
@@ -521,56 +557,71 @@
     }
 
     .filter__options {
-        max-width: 100%;
         gap: 10px;
-        padding: 6px 8px;
+        /* Giảm gap để tránh chen lấn */
+        max-width: 100%;
+        /* Linh hoạt trên mobile */
         height: auto;
+        padding: 8px;
     }
 
     .optionInput label {
-        font-size: 13px;
-        padding-left: 20px;
+        font-size: 14px;
+        padding-left: 25px;
+        /* Giảm padding để căn chỉnh */
     }
 
     .optionInput label::before {
-        width: 14px;
-        height: 14px;
+        width: 18px;
+        height: 18px;
     }
 
     .optionInput input[type='radio']:checked+label::after {
-        width: 8px;
-        height: 8px;
-        left: 3px;
+        width: 12px;
+        height: 12px;
+        top: 1px;
+        left: 5px;
     }
 
     .TKe_contentTitle {
-        padding: 6px 0;
+        padding: 8px 0;
     }
 
     .TKe_contentTitle .title,
     .TKe_contentTitle .desc,
     .TKe_contentTitle .dayOfWeek {
-        font-size: 13px;
+        font-size: 14px;
+    }
+
+    .tableKey {
+        table-layout: auto;
     }
 
     .tableKey th,
     .tableKey td {
-        padding: 6px 4px;
-        font-size: 13px;
+        padding: 8px 4px;
+        font-size: 14px;
     }
 
     .tableKey td.t_h {
         width: 40px;
     }
 
+    .pagination {
+        gap: 8px;
+        margin-top: 15px;
+    }
+
     .paginationButton {
-        padding: 4px 8px;
-        font-size: 13px;
+        padding: 6px 12px;
+        /* Giảm padding */
+        width: auto;
+        font-size: 0.875rem;
     }
 
     .ellipsis::after {
-        width: 16px;
-        height: 16px;
-        border-width: 1.5px;
+        width: 20px;
+        height: 20px;
+        border-width: 2px;
     }
 }

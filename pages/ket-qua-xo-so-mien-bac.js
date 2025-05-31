@@ -1,14 +1,18 @@
 import Head from 'next/head';
+import dynamic from 'next/dynamic';
 import KQXS from './kqxsAll/index';
 import Calendar from '../component/caledar';
-import ThongKe from '../component/thongKe';
 import ListXSMT from '../component/listXSMT';
 import ListXSMB from '../component/listXSMB';
 import ListXSMN from '../component/listXSMN';
-import PostList from './post/list';
 import TableDate from '../component/tableDateKQXS';
 import CongCuHot from '../component/CongCuHot';
 import { apiMB } from './api/kqxs/kqxsMB';
+import styles from '../public/css/kqxsMB.module.css';
+
+// Lazy load components
+const PostList = dynamic(() => import('./post/list'), { ssr: false });
+const ThongKe = dynamic(() => import('../component/ThongKe'), { ssr: true });
 
 export async function getStaticProps() {
     try {
@@ -31,20 +35,46 @@ export async function getStaticProps() {
 }
 
 const XSMB = ({ initialData }) => {
-    const drawDate = initialData[0]?.drawDate || 'Hôm Nay';
-    const title = `Kết Quả Xổ Số Miền Bắc - ${initialData[0]?.drawDate || 'Hôm Nay'}`;
-    const description = `Xem kết quả xổ số Miền Bắc ngày ${initialData[0]?.drawDate || 'hôm nay'} với thông tin chi tiết về giải đặc biệt, lô tô, đầu đuôi.`;
-    const canonicalUrl = 'https://www.xsmb.win/xosomt';
+    // Định dạng ngày dạng DD/MM/YYYY
+    const today = new Date().toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+    }).replace(/\//g, '/');
+    const drawDate = Array.isArray(initialData) && initialData[0]?.drawDate
+        ? new Date(initialData[0].drawDate).toLocaleDateString('vi-VN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+        }).replace(/\//g, '/')
+        : today;
+
+    const title = `Kết Quả Xổ Số Miền Bắc - ${drawDate}`;
+    const description = `Xem kết quả xổ số Miền Bắc ngày ${drawDate} với thông tin chi tiết về giải đặc biệt, lô tô, đầu đuôi.`;
+    const canonicalUrl = 'https://www.xsmb.win/xsmb';
+
+    // Fallback UI nếu initialData rỗng
+    if (!Array.isArray(initialData) || initialData.length === 0) {
+        return (
+            <div className={styles.container}>
+                <div className={styles.error}>
+                    Không có dữ liệu XSMB. Vui lòng thử lại sau.
+                </div>
+            </div>
+        );
+    }
 
     return (
         <>
             <Head>
+                <meta charset="UTF-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
                 <title>{title}</title>
                 <meta name="description" content={description} />
                 <meta name="keywords" content="xổ số miền bắc, kqxs, lô tô, đầu đuôi, xsmb" />
                 <meta name="robots" content="index, follow" />
 
-                {/* Open Graph Tags (Tối ưu cho các mạng xã hội) */}
+                {/* Open Graph Tags */}
                 <meta property="og:title" content={title} />
                 <meta property="og:description" content={description} />
                 <meta property="og:type" content="website" />
@@ -57,20 +87,20 @@ const XSMB = ({ initialData }) => {
                 <meta property="og:image:alt" content="Kết quả xổ số miền Bắc 2025" />
                 <meta property="og:site_name" content="XSMB" />
                 <meta property="og:locale" content="vi_VN" />
-                <meta property="fb:app_id" content="your-facebook-app-id" /> {/* Thay bằng App ID thực tế */}
+                <meta property="fb:app_id" content={process.env.FB_APP_ID || ''} />
 
                 {/* Zalo */}
-                <meta property="og:app_id" content="your-zalo-app-id" />
-                <meta property="zalo:official_account_id" content="your-zalo-oa-id" />
+                <meta property="og:app_id" content={process.env.ZALO_APP_ID || ''} />
+                <meta property="zalo:official_account_id" content={process.env.ZALO_OA_ID || ''} />
                 <meta property="zalo:share_url" content={canonicalUrl} />
                 <meta property="zalo:og:image" content="https://xsmb.win/zalotelegram.png" />
                 <meta property="zalo:og:image:width" content="600" />
                 <meta property="zalo:og:image:height" content="600" />
 
                 {/* Telegram */}
-                <meta name="telegram:channel" content="@YourChannel" />
+                <meta name="telegram:channel" content={process.env.TELEGRAM_CHANNEL || '@YourChannel'} />
                 <meta name="telegram:share_url" content={canonicalUrl} />
-                <meta name="telegram:description" content={`Cập nhật XSMB nhanh nhất ngày ${drawDate} tại @YourChannel!`} />
+                <meta name="telegram:description" content={`Cập nhật XSMB nhanh nhất ngày ${drawDate} tại ${process.env.TELEGRAM_CHANNEL || '@YourChannel'}!`} />
                 <meta name="telegram:og:image" content="https://xsmb.win/zalotelegram.png" />
 
                 {/* Twitter Cards */}
@@ -78,12 +108,13 @@ const XSMB = ({ initialData }) => {
                 <meta name="twitter:title" content={title} />
                 <meta name="twitter:description" content={description} />
                 <meta name="twitter:image" content="https://xsmb.win/facebook.png" />
-                <meta name="twitter:image:alt" content="Kết quả xổ số miền Bắc 2025" /> {/* Sửa lỗi */}
+                <meta name="twitter:image:alt" content="Kết quả xổ số miền Bắc 2025" />
 
-                {/* Canonical */}
+                {/* Canonical và Alternate */}
                 <link rel="canonical" href={canonicalUrl} />
+                <link rel="alternate" hrefLang="vi" href={canonicalUrl} />
 
-                {/* JSON-LD Schema (Sửa lỗi) */}
+                {/* JSON-LD Schema */}
                 <script type="application/ld+json">
                     {JSON.stringify({
                         "@context": "https://schema.org",
@@ -97,7 +128,7 @@ const XSMB = ({ initialData }) => {
                 </script>
             </Head>
             <div>
-                <div className='container'>
+                <div className="container">
                     <div className='navigation'>
                         <Calendar />
                         <ListXSMB />
@@ -106,7 +137,11 @@ const XSMB = ({ initialData }) => {
                     </div>
                     <div>
                         <TableDate />
-                        <KQXS data={initialData} station="xsmb">Miền Bắc</KQXS>
+                        {initialData ? (
+                            <KQXS data={initialData} station="xsmb">Miền Bắc</KQXS>
+                        ) : (
+                            <span>Đang tải kết quả...</span>
+                        )}
                     </div>
                     <div>
                         <ThongKe />

@@ -15,8 +15,8 @@ const KQXS = (props) => {
     const [currentPage, setCurrentPage] = useState(1);
     const [isLiveWindow, setIsLiveWindow] = useState(false);
     const [hasTriggeredScraper, setHasTriggeredScraper] = useState(false);
-    const hour = 11;
-    const minute1 = 21;
+    const hour = 19;
+    const minute1 = 30;
     const minute2 = 15;
 
     const router = useRouter();
@@ -37,7 +37,7 @@ const KQXS = (props) => {
     const startMinute = minute1;
     const duration = 22 * 60 * 1000;
 
-    // Tối ưu useEffect: setInterval 5s, chỉ gọi setIsLiveWindow khi cần
+    // useEffect kiểm tra thời gian (giữ nguyên)
     useEffect(() => {
         const checkTime = () => {
             const now = new Date();
@@ -75,7 +75,7 @@ const KQXS = (props) => {
         };
 
         checkTime();
-        const intervalId = setInterval(checkTime, 5000); // 5 giây
+        const intervalId = setInterval(checkTime, 5000);
         return () => clearInterval(intervalId);
     }, [hasTriggeredScraper, station, today]);
 
@@ -96,7 +96,7 @@ const KQXS = (props) => {
         return inputDayOfWeek && inputDayOfWeek === todayDayOfWeek;
     }, [props.data3, today]);
 
-    // Tối ưu fetchData: Chỉ cập nhật data/filterTypes khi thay đổi
+    // fetchData (giữ nguyên)
     const fetchData = useCallback(async () => {
         try {
             const result = await apiMB.getLottery(station, date, dayof);
@@ -145,24 +145,26 @@ const KQXS = (props) => {
         fetchData();
     }, [fetchData]);
 
-    const handleFilterChange = useCallback((key, value) => {
-        setFilterTypes(prev => ({ ...prev, [key]: value }));
+    const handleFilterChange = useCallback((pageKey, value) => {
+        setFilterTypes(prev => ({ ...prev, [pageKey]: value }));
     }, []);
 
+    // Sửa hàm getHeadAndTailNumbers để highlight cả giải 7
     const getHeadAndTailNumbers = useMemo(() => (data2) => {
+        const specialNumbers = (data2.specialPrize || []).map(num => getFilteredNumber(num, 'last2'));
+        // Lấy 2 số cuối của giải 7 để đảm bảo định dạng nhất quán
+        const sevenNumbers = (data2.sevenPrizes || []).map(num => getFilteredNumber(num, 'last2'));
         const allNumbers = [
-            ...(data2.specialPrize || []),
-            ...(data2.firstPrize || []),
-            ...(data2.secondPrize || []),
-            ...(data2.threePrizes || []),
-            ...(data2.fourPrizes || []),
-            ...(data2.fivePrizes || []),
-            ...(data2.sixPrizes || []),
-            ...(data2.sevenPrizes || []),
+            ...specialNumbers,
+            ...sevenNumbers,
+            ...(data2.firstPrize || []).map(num => getFilteredNumber(num, 'last2')),
+            ...(data2.secondPrize || []).map(num => getFilteredNumber(num, 'last2')),
+            ...(data2.threePrizes || []).map(num => getFilteredNumber(num, 'last2')),
+            ...(data2.fourPrizes || []).map(num => getFilteredNumber(num, 'last2')),
+            ...(data2.fivePrizes || []).map(num => getFilteredNumber(num, 'last2')),
+            ...(data2.sixPrizes || []).map(num => getFilteredNumber(num, 'last2')),
         ]
-            .filter(num => num && num !== '...')
-            .map(num => getFilteredNumber(num, 'last2'))
-            .filter(num => num && !isNaN(num));
+            .filter(num => num && num !== '' && !isNaN(num));
 
         const heads = Array(10).fill().map(() => []);
         const tails = Array(10).fill().map(() => []);
@@ -170,23 +172,25 @@ const KQXS = (props) => {
         allNumbers.forEach(number => {
             const numStr = number.toString().padStart(2, '0');
             const head = parseInt(numStr[0]);
-            const tail = parseInt(numStr[numStr.length - 1]);
+            const tail = parseInt(numStr[1]);
 
             if (!isNaN(head) && !isNaN(tail)) {
-                heads[head].push(numStr);
-                tails[tail].push(numStr);
+                // So sánh numStr trực tiếp với specialNumbers và sevenNumbers
+                const isHighlighted = specialNumbers.includes(numStr) || sevenNumbers.includes(numStr);
+                heads[head].push({ value: numStr, isHighlighted });
+                tails[tail].push({ value: numStr, isHighlighted });
             }
         });
 
         for (let i = 0; i < 10; i++) {
-            heads[i].sort((a, b) => parseInt(a) - parseInt(b));
-            tails[i].sort((a, b) => parseInt(a) - parseInt(b));
+            heads[i].sort((a, b) => parseInt(a.value) - parseInt(b.value));
+            tails[i].sort((a, b) => parseInt(a.value) - parseInt(b.value));
         }
 
         return { heads, tails };
     }, []);
 
-    // Sử dụng useMemo cho totalPages, startIndex, endIndex, currentData
+    // useMemo cho phân trang (giữ nguyên)
     const totalPages = useMemo(() => Math.ceil(data.length / itemsPerPage), [data]);
     const startIndex = useMemo(() => (currentPage - 1) * itemsPerPage, [currentPage]);
     const endIndex = useMemo(() => startIndex + itemsPerPage, [startIndex]);
@@ -203,8 +207,8 @@ const KQXS = (props) => {
         return <div className={styles.error}>{error}</div>;
     }
 
-    // Component cho bảng lô tô với lazy loading
-    const LoToTable = React.memo(({ data2, heads, tails, sevenPrizes, specialPrize }) => {
+    // LoToTable (giữ nguyên)
+    const LoToTable = React.memo(({ data2, heads, tails }) => {
         const { ref, inView } = useInView({
             triggerOnce: true,
             threshold: 0.1,
@@ -212,14 +216,12 @@ const KQXS = (props) => {
 
         return (
             <div className={styles.TKe_content}>
-                {/* Tiêu đề luôn tải ngay để đảm bảo SEO */}
                 <div className={styles.TKe_contentTitle}>
                     <span className={styles.title}>Bảng Lô Tô - </span>
                     <span className={styles.desc}>{data2.tentinh} -</span>
                     <span className={styles.dayOfWeek}>{`${data2.dayOfWeek} - `}</span>
                     <span className={styles.desc}>{data2.drawDate}</span>
                 </div>
-                {/* Bảng lô tô lazy load */}
                 <div ref={ref}>
                     {inView ? (
                         <table className={styles.tableKey}>
@@ -234,11 +236,33 @@ const KQXS = (props) => {
                                     <tr key={index}>
                                         <td className={styles.t_h}>{index}</td>
                                         <td>
-                                            {heads[index].length > 0 ? heads[index].join(', ') : '-'}
+                                            {heads[index].length > 0 ? (
+                                                heads[index].map((num, idx) => (
+                                                    <span
+                                                        key={`${num.value}-${idx}`}
+                                                        className={num.isHighlighted ? styles.highlight1 : ''}
+                                                    >
+                                                        {num.value}{idx < heads[index].length - 1 ? ', ' : ''}
+                                                    </span>
+                                                ))
+                                            ) : (
+                                                '-'
+                                            )}
                                         </td>
                                         <td className={styles.t_h}>{index}</td>
                                         <td>
-                                            {tails[index].length > 0 ? tails[index].join(', ') : '-'}
+                                            {tails[index].length > 0 ? (
+                                                tails[index].map((num, idx) => (
+                                                    <span
+                                                        key={`${num.value}-${idx}`}
+                                                        className={num.isHighlighted ? styles.highlight1 : ''}
+                                                    >
+                                                        {num.value}{idx < tails[index].length - 1 ? ', ' : ''}
+                                                    </span>
+                                                ))
+                                            ) : (
+                                                '-'
+                                            )}
                                         </td>
                                     </tr>
                                 ))}
@@ -268,8 +292,6 @@ const KQXS = (props) => {
                 const tableKey = data2.drawDate + data2.tinh;
                 const currentFilter = filterTypes[tableKey] || 'all';
                 const { heads, tails } = getHeadAndTailNumbers(data2);
-                const sevenPrizes = (data2.sevenPrizes || []).map(num => getFilteredNumber(num, 'last2'));
-                const specialPrize = (data2.specialPrize || []).map(num => getFilteredNumber(num, 'last2'));
 
                 return (
                     <div key={tableKey}>
@@ -445,13 +467,10 @@ const KQXS = (props) => {
                                 </div>
                             </div>
                         </div>
-                        {/* Sử dụng component LoToTable với lazy loading */}
                         <LoToTable
                             data2={data2}
                             heads={heads}
                             tails={tails}
-                            sevenPrizes={sevenPrizes}
-                            specialPrize={specialPrize}
                         />
                     </div>
                 );
