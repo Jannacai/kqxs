@@ -122,3 +122,18 @@ const XSMN = ({ initialData }) => {
 };
 
 export default XSMN;
+
+
+
+
+
+{isLiveMode && isLiveWindow && (
+                <LiveResult
+                    station={station}
+                    today={today}
+                    getHeadAndTailNumbers={getHeadAndTailNumbers}
+                    handleFilterChange={handleFilterChange}
+                    filterTypes={filterTypes}
+                    isLiveWindow={isLiveWindow}
+                />
+            )}
