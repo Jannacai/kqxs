@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import Head from 'next/head';
-import { apiMB } from '../../pages/api/kqxs/kqxsMB';
+import { apiMB } from '../api/kqxs/kqxsMB';
 import styles from '../../styles/soicau.module.css';
 import moment from 'moment';
 

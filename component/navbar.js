@@ -124,9 +124,9 @@ const NavBar = () => {
                         <Link href="/thongke/lo-gan" className={styles.nav_itemLinkNgang}>Thống kê </Link>
 
                     </li>
-                    <li className={`${styles.nav_itemNgang} ${router.pathname.startsWith('/TaoDan') ? styles.active : ''}`}>
+                    <li className={`${styles.nav_itemNgang} ${router.pathname.startsWith('/tao-dan-dac-biet') ? styles.active : ''}`}>
 
-                        <Link href="/TaoDan/" className={styles.nav_itemLinkNgang}>Tạo Dàn</Link>
+                        <Link href="/tao-dan-dac-biet/" className={styles.nav_itemLinkNgang}>Tạo Dàn</Link>
 
                     </li>
                     <li className={`${styles.nav_itemNgang} ${router.pathname.startsWith('/news') ? styles.active : ''}`}>
@@ -134,9 +134,9 @@ const NavBar = () => {
                         <Link href="#" className={styles.nav_itemLinkNgang}>Tin Tức</Link>
 
                     </li>
-                    <li className={`${styles.nav_itemNgang} ${router.pathname === '/soicau/soicauMB' ? styles.active : ''}`}>
+                    <li className={`${styles.nav_itemNgang} ${router.pathname === '/soicau/soi-cau-mien-bac' ? styles.active : ''}`}>
 
-                        <Link href="/soicau/soicauMB" className={styles.nav_itemLinkNgang}>Soi Cầu</Link>
+                        <Link href="/soicau/soi-cau-mien-bac" className={styles.nav_itemLinkNgang}>Soi Cầu</Link>
 
                     </li>
                     <li className={`${styles.nav_itemNgang} ${router.pathname.startsWith('/quaythu') ? styles.active : ''}`}>
@@ -588,23 +588,23 @@ const NavBar = () => {
                                     </ul>
                                 </li>
                                 <li
-                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith("/TaoDan") ? styles.active : ""
+                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith("/tao-dan-dac-biet") ? styles.active : ""
                                         }`}
                                 >
                                     <div className={styles.grouplinkMobile}>
                                         <Link
-                                            href="/TaoDan/"
+                                            href="/tao-dan-dac-biet/"
                                             className={styles.nav_itemLinkMobile}
                                             onClick={toggleMenu}
                                         >
                                             <span className={styles.iconNav}><i class="fa-solid fa-marker"></i></span> Tạo Dàn
                                         </Link>
                                         <span
-                                            onClick={() => toggleMenuList("TaoDan")}
+                                            onClick={() => toggleMenuList("tao-dan-dac-biet")}
                                             className={styles.icon}
                                         >
                                             <i
-                                                className={`fa-solid ${isMenuOpenList === "TaoDan"
+                                                className={`fa-solid ${isMenuOpenList === "tao-dan-dac-biet"
                                                     ? "fa-chevron-up"
                                                     : "fa-chevron-down"
                                                     }`}
@@ -612,14 +612,14 @@ const NavBar = () => {
                                         </span>
                                     </div>
                                     <ul
-                                        className={`${styles.nav__menuMobile} ${isMenuOpenList === "TaoDan" ? styles.menuList : ""
+                                        className={`${styles.nav__menuMobile} ${isMenuOpenList === "tao-dan-dac-biet" ? styles.menuList : ""
                                             }`}
                                     >
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/TaoDan" ? styles.active : ""
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/tao-dan-dac-biet" ? styles.active : ""
                                                     }`}
-                                                href="/TaoDan/"
+                                                href="/tao-dan-dac-biet/"
                                                 onClick={toggleMenu}
                                             >
                                                 Tạo Nhanh Dàn Đặc Biệt
@@ -627,9 +627,9 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/TaoDanD/2D" ? styles.active : ""
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/taodanso/dan-2d/tao-dan-2d" ? styles.active : ""
                                                     }`}
-                                                href="/TaoDanD/2D/"
+                                                href="/taodanso/dan-2d/tao-dan-2d"
                                                 onClick={toggleMenu}
                                             >
                                                 Tạo Dàn 2D
@@ -637,9 +637,9 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/TaoDanD/3D4D" ? styles.active : ""
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/taodanso/dan-3d4d/tao-dan-3d4d" ? styles.active : ""
                                                     }`}
-                                                href="/TaoDanD/3D4D/"
+                                                href="/taodanso/dan-3d4d/tao-dan-3d4d"
                                                 onClick={toggleMenu}
                                             >
                                                 Tạo Dàn 3D-4D
@@ -647,9 +647,9 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/TaoDanD/Ngaunhien9x0x" ? styles.active : ""
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/taodanso/tao-dan-ngau-nhien9x0x" ? styles.active : ""
                                                     }`}
-                                                href="/TaoDanD/Ngaunhien9x0x"
+                                                href="/taodanso/tao-dan-ngau-nhien9x0x/"
                                                 onClick={toggleMenu}
                                             >
                                                 Tạo Dàn 9X0X Ngẫu Nhiên
@@ -708,12 +708,12 @@ const NavBar = () => {
                                     </ul>
                                 </li>
                                 <li
-                                    className={`${styles.nav_itemMobile} ${router.pathname === "/soicau/soicauMB" ? styles.active : ""
+                                    className={`${styles.nav_itemMobile} ${router.pathname === "/soicau/soi-cau-mien-bac" ? styles.active : ""
                                         }`}
                                 >
                                     <div className={styles.grouplinkMobile}>
                                         <Link
-                                            href="/soicau/soicauMB"
+                                            href="/soicau/soi-cau-mien-bac"
                                             className={styles.nav_itemLinkMobile}
                                             onClick={toggleMenu}
                                         >
@@ -737,9 +737,9 @@ const NavBar = () => {
                                     >
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/soicau/soicauMB" ? styles.active : ""
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/soicau/soi-cau-mien-bac" ? styles.active : ""
                                                     }`}
-                                                href="/soicau/soicauMB"
+                                                href="/soicau/soi-cau-mien-bac"
                                                 onClick={toggleMenu}
                                             >
                                                 Soi Cầu Miền Bắc
@@ -747,9 +747,9 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/soicau/soicauMT" ? styles.active : ""
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/soicau/soi-cau-mien-trung" ? styles.active : ""
                                                     }`}
-                                                href="/soicau/soicauMT"
+                                                href="/soicau/soi-cau-mien-trung"
                                                 onClick={toggleMenu}
                                             >
                                                 Soi Cầu Miền Trung
@@ -934,16 +934,16 @@ const NavBar = () => {
                                     <li><Link className={styles.nav_menuLink} href="/thongke/Tan-Suat-Lo-Cap">Tần Suất Lô Cặp</Link></li>
                                 </ul>
                             </li>
-                            <li className={`${styles.nav_item} ${router.pathname.startsWith('/TaoDan') ? styles.active : ''}`}>
+                            <li className={`${styles.nav_item} ${router.pathname.startsWith('/tao-dan-dac-biet') ? styles.active : ''}`}>
                                 <div className={styles.grouplink}>
-                                    <Link href="/TaoDan/" className={styles.nav_itemLink}>Tạo Dàn</Link>
+                                    <Link href="/tao-dan-dac-biet/" className={styles.nav_itemLink}>Tạo Dàn</Link>
                                     <span className={styles.icon}><i className="fa-solid fa-chevron-down"></i></span>
                                 </div>
                                 <ul className={styles.nav__menu}>
-                                    <li><Link className={styles.nav_menuLink} href="/TaoDan/">Tạo Nhanh Dàn Đặc Biệt </Link></li>
-                                    <li><Link className={styles.nav_menuLink} href="/TaoDanD/2D/">Tạo Dàn 2D</Link></li>
-                                    <li><Link className={styles.nav_menuLink} href="/TaoDanD/3D4D/">Tạo Dàn 3D-4D</Link></li>
-                                    <li><Link className={styles.nav_menuLink} href="/TaoDanD/Ngaunhien9x0x">Tạo Dàn 9X0X Ngẫu Nhiên</Link></li>
+                                    <li><Link className={styles.nav_menuLink} href="/tao-dan-dac-biet/">Tạo Nhanh Dàn Đặc Biệt </Link></li>
+                                    <li><Link className={styles.nav_menuLink} href="/taodanso/dan-2d/tao-dan-2d">Tạo Dàn 2D</Link></li>
+                                    <li><Link className={styles.nav_menuLink} href="/taodanso/dan-3d4d/taodan3d4d">Tạo Dàn 3D-4D</Link></li>
+                                    <li><Link className={styles.nav_menuLink} href="/taodanso/tao-dan-ngau-nhien9x0x/">Tạo Dàn 9X0X Ngẫu Nhiên</Link></li>
                                 </ul>
                             </li>
                             <li className={`${styles.nav_item} ${router.pathname.startsWith('/news') ? styles.active : ''}`}>
@@ -958,12 +958,12 @@ const NavBar = () => {
                             </li>
                             <li className={`${styles.nav_item} ${router.pathname === '/soicau' ? styles.active : ''}`}>
                                 <div className={styles.grouplink}>
-                                    <Link href="/soicau/soicauMB" className={styles.nav_itemLink}>Soi Cầu</Link>
+                                    <Link href="/soicau/soi-cau-mien-bac" className={styles.nav_itemLink}>Soi Cầu</Link>
                                     <span className={styles.icon}><i className="fa-solid fa-chevron-down"></i></span>
                                 </div>
                                 <ul className={styles.nav__menu}>
-                                    <li><Link className={styles.nav_menuLink} href="/soicau/soicauMB">Soi Cầu Miền Bắc</Link></li>
-                                    <li><Link className={styles.nav_menuLink} href="/soicau/soicauMT">Soi Cầu Miền Trung</Link></li>
+                                    <li><Link className={styles.nav_menuLink} href="/soicau/soi-cau-mien-bac">Soi Cầu Miền Bắc</Link></li>
+                                    <li><Link className={styles.nav_menuLink} href="/soicau/soi-cau-mien-trung">Soi Cầu Miền Trung</Link></li>
                                     <li><Link className={styles.nav_menuLink} href="#">Soi Cầu Miền Nam</Link></li>
                                 </ul>
                             </li>

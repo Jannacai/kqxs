@@ -9,12 +9,12 @@ const CongCuHot = () => {
     const router = useRouter();
 
     const items = [
-        { title: "Tạo dàn nhanh đặc biệt", href: "/TaoDan" },
-        { title: "Tạo dàn 2D", href: "/TaoDanD/2D" },
-        { title: "Tạo dàn 3D/4D", href: "/TaoDanD/3D4D" },
-        { title: "Tạo dàn 9X0X ngẫu nhiên", href: "/TaoDanD/Ngaunhien9x0x" },
-        { title: "Soi cầu miền Bắc", href: "/soicau/soicauMB" },
-        { title: "Soi cầu miền Trung", href: "/soicau/soicauMT" },
+        { title: "Tạo dàn nhanh đặc biệt", href: "/tao-dan-dac-biet" },
+        { title: "Tạo dàn 2D", href: "/taodanso/dan-2d/tao-dan-2d" },
+        { title: "Tạo dàn 3D/4D", href: "/taodanso/dan-3d4d/tao-dan-3d4d" },
+        { title: "Tạo dàn 9X0X ngẫu nhiên", href: "/TaoDanD/tao-dan-ngau-nhien9x0x/" },
+        { title: "Soi cầu miền Bắc", href: "/soicau/soi-cau-mien-bac" },
+        { title: "Soi cầu miền Trung", href: "/soicau/soi-cau-mien-trung" },
         { title: "Soi cầu miền Nam", href: "#" },
     ];
 

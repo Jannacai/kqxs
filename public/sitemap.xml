@@ -9,21 +9,21 @@
     </url>
     <!-- Trang XSMB -->
     <url>
-        <loc>https://xsmb.win/xsmb</loc>
+        <loc>https://xsmb.win/ket-qua-xo-so-mien-bac</loc>
         <lastmod>2025-05-26</lastmod>
         <changefreq>daily</changefreq>
         <priority>0.9</priority>
     </url>
     <!-- Trang XSMT -->
     <url>
-        <loc>https://xsmb.win/xsmt</loc>
+        <loc>https://xsmb.win/ket-qua-xo-so-mien-trung</loc>
         <lastmod>2025-05-26</lastmod>
         <changefreq>daily</changefreq>
         <priority>0.8</priority>
     </url>
     <!-- Trang XSMN -->
     <url>
-        <loc>https://xsmb.win/xsmn</loc>
+        <loc>https://xsmb.win/ket-qua-xo-so-mien-nam</loc>
         <lastmod>2025-05-26</lastmod>
         <changefreq>daily</changefreq>
         <priority>0.8</priority>
@@ -44,7 +44,7 @@
     </url>
     <!-- Trang Thống Kê Lô Gần -->
     <url>
-        <loc>https://xsmb.win/thongke/logan</loc>
+        <loc>https://xsmb.win/thongke/lo-gan</loc>
         <lastmod>2025-05-26</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
