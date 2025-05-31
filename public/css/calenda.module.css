@@ -177,7 +177,7 @@
         flex-direction: column;
         position: fixed;
         /* Sử dụng fixed để căn giữa */
-        top: 25%;
+        top: 250px;
         left: 50%;
         transform: translate(-50%, -50%);
         /* Căn giữa modal */
