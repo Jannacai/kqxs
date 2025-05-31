@@ -5,7 +5,7 @@ import { apiMB } from "../api/kqxs/kqxsMB";
 import React from 'react';
 
 // In styles để kiểm tra
-console.log('styles:', styles);
+
 
 const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange, filterTypes, isLiveWindow }) => {
     const [liveData, setLiveData] = useState(null);
@@ -126,7 +126,6 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
         let eventSource;
 
         const connectSSE = () => {
-            console.log(`Kết nối SSE... (Thử lần ${retryCount + 1}/${maxRetries + 1})`);
             eventSource = new EventSource(`http://localhost:5000/api/kqxs/xsmb/sse?station=${station}`);
 
             const prizeTypes = [
@@ -143,7 +142,6 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
 
             prizeTypes.forEach(prizeType => {
                 eventSource.addEventListener(prizeType, (event) => {
-                    console.log(`Nhận sự kiện SSE cho ${prizeType}:`, event.data);
                     try {
                         const data = JSON.parse(event.data);
                         if (data && data[prizeType]) {

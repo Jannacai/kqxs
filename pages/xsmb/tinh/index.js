@@ -19,7 +19,6 @@ const KQXS = (props) => {
         ? props.data3
         : (dayof = props.data3);
     const tinh = props.tinh;
-    console.log("tinh 1", tinh);
     const startHour = 18;
     const startMinute = 14;
     const duration = 30 * 60 * 1000;

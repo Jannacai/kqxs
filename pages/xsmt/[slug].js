@@ -22,8 +22,6 @@ export default function XsmtPage() {
     const slugDayofweek = Array.isArray(slug) ? slug.join('-') : slug; // Ví dụ: "thu-2" hoặc null
     const station = 'xsmt'; // Slug cố định cho xsmb
 
-    console.log("Station:", station, "Slug:", slugDayofweek);
-    console.log('Slug DayOfWeek---', slugDayofweek);
 
     if (error) {
         return (

@@ -14,9 +14,9 @@ const PostList = () => {
     useEffect(() => {
         const fetchPosts = async () => {
             try {
-                // console.log("Bắt đầu gọi getPosts...");
+        
                 const data = await getPosts();
-                // console.log("Dữ liệu trả về từ getPosts:", data);
+          
                 setPosts(data);
                 setLoading(false);
                 if (data === undefined) {
@@ -44,7 +44,6 @@ const PostList = () => {
     if (error) {
         return <p className={styles.error}>{error}</p>;
     }
-    // console.log("Giá trị 'posts' TRƯỚC KHI truyền vào Listpost:", posts);
     return (
         <div >
             <Listpost appa={posts} />

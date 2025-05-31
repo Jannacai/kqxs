@@ -92,7 +92,7 @@ const KQXS = (props) => {
                 dayOfWeek: groupedByDate[date][0].dayOfWeek,
             }));
 
-            console.log('Grouped and sorted data:', finalData);
+
             setData(finalData);
 
             const initialFilters = finalData.reduce((acc, item) => {
@@ -120,7 +120,7 @@ const KQXS = (props) => {
             // Chỉ cập nhật isRunning nếu giá trị thay đổi
             setIsRunning(prev => {
                 if (prev !== isLive) {
-                    console.log('isRunning updated to:', isLive);
+
                     return isLive;
                 }
                 return prev;
@@ -129,7 +129,6 @@ const KQXS = (props) => {
             // Reset hasTriggeredScraper lúc 00:00:00
             if (now.getHours() === 0 && now.getMinutes() === 0 && now.getSeconds() === 0) {
                 setHasTriggeredScraper(false);
-                console.log('Reset hasTriggeredScraper at midnight');
             }
 
             // Lấy provinces từ danh sách tĩnh
@@ -179,7 +178,6 @@ const KQXS = (props) => {
                 !hasTriggeredScraper &&
                 provinces.length > 0
             ) {
-                console.log('Triggering scraper with provinces:', provinces);
                 apiMT.triggerScraper(today, station, provinces)
                     .then((data) => {
                         console.log('Scraper kích hoạt thành công:', data.message);
@@ -196,7 +194,6 @@ const KQXS = (props) => {
         intervalRef.current = setInterval(checkTime, 5000); // Tăng interval lên 5 giây
 
         return () => {
-            console.log('Cleaning up interval...');
             clearInterval(intervalRef.current);
         };
     }, [station, date, tinh, fetchData]); // Loại bỏ hasTriggeredScraper khỏi dependencies
@@ -259,13 +256,12 @@ const KQXS = (props) => {
 
     const goToPage = (page) => {
         if (page >= 1 && page <= totalPages) {
-            console.log(`Navigating to page ${page}`);
             setCurrentPage(page);
         }
     };
 
     useEffect(() => {
-        console.log(`currentPage updated to ${currentPage}`);
+
         window.scrollTo({
             top: 0,
             behavior: 'smooth'
@@ -277,10 +273,6 @@ const KQXS = (props) => {
         tinh: station.tinh || station.station,
         tentinh: station.tentinh
     })) : [];
-
-    // if (loading) {
-    //     return <div>Đang tải dữ liệu...</div>;
-    // }
 
     return (
         <div className={styles.containerKQ}>

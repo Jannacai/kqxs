@@ -21,13 +21,10 @@ const PostDetail = () => {
 
         const fetchPost = async () => {
             try {
-                // console.log("Fetching post with ID:", id);
                 const data = await getPostById(id);
-                // console.log("Post data:", data);
                 setPost(data);
                 setLoading(false);
             } catch (err) {
-                // console.error("Error fetching post:", err);
                 setError(err.message || "Đã có lỗi xảy ra khi lấy chi tiết bài viết");
                 setLoading(false);
             }
@@ -64,8 +61,6 @@ const PostDetail = () => {
             // Kết hợp lại theo định dạng dd/MM/yyyy
             formattedDate = `${formattedDay}/${formattedMonth}/${year}`;
         } catch (error) {
-            console.error("Error formatting date:", post.createdAt, error);
-            // Giữ giá trị mặc định nếu có lỗi
         }
     }
     return (

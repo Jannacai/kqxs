@@ -122,7 +122,6 @@ const CreatePost = () => {
     // onSubmit giữ nguyên cấu trúc gửi dữ liệu như code gốc của bạn
     // Chỉ thêm phần reset ảnh preview
     const onSubmit = async (data) => {
-        console.log("Form submitted with data:", data);
         try {
             // Giữ nguyên cấu trúc postData như ban đầu của bạn
             const postData = {
@@ -131,13 +130,6 @@ const CreatePost = () => {
                 img: data.image && data.image.length > 0 ? data.image[0] : undefined, // Gửi đối tượng File
                 token: session.accessToken,
             };
-            console.log("Sending postData (Original Structure):", postData);
-
-            // Lưu ý: Hàm createPost của bạn cần xử lý được việc nhận đối tượng File trong postData.img
-            // Nếu createPost chỉ nhận URL, bạn cần upload ảnh lên đâu đó (ví dụ Cloudinary) *trước khi* gọi createPost
-            // và gửi URL ảnh thay vì đối tượng File. Tuy nhiên, để "không sửa gì thêm", ta giữ nguyên việc gửi File object.
-            const result = await createPost(postData);
-            console.log("API response:", result);
 
             reset(); // Reset trường text
             // --- THÊM reset ảnh preview ---
@@ -154,7 +146,6 @@ const CreatePost = () => {
             // router.push('/posts/list');
         } catch (error) {
             // ... (Error handling giữ nguyên như code gốc) ...
-            console.error("Error in onSubmit:", error.message);
             if (error.message.includes("Invalid token")) {
                 await signOut({ redirect: false });
                 router.push("/login");
