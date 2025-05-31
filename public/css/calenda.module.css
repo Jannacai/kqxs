@@ -193,7 +193,7 @@
     }
 
     .iconMenu {
-        position: fixed;
+        position: absolute;
         display: block;
         top: 20px;
         right: 0px;

@@ -187,9 +187,9 @@ const KQXS = (props) => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }, [currentPage]);
 
-    if (loading) {
-        return <div className={styles.loading}>Đang tải dữ liệu...</div>;
-    }
+    // if (loading) {
+    //     return <div className={styles.loading}>Đang tải dữ liệu...</div>;
+    // }
 
     if (error) {
         return <div className={styles.error}>{error}</div>;

@@ -278,9 +278,9 @@ const KQXS = (props) => {
         tentinh: station.tentinh
     })) : [];
 
-    if (loading) {
-        return <div>Đang tải dữ liệu...</div>;
-    }
+    // if (loading) {
+    //     return <div>Đang tải dữ liệu...</div>;
+    // }
 
     return (
         <div className={styles.containerKQ}>
