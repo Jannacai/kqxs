@@ -34,7 +34,7 @@ const XSMN = ({ initialData }) => {
     const drawDate = initialData[0]?.drawDate || 'Hôm Nay';
     const title = `Kết Quả Xổ Số Miền Nam - ${initialData[0]?.drawDate || 'Hôm Nay'}`;
     const description = `Xem kết quả xổ số Miền Nam ngày ${initialData[0]?.drawDate || 'hôm nay'} với thông tin chi tiết về giải đặc biệt, lô tô, đầu đuôi.`;
-    const canonicalUrl = 'https://www.xsmb.win/xosomt';
+    const canonicalUrl = 'https://www.xsmb.win/ket-qua-xo-so-mien-nam';
 
     return (
         <>

@@ -5,7 +5,86 @@ module.exports = {
     priority: 1.0,
     sitemapSize: 5000,
     additionalPaths: async (config) => {
-        const result = [];
+        const result = [
+            {
+                loc: '/ket-qua-xo-so-mien-bac',
+                lastmod: new Date().toISOString().split('T')[0],
+                changefreq: 'daily',
+                priority: 0.9,
+            },
+            {
+                loc: '/ket-qua-xo-so-mien-nam',
+                lastmod: new Date().toISOString().split('T')[0],
+                changefreq: 'daily',
+                priority: 0.8,
+            },
+            {
+                loc: '/ket-qua-xo-so-mien-trung',
+                lastmod: new Date().toISOString().split('T')[0],
+                changefreq: 'daily',
+                priority: 0.8,
+            },
+            {
+                loc: '/tao-dan-dac-biet',
+                lastmod: new Date().toISOString().split('T')[0],
+                changefreq: 'weekly',
+                priority: 0.8,
+            },
+            {
+                loc: '/taodanso/dan-2d/tao-dan-2d',
+                lastmod: new Date().toISOString().split('T')[0],
+                changefreq: 'weekly',
+                priority: 0.8,
+            },
+            {
+                loc: '/taodanso/dan-3d4d/tao-dan-3d4d',
+                lastmod: new Date().toISOString().split('T')[0],
+                changefreq: 'weekly',
+                priority: 0.8,
+            },
+            {
+                loc: '/taodanso/tao-dan-ngau-nhien9x0x',
+                lastmod: new Date().toISOString().split('T')[0],
+                changefreq: 'weekly',
+                priority: 0.8,
+            },
+            {
+                loc: '/soicau/soi-cau-mien-bac',
+                lastmod: new Date().toISOString().split('T')[0],
+                changefreq: 'daily',
+                priority: 0.8,
+            },
+            {
+                loc: '/soicau/soi-cau-mien-trung',
+                lastmod: new Date().toISOString().split('T')[0],
+                changefreq: 'daily',
+                priority: 0.8,
+            },
+            {
+                loc: '/thongke/lo-gan',
+                lastmod: new Date().toISOString().split('T')[0],
+                changefreq: 'weekly',
+                priority: 0.8,
+            },
+            {
+                loc: '/thongke/giai-dac-biet',
+                lastmod: new Date().toISOString().split('T')[0],
+                changefreq: 'weekly',
+                priority: 0.8,
+            },
+            {
+                loc: '/thongke/dau-duoi',
+                lastmod: new Date().toISOString().split('T')[0],
+                changefreq: 'weekly',
+                priority: 0.8,
+            },
+            {
+                loc: '/thongke/giai-dac-biet-tuan',
+                lastmod: new Date().toISOString().split('T')[0],
+                changefreq: 'weekly',
+                priority: 0.8,
+            },
+        ];
         const today = new Date();
         for (let i = 0; i < 30; i++) {
             const date = new Date(today);

@@ -51,7 +51,7 @@ const XSMB = ({ initialData }) => {
 
     const title = `Kết Quả Xổ Số Miền Bắc - ${drawDate}`;
     const description = `Xem kết quả xổ số Miền Bắc ngày ${drawDate} với thông tin chi tiết về giải đặc biệt, lô tô, đầu đuôi.`;
-    const canonicalUrl = 'https://www.xsmb.win/xsmb';
+    const canonicalUrl = 'https://www.xsmb.win/ket-qua-xo-so-mien-bac';
 
     // Fallback UI nếu initialData rỗng
     if (!Array.isArray(initialData) || initialData.length === 0) {
