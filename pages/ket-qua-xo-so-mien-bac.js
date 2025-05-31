@@ -11,8 +11,8 @@ import { apiMB } from './api/kqxs/kqxsMB';
 import styles from '../public/css/kqxsMB.module.css';
 
 // Lazy load components
-const PostList = dynamic(() => import('./post/list'), { ssr: false });
-const ThongKe = dynamic(() => import('../component/ThongKe'), { ssr: true });
+const PostList = dynamic(() => import('./post/list.js'), { ssr: false });
+const ThongKe = dynamic(() => import('../component/thongKe.js'), { ssr: true });
 
 export async function getStaticProps() {
     try {
