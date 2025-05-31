@@ -5,7 +5,7 @@ import styles from '../../../styles/taodan2D.module.css';
 import TaoDan2DLogic from './Dan2D';
 import TaoDan2DContent from './TaoDan2DContent';
 import ThongKe from '../../../component/thongKe';
-
+import CongCuHot from '../../../component/CongCuHot';
 // Component Share Buttons
 const ShareButtons = ({ url, title }) => {
     const encodedUrl = encodeURIComponent(url);
@@ -133,7 +133,10 @@ const TaoDan2DPage = () => {
                 <ShareButtons url={pageUrl} title={pageTitle} />
                 <TaoDan2DContent />
             </div>
-            <ThongKe />
+            <div>
+                <ThongKe />
+                <CongCuHot />
+            </div>
         </div>
     );
 };

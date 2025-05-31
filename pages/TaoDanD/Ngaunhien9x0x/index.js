@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import styles from '../../../styles/NgauNhien9x.module.css';
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 import ThongKe from '../../../component/thongKe';
+import CongCuHot from '../../../component/CongCuHot';
 const debounce = (func, delay) => {
     let timeoutId;
     return (...args) => {
@@ -224,7 +225,10 @@ const Ngaunhien9x0x = () => {
                     </div>
                 </div>
             </div>
-            <ThongKe />
+            <div>
+                <ThongKe />
+                <CongCuHot />
+            </div>
         </div>
     );
 };

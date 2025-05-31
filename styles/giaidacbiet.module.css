@@ -1,160 +1,230 @@
 /* Tổng thể container */
 .container {
     width: 100%;
-    min-width: 770px;
-    font-family: "Poppins", sans-serif;
-    background-color: #f9fafb;
-    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    font-family: "Inter", sans-serif;
+    padding: 16px;
+    background-color: #ffffff;
 }
 
 /* Tiêu đề chính */
 .titleGroup {
     text-align: center;
-    padding: 30px 10px;
+    padding: 24px 12px;
+    border: 1px solid #e5e7eb;
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
+    background: #ffeca0;
+    border-radius: 8px;
+    margin-bottom: 24px;
+}
+
+/* Nút Điều hướng */
+.actionBtn {
+    display: flex;
     background-color: #ffffff;
-    border: 2px solid #1e3a8a;
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px;
+    align-items: center;
+    justify-content: center;
+}
+
+.actionTK {
+    line-height: 20px;
+    border: 1px solid #0396FF;
+    padding: 10px;
+    width: 100%;
+    color: #0396FF;
+    text-align: center;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.actionTK:hover {
+    background-color: #0396FF;
+    color: #ffffff;
+}
+
+.active {
+    color: #ffffff;
+    background-color: #0396FF;
 }
 
 .title {
-    text-align: center;
-    font-family: "Sora", sans-serif;
-    font-size: 1.6rem;
+    font-family: "Inter", sans-serif;
+    font-size: 1.5rem;
     font-weight: 700;
-    color: #1e3a8a;
-    letter-spacing: 0.5px;
+    color: #c80505;
+    margin-bottom: 8px;
+    line-height: 1.4;
+    text-align: center;
 }
 
 /* Nội dung chính */
 .content {
-    margin-top: 30px;
-    padding: 20px;
+    margin-top: 24px;
+    padding: 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
     background-color: #ffffff;
-    border: 2px solid #93c5fd;
-    border-radius: 12px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease;
+}
+
+.content:hover {
+    transform: translateY(-1px);
 }
 
 /* Nhóm chọn tỉnh và thời gian */
 .group_Select {
-    margin-top: 20px;
+    margin-top: 24px;
     display: flex;
     align-items: center;
+    gap: 24px;
     justify-content: center;
-    gap: 20px;
-    flex-wrap: wrap;
+}
+
+.selectGroup {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 200px;
 }
 
 .dateTime {
-    padding: 5px 0;
-    font-size: 1rem;
-    color: #1e3a8a;
-    font-weight: 600;
+    padding: 4px 0;
+    font-size: 0.95rem;
+    color: #c80505;
+    font-weight: 700;
+    flex: 1;
+    min-width: 200px;
 }
 
 .dateTime span {
-    color: #374151;
+    color: #1f2937;
+    font-weight: 500;
 }
 
 .select {
-    border: 2px solid #1e3a8a;
-    border-radius: 8px;
-    width: 160px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    width: 100%;
+    max-width: 180px;
     height: 40px;
-    padding: 5px;
+    padding: 0 12px;
     font-size: 1rem;
-    color: #1e3a8a;
     background-color: #ffffff;
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-.select:focus {
-    outline: none;
-    border-color: #93c5fd;
-    box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.3);
+.select:hover {
+    border-color: #c80505;
+    box-shadow: 0 0 0 2px rgba(200, 5, 5, 0.1);
 }
 
-.select:hover {
-    border-color: #93c5fd;
-    box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.1);
+.select:focus {
+    border-color: #ed1c25;
+    box-shadow: 0 0 0 2px rgba(237, 28, 37, 0.2);
+    background-color: #fff5f5;
+}
+
+.select.active {
+    border-color: #ed1c25;
+    background-color: #fff5f5;
+    font-weight: 600;
+    color: #ed1c25;
 }
 
 .options {
     font-size: 1rem;
-    font-weight: 600;
-    color: #1e3a8a;
+    font-weight: 500;
+    color: #1f2937;
 }
 
 /* Bảng dữ liệu */
+.tableWrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
 .table {
-    margin-top: 20px;
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
     width: 100%;
     border-collapse: collapse;
+    font-size: 1rem;
+    margin-top: 16px;
     background-color: #ffffff;
     border-radius: 8px;
     overflow: hidden;
 }
 
-.table th {
-    font-size: 1.1rem;
-    font-weight: 700;
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    color: #ffffff;
-    padding: 15px 10px;
-    border-bottom: 2px solid #93c5fd;
-}
-
+.table th,
 .table td {
-    padding: 15px 10px;
+    padding: 12px 16px;
     border: 1px solid #e5e7eb;
-    vertical-align: top;
-    font-size: 1.2rem;
-    color: #374151;
     text-align: center;
+    transition: background-color 0.3s ease;
 }
 
-.table tr:nth-child(even) {
-    background-color: #f9fafb;
+.table th {
+    background: #ed1c25;
+    color: #ffffff;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.table tr:nth-child(odd) {
+    background-color: #e5e7eb63;
 }
 
 .table tr:hover {
-    background-color: #eff6ff;
-    transition: background-color 0.2s ease;
+    background-color: #e0f2fe;
+}
+
+.table th:nth-child(1),
+.table td:nth-child(1) {
+    min-width: 100px;
+}
+
+.table th:nth-child(2),
+.table td:nth-child(2) {
+    min-width: 120px;
+}
+
+.table th:nth-child(3),
+.table td:nth-child(3) {
+    min-width: 100px;
 }
 
 /* Số giải đặc biệt */
 .number {
-    color: #1e3a8a;
     font-weight: 700;
-    font-size: 1.2rem;
-    background-color: #dbeafe;
-    padding: 5px 10px;
-    margin-top: 5px;
-    border-radius: 5px;
+    color: #c80505;
+    background-color: #f3f4f6;
+    padding: 6px 10px;
+    border-radius: 4px;
     display: inline-block;
-    width: 100%;
-    text-align: center;
+    font-size: 1.4rem;
+    /* Font-size lớn trên PC/desktop */
 }
 
 /* Ngày và tỉnh */
 .date {
-    line-height: 1.5;
-    color: #374151;
-    font-size: 0.95rem;
+    color: var(--background-color);
+    font-weight: 500;
+    font-size: 1rem;
 }
 
 .tinh {
-    font-size: 0.9rem;
-    color: #6b7280;
+    color: #4b5563;
     font-weight: 500;
+    font-size: 1rem;
 }
 
 /* Mỗi mục trong cột (khi hiển thị 3 cột) */
 .entry {
-    margin-bottom: 10px;
-    padding: 5px;
+    margin-bottom: 12px;
+    padding: 8px;
     border-bottom: 1px solid #e5e7eb;
 }
 
@@ -165,111 +235,113 @@
 
 /* Skeleton loading */
 .skeleton {
-    background: #e5e7eb;
+    background: linear-gradient(90deg, #e5e7eb 25%, #d1d5db 50%, #e5e7eb 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
     height: 20px;
     border-radius: 4px;
-    animation: skeleton-loading 1s linear infinite alternate;
 }
 
-@keyframes skeleton-loading {
+@keyframes shimmer {
     0% {
-        background-color: #e5e7eb;
+        background-position: 200% 0;
     }
 
     100% {
-        background-color: #f3f4f6;
+        background-position: -200% 0;
     }
 }
 
 /* Thông báo lỗi và không có dữ liệu */
 .error {
-    color: #dc2626;
+    color: #c80505;
     text-align: center;
-    margin: 20px 0;
+    margin: 16px 0;
     font-weight: 500;
+    font-size: 1rem;
 }
 
 .noData {
     text-align: center;
-    color: #6b7280;
-    margin: 20px 0;
-    font-weight: 500;
+    color: #4b5563;
+    margin: 16px 0;
+    font-style: italic;
+    font-size: 1rem;
 }
 
 /* Phần nội dung mô tả */
 .Group_Content {
-    margin-top: 30px;
-    padding: 25px;
+    margin-top: 32px;
+    padding: 24px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
     background-color: #ffffff;
-    border: 2px solid #93c5fd;
-    border-radius: 12px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .heading {
-    padding: 15px 0;
+    padding: 12px 0;
     font-weight: 700;
     font-size: 1.3rem;
-    line-height: 1.5;
-    color: #1e3a8a;
-    text-align: center;
+    line-height: 1.4;
+    color: #c80505;
+    border-bottom: 1px solid #e5e7eb;
 }
 
 .h3 {
-    padding: 10px 0;
-    font-weight: 600;
+    padding: 8px 0;
+    font-weight: 700;
     font-size: 1.1rem;
     line-height: 1.3;
-    color: #1e3a8a;
+    color: #1f2937;
 }
 
 .strong {
     font-weight: 700;
-    color: #1e3a8a;
+    color: #1f2937;
 }
 
 .desc {
-    padding: 5px 0;
-    font-size: 1rem;
+    padding: 4px 0;
+    font-size: 0.95rem;
     line-height: 1.5;
-    color: #374151;
+    color: #4b5563;
 }
 
 .action {
-    color: #1e3a8a;
-    font-weight: 600;
-    text-decoration: none;
+    color: #c80505;
+    font-weight: 500;
     transition: color 0.3s ease;
 }
 
 .action:hover {
-    color: #93c5fd;
-    text-decoration: underline;
+    color: #991b1b;
 }
 
 /* Style cho nút "Quay lại đầu trang" */
 .scrollToTopBtn {
     position: fixed;
-    bottom: 40px;
-    right: 40px;
+    bottom: 16px;
+    right: 16px;
     display: none;
-    width: 50px;
-    height: 50px;
-    background: linear-gradient(135deg, #1e3a8a 0%, #93c5fd 100%);
+    width: 48px;
+    height: 48px;
+    background: #ed1c25;
     color: #ffffff;
-    font-size: 1.5rem;
+    font-size: 1.3rem;
     font-weight: 700;
     border: none;
     border-radius: 50%;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     transition: opacity 0.3s ease, transform 0.3s ease;
     z-index: 1000;
 }
 
 .scrollToTopBtn:hover {
+    background: #c80505;
     opacity: 0.9;
-    transform: translateY(-4px);
+    transform: translateY(-3px);
 }
 
 .scrollToTopBtn:active {
@@ -283,7 +355,7 @@
 }
 
 .contentWrapper.collapsed {
-    max-height: 300px;
+    max-height: 280px;
     opacity: 0.8;
 }
 
@@ -294,23 +366,23 @@
 
 .toggleBtn {
     display: block;
-    margin: 20px auto;
+    margin: 16px auto;
     padding: 12px 24px;
-    background: linear-gradient(135deg, #1e3a8a 0%, #93c5fd 100%);
+    background: #ed1c25;
     color: #ffffff;
     font-size: 1rem;
-    font-weight: 600;
+    font-weight: 500;
     border: none;
-    border-radius: 8px;
+    border-radius: 6px;
     cursor: pointer;
     transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .toggleBtn:hover {
-    background: linear-gradient(135deg, #93c5fd 0%, #1e3a8a 100%);
+    background: #c80505;
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 .toggleBtn:active {
@@ -320,12 +392,27 @@
 /* Responsive Design */
 @media (max-width: 1024px) {
     .container {
-        min-width: 100%;
-        padding: 15px;
+        padding: 12px;
+    }
+
+    .actionBtn {
+        display: grid;
+        grid-template-columns: minmax(100px, 1fr);
+        background-color: #ffffff;
+        align-items: center;
+    }
+
+    .group_Select {
+        display: grid;
+        grid-template-columns: minmax(100px, 1fr);
+    }
+
+    .select {
+        width: 190px;
     }
 
     .titleGroup {
-        padding: 20px 10px;
+        padding: 16px 8px;
     }
 
     .title {
@@ -333,23 +420,45 @@
     }
 
     .group_Select {
-        flex-direction: column;
-        gap: 15px;
-        align-items: center;
+        gap: 16px;
+    }
+
+    .selectGroup {
+        width: 300px;
+        justify-content: space-between;
+        gap: 8px;
     }
 
     .select {
-        width: 100%;
-        max-width: 200px;
+        height: 38px;
+        font-size: 0.95rem;
+    }
+
+    .options {
+        font-size: 0.95rem;
+    }
+
+    .dateTime {
+        min-width: 180px;
     }
 
     .table {
-        font-size: 1rem;
+        font-size: 0.95rem;
     }
 
     .table th,
     .table td {
-        padding: 10px 8px;
+        padding: 10px 12px;
+    }
+
+    .number {
+        font-size: 1.3rem;
+        /* Font lớn hơn trên tablet */
+    }
+
+    .date,
+    .tinh {
+        font-size: 0.95rem;
     }
 }
 
@@ -362,8 +471,89 @@
         font-size: 1.3rem;
     }
 
+    .group_Select {
+        gap: 12px;
+    }
+
+    .selectGroup {
+        width: 300px;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .select {
+        height: 38px;
+        font-size: 0.95rem;
+    }
+
+    .options {
+        font-size: 0.95rem;
+    }
+
+    .dateTime {
+        min-width: 160px;
+    }
+
     .table {
         font-size: 0.95rem;
+        min-width: 100%;
+    }
+
+    .table th,
+    .table td {
+        padding: 10px 8px;
+    }
+
+    .number {
+        font-size: 1.25rem;
+        /* Font lớn hơn trên mobile */
+        padding: 6px 8px;
+    }
+
+    .date,
+    .tinh {
+        font-size: 0.95rem;
+    }
+
+    .scrollToTopBtn {
+        width: 44px;
+        height: 44px;
+        font-size: 1.2rem;
+        bottom: 20px;
+        right: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 8px;
+    }
+
+    .title {
+        font-size: 1.2rem;
+    }
+
+    .group_Select {
+        gap: 10px;
+    }
+
+    .selectGroup {
+        width: 300px;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .select {
+        width: 190px;
+        height: 36px;
+    }
+
+    .dateTime {
+        min-width: 140px;
+    }
+
+    .table {
+        font-size: 0.9rem;
     }
 
     .table th,
@@ -372,7 +562,9 @@
     }
 
     .number {
-        font-size: 1rem;
+        font-size: 1.15rem;
+        /* Font lớn hơn trên mobile nhỏ */
+        padding: 5px 6px;
     }
 
     .date,
@@ -381,47 +573,15 @@
     }
 
     .scrollToTopBtn {
-        bottom: 20px;
-        right: 20px;
         width: 40px;
         height: 40px;
-        font-size: 1.2rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .title {
-        font-size: 1.2rem;
+        font-size: 1.1rem;
+        bottom: 16px;
+        right: 16px;
     }
 
-    .select {
-        max-width: 100%;
-    }
-
-    .table {
+    .toggleBtn {
+        padding: 10px 20px;
         font-size: 0.9rem;
     }
-
-    .table th,
-    .table td {
-        padding: 6px 4px;
-    }
-
-    .number {
-        font-size: 0.9rem;
-    }
-
-    .scrollToTopBtn {
-        bottom: 15px;
-        right: 15px;
-        width: 36px;
-        height: 36px;
-        font-size: 1rem;
-    }
-}
-
-.dayOfWeek {
-    font-size: 0.9rem;
-    color: #555;
-    margin-top: 4px;
 }

@@ -170,7 +170,7 @@ const TableDate = () => {
         <div className={styles.container}>
             <div className={styles.containerTB}>
                 <div className={styles.header}>
-                    <h1 className={styles.title}>XỔ SỐ VN - Kết quả xổ số 3 miền - KQXS Hôm nay</h1>
+                    <h1 className={styles.title}>Bảng kết quả xổ số XSMB.WIN - KQXS Hôm nay</h1>
                 </div>
                 {approachingRegion && (
                     <div className={styles.group}>
@@ -196,12 +196,10 @@ const TableDate = () => {
                                     {currentStations.north[rowIndex] ? (
                                         <div className={styles.stationRow}>
                                             <span className={styles.stationName}>{currentStations.north[rowIndex].name}</span>
-                                            <span className={styles.time}>
-                                                {currentStations.north[rowIndex].time}
-                                            </span>
-                                            {hasBroadcasted.north && (
-                                                <span className={styles.check}>✅</span>
-                                            )}
+                                            <div className={styles.timeCheckRow}>
+                                                <span className={styles.time}>{currentStations.north[rowIndex].time}</span>
+                                                {hasBroadcasted.north && <span className={styles.check}>✅</span>}
+                                            </div>
                                         </div>
                                     ) : null}
                                 </td>
@@ -210,12 +208,10 @@ const TableDate = () => {
                                     {currentStations.central[rowIndex] ? (
                                         <div className={styles.stationRow}>
                                             <span className={styles.stationName}>{currentStations.central[rowIndex].name}</span>
-                                            <span className={styles.time}>
-                                                {currentStations.central[rowIndex].time}
-                                            </span>
-                                            {hasBroadcasted.central && (
-                                                <span className={styles.check}>✅</span>
-                                            )}
+                                            <div className={styles.timeCheckRow}>
+                                                <span className={styles.time}>{currentStations.central[rowIndex].time}</span>
+                                                {hasBroadcasted.central && <span className={styles.check}>✅</span>}
+                                            </div>
                                         </div>
                                     ) : null}
                                 </td>
@@ -224,12 +220,10 @@ const TableDate = () => {
                                     {currentStations.south[rowIndex] ? (
                                         <div className={styles.stationRow}>
                                             <span className={styles.stationName}>{currentStations.south[rowIndex].name}</span>
-                                            <span className={styles.time}>
-                                                {currentStations.south[rowIndex].time}
-                                            </span>
-                                            {hasBroadcasted.south && (
-                                                <span className={styles.check}>✅</span>
-                                            )}
+                                            <div className={styles.timeCheckRow}>
+                                                <span className={styles.time}>{currentStations.south[rowIndex].time}</span>
+                                                {hasBroadcasted.south && <span className={styles.check}>✅</span>}
+                                            </div>
                                         </div>
                                     ) : null}
                                 </td>

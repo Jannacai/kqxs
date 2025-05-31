@@ -9,9 +9,9 @@ const CongCuHot = () => {
     const router = useRouter();
 
     const items = [
-        { title: "Tạo dàn nhanh đặc biệt", href: "/TaoDan/" },
-        { title: "Tạo dàn 2D", href: "/TaoDanD/2D/" },
-        { title: "Tạo dàn 3D/4D", href: "/TaoDanD/3D4D/" },
+        { title: "Tạo dàn nhanh đặc biệt", href: "/TaoDan" },
+        { title: "Tạo dàn 2D", href: "/TaoDanD/2D" },
+        { title: "Tạo dàn 3D/4D", href: "/TaoDanD/3D4D" },
         { title: "Tạo dàn 9X0X ngẫu nhiên", href: "/TaoDanD/Ngaunhien9x0x" },
         { title: "Soi cầu miền Bắc", href: "/soicau/soicauMB" },
         { title: "Soi cầu miền Trung", href: "/soicau/soicauMT" },
@@ -24,7 +24,7 @@ const CongCuHot = () => {
             <div className={styles.container}>
                 <h3 className={styles.title}>
                     <span className={styles.icon}><i class="fa-solid fa-fire"></i></span>
-                    Thống Kê Hot
+                    Công Cụ Hot
                 </h3>
                 <ul className={styles.list}>
                     {items.map((item, index) => (

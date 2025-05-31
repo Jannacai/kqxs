@@ -2,10 +2,12 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import styles from '../../styles/giaidacbiettuan.module.css';
 import ThongKe from '../../component/thongKe';
+import CongCuHot from '../../component/CongCuHot';
 import { apiMB } from '../api/kqxs/kqxsMB';
 import { apiMT } from '../api/kqxs/kqxsMT';
 import { apiMN } from '../api/kqxs/kqxsMN';
-
+import Link from 'next/link';
+import { useRouter } from 'next/router';
 // Danh sách tỉnh
 const provinceSlugs = {
     "Vũng Tàu": "vung-tau",
@@ -66,7 +68,7 @@ const SkeletonRowDaysOfWeek = () => (
 );
 
 const SkeletonTableDaysOfWeek = () => (
-    <table className={styles.table}>
+    <table className={styles.table} aria-label="Bảng skeleton cho thống kê giải đặc biệt">
         <thead>
             <tr>
                 <th>Thứ 2</th>
@@ -85,6 +87,7 @@ const SkeletonTableDaysOfWeek = () => (
 );
 
 const GiaiDacBietTheoTuan = ({ initialStats, initialMetadata, initialMonth, initialYear, initialRegion, initialTinh }) => {
+    const router = useRouter();
     const [stats, setStats] = useState(initialStats || []);
     const [metadata, setMetadata] = useState(initialMetadata || {});
     const [month, setMonth] = useState(initialMonth || new Date().getMonth() + 1);
@@ -101,17 +104,13 @@ const GiaiDacBietTheoTuan = ({ initialStats, initialMetadata, initialMonth, init
         setLoading(true);
         setError(null);
         try {
-            console.log('Calling apiMB.getSpecialStatsByWeek with month:', month, 'year:', year);
             const data = await apiMB.getSpecialStatsByWeek(month, year);
-            console.log('Dữ liệu API Miền Bắc:', data);
             setStats(data.statistics || []);
             setMetadata(data.metadata || {});
             if (!data.statistics || data.statistics.length === 0) {
-                console.log('Không có dữ liệu giải đặc biệt cho Miền Bắc trong khoảng thời gian đã chọn.');
                 setError(`Không có dữ liệu giải đặc biệt cho Miền Bắc trong tháng ${month}/${year}.`);
             }
         } catch (err) {
-            console.log('Lỗi khi lấy dữ liệu Miền Bắc:', err.message);
             setError(`Không có dữ liệu giải đặc biệt cho Miền Bắc trong tháng ${month}/${year}.`);
             setStats([]);
             setMetadata({});
@@ -128,10 +127,8 @@ const GiaiDacBietTheoTuan = ({ initialStats, initialMetadata, initialMonth, init
             if (tinh === 'all') {
                 const promises = mienTrungProvinces.map(async (province) => {
                     const provinceTinh = provinceSlugs[province];
-                    console.log('Calling apiMT.getSpecialStatsByWeek with month:', month, 'year:', year, 'tinh:', provinceTinh);
                     try {
                         const data = await apiMT.getSpecialStatsByWeek(month, year, provinceTinh, { signal });
-                        console.log(`Dữ liệu API Miền Trung (tỉnh: ${province}):`, data);
                         return {
                             stats: (data.statistics || []).map(stat => ({
                                 ...stat,
@@ -141,11 +138,7 @@ const GiaiDacBietTheoTuan = ({ initialStats, initialMetadata, initialMonth, init
                             metadata: data.metadata || {}
                         };
                     } catch (err) {
-                        if (err.name === 'AbortError') {
-                            console.log(`Request cho tỉnh ${provinceTinh} bị hủy.`);
-                            return { stats: [], metadata: {} };
-                        }
-                        console.warn(`Không lấy được dữ liệu cho tỉnh ${provinceTinh} (Miền Trung):`, err.message);
+                        if (err.name === 'AbortError') return { stats: [], metadata: {} };
                         return { stats: [], metadata: {} };
                     }
                 });
@@ -161,18 +154,14 @@ const GiaiDacBietTheoTuan = ({ initialStats, initialMetadata, initialMonth, init
                     totalNumbers: (acc.totalNumbers || 0) + (result.metadata.totalNumbers || 0)
                 }), {});
 
-                console.log('Dữ liệu API Miền Trung (sau gộp):', allStats);
                 if (signal.aborted) return;
                 setStats(allStats);
                 setMetadata(combinedMetadata);
                 if (!allStats || allStats.length === 0) {
-                    console.log(`Không có dữ liệu giải đặc biệt cho Miền Trung trong tháng ${month}/${year}.`);
                     setError(`Không có dữ liệu giải đặc biệt cho Miền Trung trong tháng ${month}/${year}.`);
                 }
             } else {
-                console.log('Calling apiMT.getSpecialStatsByWeek with month:', month, 'year:', year, 'tinh:', tinh);
                 const data = await apiMT.getSpecialStatsByWeek(month, year, tinh, { signal });
-                console.log('Dữ liệu API Miền Trung:', data);
                 const mappedStats = (data.statistics || []).map(stat => ({
                     ...stat,
                     tinh,
@@ -182,16 +171,11 @@ const GiaiDacBietTheoTuan = ({ initialStats, initialMetadata, initialMonth, init
                 setStats(mappedStats);
                 setMetadata(data.metadata || {});
                 if (!mappedStats || mappedStats.length === 0) {
-                    console.log(`Không có dữ liệu giải đặc biệt cho Miền Trung (tỉnh: ${tinh}) trong tháng ${month}/${year}.`);
                     setError(`Không có dữ liệu giải đặc biệt cho Miền Trung (tỉnh: ${tinh}) trong tháng ${month}/${year}.`);
                 }
             }
         } catch (err) {
-            if (err.name === 'AbortError') {
-                console.log('Request Miền Trung bị hủy.');
-                return;
-            }
-            console.log('Lỗi khi lấy dữ liệu Miền Trung:', err.message);
+            if (err.name === 'AbortError') return;
             if (signal.aborted) return;
             setError(`Không có dữ liệu giải đặc biệt cho Miền Trung (tỉnh: ${tinh || 'tất cả'}) trong tháng ${month}/${year}.`);
             setStats([]);
@@ -209,10 +193,8 @@ const GiaiDacBietTheoTuan = ({ initialStats, initialMetadata, initialMonth, init
             if (tinh === 'all') {
                 const promises = mienNamProvinces.map(async (province) => {
                     const provinceTinh = provinceSlugs[province];
-                    console.log('Calling apiMN.getSpecialStatsByWeek with month:', month, 'year:', year, 'tinh:', provinceTinh);
                     try {
                         const data = await apiMN.getSpecialStatsByWeek(month, year, provinceTinh, { signal });
-                        console.log(`Dữ liệu API Miền Nam (tỉnh: ${province}):`, data);
                         return {
                             stats: (data.statistics || []).map(stat => ({
                                 ...stat,
@@ -222,11 +204,7 @@ const GiaiDacBietTheoTuan = ({ initialStats, initialMetadata, initialMonth, init
                             metadata: data.metadata || {}
                         };
                     } catch (err) {
-                        if (err.name === 'AbortError') {
-                            console.log(`Request cho tỉnh ${provinceTinh} bị hủy.`);
-                            return { stats: [], metadata: {} };
-                        }
-                        console.warn(`Không lấy được dữ liệu cho tỉnh ${provinceTinh} (Miền Nam):`, err.message);
+                        if (err.name === 'AbortError') return { stats: [], metadata: {} };
                         return { stats: [], metadata: {} };
                     }
                 });
@@ -242,18 +220,14 @@ const GiaiDacBietTheoTuan = ({ initialStats, initialMetadata, initialMonth, init
                     totalNumbers: (acc.totalNumbers || 0) + (result.metadata.totalNumbers || 0)
                 }), {});
 
-                console.log('Dữ liệu API Miền Nam (sau gộp):', allStats);
                 if (signal.aborted) return;
                 setStats(allStats);
                 setMetadata(combinedMetadata);
                 if (!allStats || allStats.length === 0) {
-                    console.log(`Không có dữ liệu giải đặc biệt cho Miền Nam trong tháng ${month}/${year}.`);
                     setError(`Không có dữ liệu giải đặc biệt cho Miền Nam trong tháng ${month}/${year}.`);
                 }
             } else {
-                console.log('Calling apiMN.getSpecialStatsByWeek with month:', month, 'year:', year, 'tinh:', tinh);
                 const data = await apiMN.getSpecialStatsByWeek(month, year, tinh, { signal });
-                console.log('Dữ liệu API Miền Nam:', data);
                 const mappedStats = (data.statistics || []).map(stat => ({
                     ...stat,
                     tinh,
@@ -263,16 +237,11 @@ const GiaiDacBietTheoTuan = ({ initialStats, initialMetadata, initialMonth, init
                 setStats(mappedStats);
                 setMetadata(data.metadata || {});
                 if (!mappedStats || mappedStats.length === 0) {
-                    console.log(`Không có dữ liệu giải đặc biệt cho Miền Nam (tỉnh: ${tinh}) trong tháng ${month}/${year}.`);
                     setError(`Không có dữ liệu giải đặc biệt cho Miền Nam (tỉnh: ${tinh}) trong tháng ${month}/${year}.`);
                 }
             }
         } catch (err) {
-            if (err.name === 'AbortError') {
-                console.log('Request Miền Nam bị hủy.');
-                return;
-            }
-            console.log('Lỗi khi lấy dữ liệu Miền Nam:', err.message);
+            if (err.name === 'AbortError') return;
             if (signal.aborted) return;
             setError(`Không có dữ liệu giải đặc biệt cho Miền Nam (tỉnh: ${tinh || 'tất cả'}) trong tháng ${month}/${year}.`);
             setStats([]);
@@ -308,7 +277,6 @@ const GiaiDacBietTheoTuan = ({ initialStats, initialMetadata, initialMonth, init
             setTinh(null);
         } else {
             setTinh('all');
-            console.log('Selected region:', selectedRegion, 'default tinh: all');
         }
     }, []);
 
@@ -327,7 +295,6 @@ const GiaiDacBietTheoTuan = ({ initialStats, initialMetadata, initialMonth, init
     };
 
     useEffect(() => {
-        console.log('useEffect triggered with region:', region, 'tinh:', tinh, 'month:', month, 'year:', year);
         fetchSpecialPrizeStatsByWeek();
         return () => {
             if (abortControllerRef.current) {
@@ -342,7 +309,6 @@ const GiaiDacBietTheoTuan = ({ initialStats, initialMetadata, initialMonth, init
             const windowHeight = document.documentElement.scrollHeight - window.innerHeight;
             const scrollPercentage = (scrollTop / windowHeight) * 100;
             const scrollToTopBtn = document.getElementById('scrollToTopBtn');
-
             if (scrollPercentage > 50) {
                 scrollToTopBtn.style.display = 'block';
             } else {
@@ -354,65 +320,52 @@ const GiaiDacBietTheoTuan = ({ initialStats, initialMetadata, initialMonth, init
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // Hàm tổ chức dữ liệu theo ngày trong tuần
+    // Hàm tổ chức dữ liệu theo ngày trong tuần (tối ưu hóa)
     const organizeStatsByDayOfWeek = () => {
         const daysOfWeek = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'CN'];
-
         const daysInMonth = new Date(year, month, 0).getDate();
-        const allDays = Array.from({ length: daysInMonth }, (_, i) => i + 1);
-
-        const dayStats = allDays.map(day => {
-            const date = new Date(year, month - 1, day);
-            const dayOfWeekIndex = (date.getDay() + 6) % 7; // Điều chỉnh để Thứ 2 = 0
-            const dayOfWeek = daysOfWeek[dayOfWeekIndex];
-            const displayDate = `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
-            const compareDate = `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
-
-            const matchingStats = stats.filter(s => {
-                if (!s.drawDate) return false;
-                let normalizedDate;
-                try {
-                    normalizedDate = s.drawDate.replace(/\s/g, '').replace(/\/+/g, '/');
-                    const [dayApi, monthApi, yearApi] = normalizedDate.split('/');
-                    if (!dayApi || !monthApi || !yearApi) throw new Error('Ngày không đầy đủ');
-                    normalizedDate = `${dayApi.padStart(2, '0')}/${monthApi.padStart(2, '0')}/${yearApi}`;
-                    return normalizedDate === compareDate;
-                } catch (e) {
-                    console.warn(`Lỗi định dạng ngày cho stat: ${s.drawDate || 'undefined'}`, e.message);
-                    return false;
-                }
-            });
-
-            console.log(`Ngày ${displayDate}:`, matchingStats.length > 0 ? `Có ${matchingStats.length} kết quả` : 'Không có dữ liệu');
-
-            return {
-                day,
-                date: displayDate,
-                dayOfWeek,
-                dayOfWeekIndex,
-                stats: matchingStats.length > 0 ? matchingStats : null,
-            };
-        });
-
         const rows = [];
         let currentRow = Array(7).fill(null);
 
-        dayStats.forEach(dayStat => {
-            const { dayOfWeekIndex, stats, date } = dayStat;
+        // Cache normalized stats to avoid repeated processing
+        const normalizedStats = stats.map(stat => {
+            if (!stat.drawDate) return null;
+            try {
+                const normalizedDate = stat.drawDate.replace(/\s/g, '').replace(/\/+/g, '/');
+                const [dayApi, monthApi, yearApi] = normalizedDate.split('/');
+                if (!dayApi || !monthApi || !yearApi) return null;
+                return {
+                    ...stat,
+                    normalizedDate: `${dayApi.padStart(2, '0')}/${monthApi.padStart(2, '0')}/${yearApi}`
+                };
+            } catch {
+                return null;
+            }
+        }).filter(Boolean);
+
+        // Process each day in the month
+        for (let day = 1; day <= daysInMonth; day++) {
+            const date = new Date(year, month - 1, day);
+            const dayOfWeekIndex = (date.getDay() + 6) % 7; // Adjust so Monday = 0
+            const displayDate = `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
+
+            // Find matching stats for the current date
+            const matchingStats = normalizedStats
+                .filter(s => s.normalizedDate === displayDate)
+                .map(s => ({ ...s, drawDate: displayDate }));
 
             if (dayOfWeekIndex === 0 && currentRow.some(slot => slot !== null)) {
                 rows.push(currentRow);
                 currentRow = Array(7).fill(null);
             }
 
-            currentRow[dayOfWeekIndex] = { stats, date };
-        });
+            currentRow[dayOfWeekIndex] = matchingStats.length > 0 ? { stats: matchingStats, date: displayDate } : null;
+        }
 
         if (currentRow.some(slot => slot !== null)) {
             rows.push(currentRow);
         }
 
-        console.log('Dữ liệu tuần:', rows);
         return rows;
     };
 
@@ -442,6 +395,12 @@ const GiaiDacBietTheoTuan = ({ initialStats, initialMetadata, initialMonth, init
             <div className={styles.container}>
                 <div className={styles.titleGroup}>
                     <h1 className={styles.title}>{pageTitle}</h1>
+                    <div className={styles.actionBtn}>
+                        <Link className={styles.actionTK} href="giai-dac-biet">Thống Kê Giải Đặc Biệt </Link>
+                        <Link className={`${styles.actionTK} ${router.pathname.startsWith('/thongke/dau-duoi') ? styles.active : ''}`} href="dau-duoi">Thống Kê Đầu Đuôi </Link>
+                        <Link className={`${styles.actionTK} ${router.pathname.startsWith('/thongke/giai-dac-biet-tuan') ? styles.active : ''}`} href="giai-dac-biet-tuan">Thống Kê Giải Đặc Biệt Tuần </Link>
+
+                    </div>
                 </div>
 
                 <div className={styles.content}>
@@ -449,113 +408,127 @@ const GiaiDacBietTheoTuan = ({ initialStats, initialMetadata, initialMonth, init
                         <p className={styles.title}>Thống kê giải đặc biệt từ {metadata.startDate || ''} đến {metadata.endDate || ''}</p>
                     </div>
 
+                    {/* Bộ lọc: Miền, Tỉnh, Tháng, Năm */}
                     <div className={styles.group_Select}>
-                        <label className={styles.options}>Chọn miền: </label>
-                        <select className={styles.select} onChange={handleRegionChange} value={region}>
-                            <option value="Miền Bắc">Miền Bắc</option>
-                            <option value="Miền Trung">Miền Trung</option>
-                            <option value="Miền Nam">Miền Nam</option>
-                        </select>
+
+                        <div className={styles.selectGroup}>
+                            <label className={styles.options}>Chọn miền: </label>
+                            <select className={styles.select} onChange={handleRegionChange} value={region}>
+                                <option value="Miền Bắc">Miền Bắc</option>
+                                <option value="Miền Trung">Miền Trung</option>
+                                <option value="Miền Nam">Miền Nam</option>
+                            </select>
+                        </div>
 
                         {(region === 'Miền Trung' || region === 'Miền Nam') && (
                             <>
-                                <label className={styles.options}>Chọn tỉnh: </label>
-                                <select
-                                    className={styles.select}
-                                    onChange={(e) => {
-                                        const provinceName = e.target.options[e.target.selectedIndex].text;
-                                        const newTinh = provinceName === 'Tất cả' ? 'all' : provinceSlugs[provinceName];
-                                        setTinh(newTinh);
-                                        console.log('Selected province:', provinceName, 'tinh:', newTinh, 'region:', region);
-                                    }}
-                                    value={tinh || 'all'}
-                                >
-                                    <option value="all">Tất cả</option>
-                                    <optgroup label={region}>
-                                        {(region === 'Miền Trung' ? mienTrungProvinces : mienNamProvinces).map(province => (
-                                            <option key={provinceSlugs[province]} value={provinceSlugs[province]}>
-                                                {province}
-                                            </option>
-                                        ))}
-                                    </optgroup>
-                                </select>
+                                <div className={styles.selectGroup}>
+                                    <label className={styles.options}>Chọn tỉnh: </label>
+                                    <select
+                                        className={styles.select}
+
+                                        onChange={(e) => {
+                                            const provinceName = e.target.options[e.target.selectedIndex].text;
+                                            const newTinh = provinceName === 'Tất cả' ? 'all' : provinceSlugs[provinceName];
+                                            setTinh(newTinh);
+                                        }}
+                                        value={tinh || 'all'}
+                                    >
+                                        <option value="all">Tất cả</option>
+                                        <optgroup label={region}>
+                                            {(region === 'Miền Trung' ? mienTrungProvinces : mienNamProvinces).map(province => (
+                                                <option key={provinceSlugs[province]} value={provinceSlugs[province]}>
+                                                    {province}
+                                                </option>
+                                            ))}
+                                        </optgroup>
+                                    </select>
+                                </div>
                             </>
                         )}
 
-                        <label className={styles.options}>Chọn tháng: </label>
-                        <select className={styles.select} value={month} onChange={handleMonthChange}>
-                            {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
-                                <option key={m} value={m}>{`Tháng ${m}`}</option>
-                            ))}
-                        </select>
+                        <div className={styles.selectGroup}>
+                            <label className={styles.options}>Chọn tháng: </label>
+                            <select className={styles.select} value={month} onChange={handleMonthChange}>
+                                {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+                                    <option key={m} value={m}>{`Tháng ${m}`}</option>
+                                ))}
+                            </select>
+                        </div>
 
-                        <label className={styles.options}>Chọn năm: </label>
-                        <select className={styles.select} value={year} onChange={handleYearChange}>
-                            {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(y => (
-                                <option key={y} value={y}>{y}</option>
-                            ))}
-                        </select>
+                        <div className={styles.selectGroup}>
+                            <label className={styles.options}>Chọn năm: </label>
+                            <select className={styles.select} value={year} onChange={handleYearChange}>
+                                {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                                    <option key={y} value={y}>{y}</option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
 
+                    {/* Bảng kết quả */}
                     {loading && <SkeletonTableDaysOfWeek />}
 
                     {error && <p className={styles.error}>{error}</p>}
 
                     {!loading && !error && (
-                        <table className={styles.table}>
-                            <thead>
-                                <tr>
-                                    <th>Thứ 2</th>
-                                    <th>Thứ 3</th>
-                                    <th>Thứ 4</th>
-                                    <th>Thứ 5</th>
-                                    <th>Thứ 6</th>
-                                    <th>Thứ 7</th>
-                                    <th>CN</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {weeks.length > 0 ? (
-                                    weeks.map((week, weekIndex) => (
-                                        <tr key={weekIndex}>
-                                            {week.map((slot, dayIndex) => (
-                                                <td key={dayIndex}>
-                                                    {slot && slot.stats ? (
-                                                        <div className={styles.entry}>
-                                                            {slot.stats.map((stat, statIndex) => (
-                                                                <div key={statIndex} className={styles.statItem}>
-                                                                    <div className={styles.number}>
-                                                                        {stat.number.slice(0, -2)}
-                                                                        <span className={styles.lastTwo}>
-                                                                            {stat.number.slice(-2)}
-                                                                        </span>
-                                                                    </div>
-                                                                    <div className={styles.date}>{slot.date}</div>
-                                                                    {(region === 'Miền Trung' || region === 'Miền Nam') && stat.tinh && (
-                                                                        <div className={styles.tinh}>
-                                                                            {stat.tenth || Object.keys(provinceSlugs).find(key => provinceSlugs[key] === stat.tinh) || stat.tinh}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    ) : null}
-                                                </td>
-                                            ))}
-                                        </tr>
-                                    ))
-                                ) : (
+                        <div className={styles.tableContainer}>
+                            <table className={styles.table} aria-label="Bảng thống kê giải đặc biệt theo tuần">
+                                <thead>
                                     <tr>
-                                        <td colSpan={7} className={styles.noData}>
-                                            Không có dữ liệu giải đặc biệt trong khoảng thời gian đã chọn.
-                                        </td>
+                                        <th>Thứ 2</th>
+                                        <th>Thứ 3</th>
+                                        <th>Thứ 4</th>
+                                        <th>Thứ 5</th>
+                                        <th>Thứ 6</th>
+                                        <th>Thứ 7</th>
+                                        <th>CN</th>
                                     </tr>
-                                )}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {weeks.length > 0 ? (
+                                        weeks.map((week, weekIndex) => (
+                                            <tr key={weekIndex}>
+                                                {week.map((slot, dayIndex) => (
+                                                    <td key={dayIndex}>
+                                                        {slot && slot.stats ? (
+                                                            <div className={styles.entry}>
+                                                                {slot.stats.map((stat, statIndex) => (
+                                                                    <div key={statIndex} className={styles.statItem}>
+                                                                        <div className={styles.number}>
+                                                                            {stat.number.slice(0, -2)}
+                                                                            <span className={styles.lastTwo}>
+                                                                                {stat.number.slice(-2)}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className={styles.date}>{slot.date}</div>
+                                                                        {(region === 'Miền Trung' || region === 'Miền Nam') && stat.tinh && (
+                                                                            <div className={styles.tinh}>
+                                                                                {stat.tenth || Object.keys(provinceSlugs).find(key => provinceSlugs[key] === stat.tinh) || stat.tinh}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        ) : null}
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={7} className={styles.noData}>
+                                                Không có dữ liệu giải đặc biệt trong khoảng thời gian đã chọn.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     )}
                 </div>
 
+                {/* Phần nội dung mô tả */}
                 <div className={styles.Group_Content}>
                     <h2 className={styles.heading}>Thống kê giải đặc biệt theo tuần tại Xổ số 3 Miền</h2>
                     <div className={`${styles.contentWrapper} ${isExpanded ? styles.expanded : styles.collapsed}`}>
@@ -575,8 +548,10 @@ const GiaiDacBietTheoTuan = ({ initialStats, initialMetadata, initialMonth, init
                 </div>
             </div>
 
-            <ThongKe region={region} tinh={tinh} />
-
+            <div>
+                <ThongKe region={region} tinh={tinh} />
+                <CongCuHot />
+            </div>
             <button
                 id="scrollToTopBtn"
                 className={styles.scrollToTopBtn}
@@ -596,7 +571,6 @@ export async function getServerSideProps() {
         const month = now.getMonth() + 1;
         const year = now.getFullYear();
         const data = await apiMB.getSpecialStatsByWeek(month, year);
-        console.log('Dữ liệu SSR Miền Bắc:', data);
 
         return {
             props: {
@@ -609,7 +583,6 @@ export async function getServerSideProps() {
             },
         };
     } catch (error) {
-        console.error('Error in getServerSideProps:', error.message);
         return {
             props: {
                 initialStats: [],

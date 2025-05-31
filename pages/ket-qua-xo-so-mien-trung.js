@@ -7,6 +7,7 @@ import ListXSMB from '../component/listXSMB';
 import ListXSMN from '../component/listXSMN';
 import PostList from './post/list';
 import TableDate from '../component/tableDateKQXS';
+import CongCuHot from '../component/CongCuHot';
 import { apiMT } from './api/kqxs/kqxsMT';
 
 export async function getStaticProps() {
@@ -107,7 +108,10 @@ const XSMT = ({ initialData }) => {
                         <TableDate />
                         <KQXS data={initialData} station="xsmt">Miền Trung</KQXS>
                     </div>
-                    <ThongKe />
+                    <div>
+                        <ThongKe />
+                        <CongCuHot />
+                    </div>
                 </div>
                 <div className='container'>
                     <PostList />

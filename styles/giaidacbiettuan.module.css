@@ -1,220 +1,203 @@
 /* Tổng thể container */
 .container {
     width: 100%;
-    min-width: 770px;
-    font-family: "Poppins", sans-serif;
-    background-color: #f9fafb;
-    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    font-family: "Inter", sans-serif;
+    padding: 16px;
+    background-color: #ffffff;
+}
+
+/* Nút Điều hướng */
+.actionBtn {
+    display: flex;
+    background-color: #ffffff;
+    align-items: center;
+    justify-content: center;
+}
+
+.actionTK {
+    line-height: 20px;
+    border: 1px solid #0396FF;
+    padding: 10px;
+    width: 100%;
+    color: #0396FF;
+    text-align: center;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.actionTK:hover {
+    background-color: #0396FF;
+    color: #ffffff;
+}
+
+.active {
+    color: #ffffff;
+    background-color: #0396FF;
 }
 
 /* Tiêu đề chính */
 .titleGroup {
     text-align: center;
-    padding: 30px 10px;
-    background-color: #ffffff;
-    border: 2px solid #1e3a8a;
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px;
+    padding: 24px 12px;
+    border: 1px solid #e5e7eb;
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
+    background: #ffeca0;
+    border-radius: 8px;
+    margin-bottom: 24px;
 }
 
 .title {
-    font-family: "Sora", sans-serif;
-    font-size: 1.6rem;
+    font-family: "Inter", sans-serif;
+    font-size: 1.5rem;
     font-weight: 700;
-    color: #1e3a8a;
-    letter-spacing: 0.5px;
+    color: #c80505;
+    margin-bottom: 8px;
+    line-height: 1.4;
+    text-align: center;
 }
 
 /* Nội dung chính */
 .content {
-    margin-top: 30px;
-    padding: 20px;
+    margin-top: 24px;
+    padding: 10px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
     background-color: #ffffff;
-    border: 2px solid #93c5fd;
-    border-radius: 12px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease;
+}
+
+.content:hover {
+    transform: translateY(-1px);
 }
 
 /* Metadata */
 .metadata .title {
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: 600;
-    color: #1e3a8a;
+    color: #c80505;
     text-align: center;
-    margin-bottom: 15px;
+    margin-bottom: 16px;
 }
 
 /* Nhóm chọn tỉnh và thời gian */
 .group_Select {
-    margin-top: 20px;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 24px;
-    align-items: flex-start;
-    justify-content: center;
-    padding: 20px;
-    background-color: #ffffff;
-    border: 2px solid #e5e7eb;
-    border-radius: 12px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-}
-
-.Select {
+    margin-top: 24px;
     display: flex;
-    flex-direction: column;
-    gap: 20px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
 }
 
 .group_Select>label {
     display: flex;
-    flex-direction: column;
-    gap: 10px;
-    min-width: 200px;
-    width: 100%;
-    max-width: 400px;
-    margin: 0 auto;
-}
-
-/* Dropdown miền và tỉnh */
-.group_Select label:nth-child(1),
-.group_Select select:nth-child(2),
-.group_Select label:nth-child(3),
-.group_Select select:nth-child(4) {
-    flex: 1 1 100%;
-    max-width: 400px;
-}
-
-/* Dropdown tháng và năm */
-.group_Select label:nth-child(5),
-.group_Select select:nth-child(6),
-.group_Select label:nth-child(7),
-.group_Select select:nth-child(8) {
-    flex: 1 1 100%;
-    max-width: 400px;
+    align-items: center;
+    gap: 12px;
 }
 
 .options {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #1e3a8a;
-    letter-spacing: 0.2px;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #1f2937;
 }
 
 .select {
-    border: 2px solid #1e3a8a;
-    border-radius: 10px;
-    width: 100%;
-    height: 48px;
-    padding: 10px;
-    font-size: 1.05rem;
-    color: #1e3a8a;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    width: 200px;
+    height: 38px;
+    padding: 0 10px;
+    font-size: 1rem;
     background-color: #ffffff;
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-.select:focus {
-    outline: none;
-    border-color: #93c5fd;
-    box-shadow: 0 0 0 4px rgba(147, 197, 253, 0.25);
-}
-
 .select:hover {
-    border-color: #93c5fd;
-    box-shadow: 0 0 0 4px rgba(147, 197, 253, 0.15);
+    border-color: #c80505;
+    box-shadow: 0 0 0 2px rgba(200, 5, 5, 0.1);
 }
 
-@media (min-width: 1025px) {
-
-    .group_Select label:nth-child(5),
-    .group_Select select:nth-child(6),
-    .group_Select label:nth-child(7),
-    .group_Select select:nth-child(8) {
-        flex: 1 1 400px;
-        max-width: 400px;
-    }
+.select:focus {
+    border-color: #ed1c25;
+    box-shadow: 0 0 0 2px rgba(237, 28, 37, 0.2);
+    background-color: #fff5f5;
 }
 
-@media (max-width: 1024px) {
-    .group_Select {
-        flex-direction: column;
-        gap: 18px;
-        padding: 15px;
-    }
-
-    .group_Select>label,
-    .group_Select select {
-        flex: 1 1 100%;
-        max-width: 100%;
-    }
-
-    .options {
-        font-size: 1rem;
-    }
-
-    .select {
-        height: 44px;
-        font-size: 1rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .group_Select {
-        gap: 15px;
-        padding: 12px;
-    }
-
-    .group_Select>label {
-        min-width: 100%;
-    }
-
-    .select {
-        height: 42px;
-        padding: 8px;
-    }
+.select.active {
+    border-color: #ed1c25;
+    background-color: #fff5f5;
+    font-weight: 600;
+    color: #ed1c25;
 }
 
 /* Bảng dữ liệu */
+.tableContainer {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
 .table {
-    margin-top: 20px;
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
     width: 100%;
     border-collapse: collapse;
+    border: 1px solid #ccc;
+    font-size: 0.95rem;
+    margin-top: 12px;
     background-color: #ffffff;
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.table th,
+.table td {
+    padding: 12px 16px;
+    border: 1px solid #e5e7eb;
+    text-align: center;
+    transition: background-color 0.3s ease;
 }
 
 .table th {
-    font-size: 1.1rem;
-    font-weight: 700;
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background: #ed1c25;
     color: #ffffff;
-    padding: 15px 10px;
-    border-bottom: 2px solid #93c5fd;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
 }
 
-.table td {
-    padding: 15px 5px;
-    border: 1px solid #e5e7eb;
-    vertical-align: top;
-    font-size: 1.2rem;
-    color: #374151;
-    text-align: center;
-}
-
-.table tr:nth-child(even) {
-    background-color: #f9fafb;
+.table tr:nth-child(odd) {
+    background-color: #e5e7eb63;
 }
 
 .table tr:hover {
-    background-color: #eff6ff;
-    transition: background-color 0.2s ease;
+    background-color: #e0f2fe;
+}
+
+/* Tùy chỉnh cột đầu tiên (cố định trên mobile) */
+.table th:first-child,
+.table td:first-child {
+    background-color: #f3f4f6;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+/* Điều chỉnh độ rộng cột */
+.table th,
+.table td {
+    width: 14.28%;
+    /* 100% / 7 cột */
+    min-width: 80px;
+    /* Đảm bảo cột không quá hẹp */
 }
 
 /* Entry (chứa số, ngày, tỉnh) */
 .entry {
-    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 8px;
     padding: 5px;
     border-bottom: 1px solid #e5e7eb;
 }
@@ -226,10 +209,12 @@
 
 /* Stat item (mỗi kết quả trong ô) */
 .statItem {
-    padding: 8px;
-    background-color: #f9fafb;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 6px;
     border-radius: 5px;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 
 .statItem:last-child {
@@ -238,89 +223,88 @@
 
 /* Số giải đặc biệt */
 .number {
-    color: #1e3a8a;
-    font-weight: 700;
-    font-size: 1.2rem;
-    background-color: #dbeafe;
-    margin-top: 5px;
-    border-radius: 5px;
-    display: inline-block;
+    color: #1f2937;
+    font-weight: 600;
+    font-size: 1.15rem;
+    /* background-color: #ffeca0; */
+    padding: 4px 8px;
+    border-radius: 4px;
     width: 100%;
     text-align: center;
 }
 
 /* Last two digits */
 .number .lastTwo {
-    display: inline-block;
-    background-color: #fef3c7;
-    color: #dc2626 !important;
-    border-radius: 3px;
+    color: #ed8936;
     font-weight: 700;
 }
 
 /* Ngày và tỉnh */
 .date {
-    line-height: 1.5;
-    color: #374151;
+    color: #4b5563;
     font-size: 0.95rem;
+    font-weight: 500;
 }
 
 .tinh {
     font-size: 0.9rem;
-    color: #6b7280;
-    font-weight: 500;
+    color: #0396FF;
+    font-weight: 700;
 }
 
 /* Skeleton loading */
 .skeleton {
-    background: #e5e7eb;
-    height: 20px;
+    background: linear-gradient(90deg, #e5e7eb 25%, #d1d5db 50%, #e5e7eb 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    height: 18px;
     border-radius: 4px;
-    animation: skeleton-loading 1s linear infinite alternate;
 }
 
-@keyframes skeleton-loading {
+@keyframes shimmer {
     0% {
-        background-color: #e5e7eb;
+        background-position: 200% 0;
     }
 
     100% {
-        background-color: #f3f4f6;
+        background-position: -200% 0;
     }
 }
 
 /* Thông báo lỗi và không có dữ liệu */
 .error {
-    color: #dc2626;
+    color: #c80505;
     text-align: center;
-    margin: 20px 0;
+    margin: 16px 0;
     font-weight: 500;
+    font-size: 0.95rem;
 }
 
 .noData {
     text-align: center;
-    color: #6b7280;
-    margin: 20px 0;
-    font-weight: 500;
+    color: #4b5563;
+    margin: 16px 0;
+    font-style: italic;
+    font-size: 0.95rem;
 }
 
 /* Phần nội dung mô tả */
 .Group_Content {
-    margin-top: 30px;
-    padding: 25px;
+    margin-top: 32px;
+    padding: 24px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
     background-color: #ffffff;
-    border: 2px solid #93c5fd;
-    border-radius: 12px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .heading {
-    padding: 15px 0;
+    padding: 12px 0;
     font-weight: 700;
     font-size: 1.3rem;
-    line-height: 1.5;
-    color: #1e3a8a;
-    text-align: center;
+    line-height: 1.4;
+    color: #c80505;
+    border-bottom: 1px solid #e5e7eb;
 }
 
 .contentWrapper {
@@ -329,7 +313,7 @@
 }
 
 .contentWrapper.collapsed {
-    max-height: 300px;
+    max-height: 280px;
     opacity: 0.8;
 }
 
@@ -339,40 +323,40 @@
 }
 
 .h3 {
-    padding: 10px 0;
-    font-weight: 600;
+    padding: 8px 0;
+    font-weight: 700;
     font-size: 1.1rem;
     line-height: 1.3;
-    color: #1e3a8a;
+    color: #1f2937;
 }
 
 .desc {
-    padding: 5px 0;
-    font-size: 1rem;
+    padding: 4px 0;
+    font-size: 0.95rem;
     line-height: 1.5;
-    color: #374151;
+    color: #4b5563;
 }
 
 /* Nút thu gọn/xem thêm */
 .toggleBtn {
     display: block;
-    margin: 20px auto;
-    padding: 12px 24px;
-    background: linear-gradient(135deg, #1e3a8a 0%, #93c5fd 100%);
+    margin: 16px auto;
+    padding: 10px 20px;
+    background: #ed1c25;
     color: #ffffff;
-    font-size: 1rem;
-    font-weight: 600;
+    font-size: 0.95rem;
+    font-weight: 500;
     border: none;
-    border-radius: 8px;
+    border-radius: 6px;
     cursor: pointer;
     transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .toggleBtn:hover {
-    background: linear-gradient(135deg, #93c5fd 0%, #1e3a8a 100%);
+    background: #c80505;
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 .toggleBtn:active {
@@ -382,26 +366,27 @@
 /* Nút quay lại đầu trang */
 .scrollToTopBtn {
     position: fixed;
-    bottom: 40px;
-    right: 40px;
+    bottom: 16px;
+    right: 16px;
     display: none;
-    width: 50px;
-    height: 50px;
-    background: linear-gradient(135deg, #1e3a8a 0%, #93c5fd 100%);
+    width: 46px;
+    height: 46px;
+    background: #ed1c25;
     color: #ffffff;
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     font-weight: 700;
     border: none;
     border-radius: 50%;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     transition: opacity 0.3s ease, transform 0.3s ease;
     z-index: 1000;
 }
 
 .scrollToTopBtn:hover {
+    background: #c80505;
     opacity: 0.9;
-    transform: translateY(-4px);
+    transform: translateY(-3px);
 }
 
 .scrollToTopBtn:active {
@@ -411,42 +396,120 @@
 /* Responsive Design */
 @media (max-width: 1024px) {
     .container {
-        min-width: 100%;
-        padding: 15px;
+        padding: 12px;
+    }
+
+    .actionBtn {
+        display: grid;
+        grid-template-columns: minmax(100px, 1fr);
+        background-color: #ffffff;
+        align-items: center;
+    }
+
+    .selectGroup {
+        display: flex;
+        width: 300px;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
     }
 
     .titleGroup {
-        padding: 20px 10px;
+        padding: 16px 8px;
     }
 
     .title {
         font-size: 1.4rem;
     }
 
+    .group_Select {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+    }
+
+    .group_Select>label {
+        width: 300px;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .select {
+        width: 190px;
+        height: 36px;
+        font-size: 0.9rem;
+    }
+
+    .options {
+        font-size: 0.9rem;
+    }
+
     .table th,
     .table td {
-        padding: 10px 8px;
-        font-size: 1rem;
+        padding: 10px 12px;
     }
 }
 
 @media (max-width: 768px) {
     .container {
-        padding: 10px;
+        min-width: 100%;
+        padding: 8px;
     }
 
     .title {
-        font-size: 1.3rem;
+        font-size: 1.2rem;
+    }
+
+    .select {
+
+        height: 36px;
+        font-size: 0.9rem;
+    }
+
+    .options {
+        font-size: 0.9rem;
+    }
+
+    .tableContainer {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .table {
+        font-size: 0.85rem;
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
     }
 
     .table th,
     .table td {
-        padding: 8px 6px;
-        font-size: 0.95rem;
+        padding: 8px 10px;
+        min-width: 80px;
+        /* Tăng min-width để đảm bảo cột không quá hẹp */
+    }
+
+    /* Cố định cột đầu tiên (Thứ 2) */
+    .table th:first-child,
+    .table td:first-child {
+        position: sticky;
+        left: 0;
+        background-color: #f3f4f6;
+        z-index: 1;
+        width: 20%;
+        /* Độ rộng lớn hơn cho cột cố định */
+        font-size: 0.85rem;
+    }
+
+    .table td {
+        width: calc(80% / 6);
+        /* Phân bổ độ rộng cho 6 cột còn lại */
+        font-size: 0.85rem;
     }
 
     .number {
         font-size: 1rem;
+        padding: 3px 6px;
     }
 
     .date,
@@ -454,35 +517,73 @@
         font-size: 0.85rem;
     }
 
-    .scrollToTopBtn {
-        bottom: 20px;
-        right: 20px;
-        width: 40px;
-        height: 40px;
-        font-size: 1.2rem;
+    .statItem {
+        padding: 4px;
+        gap: 4px;
+    }
+
+    .entry {
+        margin-bottom: 6px;
+        padding: 4px;
     }
 }
 
 @media (max-width: 480px) {
     .title {
-        font-size: 1.2rem;
+        font-size: 1.1rem;
+    }
+
+    .select {
+        width: 190px;
+        height: 32px;
+        font-size: 0.85rem;
+    }
+
+    .options {
+        font-size: 0.85rem;
+    }
+
+    .table {
+        font-size: 0.8rem;
     }
 
     .table th,
     .table td {
-        padding: 6px 4px;
-        font-size: 0.9rem;
+        padding: 6px 8px;
+        min-width: 60px;
+        /* Giảm min-width để phù hợp với màn hình nhỏ hơn */
+    }
+
+    .table th:first-child,
+    .table td:first-child {
+        width: 25%;
+        /* Tăng độ rộng cột cố định để dễ đọc hơn */
+        font-size: 0.8rem;
+    }
+
+    .table td {
+        width: calc(75% / 6);
+        /* Phân bổ độ rộng cho 6 cột còn lại */
+        font-size: 0.8rem;
     }
 
     .number {
         font-size: 0.9rem;
+        padding: 2px 4px;
     }
 
-    .scrollToTopBtn {
-        bottom: 15px;
-        right: 15px;
-        width: 36px;
-        height: 36px;
-        font-size: 1rem;
+    .date,
+    .tinh {
+        font-size: 0.8rem;
+    }
+
+    .statItem {
+        padding: 3px;
+        gap: 3px;
+    }
+
+    .entry {
+        margin-bottom: 4px;
+        padding: 3px;
     }
 }

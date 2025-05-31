@@ -90,6 +90,8 @@
 .selected {
     background-color: #007bff;
     color: white;
+    border: 2px solid var(--primary-color);
+    font-weight: bold;
 }
 
 .emptyDay {
@@ -118,26 +120,23 @@
     text-decoration: underline;
 }
 
-
-
-
-.selected {
-    border: 2px solid var(--primary-color);
-    background-color: #007bff;
-    color: white;
-    font-weight: bold;
-}
-
-.day {
-    cursor: pointer;
-    padding: 5px;
-}
-
 .day:hover {
     background-color: #007bff;
     color: var(--color-white);
 }
 
+/* Overlay cho modal */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    /* Làm mờ nền */
+    z-index: 99;
+    /* Dưới calendarContainerMobile */
+}
 
 /* Responsive Styles */
 
@@ -150,11 +149,13 @@
     .iconMenu {
         display: none;
     }
+
+    .overlay {
+        display: none;
+    }
 }
 
-
-
-/*Tablet and mobile */
+/* Tablet and mobile */
 @media screen and (max-width: 991px) {
     .calendarContainer {
         display: none;
@@ -174,27 +175,33 @@
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         display: flex;
         flex-direction: column;
-        visibility: hidden;
-        top: 70px;
-        right: 30px;
+        position: fixed;
+        /* Sử dụng fixed để căn giữa */
+        top: 25%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        /* Căn giữa modal */
         z-index: 100;
-        transition: all 0.5s ease;
-        position: absolute;
+        visibility: hidden;
+        transition: visibility 0.3s ease, opacity 0.3s ease;
+        opacity: 0;
     }
-
 
     .CalendarToggle {
         visibility: visible;
+        opacity: 1;
     }
 
     .iconMenu {
-        position: absolute;
+        position: fixed;
         display: block;
         top: 20px;
-        right: 10px;
+        right: 0px;
         width: 60px;
         font-size: 40px;
         color: var(--primary-color);
+        z-index: 101;
+        /* Trên overlay và modal */
     }
 
     .iconMenu:hover {
@@ -202,11 +209,14 @@
     }
 }
 
-/* Tablet */
-@media screen and (min-width: 768px) and (max-width:991.98px) {}
-
 /* Mobile */
 @media screen and (max-width: 767px) {
+    .calendarContainerMobile {
+        width: 90%;
+        /* Giảm chiều rộng để phù hợp màn hình nhỏ */
+        max-width: 300px;
+    }
+
     .nav_itemLink {
         padding: 0 12px;
         font-size: 14px;

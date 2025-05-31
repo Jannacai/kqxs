@@ -15,6 +15,9 @@ const ThongKe = () => {
         { title: "Bảng đặc biệt tuần/tháng", href: "/thongke/giai-dac-biet-tuan" },
         { title: "Tần suất Loto", href: "/thongke/Tan-Suat-Lo-to" },
         { title: "Tần suất Lô Cặp", href: "/thongke/Tan-Suat-Lo-Cap" },
+        { title: "Tần suất Lô Rơi", href: "#" },
+        { title: "Tần suất Giải Đặc Biệt", href: "#" },
+
     ];
 
     return (

@@ -2,10 +2,12 @@ import React, { useState, useCallback, useEffect } from 'react';
 import Head from 'next/head';
 import styles from '../../styles/giaidacbiet.module.css';
 import ThongKe from '../../component/thongKe';
+import CongCuHot from '../../component/CongCuHot';
 import { apiMB } from '../api/kqxs/kqxsMB';
 import { apiMT } from '../api/kqxs/kqxsMT';
 import { apiMN } from '../api/kqxs/kqxsMN';
-
+import Link from 'next/link';
+import { useRouter } from 'next/router';
 // Danh sách tỉnh
 const provinceSlugs = {
     "Vũng Tàu": "vung-tau",
@@ -105,6 +107,8 @@ const SkeletonTableThreeColumns = () => (
 
 const GiaiDacBiet = ({ initialStats, initialMetadata, initialDays, initialRegion, initialTinh }) => {
     const [stats, setStats] = useState(initialStats || []);
+    const router = useRouter();
+
     const [metadata, setMetadata] = useState(initialMetadata || {});
     const [days, setDays] = useState(initialDays || 10);
     const [region, setRegion] = useState(initialRegion || 'Miền Bắc');
@@ -277,6 +281,12 @@ const GiaiDacBiet = ({ initialStats, initialMetadata, initialDays, initialRegion
             <div className={styles.container}>
                 <div className={styles.titleGroup}>
                     <h1 className={styles.title}>{pageTitle}</h1>
+                    <div className={styles.actionBtn}>
+                        <Link className={`${styles.actionTK} ${router.pathname.startsWith('/thongke/giai-dac-biet') ? styles.active : ''}`} href="giai-dac-biet">Thống Kê Giải Đặc Biệt </Link>
+                        <Link className={`${styles.actionTK} ${router.pathname.startsWith('/thongke/dau-duoi') ? styles.active : ''}`} href="dau-duoi">Thống Kê Đầu Đuôi </Link>
+                        <Link className={`${styles.actionTK} ${router.pathname.startsWith('/thongke/giai-dac-biet-tuan') ? styles.active : ''}`} href="giai-dac-biet-tuan">Thống Kê Giải Đặc Biệt Tuần </Link>
+
+                    </div>
                 </div>
 
                 <div className={styles.content}>
@@ -285,35 +295,40 @@ const GiaiDacBiet = ({ initialStats, initialMetadata, initialDays, initialRegion
                     </div>
 
                     <div className={styles.group_Select}>
-                        <select className={styles.select} onChange={handleRegionChange}>
-                            <option value="Miền Bắc">Miền Bắc</option>
-                            <optgroup label="Miền Nam">
-                                {mienNamProvinces.map(province => (
-                                    <option key={provinceSlugs[province]} value={provinceSlugs[province]}>
-                                        {province}
-                                    </option>
-                                ))}
-                            </optgroup>
-                            <optgroup label="Miền Trung">
-                                {mienTrungProvinces.map(province => (
-                                    <option key={provinceSlugs[province]} value={provinceSlugs[province]}>
-                                        {province}
-                                    </option>
-                                ))}
-                            </optgroup>
-                        </select>
+                        <div className={styles.selectGroup}>
+                            <label className={styles.options}>Chọn tỉnh: </label>
+                            <select className={styles.select} onChange={handleRegionChange}>
+                                <option value="Miền Bắc">Miền Bắc</option>
+                                <optgroup label="Miền Nam">
+                                    {mienNamProvinces.map(province => (
+                                        <option key={provinceSlugs[province]} value={provinceSlugs[province]}>
+                                            {province}
+                                        </option>
+                                    ))}
+                                </optgroup>
+                                <optgroup label="Miền Trung">
+                                    {mienTrungProvinces.map(province => (
+                                        <option key={provinceSlugs[province]} value={provinceSlugs[province]}>
+                                            {province}
+                                        </option>
+                                    ))}
+                                </optgroup>
+                            </select>
+                        </div>
 
-                        <label className={styles.options}>Chọn thời gian: </label>
-                        <select className={styles.select} value={days} onChange={handleDaysChange}>
-                            <option value={10}>10 ngày</option>
-                            <option value={20}>20 ngày</option>
-                            <option value={30}>30 ngày</option>
-                            <option value={60}>2 tháng</option>
-                            <option value={90}>3 tháng</option>
-                            <option value={180}>6 tháng</option>
-                            <option value={270}>9 tháng</option>
-                            <option value={365}>1 năm</option>
-                        </select>
+                        <div className={styles.selectGroup}>
+                            <label className={styles.options}>Chọn thời gian: </label>
+                            <select className={styles.select} value={days} onChange={handleDaysChange}>
+                                <option value={10}>10 ngày</option>
+                                <option value={20}>20 ngày</option>
+                                <option value={30}>30 ngày</option>
+                                <option value={60}>2 tháng</option>
+                                <option value={90}>3 tháng</option>
+                                <option value={180}>6 tháng</option>
+                                <option value={270}>9 tháng</option>
+                                <option value={365}>1 năm</option>
+                            </select>
+                        </div>
                     </div>
 
                     {loading && (days >= 20 ? <SkeletonTableThreeColumns /> : <SkeletonTableSingleColumn />)}
@@ -416,7 +431,7 @@ const GiaiDacBiet = ({ initialStats, initialMetadata, initialDays, initialRegion
                 </div>
 
                 <div className={styles.Group_Content}>
-                    <h2 className={styles.heading}>Xổ số 3 Miền nơi thống kê giải ĐB, kết quả xổ số Miền Bắc theo tuần, tháng và năm nhanh, chính xác và hoàn toàn miễn phí.</h2>
+                    <h2 className={styles.heading}>XSMB.WIN nơi thống kê giải ĐB, kết quả xổ số Miền Bắc theo tuần, tháng và năm nhanh, chính xác và hoàn toàn miễn phí.</h2>
                     <div className={`${styles.contentWrapper} ${isExpanded ? styles.expanded : styles.collapsed}`}>
                         <h3 className={styles.h3}>Thống Kê giải ĐB. Thống kê kết quả xổ số</h3>
                         <p className={styles.desc}>Thống Kê giải đặc biệt là phương pháp thống kê chỉ duy nhất giải đặc biệt trong bảng kết quả xổ số có nhiều giải khác nhau.</p>
@@ -437,7 +452,7 @@ const GiaiDacBiet = ({ initialStats, initialMetadata, initialDays, initialRegion
                         <p className={styles.desc}>– Cung cấp cho người xem thông tin các giải đặc biệt về cùng ngày hôm đó trong những năm trước đó.</p>
                         <p className={styles.desc}>Thông tin của TK giải ĐB luôn được cập nhật ngay sau khi có kết quả xổ số trong ngày, mọi thông số đều đảm bảo sự chính xác tuyệt đối cho người xem theo dõi</p>
                         <p className={styles.desc}>Xổ Số VN luôn mang đến cho bạn những thông tin chính xác và kịp thời. Với tính năng TK giải đặc biệt này, người chơi sẽ có thêm thông tin để tham khảo và chọn cho mình con số may mắn, mang đến cơ hội trúng thưởng cao hơn.</p>
-                        <p className={styles.desc}>TK giải đặc biệt. TK KQXSMB. TK giải đặc biệt XSMB. TK giải đặc biệt XSMB theo tuần, tháng, năm được tổng hợp nhanh chóng và chính xác tại <a className={styles.action} href='/'>Xổ số 3 Miền</a></p>
+                        <p className={styles.desc}>TK giải đặc biệt. TK KQXSMB. TK giải đặc biệt XSMB. TK giải đặc biệt XSMB theo tuần, tháng, năm được tổng hợp nhanh chóng và chính xác tại <a className={styles.action} href='/'>XSMB.WIN</a></p>
                     </div>
                     <button
                         className={styles.toggleBtn}
@@ -448,7 +463,10 @@ const GiaiDacBiet = ({ initialStats, initialMetadata, initialDays, initialRegion
                 </div>
             </div>
 
-            <ThongKe region={region} tinh={tinh} />
+            <div>
+                <ThongKe region={region} tinh={tinh} />
+                <CongCuHot />
+            </div>
 
             <button
                 id="scrollToTopBtn"

@@ -5,7 +5,7 @@ import { apiMT } from '../api/kqxs/kqxsMT';
 import { apiMN } from '../api/kqxs/kqxsMN';
 import styles from '../../styles/tansuatLoCap.module.css';
 import ThongKe from '../../component/thongKe';
-
+import CongCuHot from '../../component/CongCuHot';
 // Skeleton Loading Component
 const SkeletonRow = () => (
     <tr>
@@ -355,7 +355,10 @@ const TanSuatLoCap = ({ initialStats, initialMetadata, initialDays, initialRegio
                     ↑
                 </button>
             </div>
-            <ThongKe />
+            <div>
+                <ThongKe />
+                <CongCuHot />
+            </div>
         </div>
     );
 };

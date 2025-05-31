@@ -4,6 +4,7 @@ import KQXS from './index';
 import Calendar from '../../component/caledar';
 import styles from "../../public/css/itemsKQXS.module.css";
 import ThongKe from '../../component/thongKe';
+import CongCuHot from '../../component/CongCuHot';
 import ListXSMT from '../../component/listXSMT';
 import ListXSMB from '../../component/listXSMB';
 import ListXSMN from '../../component/listXSMN';
@@ -47,7 +48,10 @@ export default function XsmtPage() {
 
             <KQXS data3={slugDayofweek}></KQXS>
 
-            <ThongKe></ThongKe>
+            <div>
+                <ThongKe></ThongKe>
+                <CongCuHot />
+            </div>
         </div>
     );
 }

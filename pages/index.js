@@ -5,7 +5,7 @@ import ThongKe from '../component/thongKe';
 import ListXSMT from '../component/listXSMT';
 import ListXSMB from '../component/listXSMB';
 import ListXSMN from '../component/listXSMN';
-
+import CongCuHot from '../component/CongCuHot';
 import TableDate from '../component/tableDateKQXS';
 const KQXS = dynamic(() => import('./kqxsAll/index'), { ssr: false });
 const PostList = dynamic(() => import('./post/list'), { ssr: false });
@@ -116,7 +116,9 @@ export default function Home() {
                     <TableDate />
                     <KQXS>{"Miền Bắc"}</KQXS>
                 </div>
-                <ThongKe />
+                <div><ThongKe />
+                    <CongCuHot />
+                </div>
             </div>
             <div className='container'>
                 <PostList />

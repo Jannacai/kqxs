@@ -3,7 +3,7 @@
     width: 100%;
     max-width: 1200px;
     margin: 0 auto;
-    font-family: "Inter", sans-serif;
+    font-family: "Roboto", sans-serif;
     padding: 16px;
     background-color: #ffffff;
 }
@@ -571,7 +571,7 @@
     .container {
         padding: 12px;
     }
-
+   
     .titleGroup {
         padding: 16px 8px;
     }

@@ -4,6 +4,7 @@ import KQXS from './index';
 import Calendar from '../../../component/caledar';
 import styles from "../../../public/css/itemsKQXS.module.css";
 import ThongKe from '../../../component/thongKe';
+import CongCuHot from '../../../component/CongCuHot';
 import ListXSMT from '../../../component/listXSMT';
 import ListXSMB from '../../../component/listXSMB';
 import ListXSMN from '../../../component/listXSMN';
@@ -38,7 +39,10 @@ export default function XsmnPage() {
                 <ListXSMN></ListXSMN>
             </div>
             <KQXS tinh={tinh}></KQXS>
-            <ThongKe></ThongKe>
+            <div>
+                <ThongKe></ThongKe>
+                <CongCuHot />
+            </div>
         </div>
     );
 }

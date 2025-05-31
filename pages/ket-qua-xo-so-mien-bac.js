@@ -7,6 +7,7 @@ import ListXSMB from '../component/listXSMB';
 import ListXSMN from '../component/listXSMN';
 import PostList from './post/list';
 import TableDate from '../component/tableDateKQXS';
+import CongCuHot from '../component/CongCuHot';
 import { apiMB } from './api/kqxs/kqxsMB';
 
 export async function getStaticProps() {
@@ -107,7 +108,10 @@ const XSMB = ({ initialData }) => {
                         <TableDate />
                         <KQXS data={initialData} station="xsmb">Miền Bắc</KQXS>
                     </div>
-                    <ThongKe />
+                    <div>
+                        <ThongKe />
+                        <CongCuHot />
+                    </div>
                 </div>
                 <div className='container'>
                     <PostList />

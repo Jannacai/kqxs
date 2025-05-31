@@ -4,6 +4,7 @@ import KQXS from '../../kqxsAll/index';
 import Calendar from '../../../component/caledar';
 import styles from "../../../public/css/itemsKQXS.module.css";
 import ThongKe from '../../../component/thongKe';
+import CongCuHot from '../../../component/CongCuHot';
 import ListXSMT from '../../../component/listXSMT';
 import ListXSMB from '../../../component/listXSMB';
 import ListXSMN from '../../../component/listXSMN';
@@ -21,7 +22,7 @@ export default function XsmbPage() {
     const slugDayofweek = Array.isArray(dayOfWeek) ? dayOfWeek.join('-') : dayOfWeek; // Ví dụ: "thu-2" hoặc null
     const station = 'xsmb'; // Slug cố định cho xsmb
 
-  
+
     console.log('Slug DayOfWeek---', slugDayofweek);
 
     if (error) {
@@ -45,7 +46,10 @@ export default function XsmbPage() {
                 <ListXSMN></ListXSMN>
             </div>
             <KQXS data4={slugDayofweek}></KQXS>
-            <ThongKe></ThongKe>
+            <div>
+                <ThongKe></ThongKe>
+                <CongCuHot />
+            </div>
         </div>
     );
 }

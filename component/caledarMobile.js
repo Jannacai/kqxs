@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import styles from '../public/css/calenda.module.css';
@@ -25,13 +25,14 @@ const CalendarMobile = ({ onDateChange }) => {
     const [currentMonth, setCurrentMonth] = useState(today.getMonth());
     const [selectedDate, setSelectedDate] = useState(new Date(today));
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const calendarRef = useRef(null); // Tham chiếu để kiểm tra click ngoài modal
 
     // Đồng bộ selectedDate với slug từ URL khi component mount hoặc URL thay đổi
     useEffect(() => {
-        if (!router.isReady) return; // Wait for router to be ready
+        if (!router.isReady) return;
 
         const slug = pathname.split('/xsmb/')[1];
-        if (slug && typeof slug === 'string' && slug.includes('-')) { // Ensure slug exists, is a string, and has the expected format
+        if (slug && typeof slug === 'string' && slug.includes('-')) {
             const [day, month, year] = slug.split('-').map(Number);
             const dateFromSlug = new Date(year, month - 1, day);
             if (!isNaN(dateFromSlug.getTime())) {
@@ -40,18 +41,15 @@ const CalendarMobile = ({ onDateChange }) => {
                 setCurrentYear(dateFromSlug.getFullYear());
             } else {
                 console.error('Invalid date from slug:', slug);
-                // Fallback to today's date if the slug date is invalid
                 setSelectedDate(new Date(today));
                 setCurrentMonth(today.getMonth());
                 setCurrentYear(today.getFullYear());
             }
         } else {
             console.warn('No valid slug found, using default date (today)');
-            // If no valid slug, default to today's date
             setSelectedDate(new Date(today));
             setCurrentMonth(today.getMonth());
             setCurrentYear(today.getFullYear());
-            // Optionally redirect to a default date URL
             const dayFormatted = formatNumber(today.getDate());
             const monthFormatted = formatNumber(today.getMonth() + 1);
             const defaultSlug = `${dayFormatted}-${monthFormatted}-${today.getFullYear()}`;
@@ -69,6 +67,23 @@ const CalendarMobile = ({ onDateChange }) => {
             onDateChange?.(slug);
         }
     }, [selectedDate, onDateChange]);
+
+    // Xử lý click ngoài modal để đóng
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (calendarRef.current && !calendarRef.current.contains(event.target)) {
+                setIsMenuOpen(false);
+            }
+        };
+
+        if (isMenuOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isMenuOpen]);
 
     const years = Array.from({ length: maxYear - minYear + 1 }, (_, i) => minYear + i);
 
@@ -103,6 +118,7 @@ const CalendarMobile = ({ onDateChange }) => {
         const monthFormatted = formatNumber(currentMonth + 1);
         const slug = `${dayFormatted}-${monthFormatted}-${currentYear}`;
         router.push(`/xsmb/${slug}`);
+        setIsMenuOpen(false); // Đóng modal sau khi chọn ngày
     };
 
     const renderCalendar = () => {
@@ -132,16 +148,18 @@ const CalendarMobile = ({ onDateChange }) => {
 
         return days;
     };
+
     const toggleMenu = () => {
-        setIsMenuOpen(true);
+        setIsMenuOpen(!isMenuOpen);
     };
 
     return (
         <div>
             <span className={styles.iconMenu} onClick={toggleMenu}>
-                <i class="fa-solid fa-calendar-days"></i>
+                <i className="fa-solid fa-calendar-days"></i>
             </span>
-            <div className={`${styles.calendarContainerMobile} ${isMenuOpen ? styles.CalendarToggle : ""}`} >
+            {isMenuOpen && <div className={styles.overlay}></div>}
+            <div ref={calendarRef} className={`${styles.calendarContainerMobile} ${isMenuOpen ? styles.CalendarToggle : ''}`}>
                 <div className={styles.calendarHeader}>
                     <button
                         onClick={handlePrevMonth}
@@ -202,7 +220,6 @@ const CalendarMobile = ({ onDateChange }) => {
                     </div>
                 )}
             </div>
-            {/* Calen dar desktop */}
         </div>
     );
 };

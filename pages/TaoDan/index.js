@@ -5,6 +5,7 @@ import DauDuoi from './TaoDanDauDuoi';
 import Cham from './TaoDanCham';
 import Bo from './TaoDanBo';
 import ThongKe from '../../component/thongKe';
+import CongcuHot from '../../component/CongCuHot'
 // import styles from '../../styles/taodandacbiet.module.css';
 
 const TaoDanDacBiet = () => {
@@ -23,7 +24,10 @@ const TaoDanDacBiet = () => {
                 <Cham />
                 <Bo />
             </div>
-            <ThongKe />
+            <div>
+                <ThongKe />
+                <CongcuHot />
+            </div>
         </div>
     );
 };

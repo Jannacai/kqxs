@@ -6,7 +6,7 @@ import { apiMT } from '../api/kqxs/kqxsMT';
 import { apiMN } from '../api/kqxs/kqxsMN';
 import styles from '../../styles/tansuatLoto.module.css';
 import ThongKe from '../../component/thongKe';
-
+import CongCuHot from '../../component/CongCuHot';
 // Skeleton Loading Component cho bảng Tần Suất Loto
 const SkeletonRow = () => (
     <tr>
@@ -168,17 +168,17 @@ const TanSuatLoto = ({ initialStats, initialMetadata, initialDays, initialRegion
     }, []);
 
     const getMessage = () => {
-        const regionText = region === 'Miền Bắc' ? 'Miền Bắc' : `${ region } - ${ Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh) } `;
-        return `Thống kê Tần Suất Loto trong ${ metadata.totalDraws || 0 } lần quay Xổ số ${ regionText } `;
+        const regionText = region === 'Miền Bắc' ? 'Miền Bắc' : `${region} - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh)} `;
+        return `Thống kê Tần Suất Loto trong ${metadata.totalDraws || 0} lần quay Xổ số ${regionText} `;
     };
 
     const getTitle = () => {
-        const regionText = region === 'Miền Bắc' ? 'Miền Bắc' : `${ region } - ${ Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh) } `;
-        return `Thống kê Tần Suất Loto Xổ Số ${ regionText } `;
+        const regionText = region === 'Miền Bắc' ? 'Miền Bắc' : `${region} - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh)} `;
+        return `Thống kê Tần Suất Loto Xổ Số ${regionText} `;
     };
 
     const pageTitle = getTitle();
-    const pageDescription = `Xem bảng thống kê Tần Suất Loto Xổ số ${ region === 'Miền Bắc' ? 'Miền Bắc' : `${region} - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh)}` } trong ${ metadata.filterType || '' }. Cập nhật dữ liệu từ ${ metadata.startDate || '' } đến ${ metadata.endDate || '' }.`;
+    const pageDescription = `Xem bảng thống kê Tần Suất Loto Xổ số ${region === 'Miền Bắc' ? 'Miền Bắc' : `${region} - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh)}`} trong ${metadata.filterType || ''}. Cập nhật dữ liệu từ ${metadata.startDate || ''} đến ${metadata.endDate || ''}.`;
 
     // Chia dữ liệu thành 2 phần: 00-49 và 50-99
     const leftStats = stats.slice(0, 50); // 00-49
@@ -382,8 +382,10 @@ const TanSuatLoto = ({ initialStats, initialMetadata, initialDays, initialRegion
                 </div>
             </div>
 
-            <ThongKe />
-
+            <div>
+                <ThongKe />
+                <CongCuHot />
+            </div>
             <button
                 id="scrollToTopBtn"
                 className={styles.scrollToTopBtn}
