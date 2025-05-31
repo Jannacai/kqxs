@@ -5,6 +5,7 @@ import { getFilteredNumber } from "../../library/utils/filterUtils";
 import { useRouter } from 'next/router';
 import React from 'react';
 import LiveResult from './LiveResult';
+import { useInView } from 'react-intersection-observer';
 
 const KQXS = (props) => {
     const [data, setData] = useState([]);
@@ -21,10 +22,8 @@ const KQXS = (props) => {
     const router = useRouter();
 
     const dayof = props.data4;
-    console.log("dayof", dayof);
     const station = props.station || "xsmb";
     const date = props.data3;
-    console.log("date", date);
 
     const itemsPerPage = 3;
 
@@ -38,6 +37,7 @@ const KQXS = (props) => {
     const startMinute = minute1;
     const duration = 22 * 60 * 1000;
 
+    // Tối ưu useEffect: setInterval 5s, chỉ gọi setIsLiveWindow khi cần
     useEffect(() => {
         const checkTime = () => {
             const now = new Date();
@@ -46,38 +46,36 @@ const KQXS = (props) => {
             const endTime = new Date(startTime.getTime() + duration);
 
             const isLive = now >= startTime && now <= endTime;
-            console.log('Current time:', now);
-            console.log('Start time:', startTime);
-            console.log('End time:', endTime);
-            console.log('isLiveWindow:', isLive);
-            setIsLiveWindow(isLive);
+            setIsLiveWindow(prev => prev !== isLive ? isLive : prev);
 
-            // Kích hoạt scraper lúc 18:15:00
             if (
                 isLive &&
                 now.getHours() === hour &&
                 now.getMinutes() === minute2 &&
-                now.getSeconds() === 0 &&
+                now.getSeconds() <= 5 &&
                 !hasTriggeredScraper
             ) {
                 apiMB.triggerScraper(today, station)
                     .then((data) => {
-                        console.log('Scraper kích hoạt thành công:', data.message);
+                        if (process.env.NODE_ENV !== 'production') {
+                            console.log('Scraper kích hoạt thành công:', data.message);
+                        }
                         setHasTriggeredScraper(true);
                     })
                     .catch((error) => {
-                        console.error('Lỗi khi kích hoạt scraper:', error.message);
+                        if (process.env.NODE_ENV !== 'production') {
+                            console.error('Lỗi khi kích hoạt scraper:', error.message);
+                        }
                     });
             }
 
-            // Reset hasTriggeredScraper vào đầu ngày mới
             if (now.getHours() === 0 && now.getMinutes() === 0 && now.getSeconds() === 0) {
                 setHasTriggeredScraper(false);
             }
         };
 
         checkTime();
-        const intervalId = setInterval(checkTime, 1000);
+        const intervalId = setInterval(checkTime, 5000); // 5 giây
         return () => clearInterval(intervalId);
     }, [hasTriggeredScraper, station, today]);
 
@@ -98,6 +96,7 @@ const KQXS = (props) => {
         return inputDayOfWeek && inputDayOfWeek === todayDayOfWeek;
     }, [props.data3, today]);
 
+    // Tối ưu fetchData: Chỉ cập nhật data/filterTypes khi thay đổi
     const fetchData = useCallback(async () => {
         try {
             const result = await apiMB.getLottery(station, date, dayof);
@@ -112,16 +111,31 @@ const KQXS = (props) => {
                 }),
             }));
 
-            setData([...formattedData]);
-            const initialFilters = formattedData.reduce((acc, item) => {
-                acc[item.drawDate + item.station] = 'all';
-                return acc;
-            }, {});
-            setFilterTypes(initialFilters);
+            setData(prevData => {
+                const newDataStr = JSON.stringify(formattedData);
+                if (JSON.stringify(prevData) !== newDataStr) {
+                    return [...formattedData];
+                }
+                return prevData;
+            });
+
+            setFilterTypes(prevFilters => {
+                const newFilters = formattedData.reduce((acc, item) => {
+                    acc[item.drawDate + item.station] = prevFilters[item.drawDate + item.station] || 'all';
+                    return acc;
+                }, {});
+                if (JSON.stringify(prevFilters) !== JSON.stringify(newFilters)) {
+                    return newFilters;
+                }
+                return prevFilters;
+            });
+
             setLoading(false);
             setError(null);
         } catch (error) {
-            console.error('Lỗi khi lấy dữ liệu xổ số:', error);
+            if (process.env.NODE_ENV !== 'production') {
+                console.error('Lỗi khi lấy dữ liệu xổ số:', error);
+            }
             setError('Không thể tải dữ liệu, vui lòng thử lại sau');
             setLoading(false);
         }
@@ -172,28 +186,71 @@ const KQXS = (props) => {
         return { heads, tails };
     }, []);
 
-    const totalPages = Math.ceil(data.length / itemsPerPage);
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const currentData = data.slice(startIndex, endIndex);
+    // Sử dụng useMemo cho totalPages, startIndex, endIndex, currentData
+    const totalPages = useMemo(() => Math.ceil(data.length / itemsPerPage), [data]);
+    const startIndex = useMemo(() => (currentPage - 1) * itemsPerPage, [currentPage]);
+    const endIndex = useMemo(() => startIndex + itemsPerPage, [startIndex]);
+    const currentData = useMemo(() => data.slice(startIndex, endIndex), [data, startIndex, endIndex]);
 
     const goToPage = useCallback((page) => {
         if (page >= 1 && page <= totalPages) {
             setCurrentPage(page);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     }, [totalPages]);
-
-    useEffect(() => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, [currentPage]);
-
-    // if (loading) {
-    //     return <div className={styles.loading}>Đang tải dữ liệu...</div>;
-    // }
 
     if (error) {
         return <div className={styles.error}>{error}</div>;
     }
+
+    // Component cho bảng lô tô với lazy loading
+    const LoToTable = React.memo(({ data2, heads, tails, sevenPrizes, specialPrize }) => {
+        const { ref, inView } = useInView({
+            triggerOnce: true,
+            threshold: 0.1,
+        });
+
+        return (
+            <div className={styles.TKe_content}>
+                {/* Tiêu đề luôn tải ngay để đảm bảo SEO */}
+                <div className={styles.TKe_contentTitle}>
+                    <span className={styles.title}>Bảng Lô Tô - </span>
+                    <span className={styles.desc}>{data2.tentinh} -</span>
+                    <span className={styles.dayOfWeek}>{`${data2.dayOfWeek} - `}</span>
+                    <span className={styles.desc}>{data2.drawDate}</span>
+                </div>
+                {/* Bảng lô tô lazy load */}
+                <div ref={ref}>
+                    {inView ? (
+                        <table className={styles.tableKey}>
+                            <tbody>
+                                <tr>
+                                    <td className={styles.t_h}>Đầu</td>
+                                    <td>Lô tô</td>
+                                    <td className={styles.t_h}>Đuôi</td>
+                                    <td>Lô tô</td>
+                                </tr>
+                                {Array.from({ length: 10 }, (_, index) => (
+                                    <tr key={index}>
+                                        <td className={styles.t_h}>{index}</td>
+                                        <td>
+                                            {heads[index].length > 0 ? heads[index].join(', ') : '-'}
+                                        </td>
+                                        <td className={styles.t_h}>{index}</td>
+                                        <td>
+                                            {tails[index].length > 0 ? tails[index].join(', ') : '-'}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    ) : (
+                        <div className={styles.placeholder}>Đang tải bảng lô tô...</div>
+                    )}
+                </div>
+            </div>
+        );
+    });
 
     return (
         <div className={styles.containerKQ}>
@@ -241,7 +298,7 @@ const KQXS = (props) => {
                                         <td className={styles.rowXS}>
                                             {(data2.specialPrize || []).map((kq, index) => (
                                                 <span
-                                                    key={kq || index}
+                                                    key={`${kq}-${index}`}
                                                     className={`${styles.span1} ${styles.highlight} ${styles.gdb}`}
                                                 >
                                                     {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
@@ -253,7 +310,7 @@ const KQXS = (props) => {
                                         <td className={styles.tdTitle}>G1</td>
                                         <td className={styles.rowXS}>
                                             {(data2.firstPrize || []).map((kq, index) => (
-                                                <span key={kq || index} className={styles.span1}>
+                                                <span key={`${kq}-${index}`} className={styles.span1}>
                                                     {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
                                                 </span>
                                             ))}
@@ -263,7 +320,7 @@ const KQXS = (props) => {
                                         <td className={styles.tdTitle}>G2</td>
                                         <td className={styles.rowXS}>
                                             {(data2.secondPrize || []).map((kq, index) => (
-                                                <span key={kq || index} className={styles.span2}>
+                                                <span key={`${kq}-${index}`} className={styles.span2}>
                                                     {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
                                                 </span>
                                             ))}
@@ -274,7 +331,7 @@ const KQXS = (props) => {
                                         <td className={styles.rowXS}>
                                             {(data2.threePrizes || []).slice(0, 3).map((kq, index) => (
                                                 <span
-                                                    key={kq || index}
+                                                    key={`${kq}-${index}`}
                                                     className={`${styles.span3} ${styles.g3}`}
                                                 >
                                                     {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
@@ -286,7 +343,7 @@ const KQXS = (props) => {
                                         <td className={styles.tdTitle}></td>
                                         <td className={styles.rowXS}>
                                             {(data2.threePrizes || []).slice(3, 6).map((kq, index) => (
-                                                <span key={kq || index} className={styles.span3}>
+                                                <span key={`${kq}-${index}`} className={styles.span3}>
                                                     {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
                                                 </span>
                                             ))}
@@ -296,7 +353,7 @@ const KQXS = (props) => {
                                         <td className={styles.tdTitle}>G4</td>
                                         <td className={styles.rowXS}>
                                             {(data2.fourPrizes || []).map((kq, index) => (
-                                                <span key={kq || index} className={styles.span4}>
+                                                <span key={`${kq}-${index}`} className={styles.span4}>
                                                     {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
                                                 </span>
                                             ))}
@@ -307,7 +364,7 @@ const KQXS = (props) => {
                                         <td className={styles.rowXS}>
                                             {(data2.fivePrizes || []).slice(0, 3).map((kq, index) => (
                                                 <span
-                                                    key={kq || index}
+                                                    key={`${kq}-${index}`}
                                                     className={`${styles.span3} ${styles.g3}`}
                                                 >
                                                     {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
@@ -319,7 +376,7 @@ const KQXS = (props) => {
                                         <td className={styles.tdTitle}></td>
                                         <td className={styles.rowXS}>
                                             {(data2.fivePrizes || []).slice(3, 6).map((kq, index) => (
-                                                <span key={kq || index} className={styles.span3}>
+                                                <span key={`${kq}-${index}`} className={styles.span3}>
                                                     {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
                                                 </span>
                                             ))}
@@ -329,7 +386,7 @@ const KQXS = (props) => {
                                         <td className={styles.tdTitle}>G6</td>
                                         <td className={styles.rowXS}>
                                             {(data2.sixPrizes || []).map((kq, index) => (
-                                                <span key={index} className={styles.span3}>
+                                                <span key={`${kq}-${index}`} className={styles.span3}>
                                                     {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
                                                 </span>
                                             ))}
@@ -340,7 +397,7 @@ const KQXS = (props) => {
                                         <td className={styles.rowXS}>
                                             {(data2.sevenPrizes || []).map((kq, index) => (
                                                 <span
-                                                    key={index}
+                                                    key={`${kq}-${index}`}
                                                     className={`${styles.span4} ${styles.highlight}`}
                                                 >
                                                     {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
@@ -388,58 +445,14 @@ const KQXS = (props) => {
                                 </div>
                             </div>
                         </div>
-                        <div className={styles.TKe_content}>
-                            <div className={styles.TKe_contentTitle}>
-                                <span className={styles.title}>Bảng Lô Tô - </span>
-                                <span className={styles.desc}>{data2.tentinh} -</span>
-                                <span className={styles.dayOfWeek}>{`${data2.dayOfWeek} - `}</span>
-                                <span className={styles.desc}>{data2.drawDate}</span>
-                            </div>
-                            <table className={styles.tableKey}>
-                                <tbody>
-                                    <tr>
-                                        <td className={styles.t_h}>Đầu</td>
-                                        <td>Lô tô</td>
-                                        <td className={styles.t_h}>Đuôi</td>
-                                        <td>Lô tô</td>
-                                    </tr>
-                                    {Array.from({ length: 10 }, (_, index) => (
-                                        <tr key={index}>
-                                            <td className={styles.t_h}>{index}</td>
-                                            <td>
-                                                {heads[index].map((num, idx) => (
-                                                    <span
-                                                        key={idx}
-                                                        className={
-                                                            sevenPrizes.includes(num) || specialPrize.includes(num)
-                                                                ? styles.highlight1
-                                                                : ''
-                                                        }
-                                                    >
-                                                        {num}
-                                                    </span>
-                                                )).reduce((prev, curr, i) => [prev, i ? ', ' : '', curr], [])}
-                                            </td>
-                                            <td className={styles.t_h}>{index}</td>
-                                            <td>
-                                                {tails[index].map((num, idx) => (
-                                                    <span
-                                                        key={idx}
-                                                        className={
-                                                            sevenPrizes.includes(num) || specialPrize.includes(num)
-                                                                ? styles.highlight1
-                                                                : ''
-                                                        }
-                                                    >
-                                                        {num}
-                                                    </span>
-                                                )).reduce((prev, curr, i) => [prev, i ? ', ' : '', curr], [])}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                        {/* Sử dụng component LoToTable với lazy loading */}
+                        <LoToTable
+                            data2={data2}
+                            heads={heads}
+                            tails={tails}
+                            sevenPrizes={sevenPrizes}
+                            specialPrize={specialPrize}
+                        />
                     </div>
                 );
             })}

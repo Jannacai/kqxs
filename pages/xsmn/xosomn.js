@@ -92,8 +92,6 @@ const KQXS = (props) => {
                 stations: groupedByDate[date],
                 dayOfWeek: groupedByDate[date][0].dayOfWeek,
             }));
-
-            console.log('Grouped and sorted data:', finalData);
             setData(finalData);
 
             const initialFilters = finalData.reduce((acc, item) => {
