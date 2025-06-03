@@ -8,36 +8,36 @@ import logo from '../public/asset/img/LOGOxsmn_win.png';
 import Image from 'next/image';
 
 const NavBar = () => {
-    const [data, setData] = useState([]);
-    const [loading, setLoading] = useState(true);
+    // const [data, setData] = useState([]);
+    // const [loading, setLoading] = useState(true);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isMenuOpenList, setIsMenuOpenList] = useState("");
     const scrollPositionRef = useRef(0);
 
-    const hasFetched = useRef(false);
+    // const hasFetched = useRef(false);
     const router = useRouter();
 
-    useEffect(() => {
-        async function fetchDataOnce() {
-            if (hasFetched.current) return;
-            hasFetched.current = true;
+    // useEffect(() => {
+    //     async function fetchDataOnce() {
+    //         if (hasFetched.current) return;
+    //         hasFetched.current = true;
 
-            try {
-                setLoading(true);
-                const result = await apiMB.getLottery('xsmb');
-                const dataArray = Array.isArray(result) ? result : [result];
-                const formattedData = dataArray.map(item => ({
-                    ...item,
-                }));
-                setData(formattedData);
-            } catch (error) {
-                console.error('Lỗi:', error);
-            } finally {
-                setLoading(false);
-            }
-        }
-        fetchDataOnce();
-    }, []);
+    //         try {
+    //             setLoading(true);
+    //             const result = await apiMB.getLottery('xsmb');
+    //             const dataArray = Array.isArray(result) ? result : [result];
+    //             const formattedData = dataArray.map(item => ({
+    //                 ...item,
+    //             }));
+    //             setData(formattedData);
+    //         } catch (error) {
+    //             console.error('Lỗi:', error);
+    //         } finally {
+    //             setLoading(false);
+    //         }
+    //     }
+    //     fetchDataOnce();
+    // }, []);
 
     useEffect(() => {
         // Xử lý body khi navbar mở/đóng
@@ -93,8 +93,6 @@ const NavBar = () => {
     const toggleMenuList = (menuId) => {
         setIsMenuOpenList(isMenuOpenList === menuId ? "" : menuId);
     };
-
-    if (loading) return <div>Loading...</div>;
 
     return (
         <div>
