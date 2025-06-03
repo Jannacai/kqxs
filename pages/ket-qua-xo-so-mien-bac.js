@@ -39,6 +39,7 @@ export async function getStaticProps() {
 }
 
 const XSMB = ({ initialData }) => {
+    // Định dạng ngày dạng DD/MM/YYYY
     const today = new Date().toLocaleDateString('vi-VN', {
         day: '2-digit',
         month: '2-digit',
@@ -52,10 +53,11 @@ const XSMB = ({ initialData }) => {
         }).replace(/\//g, '/')
         : today;
 
-    const title = `Kết Quả Xổ Số Miền Bắc - ${drawDate}`;
-    const description = `Xem kết quả xổ số Miền Bắc ngày ${drawDate} với thông tin chi tiết về giải đặc biệt, lô tô, đầu đuôi.`;
+    const title = `Kết Quả Xổ Số Miền Bắc - ${ drawDate } `;
+    const description = `Xem kết quả xổ số Miền Bắc ngày ${ drawDate } với thông tin chi tiết về giải đặc biệt, lô tô, đầu đuôi.`;
     const canonicalUrl = 'https://www.xsmb.win/ket-qua-xo-so-mien-bac';
 
+    // Fallback UI nếu initialData rỗng
     if (!Array.isArray(initialData) || initialData.length === 0) {
         return (
             <div className={styles.container}>
@@ -102,7 +104,7 @@ const XSMB = ({ initialData }) => {
                 {/* Telegram */}
                 <meta name="telegram:channel" content={process.env.TELEGRAM_CHANNEL || '@YourChannel'} />
                 <meta name="telegram:share_url" content={canonicalUrl} />
-                <meta name="telegram:description" content={`Cập nhật XSMB nhanh nhất ngày ${drawDate} tại ${process.env.TELEGRAM_CHANNEL || '@YourChannel'} !`} />
+                <meta name="telegram:description" content={`Cập nhật XSMB nhanh nhất ngày ${ drawDate } tại ${ process.env.TELEGRAM_CHANNEL || '@YourChannel' } !`} />
                 <meta name="telegram:og:image" content="https://xsmb.win/zalotelegram.png" />
 
                 {/* Twitter Cards */}
@@ -121,8 +123,8 @@ const XSMB = ({ initialData }) => {
                     {JSON.stringify({
                         "@context": "https://schema.org",
                         "@type": "Dataset",
-                        "name": `Kết Quả Xổ Số Miền Bắc ${drawDate}`,
-                        "description": `Kết quả xổ số Miền Bắc ngày ${drawDate} với các giải thưởng và thống kê.`,
+                        "name": `Kết Quả Xổ Số Miền Bắc ${ drawDate } `,
+                        "description": `Kết quả xổ số Miền Bắc ngày ${ drawDate } với các giải thưởng và thống kê.`,
                         "temporalCoverage": drawDate,
                         "keywords": ["xổ số", "miền bắc", "kết quả", "xsmb"],
                         "url": canonicalUrl,
@@ -139,7 +141,11 @@ const XSMB = ({ initialData }) => {
                     </div>
                     <div>
                         <TableDate />
-                        <KQXS data={initialData} station="xsmb">Miền Bắc</KQXS>
+                        {initialData ? (
+                            <KQXS data={initialData} station="xsmb">Miền Bắc</KQXS>
+                        ) : (
+                            <span>Đang tải kết quả...</span>
+                        )}
                     </div>
                     <div>
                         <ThongKe />
