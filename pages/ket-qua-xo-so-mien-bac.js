@@ -15,17 +15,13 @@ const PostList = dynamic(() => import('./post/list.js'), { ssr: false });
 const ThongKe = dynamic(() => import('../component/thongKe.js'), { ssr: true });
 
 export async function getStaticProps() {
-    const now = new Date();
-    const isUpdateWindow = now.getHours() === 18 && now.getMinutes() >= 10 && now.getMinutes() <= 35;
-    const revalidateTime = isUpdateWindow ? 10 : 3600; // 10 giây trong khung giờ cập nhật, 1 giờ ngoài khung giờ
-
     try {
         const initialData = await apiMB.getLottery('xsmb', null, null);
         return {
             props: {
                 initialData,
             },
-            revalidate: revalidateTime,
+            revalidate: 60,
         };
     } catch (error) {
         console.error('Lỗi khi lấy dữ liệu ban đầu:', error);
@@ -33,7 +29,7 @@ export async function getStaticProps() {
             props: {
                 initialData: [],
             },
-            revalidate: revalidateTime,
+            revalidate: 60,
         };
     }
 }
@@ -53,8 +49,8 @@ const XSMB = ({ initialData }) => {
         }).replace(/\//g, '/')
         : today;
 
-    const title = `Kết Quả Xổ Số Miền Bắc - ${ drawDate } `;
-    const description = `Xem kết quả xổ số Miền Bắc ngày ${ drawDate } với thông tin chi tiết về giải đặc biệt, lô tô, đầu đuôi.`;
+    const title = `Kết Quả Xổ Số Miền Bắc - ${drawDate}`;
+    const description = `Xem kết quả xổ số Miền Bắc ngày ${drawDate} với thông tin chi tiết về giải đặc biệt, lô tô, đầu đuôi.`;
     const canonicalUrl = 'https://www.xsmb.win/ket-qua-xo-so-mien-bac';
 
     // Fallback UI nếu initialData rỗng
@@ -104,7 +100,7 @@ const XSMB = ({ initialData }) => {
                 {/* Telegram */}
                 <meta name="telegram:channel" content={process.env.TELEGRAM_CHANNEL || '@YourChannel'} />
                 <meta name="telegram:share_url" content={canonicalUrl} />
-                <meta name="telegram:description" content={`Cập nhật XSMB nhanh nhất ngày ${ drawDate } tại ${ process.env.TELEGRAM_CHANNEL || '@YourChannel' } !`} />
+                <meta name="telegram:description" content={`Cập nhật XSMB nhanh nhất ngày ${drawDate} tại ${process.env.TELEGRAM_CHANNEL || '@YourChannel'}!`} />
                 <meta name="telegram:og:image" content="https://xsmb.win/zalotelegram.png" />
 
                 {/* Twitter Cards */}
@@ -123,8 +119,8 @@ const XSMB = ({ initialData }) => {
                     {JSON.stringify({
                         "@context": "https://schema.org",
                         "@type": "Dataset",
-                        "name": `Kết Quả Xổ Số Miền Bắc ${ drawDate } `,
-                        "description": `Kết quả xổ số Miền Bắc ngày ${ drawDate } với các giải thưởng và thống kê.`,
+                        "name": `Kết Quả Xổ Số Miền Bắc ${drawDate}`,
+                        "description": `Kết quả xổ số Miền Bắc ngày ${drawDate} với các giải thưởng và thống kê.`,
                         "temporalCoverage": drawDate,
                         "keywords": ["xổ số", "miền bắc", "kết quả", "xsmb"],
                         "url": canonicalUrl,
