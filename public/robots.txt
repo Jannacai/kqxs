@@ -1,8 +1,11 @@
+# *
 User-agent: *
-Disallow: # Không chặn gì cả, để trống nếu muốn cho phép tất cả
+Allow: /
 
 # Host
 Host: https://xsmb.win
 
 # Sitemaps
 Sitemap: https://xsmb.win/sitemap.xml
+
+# Không chặn gì, cho phép tất cả truy cập
