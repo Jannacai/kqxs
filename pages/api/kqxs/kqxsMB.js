@@ -28,13 +28,11 @@ export const apiMB = {
                 throw new Error('Station and date cannot be empty');
             }
             url = `${API_BASE_URL}/api/kqxs/${station}-${date}`;
-        } else {
-            url = `${API_BASE_URL}/api/kqxs`;
         }
 
         try {
             const response = await fetch(url, {
-                cache: 'no-store',
+                cache: 'no-store', // Đảm bảo không dùng cache trình duyệt
                 headers: {
                     'Cache-Control': 'no-cache',
                     'x-user-id': getUserId(),
@@ -52,6 +50,35 @@ export const apiMB = {
             throw new Error('Không thể tải dữ liệu xổ số, vui lòng thử lại sau');
         }
     },
+
+    // Thêm hàm kiểm tra cache Redis với xử lý lỗi 404
+    checkCache: async (station, date, dayof) => {
+        const cacheKey = `xsmb_data_${station}_${date || 'null'}_${dayof || 'null'}`;
+        const url = `${API_BASE_URL}/api/cache?key=${encodeURIComponent(cacheKey)}`;
+
+        try {
+            const response = await fetch(url, {
+                headers: {
+                    'x-user-id': getUserId(),
+                },
+            });
+
+            if (!response.ok) {
+                if (response.status === 404) {
+                    console.warn(`Endpoint /api/cache không tồn tại hoặc không tìm thấy key: ${cacheKey}`);
+                    return null; // Trả null nếu 404, tránh ném lỗi
+                }
+                throw new Error(`Lỗi khi kiểm tra cache: ${response.status} - ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            return data.exists ? data.value : null;
+        } catch (error) {
+            console.error('Lỗi khi kiểm tra cache Redis:', error.message);
+            return null; // Trả null nếu có lỗi, tránh crash frontend
+        }
+    },
+
     getLotteryTinh: async (station, tinh) => {
         let url = `${API_BASE_URL}/api/kqxs`;
 
