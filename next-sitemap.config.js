@@ -4,6 +4,7 @@ module.exports = {
     changefreq: 'daily',
     priority: 1.0,
     sitemapSize: 5000,
+    excludeNamespaces: ['news', 'xhtml', 'mobile', 'image', 'video'],
     additionalPaths: async (config) => {
         const result = [
             {
