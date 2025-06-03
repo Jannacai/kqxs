@@ -1,6 +1,5 @@
-# *
 User-agent: *
-Allow: /
+Disallow: # Không chặn gì cả, để trống nếu muốn cho phép tất cả
 
 # Host
 Host: https://xsmb.win
