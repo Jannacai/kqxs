@@ -90,7 +90,7 @@ module.exports = {
         for (let i = 0; i < 30; i++) {
             const date = new Date(today);
             date.setDate(today.getDate() - i);
-            const formattedDate = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+            const formattedDate = `${date.getDate().toString().padStart(2, '0')}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getFullYear()}`;
             result.push({
                 loc: `/xsmb/${formattedDate}`,
                 lastmod: date.toISOString().split('T')[0],

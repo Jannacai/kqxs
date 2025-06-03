@@ -1,3 +1,6 @@
+# *
 User-agent: *
 Allow: /
+
+# Sitemaps
 Sitemap: https://xsmb.win/sitemap.xml
