@@ -121,7 +121,7 @@ export default function Home() {
                 </div>
             </div>
             <div className='container'>
-                <PostList />
+                {/* <PostList /> */}
             </div>
         </div>
     );
