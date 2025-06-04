@@ -154,7 +154,7 @@ const XSMB = ({ initialData }) => {
                     </div>
                 </div>
                 <div className='container'>
-                    <PostList />
+                    {/* <PostList /> */}
                 </div>
             </div>
         </>

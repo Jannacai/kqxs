@@ -114,7 +114,7 @@ const XSMT = ({ initialData }) => {
                     </div>
                 </div>
                 <div className='container'>
-                    <PostList />
+                    {/* <PostList /> */}
                 </div>
             </div>
         </>
