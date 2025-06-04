@@ -11,21 +11,28 @@ import CongCuHot from '../component/CongCuHot';
 import { apiMT } from './api/kqxs/kqxsMT';
 
 export async function getStaticProps() {
+    const now = new Date();
+    const isUpdateWindow = now.getHours() === 14 && now.getMinutes() >= 11 && now.getMinutes() <= 34;
+    const revalidateTime = isUpdateWindow ? 10 : 21600; // 10 giây trong khung giờ cập nhật, 6 giờ ngoài khung giờ
+
     try {
-        const initialData = await apiMT.getLottery('xsmt', null, null);
+        const initialData = await apiMT.getLottery('xsmt', null, null, null, { limit: 3 });
         return {
             props: {
                 initialData,
             },
-            revalidate: 60,
+            revalidate: revalidateTime,
         };
     } catch (error) {
-        console.error('Lỗi khi lấy dữ liệu ban đầu:', error);
+        console.error('Lỗi khi lấy dữ liệu ban đầu:', {
+            message: error.message,
+            stack: error.stack,
+        });
         return {
             props: {
                 initialData: [],
             },
-            revalidate: 60,
+            revalidate: revalidateTime,
         };
     }
 }
@@ -44,7 +51,7 @@ const XSMT = ({ initialData }) => {
                 <meta name="keywords" content="xổ số miền trung, kqxs, lô tô, đầu đuôi, xsmt, kqxsmt" />
                 <meta name="robots" content="index, follow" />
 
-                {/* Open Graph Tags (Tối ưu cho các mạng xã hội) */}
+                {/* Open Graph Tags */}
                 <meta property="og:title" content={title} />
                 <meta property="og:description" content={description} />
                 <meta property="og:type" content="website" />
@@ -57,7 +64,7 @@ const XSMT = ({ initialData }) => {
                 <meta property="og:image:alt" content="Kết quả xổ số miền Trung 2025" />
                 <meta property="og:site_name" content="XSMT" />
                 <meta property="og:locale" content="vi_VN" />
-                <meta property="fb:app_id" content="your-facebook-app-id" /> {/* Thay bằng App ID thực tế */}
+                <meta property="fb:app_id" content="your-facebook-app-id" />
 
                 {/* Zalo */}
                 <meta property="og:app_id" content="your-zalo-app-id" />
@@ -78,12 +85,12 @@ const XSMT = ({ initialData }) => {
                 <meta name="twitter:title" content={title} />
                 <meta name="twitter:description" content={description} />
                 <meta name="twitter:image" content="https://xsmb.win/facebook.png" />
-                <meta name="twitter:image:alt" content="Kết quả xổ số miền Trung 2025" /> {/* Sửa lỗi */}
+                <meta name="twitter:image:alt" content="Kết quả xổ số miền Trung 2025" />
 
                 {/* Canonical */}
                 <link rel="canonical" href={canonicalUrl} />
 
-                {/* JSON-LD Schema (Sửa lỗi) */}
+                {/* JSON-LD Schema */}
                 <script type="application/ld+json">
                     {JSON.stringify({
                         "@context": "https://schema.org",
