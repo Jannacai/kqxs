@@ -1,4 +1,3 @@
-
 import { apiMB } from "../api/kqxs/kqxsMB";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import styles from '../../public/css/kqxsMB.module.css';
@@ -49,9 +48,9 @@ const KQXS = (props) => {
     const duration = 22 * 60 * 1000;
 
     // Tạo khóa cache duy nhất dựa trên station, date, và dayof
-    const CACHE_KEY = `xsmb_data_${station}_${date || 'null'}_${dayof || 'null'} `;
+    const CACHE_KEY = `xsmb_data_${station}_${date || 'null'}_${dayof || 'null'}`;
 
-    // useEffect kiểm tra thời gian (giữ nguyên)
+    // useEffect kiểm tra thời gian
     useEffect(() => {
         const checkTime = () => {
             const now = new Date();
@@ -118,7 +117,7 @@ const KQXS = (props) => {
 
             // Kiểm tra cache
             const cachedData = localStorage.getItem(CACHE_KEY);
-            const cachedTime = localStorage.getItem(`${CACHE_KEY} _time`);
+            const cachedTime = localStorage.getItem(`${CACHE_KEY}_time`);
             const cacheAge = cachedTime ? now.getTime() - parseInt(cachedTime) : Infinity;
 
             // Sử dụng cache nếu không phải khung giờ cập nhật và cache còn hợp lệ
@@ -130,6 +129,15 @@ const KQXS = (props) => {
 
             // Kiểm tra props.data xem có khớp với dayof, date, và station
             if (props.data && Array.isArray(props.data) && props.data.length > 0) {
+                const dayMap = {
+                    'thu-2': 'Thứ Hai',
+                    'thu-3': 'Thứ Ba',
+                    'thu-4': 'Thứ Tư',
+                    'thu-5': 'Thứ Năm',
+                    'thu-6': 'Thứ Sáu',
+                    'thu-7': 'Thứ Bảy',
+                    'chu-nhat': 'Chủ Nhật'
+                };
                 const isPropsDataValid = props.data.every(item => {
                     const itemDate = new Date(item.drawDate).toLocaleDateString('vi-VN', {
                         day: '2-digit',
@@ -153,7 +161,7 @@ const KQXS = (props) => {
                     }));
                     setData(formattedData);
                     localStorage.setItem(CACHE_KEY, JSON.stringify(formattedData));
-                    localStorage.setItem(`${CACHE_KEY} _time`, now.getTime().toString());
+                    localStorage.setItem(`${CACHE_KEY}_time`, now.getTime().toString());
                     setLoading(false);
                     return;
                 }
@@ -181,7 +189,7 @@ const KQXS = (props) => {
             });
 
             localStorage.setItem(CACHE_KEY, JSON.stringify(formattedData));
-            localStorage.setItem(`${CACHE_KEY} _time`, now.getTime().toString());
+            localStorage.setItem(`${CACHE_KEY}_time`, now.getTime().toString());
 
             setFilterTypes(prevFilters => {
                 const newFilters = formattedData.reduce((acc, item) => {
@@ -211,7 +219,6 @@ const KQXS = (props) => {
         setFilterTypes(prev => ({ ...prev, [pageKey]: value }));
     }, []);
 
-    // Sửa hàm getHeadAndTailNumbers để highlight cả giải 7 (giữ nguyên)
     const getHeadAndTailNumbers = useMemo(() => (data2) => {
         const specialNumbers = (data2.specialPrize || []).map(num => getFilteredNumber(num, 'last2'));
         const sevenNumbers = (data2.sevenPrizes || []).map(num => getFilteredNumber(num, 'last2'));
@@ -250,7 +257,6 @@ const KQXS = (props) => {
         return { heads, tails };
     }, []);
 
-    // useMemo cho phân trang (giữ nguyên)
     const totalPages = useMemo(() => Math.ceil(data.length / itemsPerPage), [data]);
     const startIndex = useMemo(() => (currentPage - 1) * itemsPerPage, [currentPage]);
     const endIndex = useMemo(() => startIndex + itemsPerPage, [startIndex]);
@@ -271,7 +277,6 @@ const KQXS = (props) => {
         return <div className={styles.error}>{error}</div>;
     }
 
-    // LoToTable (giữ nguyên)
     const LoToTable = React.memo(({ data2, heads, tails }) => {
         const { ref, inView } = useInView({
             triggerOnce: true,
@@ -280,12 +285,12 @@ const KQXS = (props) => {
 
         return (
             <div className={styles.TKe_content}>
-                <div className={styles.TKe_contentTitle}>
+                <h2 className={styles.TKe_contentTitle}>
                     <span className={styles.title}>Bảng Lô Tô - </span>
                     <span className={styles.desc}>{data2.tentinh} -</span>
                     <span className={styles.dayOfWeek}>{`${data2.dayOfWeek} - `}</span>
                     <span className={styles.desc}>{data2.drawDate}</span>
-                </div>
+                </h2>
                 <div ref={ref}>
                     {inView ? (
                         <table className={styles.tableKey}>
@@ -303,7 +308,7 @@ const KQXS = (props) => {
                                             {heads[index].length > 0 ? (
                                                 heads[index].map((num, idx) => (
                                                     <span
-                                                        key={`${num.value} -${idx} `}
+                                                        key={`${num.value}-${idx}`}
                                                         className={num.isHighlighted ? styles.highlight1 : ''}
                                                     >
                                                         {num.value}{idx < heads[index].length - 1 ? ', ' : ''}
@@ -318,7 +323,7 @@ const KQXS = (props) => {
                                             {tails[index].length > 0 ? (
                                                 tails[index].map((num, idx) => (
                                                     <span
-                                                        key={`${num.value} -${idx} `}
+                                                        key={`${num.value}-${idx}`}
                                                         className={num.isHighlighted ? styles.highlight1 : ''}
                                                     >
                                                         {num.value}{idx < tails[index].length - 1 ? ', ' : ''}
@@ -361,31 +366,31 @@ const KQXS = (props) => {
                     <div key={tableKey}>
                         <div className={styles.kqxs}>
                             <div className={styles.header}>
-                                <h2 className={styles.kqxs__title}>
+                                <h1 className={styles.kqxs__title}>
                                     Kết Quả Xổ Số - <span>{data2.station}</span> ({data2.tentinh})
-                                </h2>
+                                </h1>
                                 <div className={styles.kqxs__action}>
                                     <a className={styles.kqxs__actionLink} href="#!">{data2.station}</a>
-                                    <a className={`${styles.kqxs__actionLink} ${styles.dayOfWeek} `} href="#!">{data2.dayOfWeek}</a>
+                                    <a className={`${styles.kqxs__actionLink} ${styles.dayOfWeek}`} href="#!">{data2.dayOfWeek}</a>
                                     <a className={styles.kqxs__actionLink} href="#!">{data2.drawDate}</a>
                                 </div>
                             </div>
                             <table className={styles.tableXS}>
                                 <tbody>
                                     <tr>
-                                        <td className={`${styles.code} ${styles.rowXS} `}>
+                                        <td className={`${styles.code} ${styles.rowXS}`}>
                                             <span className={styles.span0}>
                                                 {data2.maDB === '...' ? <span className={styles.ellipsis}></span> : data2.maDB}
                                             </span>
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td className={`${styles.tdTitle} ${styles.highlight} `}>ĐB</td>
+                                        <td className={`${styles.tdTitle} ${styles.highlight}`}>ĐB</td>
                                         <td className={styles.rowXS}>
                                             {(data2.specialPrize || []).map((kq, index) => (
                                                 <span
-                                                    key={`${kq} -${index} `}
-                                                    className={`${styles.span1} ${styles.highlight} ${styles.gdb} `}
+                                                    key={`${kq}-${index}`}
+                                                    className={`${styles.span1} ${styles.highlight} ${styles.gdb}`}
                                                 >
                                                     {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
                                                 </span>
@@ -396,7 +401,7 @@ const KQXS = (props) => {
                                         <td className={styles.tdTitle}>G1</td>
                                         <td className={styles.rowXS}>
                                             {(data2.firstPrize || []).map((kq, index) => (
-                                                <span key={`${kq} -${index} `} className={styles.span1}>
+                                                <span key={`${kq}-${index}`} className={styles.span1}>
                                                     {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
                                                 </span>
                                             ))}
@@ -406,19 +411,19 @@ const KQXS = (props) => {
                                         <td className={styles.tdTitle}>G2</td>
                                         <td className={styles.rowXS}>
                                             {(data2.secondPrize || []).map((kq, index) => (
-                                                <span key={`${kq} -${index} `} className={styles.span2}>
+                                                <span key={`${kq}-${index}`} className={styles.span2}>
                                                     {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
                                                 </span>
                                             ))}
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td className={`${styles.tdTitle} ${styles.g3} `}>G3</td>
+                                        <td className={`${styles.tdTitle} ${styles.g3}`}>G3</td>
                                         <td className={styles.rowXS}>
                                             {(data2.threePrizes || []).slice(0, 3).map((kq, index) => (
                                                 <span
-                                                    key={`${kq} -${index} `}
-                                                    className={`${styles.span3} ${styles.g3} `}
+                                                    key={`${kq}-${index}`}
+                                                    className={`${styles.span3} ${styles.g3}`}
                                                 >
                                                     {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
                                                 </span>
@@ -429,7 +434,7 @@ const KQXS = (props) => {
                                         <td className={styles.tdTitle}></td>
                                         <td className={styles.rowXS}>
                                             {(data2.threePrizes || []).slice(3, 6).map((kq, index) => (
-                                                <span key={`${kq} -${index} `} className={styles.span3}>
+                                                <span key={`${kq}-${index}`} className={styles.span3}>
                                                     {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
                                                 </span>
                                             ))}
@@ -439,19 +444,19 @@ const KQXS = (props) => {
                                         <td className={styles.tdTitle}>G4</td>
                                         <td className={styles.rowXS}>
                                             {(data2.fourPrizes || []).map((kq, index) => (
-                                                <span key={`${kq} -${index} `} className={styles.span4}>
+                                                <span key={`${kq}-${index}`} className={styles.span4}>
                                                     {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
                                                 </span>
                                             ))}
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td className={`${styles.tdTitle} ${styles.g3} `}>G5</td>
+                                        <td className={`${styles.tdTitle} ${styles.g3}`}>G5</td>
                                         <td className={styles.rowXS}>
                                             {(data2.fivePrizes || []).slice(0, 3).map((kq, index) => (
                                                 <span
-                                                    key={`${kq} -${index} `}
-                                                    className={`${styles.span3} ${styles.g3} `}
+                                                    key={`${kq}-${index}`}
+                                                    className={`${styles.span3} ${styles.g3}`}
                                                 >
                                                     {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
                                                 </span>
@@ -462,7 +467,7 @@ const KQXS = (props) => {
                                         <td className={styles.tdTitle}></td>
                                         <td className={styles.rowXS}>
                                             {(data2.fivePrizes || []).slice(3, 6).map((kq, index) => (
-                                                <span key={`${kq} -${index} `} className={styles.span3}>
+                                                <span key={`${kq}-${index}`} className={styles.span3}>
                                                     {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
                                                 </span>
                                             ))}
@@ -472,7 +477,7 @@ const KQXS = (props) => {
                                         <td className={styles.tdTitle}>G6</td>
                                         <td className={styles.rowXS}>
                                             {(data2.sixPrizes || []).map((kq, index) => (
-                                                <span key={`${kq} -${index} `} className={styles.span3}>
+                                                <span key={`${kq}-${index}`} className={styles.span3}>
                                                     {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
                                                 </span>
                                             ))}
@@ -483,8 +488,8 @@ const KQXS = (props) => {
                                         <td className={styles.rowXS}>
                                             {(data2.sevenPrizes || []).map((kq, index) => (
                                                 <span
-                                                    key={`${kq} -${index} `}
-                                                    className={`${styles.span4} ${styles.highlight} `}
+                                                    key={`${kq}-${index}`}
+                                                    className={`${styles.span4} ${styles.highlight}`}
                                                 >
                                                     {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
                                                 </span>
@@ -497,36 +502,36 @@ const KQXS = (props) => {
                                 <div aria-label="Tùy chọn lọc số" className={styles.filter__options} role="radiogroup">
                                     <div className={styles.optionInput}>
                                         <input
-                                            id={`filterAll - ${tableKey} `}
+                                            id={`filterAll-${tableKey}`}
                                             type="radio"
-                                            name={`filterOption - ${tableKey} `}
+                                            name={`filterOption-${tableKey}`}
                                             value="all"
                                             checked={currentFilter === 'all'}
                                             onChange={() => handleFilterChange(tableKey, 'all')}
                                         />
-                                        <label htmlFor={`filterAll - ${tableKey} `}>Đầy Đủ</label>
+                                        <label htmlFor={`filterAll-${tableKey}`}>Đầy Đủ</label>
                                     </div>
                                     <div className={styles.optionInput}>
                                         <input
-                                            id={`filterTwo - ${tableKey} `}
+                                            id={`filterTwo-${tableKey}`}
                                             type="radio"
-                                            name={`filterOption - ${tableKey} `}
+                                            name={`filterOption-${tableKey}`}
                                             value="last2"
                                             checked={currentFilter === 'last2'}
                                             onChange={() => handleFilterChange(tableKey, 'last2')}
                                         />
-                                        <label htmlFor={`filterTwo - ${tableKey} `}>2 Số Đuôi</label>
+                                        <label htmlFor={`filterTwo-${tableKey}`}>2 Số Đuôi</label>
                                     </div>
                                     <div className={styles.optionInput}>
                                         <input
-                                            id={`filterThree - ${tableKey} `}
+                                            id={`filterThree-${tableKey}`}
                                             type="radio"
-                                            name={`filterOption - ${tableKey} `}
+                                            name={`filterOption-${tableKey}`}
                                             value="last3"
                                             checked={currentFilter === 'last3'}
                                             onChange={() => handleFilterChange(tableKey, 'last3')}
                                         />
-                                        <label htmlFor={`filterThree - ${tableKey} `}>3 Số Đuôi</label>
+                                        <label htmlFor={`filterThree-${tableKey}`}>3 Số Đuôi</label>
                                     </div>
                                 </div>
                             </div>
@@ -541,21 +546,27 @@ const KQXS = (props) => {
             })}
             {data.length > 1 && (
                 <div className={styles.pagination}>
-                    <button
-                        onClick={() => goToPage(currentPage - 1)}
-                        disabled={currentPage === 1}
-                        className={styles.paginationButton}
+                    <a
+                        href={`/ket-qua-xo-so-mien-bac?page=${currentPage - 1}`}
+                        onClick={(e) => {
+                            e.preventDefault();
+                            goToPage(currentPage - 1);
+                        }}
+                        className={`${styles.paginationButton} ${currentPage === 1 ? styles.disabled : ''}`}
                     >
                         Trước
-                    </button>
+                    </a>
                     <span>Trang {currentPage} / {totalPages}</span>
-                    <button
-                        onClick={() => goToPage(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                        className={styles.paginationButton}
+                    <a
+                        href={`/ket-qua-xo-so-mien-bac?page=${currentPage + 1}`}
+                        onClick={(e) => {
+                            e.preventDefault();
+                            goToPage(currentPage + 1);
+                        }}
+                        className={`${styles.paginationButton} ${currentPage === totalPages ? styles.disabled : ''}`}
                     >
                         Sau
-                    </button>
+                    </a>
                 </div>
             )}
         </div>
