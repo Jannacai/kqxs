@@ -11,6 +11,16 @@
     /* Thêm padding nhẹ cho mobile */
 }
 
+.desc1 {
+    margin-top: 20px;
+    padding: 20px;
+    border: 1px Dashed #ccc;
+    background-color: #ffeca099;
+    line-height: 1.5;
+    font-size: 1.1rem;
+    margin: 10px;
+}
+
 .kqxs {
     background-color: #f9f9f9;
     width: 100%;
