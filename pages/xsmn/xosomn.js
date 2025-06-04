@@ -3,7 +3,13 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import styles from '../../styles/kqxsMN.module.css';
 import { getFilteredNumber } from "../../library/utils/filterUtils";
 import { useRouter } from 'next/router';
+import React from 'react';
 import LiveResult from './LiveResult';
+import Skeleton from 'react-loading-skeleton';
+import { debounce } from 'lodash';
+
+const CACHE_DURATION = 24 * 60 * 60 * 1000; // Cache 24 giờ
+const ITEMS_PER_PAGE = 3;
 
 const KQXS = (props) => {
     const [data, setData] = useState([]);
@@ -13,6 +19,7 @@ const KQXS = (props) => {
     const [currentPage, setCurrentPage] = useState(1);
     const [hasTriggeredScraper, setHasTriggeredScraper] = useState(false);
     const intervalRef = useRef(null);
+    const tableRef = useRef(null);
     const router = useRouter();
 
     const hour = 12;
@@ -30,7 +37,6 @@ const KQXS = (props) => {
     const startHour = hour;
     const startMinute = minutes1;
     const duration = 23 * 60 * 1000;
-    const itemsPerPage = 3;
 
     const today = new Date().toLocaleDateString('vi-VN', {
         day: '2-digit',
@@ -38,26 +44,53 @@ const KQXS = (props) => {
         year: 'numeric',
     });
 
-    const isLiveMode = useMemo(() => {
-        if (!props.data3) return true;
-        if (props.data3 === today) return true;
-        const dayMap = {
-            'thu-2': 'Thứ Hai',
-            'thu-3': 'Thứ Ba',
-            'thu-4': 'Thứ Tư',
-            'thu-5': 'Thứ Năm',
-            'thu-6': 'Thứ Sáu',
-            'thu-7': 'Thứ Bảy',
-            'chu-nhat': 'Chủ Nhật'
-        };
-        const todayDayOfWeek = new Date().toLocaleString('vi-VN', { weekday: 'long' });
-        const inputDayOfWeek = dayMap[props.data3?.toLowerCase()];
-        return inputDayOfWeek && inputDayOfWeek === todayDayOfWeek;
-    }, [props.data3, today]);
+    const CACHE_KEY = `xsmn_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}`;
 
-    const fetchData = useCallback(async () => {
+    const triggerScraperDebounced = useCallback(
+        debounce((today, station, provinces) => {
+            apiMN.triggerScraper(today, station, provinces)
+                .then((data) => {
+                    console.log('Scraper kích hoạt thành công:', data.message);
+                    setHasTriggeredScraper(true);
+                    fetchData();
+                })
+                .catch((error) => {
+                    console.error('Lỗi khi kích hoạt scraper:', error.message);
+                });
+        }, 1000),
+        []
+    );
+
+    const cleanOldCache = () => {
+        const now = new Date().getTime();
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key.endsWith('_time')) {
+                const cacheTime = parseInt(localStorage.getItem(key));
+                if (now - cacheTime > CACHE_DURATION) {
+                    localStorage.removeItem(key);
+                    localStorage.removeItem(key.replace('_time', ''));
+                }
+            }
+        }
+    };
+
+    const fetchData = useCallback(async (page = currentPage) => {
         try {
-            const result = await apiMN.getLottery(station, date, tinh, dayof);
+            const now = new Date();
+            const isUpdateWindow = now.getHours() === 12 && now.getMinutes() >= 15 && now.getMinutes() <= 38;
+
+            const cachedData = localStorage.getItem(CACHE_KEY);
+            const cachedTime = localStorage.getItem(`${CACHE_KEY}_time`);
+            const cacheAge = cachedTime ? now.getTime() - parseInt(cachedTime) : Infinity;
+
+            if (!isUpdateWindow && cachedData && cacheAge < CACHE_DURATION) {
+                setData(JSON.parse(cachedData));
+                setLoading(false);
+                return;
+            }
+
+            const result = await apiMN.getLottery(station, date, tinh, dayof, { page, limit: ITEMS_PER_PAGE });
             const dataArray = Array.isArray(result) ? result : [result];
 
             const formattedData = dataArray.map(item => ({
@@ -92,23 +125,49 @@ const KQXS = (props) => {
                 stations: groupedByDate[date],
                 dayOfWeek: groupedByDate[date][0].dayOfWeek,
             }));
-            setData(finalData);
 
-            const initialFilters = finalData.reduce((acc, item) => {
-                acc[item.drawDate] = 'all';
-                return acc;
-            }, {});
-            setFilterTypes(initialFilters);
+            setData(finalData);
+            localStorage.setItem(CACHE_KEY, JSON.stringify(finalData));
+            localStorage.setItem(`${CACHE_KEY}_time`, now.getTime().toString());
+
+            setFilterTypes(prevFilters => ({
+                ...prevFilters,
+                ...finalData.reduce((acc, item) => {
+                    acc[item.drawDate] = prevFilters[item.drawDate] || 'all';
+                    return acc;
+                }, {}),
+            }));
+
             setLoading(false);
         } catch (error) {
             console.error('Error fetching lottery data:', error);
             setLoading(false);
         }
-    }, [station, date, tinh, dayof]);
+    }, [station, date, tinh, dayof, currentPage]);
+
+    const isLiveMode = useMemo(() => {
+        if (!props.data3) return true;
+        if (props.data3 === today) return true;
+        const dayMap = {
+            'thu-2': 'Thứ Hai',
+            'thu-3': 'Thứ Ba',
+            'thu-4': 'Thứ Tư',
+            'thu-5': 'Thứ Năm',
+            'thu-6': 'Thứ Sáu',
+            'thu-7': 'Thứ Bảy',
+            'chu-nhat': 'Chủ Nhật'
+        };
+        const todayDayOfWeek = new Date().toLocaleString('vi-VN', { weekday: 'long' });
+        const inputDayOfWeek = dayMap[props.data3?.toLowerCase()];
+        return inputDayOfWeek && inputDayOfWeek === todayDayOfWeek;
+    }, [props.data3, today]);
 
     useEffect(() => {
+        cleanOldCache();
         fetchData();
+    }, [fetchData]);
 
+    useEffect(() => {
         const checkTime = () => {
             const now = new Date();
             const startTime = new Date();
@@ -116,22 +175,12 @@ const KQXS = (props) => {
             const endTime = new Date(startTime.getTime() + duration);
 
             const isLive = now >= startTime && now <= endTime;
-            // Chỉ cập nhật isRunning nếu giá trị thay đổi
-            setIsRunning(prev => {
-                if (prev !== isLive) {
-                    console.log('isRunning updated to:', isLive);
-                    return isLive;
-                }
-                return prev;
-            });
+            setIsRunning(prev => prev !== isLive ? isLive : prev);
 
-            // Reset hasTriggeredScraper lúc 00:00:00
             if (now.getHours() === 0 && now.getMinutes() === 0 && now.getSeconds() === 0) {
                 setHasTriggeredScraper(false);
-                console.log('Reset hasTriggeredScraper at midnight');
             }
 
-            // Lấy provinces từ danh sách tĩnh
             const dayOfWeekIndex = now.getDay();
             const todayData = {
                 1: [
@@ -174,7 +223,6 @@ const KQXS = (props) => {
 
             const provinces = todayData[dayOfWeekIndex] || [];
 
-            // Kích hoạt scraper lúc 17:51:00
             if (
                 isLive &&
                 now.getHours() === hour &&
@@ -183,27 +231,17 @@ const KQXS = (props) => {
                 !hasTriggeredScraper &&
                 provinces.length > 0
             ) {
-                console.log('Triggering scraper with provinces:', provinces);
-                apiMN.triggerScraper(today, station, provinces)
-                    .then((data) => {
-                        console.log('Scraper kích hoạt thành công:', data.message);
-                        setHasTriggeredScraper(true);
-                        fetchData();
-                    })
-                    .catch((error) => {
-                        console.error('Lỗi khi kích hoạt scraper:', error.message);
-                    });
+                triggerScraperDebounced(today, station, provinces);
             }
         };
 
         checkTime();
-        intervalRef.current = setInterval(checkTime, 5000); // Tăng interval lên 5 giây
-
+        intervalRef.current = setInterval(checkTime, 10000);
         return () => {
-            console.log('Cleaning up interval...');
             clearInterval(intervalRef.current);
+            triggerScraperDebounced.cancel();
         };
-    }, [station, date, tinh, fetchData]); // Loại bỏ hasTriggeredScraper khỏi dependencies
+    }, [hasTriggeredScraper, station, today, triggerScraperDebounced]);
 
     const handleFilterChange = useCallback((key, value) => {
         setFilterTypes((prev) => ({
@@ -212,7 +250,19 @@ const KQXS = (props) => {
         }));
     }, []);
 
-    const getHeadAndTailNumbers = useCallback((data2) => {
+    const getHeadAndTailNumbers = useMemo(() => (data2) => {
+        console.debug('getHeadAndTailNumbers input:', {
+            eightPrizes: data2.eightPrizes,
+            specialPrize: data2.specialPrize,
+            firstPrize: data2.firstPrize,
+            secondPrize: data2.secondPrize,
+            threePrizes: data2.threePrizes,
+            fourPrizes: data2.fourPrizes,
+            fivePrizes: data2.fivePrizes,
+            sixPrizes: data2.sixPrizes,
+            sevenPrizes: data2.sevenPrizes,
+        });
+
         const allNumbers = [
             ...(data2.eightPrizes || []).map(num => ({ num, isEighth: true })),
             ...(data2.specialPrize || []).map(num => ({ num, isSpecial: true })),
@@ -232,8 +282,8 @@ const KQXS = (props) => {
             }))
             .filter(item => item.num != null && item.num !== '' && !isNaN(item.num));
 
-        const heads = Array(10).fill().map(() => []);
-        const tails = Array(10).fill().map(() => []);
+        const heads = new Map(Array.from({ length: 10 }, (_, i) => [i, []]));
+        const tails = new Map(Array.from({ length: 10 }, (_, i) => [i, []]));
 
         allNumbers.forEach((item) => {
             if (item.num != null && item.num !== '') {
@@ -242,38 +292,38 @@ const KQXS = (props) => {
                 const tail = parseInt(numStr[numStr.length - 1]);
 
                 if (!isNaN(head) && head >= 0 && head <= 9 && !isNaN(tail) && tail >= 0 && tail <= 9) {
-                    heads[head].push({ num: numStr, isEighth: item.isEighth, isSpecial: item.isSpecial });
-                    tails[tail].push({ num: numStr, isEighth: item.isEighth, isSpecial: item.isSpecial });
+                    heads.get(head).push({ num: numStr, isEighth: item.isEighth, isSpecial: item.isSpecial });
+                    tails.get(tail).push({ num: numStr, isEighth: item.isEighth, isSpecial: item.isSpecial });
                 }
             }
         });
 
         for (let i = 0; i < 10; i++) {
-            heads[i].sort((a, b) => parseInt(a.num) - parseInt(b.num));
-            tails[i].sort((a, b) => parseInt(a.num) - parseInt(b.num));
+            heads.get(i).sort((a, b) => parseInt(a.num) - parseInt(b.num));
+            tails.get(i).sort((a, b) => parseInt(a.num) - parseInt(b.num));
         }
 
-        return { heads, tails };
+        const result = { heads: Array.from(heads.values()), tails: Array.from(tails.values()) };
+        console.debug('getHeadAndTailNumbers output:', result);
+        return result;
     }, []);
 
-    const totalPages = Math.ceil(data.length / itemsPerPage);
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
+    const totalPages = Math.ceil(data.length / ITEMS_PER_PAGE);
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
     const currentData = data.slice(startIndex, endIndex);
 
     const goToPage = (page) => {
         if (page >= 1 && page <= totalPages) {
-            console.log(`Navigating to page ${page}`);
             setCurrentPage(page);
+            tableRef.current?.scrollIntoView({ behavior: 'smooth' });
         }
     };
 
     useEffect(() => {
-        console.log(`currentPage updated to ${currentPage}`);
-        window.scrollTo({
-            top: 0,
-            behavior: 'smooth'
-        });
+        if (tableRef.current) {
+            tableRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
     }, [currentPage]);
 
     const todayData = data.find(item => item.drawDate === today);
@@ -282,12 +332,16 @@ const KQXS = (props) => {
         tentinh: station.tentinh
     })) : [];
 
-    // if (loading) {
-    //     return <div>Đang tải dữ liệu...</div>;
-    // }
+    if (loading) {
+        return (
+            <div className={styles.containerKQ}>
+                <Skeleton count={10} height={30} />
+            </div>
+        );
+    }
 
     return (
-        <div className={styles.containerKQ}>
+        <div ref={tableRef} className={styles.containerKQ}>
             {isLiveMode && isRunning && (
                 <LiveResult
                     station={station}
@@ -596,4 +650,4 @@ const KQXS = (props) => {
     );
 };
 
-export default KQXS;
+export default React.memo(KQXS);
