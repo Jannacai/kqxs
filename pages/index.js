@@ -7,8 +7,10 @@ import ListXSMB from '../component/listXSMB';
 import ListXSMN from '../component/listXSMN';
 import CongCuHot from '../component/CongCuHot';
 import TableDate from '../component/tableDateKQXS';
+
 const KQXS = dynamic(() => import('./kqxsAll/index'), { ssr: false });
 const PostList = dynamic(() => import('./post/list'), { ssr: false });
+
 export default function Home() {
     const today = new Date();
     const drawDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
@@ -114,6 +116,19 @@ export default function Home() {
                 </div>
                 <div>
                     <TableDate />
+                    <div className='groupbanner3'>
+                        <a href='/' tabIndex={-1}>
+                            <video
+                                className='banner3'
+                                src='/banner3.mp4'
+                                autoPlay
+                                loop
+                                muted
+                                playsInline
+                                alt='xổ số bắc trung nam'
+                            />
+                        </a>
+                    </div>
                     <KQXS>{"Miền Bắc"}</KQXS>
                     <div className="desc1">
                         <h1 className='heading'>XSMB.WIN | Trang Kết Quả Xổ Số Miền Bắc Nhanh Nhất - Chính Xác Nhất - XSMB</h1>
@@ -121,11 +136,26 @@ export default function Home() {
                             Kết quả xổ số Miền Bắc được cập nhật hàng ngày, bao gồm giải đặc biệt, lô tô và thống kê chi tiết. Xem thêm kết quả
                             Xổ Số VN chuyên cập nhật kết quả XSMB tất cả các ngày trong tuần nhanh chóng, chính xác nhất. Lô thủ, người xem,… có thể truy cập vào web xsmb.win để theo dõi KQXSMB miễn phí.<a href="/ket-qua-xo-so-mien-trung">XSMT</a> và <a href="/ket-qua-xo-so-mien-nam">XSMN</a> để so sánh!
                         </p>
-                        <br></br> <p className='note'>Chú ý: Mọi hành vi liên quan đến vi phạm pháp luật chúng tôi KHÔNG khuyến khích và KHÔNG chịu trách nhiệm.</p>
+                        <br />
+                        <p className='note'>Chú ý: Mọi hành vi liên quan đến vi phạm pháp luật chúng tôi KHÔNG khuyến khích và KHÔNG chịu trách nhiệm.</p>
                     </div>
                 </div>
-                <div><ThongKe />
+                <div>
+                    <ThongKe />
                     <CongCuHot />
+                    <div className='banner1'>
+                        <a href='/' tabIndex={-1}>
+                            <video
+                                className='header__logo--img'
+                                src='/banner2.mp4'
+                                autoPlay
+                                loop
+                                muted
+                                playsInline
+                                alt='xổ số bắc trung nam'
+                            />
+                        </a>
+                    </div>
                 </div>
             </div>
             <div className='container'>

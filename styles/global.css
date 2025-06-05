@@ -62,6 +62,26 @@ a {
     font-weight: 700;
 }
 
+/* css banner */
+
+.banner1 {
+    margin-top: 20px;
+    width: 300px;
+    height: 300px;
+    object-fit: cover;
+}
+
+.groupbanner3 {
+    height: 180px;
+    width: 660px;
+}
+
+.banner3 {
+    height: 170px;
+    width: 100%;
+    object-fit: cover;
+}
+
 /* Header */
 .header {
     background-color: var(--color-white);
@@ -216,12 +236,25 @@ a {
     }
 }
 
-
-
 /*Tablet and mobile */
 @media screen and (max-width: 991px) {
     .container {
         display: block;
+    }
+
+    .groupbanner3 {
+        width: 100%;
+        height: 130px;
+    }
+
+    .banner3 {
+        width: 100%;
+        height: 130px;
+        padding: 0 10px;
+    }
+
+    .banner1 {
+        display: none;
     }
 
     .header__logo--img {
