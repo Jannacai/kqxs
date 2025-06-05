@@ -57,7 +57,7 @@ const Footer = () => {
             <div className={styles.endFooter}>
                 <div className={styles.contact1}>
                     <h3>Công Ty TNHH Xổ Số XSMB.WIN</h3>
-                    <a className={styles.email}>Email: XSMB.WIN@gmail.com</a>
+                    <a className={styles.email}>Email: xsmb.win.contact@gmail.com</a>
                 </div>
                 <div className={styles.contact}>
                     <div className={styles.groupIcon}>

@@ -40,6 +40,28 @@ a {
     margin: 0 auto;
 }
 
+.desc1 {
+    font-family: "Roboto", sans-serif;
+    width: 100%;
+    margin-top: 20px;
+    padding: 20px;
+    border: 1px Dashed #ccc;
+    background-color: #ffeca099;
+    line-height: 1.5;
+    font-size: 1.1rem;
+    /* margin: 10px; */
+}
+
+.note {
+    color: red;
+}
+
+.heading {
+    font-family: "Roboto", sans-serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+}
+
 /* Header */
 .header {
     background-color: var(--color-white);
