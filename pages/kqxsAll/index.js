@@ -25,9 +25,9 @@ const KQXS = (props) => {
     const [currentPage, setCurrentPage] = useState(1);
     const [isLiveWindow, setIsLiveWindow] = useState(false);
     const [hasTriggeredScraper, setHasTriggeredScraper] = useState(false);
-    const hour = 11;
-    const minute1 = 21;
-    const minute2 = 15;
+    const hour = 18;
+    const minute1 = 13;
+    const minute2 = 14;
 
     const router = useRouter();
 
@@ -113,7 +113,7 @@ const KQXS = (props) => {
     const fetchData = useCallback(async () => {
         try {
             const now = new Date();
-            const isUpdateWindow = now.getHours() === 18 && now.getMinutes() >= 10 && now.getMinutes() <= 35;
+            const isUpdateWindow = now.getHours() === 9 && now.getMinutes() >= 6 && now.getMinutes() <= 35;
 
             // Kiểm tra cache
             const cachedData = localStorage.getItem(CACHE_KEY);
