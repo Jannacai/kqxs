@@ -27,7 +27,7 @@ const KQXS = (props) => {
     const [hasTriggeredScraper, setHasTriggeredScraper] = useState(false);
     const hour = 18;
     const minute1 = 13;
-    const minute2 = 14;
+    const minute2 = 21;
 
     const router = useRouter();
 
