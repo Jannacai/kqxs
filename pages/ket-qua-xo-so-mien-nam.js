@@ -57,8 +57,8 @@ const XSMN = ({ initialData }) => {
         }).replace(/\//g, '/')
         : today;
 
-    const title = `Kết Quả Xổ Số Miền Nam - ${drawDate}`;
-    const description = `Xem kết quả xổ số Miền Nam ngày ${drawDate} với thông tin chi tiết về giải đặc biệt, lô tô, đầu đuôi.`;
+    const title = `XSMN - Kết Quả Xổ Số Miền Nam - SXMN Hôm Nay - KQXSMN`;
+    const description = `XSMN - Xem kết quả xổ số Miền Nam hôm nay Nhanh và Chính xác tường thuật SXMN hàng ngày 16h10p trực tiếp từ trường quay với thông tin chi tiết về giải đặc biệt, lô tô, đầu đuôi. Cập nhật nhanh tại xsmb.win!`;
     const canonicalUrl = 'https://www.xsmb.win/ket-qua-xo-so-mien-nam';
 
     if (!Array.isArray(initialData) || initialData.length === 0) {

@@ -39,8 +39,8 @@ export async function getStaticProps() {
 
 const XSMT = ({ initialData }) => {
     const drawDate = initialData[0]?.drawDate || 'Hôm Nay';
-    const title = `Kết Quả Xổ Số Miền Trung - ${initialData[0]?.drawDate || 'Hôm Nay'}`;
-    const description = `Xem kết quả xổ số Miền Trung ngày ${initialData[0]?.drawDate || 'hôm nay'} với thông tin chi tiết về giải đặc biệt, lô tô, đầu đuôi.`;
+    const title = `XSMT - Kết Quả Xổ Số Miền Trung - SXMT Hôm Nay - KQXSMT`;
+    const description = `XSMT - Xem kết quả xổ số Miền Trung hôm nay Nhanh và Chính xác tường thuật SXMT hàng ngày 17h10p trực tiếp từ trường quay với thông tin chi tiết về giải đặc biệt, lô tô, đầu đuôi. Cập nhật nhanh tại xsmb.win!`;
     const canonicalUrl = 'https://www.xsmb.win/ket-qua-xo-so-mien-trung';
 
     return (

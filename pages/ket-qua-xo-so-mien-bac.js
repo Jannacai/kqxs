@@ -52,8 +52,8 @@ const XSMB = ({ initialData }) => {
         }).replace(/\//g, '/')
         : today;
 
-    const title = `XSMB ${drawDate} - Kết Quả Xổ Số Miền Bắc`;
-    const description = `Xem kết quả xổ số Miền Bắc ngày ${drawDate} với thông tin chi tiết về giải đặc biệt, lô tô, đầu đuôi. Cập nhật nhanh tại xsmb.win!`;
+    const title = `XSMB - Kết Quả Xổ Số Miền Bắc - SXMB Hôm Nay - KQXSMB`;
+    const description = `XSMB - Xem kết quả xổ số Miền Bắc hôm nay Nhanh và Chính xác tường thuật SXMB hàng ngày 18h15p trực tiếp từ trường quay với thông tin chi tiết về giải đặc biệt, lô tô, đầu đuôi. Cập nhật nhanh tại xsmb.win!`;
     const canonicalUrl = 'https://www.xsmb.win/ket-qua-xo-so-mien-bac';
 
     if (!Array.isArray(initialData) || initialData.length === 0) {
