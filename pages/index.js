@@ -117,7 +117,7 @@ export default function Home() {
                 <div>
                     <TableDate />
                     <div className='groupbanner3'>
-                        <a href='/' tabIndex={-1}>
+                        <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
                             <video
                                 className='banner3'
                                 src='/banner3.mp4'
@@ -144,7 +144,7 @@ export default function Home() {
                     <ThongKe />
                     <CongCuHot />
                     <div className='banner1'>
-                        <a href='/' tabIndex={-1}>
+                        <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
                             <video
                                 className='header__logo--img'
                                 src='/banner2.mp4'
