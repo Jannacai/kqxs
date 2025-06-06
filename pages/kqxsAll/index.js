@@ -29,7 +29,7 @@ const KQXS = (props) => {
     const [hasTriggeredScraper, setHasTriggeredScraper] = useState(false);
     const hour = 18;
     const minute1 = 16;
-    const minute2 = 17;
+    const minute2 = 26;
 
     const router = useRouter();
     const dayof = props.data4;
