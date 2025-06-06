@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, lazy, Suspense } from 'react';
+import { debounce } from 'lodash';
 import Head from 'next/head';
 import { apiMB } from '../api/kqxs/kqxsMB';
 import { apiMT } from '../api/kqxs/kqxsMT';
@@ -8,6 +9,7 @@ import ThongKe from '../../component/thongKe';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import CongCuHot from '../../component/CongCuHot';
+
 // Skeleton Loading Component
 const SkeletonRow = () => (
     <tr>
@@ -31,7 +33,7 @@ const SkeletonTable = () => (
         <tbody>
             {Array(5).fill().map((_, index) => <SkeletonRow key={index} />)}
         </tbody>
-    </table>
+    </table >
 );
 
 // Province to slug mapping
@@ -81,9 +83,12 @@ const mienNamProvinces = [
 
 // Central provinces
 const mienTrungProvinces = [
-    "Huế", "Phú Yên", "Đắk Lắk", "Quảng Nam", "Khánh Hòa", "Đà Nẵng", "Bình Định", "Quảng Trị",
+    "Huế", "Phú Yên", "Đắk Lắc", "Quảng Nam", "Khánh Hòa", "Đà Nẵng", "Bình Định", "Quảng Trị",
     "Ninh Thuận", "Gia Lai", "Quảng Ngãi", "Đắk Nông", "Kon Tum"
 ];
+
+// Lazy load DescriptionContent
+const DescriptionContent = lazy(() => import('./DescriptionContent'));
 
 const Logan = ({ initialStats, initialMetadata, initialDays, initialRegion, initialTinh }) => {
     const router = useRouter();
@@ -96,7 +101,8 @@ const Logan = ({ initialStats, initialMetadata, initialDays, initialRegion, init
     const [error, setError] = useState(null);
     const [isExpanded, setIsExpanded] = useState(false);
 
-    const fetchLoGanStats = useCallback(async (days, region, tinh) => {
+    // Debounce API calls
+    const fetchLoGanStats = useCallback(debounce(async (days, region, tinh) => {
         setLoading(true);
         setError(null);
         try {
@@ -119,7 +125,7 @@ const Logan = ({ initialStats, initialMetadata, initialDays, initialRegion, init
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, 300), []); // Debounce 300ms
 
     const handleTinhChange = useCallback((e) => {
         const selectedValue = e.target.value;
@@ -143,8 +149,19 @@ const Logan = ({ initialStats, initialMetadata, initialDays, initialRegion, init
         setIsExpanded(!isExpanded);
     };
 
+    // Memoize bảng dữ liệu
+    const tableData = useMemo(() => {
+        return stats.map(stat => ({
+            number: stat.number,
+            lastAppeared: stat.lastAppeared,
+            gapDraws: stat.gapDraws,
+            maxGap: stat.maxGap,
+        }));
+    }, [stats]);
+
     useEffect(() => {
         fetchLoGanStats(days, region, tinh);
+        return () => fetchLoGanStats.cancel(); // Hủy debounce khi unmount
     }, [days, region, tinh, fetchLoGanStats]);
 
     useEffect(() => {
@@ -216,9 +233,9 @@ const Logan = ({ initialStats, initialMetadata, initialDays, initialRegion, init
     };
 
     const pageTitle = region === 'Miền Bắc'
-        ? `Thống kê Lô Gan Miền Bắc lâu chưa về nhất`
+        ? `Lô gan miền Bắc - Thống kê Lô Gan XSMB - Lo gan MB`
         : `Thống kê Lô Gan ${region} - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh) || ''} lâu chưa về nhất`;
-    const pageDescription = `Xem bảng thống kê Lô Gan ${region === 'Miền Bắc' ? 'Miền Bắc' : `${region} - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh) || ''}`} lâu chưa về nhất. Cập nhật dữ liệu từ ${metadata.startDate || 'N/A'} đến ${metadata.endDate || 'N/A'}.`;
+    const pageDescription = `Xem bảng thống kê Lô Gan ${region === 'Miền Bắc' ? 'Miền Bắc' : `${region} - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh) || ''}`} lâu chưa về nhất. Cập nhật dữ liệu từ ${metadata.startDate} đến ${metadata.endDate || 'hàng ngày'}.`;
 
     return (
         <div className="container">
@@ -228,6 +245,8 @@ const Logan = ({ initialStats, initialMetadata, initialDays, initialRegion, init
                 <meta property="og:title" content={pageTitle} />
                 <meta property="og:description" content={pageDescription} />
                 <meta property="og:type" content="website" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <meta name="robots" content="index, follow" />
                 <meta property="og:url" content="https://xsmb.win/thongke/logan" />
                 <meta property="og:image" content="https://xsmb.win/zalotelegram.png" />
                 <link rel="canonical" href="https://xsmb.win/thongke/logan" />
@@ -237,7 +256,6 @@ const Logan = ({ initialStats, initialMetadata, initialDays, initialRegion, init
                 <div className={styles.titleGroup}>
                     <h1 className={styles.title}>{getTitle()}</h1>
                     <div className={styles.actionBtn}>
-
                         <Link className={styles.actionTK} href="/thongke/dau-duoi">
                             Thống Kê Đầu Đuôi
                         </Link>
@@ -311,7 +329,7 @@ const Logan = ({ initialStats, initialMetadata, initialDays, initialRegion, init
 
                     {loading && <SkeletonTable />}
                     {error && <p className={styles.error}>{error}</p>}
-                    {!loading && !error && stats.length > 0 && (
+                    {!loading && !error && tableData.length > 0 && (
                         <table className={styles.tableLoGan}>
                             <thead>
                                 <tr>
@@ -322,7 +340,7 @@ const Logan = ({ initialStats, initialMetadata, initialDays, initialRegion, init
                                 </tr>
                             </thead>
                             <tbody>
-                                {stats.map((stat, index) => (
+                                {tableData.map((stat, index) => (
                                     <tr key={index}>
                                         <td className={`${styles.number} ${styles.highlight}`}>
                                             {stat.number}
@@ -339,45 +357,18 @@ const Logan = ({ initialStats, initialMetadata, initialDays, initialRegion, init
                             </tbody>
                         </table>
                     )}
-                    {!loading && !error && stats.length === 0 && metadata.message && (
+                    {!loading && !error && tableData.length === 0 && metadata.message && (
                         <p className={styles.noData}>{metadata.message}</p>
                     )}
                 </div>
 
                 <div className={styles.groupContent}>
                     <h2 className={styles.heading}>XSMN.WIN - Thống Kê Lô Gan Chính Xác Nhất</h2>
-                    <div className={`${styles.contentWrapper} ${isExpanded ? styles.expanded : styles.collapsed}`}>
-                        <h3 className={styles.h3}>Thống kê Lô Gan Miền Bắc là gì?</h3>
-                        <p className={styles.desc}>
-                            Thống kê lô gan Miền Bắc (hay còn gọi là lô khan Miền Bắc, số rắn) là thống kê những cặp số lô tô (2 số cuối) lâu chưa về trên bảng kết quả Miền Bắc trong một khoảng thời gian, ví dụ như 5 ngày hoặc hơn. Đây là những con loto gan lì không chịu xuất hiện. Số ngày gan (kỳ gan) là số lần mở thưởng mà bộ số đó chưa về tính đến hôm nay.
-                        </p>
-                        <h3 className={styles.h3}>Thống kê lô khan Miền Bắc gồm có những gì?</h3>
-                        <p className={styles.desc}>
-                            Những con lô lâu chưa về (lô lên gan) từ 00-99, số ngày gan và số ngày gan cực đại, kỷ lục lâu chưa về nhất (gan max) là tổng bao nhiêu ngày.
-                        </p>
-                        <p className={styles.desc}>
-                            Thống kê cặp lô gan xổ số Miền Bắc (bao gồm 1 số và số lộn của chính nó) lâu chưa về nhất tính đến hôm nay cùng với thời gian gan cực đại của các cặp số đó.
-                        </p>
-                        <p className={styles.desc}>
-                            Người chơi xổ số sẽ dễ dàng nhận biết lô gan XSMB bằng cách xem thống kê những con lô ít xuất hiện nhất trong bảng kết quả. Gan Cực Đại: Số lần kỷ lục mà một con số lâu nhất chưa về.
-                        </p>
-                        <h3 className={styles.h3}>Ý nghĩa các cột trong bảng lô gan</h3>
-                        <p className={styles.desc}>
-                            Cột số: thống kê các cặp loto đã lên gan, tức là cặp 2 số cuối của các giải có ít nhất 10 ngày liên tiếp chưa xuất hiện trong bảng kết quả đã về trong 24h qua.
-                        </p>
-                        <p className={styles.desc}>
-                            Ngày gần nhất: thời điểm về của các cặp lô gan, tức là ngày cuối cùng mà lô đó xuất hiện trước khi lì ra trong kết quả xổ số Miền Bắc tới nay.
-                        </p>
-                        <p className={styles.desc}>
-                            Số ngày gan: số ngày mà con số lô tô đó chưa ra.
-                        </p>
-                        <p className={styles.desc}>
-                            Sử dụng công cụ thống kê chuẩn xác từ các kết quả cũ, XSMN.WIN cung cấp cho bạn thống kê lô gan Miền Bắc chuẩn xác nhất. Với tính năng này, người chơi sẽ có thêm thông tin tham khảo để chọn cho mình con số may mắn, mang đến cơ hội trúng thưởng cao hơn. Chúc bạn may mắn!
-                        </p>
-                        <p className={styles.desc}>
-                            Thống kê lô gan. Xem thống kê lô gan hôm nay nhanh và chính xác nhất tại <a className={styles.action} href="/">XSMN.WIN</a>.
-                        </p>
-                    </div>
+                    {isExpanded && (
+                        <Suspense fallback={<div>Loading...</div>}>
+                            <DescriptionContent />
+                        </Suspense>
+                    )}
                     <button
                         className={styles.toggleBtn}
                         onClick={toggleContent}
@@ -385,7 +376,6 @@ const Logan = ({ initialStats, initialMetadata, initialDays, initialRegion, init
                         {isExpanded ? 'Thu gọn' : 'Xem thêm'}
                     </button>
                 </div>
-
 
                 <button
                     id="scrollToTopBtn"

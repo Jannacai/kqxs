@@ -99,7 +99,7 @@ const UserAvatar = () => {
                     </button>
                 </>
             ) : (
-                <p>Đang tải...</p>
+                " "
             )}
         </div>
     );
