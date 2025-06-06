@@ -126,7 +126,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
         let eventSource;
 
         const connectSSE = () => {
-            eventSource = new EventSource(`http://localhost:5000/api/kqxs/xsmb/sse?station=${station}`);
+            eventSource = new EventSource(`https://backendkqxs.onrender.com/api/kqxs/xsmb/sse?station=${station}`);
 
             const prizeTypes = [
                 'maDB',

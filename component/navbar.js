@@ -1,43 +1,16 @@
 import Link from 'next/link';
 import { useEffect, useState, useRef } from 'react';
 import styles from '../public/css/navbar.module.css';
-import { apiMB } from '../pages/api/kqxs/kqxsMB';
 import UserAvatar from './UserAvatar';
 import { useRouter } from 'next/router';
 import logo from '../public/asset/img/LOGOxsmn_win.png';
 import Image from 'next/image';
 
 const NavBar = () => {
-    const [data, setData] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isMenuOpenList, setIsMenuOpenList] = useState("");
     const scrollPositionRef = useRef(0);
-
-    const hasFetched = useRef(false);
     const router = useRouter();
-
-    useEffect(() => {
-        async function fetchDataOnce() {
-            if (hasFetched.current) return;
-            hasFetched.current = true;
-
-            try {
-                setLoading(true);
-                const result = await apiMB.getLottery('xsmb');
-                const dataArray = Array.isArray(result) ? result : [result];
-                const formattedData = dataArray.map(item => ({
-                    ...item,
-                }));
-                setData(formattedData);
-            } catch (error) {
-                console.error('Lỗi:', error);
-            } finally {
-                setLoading(false);
-            }
-        }
-        fetchDataOnce();
-    }, []);
 
     useEffect(() => {
         // Xử lý body khi navbar mở/đóng
@@ -94,8 +67,6 @@ const NavBar = () => {
         setIsMenuOpenList(isMenuOpenList === menuId ? "" : menuId);
     };
 
-    if (loading) return <div>Loading...</div>;
-
     return (
         <div>
             <span className={styles.iconMenu} onClick={toggleMenu}>
@@ -105,51 +76,34 @@ const NavBar = () => {
             <div className={styles.NavbarMobileNgang}>
                 <ul className={styles.nav_listNgang}>
                     <li className={`${styles.nav_itemNgang} ${router.pathname.startsWith('/ket-qua-xo-so-mien-bac') ? styles.active : ''}`}>
-
                         <Link href="/ket-qua-xo-so-mien-bac" className={styles.nav_itemLinkNgang}>XSMB </Link>
-
                     </li>
                     <li className={`${styles.nav_itemNgang} ${router.pathname.startsWith('/ket-qua-xo-so-mien-nam') ? styles.active : ''}`}>
-
                         <Link href="/ket-qua-xo-so-mien-nam" className={styles.nav_itemLinkNgang}>XSMN </Link>
-
                     </li>
                     <li className={`${styles.nav_itemNgang} ${router.pathname.startsWith('/ket-qua-xo-so-mien-trung') ? styles.active : ''}`}>
-
                         <Link href="/ket-qua-xo-so-mien-trung" className={styles.nav_itemLinkNgang}>XSMT </Link>
-
                     </li>
                     <li className={`${styles.nav_itemNgang} ${router.pathname.startsWith('/thongke') ? styles.active : ''}`}>
-
                         <Link href="/thongke/lo-gan" className={styles.nav_itemLinkNgang}>Thống kê </Link>
-
                     </li>
                     <li className={`${styles.nav_itemNgang} ${router.pathname.startsWith('/tao-dan-de-dac-biet') ? styles.active : ''}`}>
-
                         <Link href="/tao-dan-de-dac-biet/" className={styles.nav_itemLinkNgang}>Tạo Dàn</Link>
-
                     </li>
                     <li className={`${styles.nav_itemNgang} ${router.pathname.startsWith('/news') ? styles.active : ''}`}>
-
                         <Link href="#" className={styles.nav_itemLinkNgang}>Tin Tức</Link>
-
                     </li>
                     <li className={`${styles.nav_itemNgang} ${router.pathname === '/soicau/soi-cau-mien-bac' ? styles.active : ''}`}>
-
                         <Link href="/soicau/soi-cau-mien-bac" className={styles.nav_itemLinkNgang}>Soi Cầu</Link>
-
                     </li>
                     <li className={`${styles.nav_itemNgang} ${router.pathname.startsWith('/quaythu') ? styles.active : ''}`}>
-
                         <Link href="#" className={styles.nav_itemLinkNgang}>Quay Thử</Link>
-
                     </li>
                     <li className={`${styles.nav_itemNgang} ${router.pathname === '/diendan' ? styles.active : ''}`}>
                         <Link href="#" className={styles.nav_itemLinkNgang}>Diễn Đàn</Link>
                     </li>
                 </ul>
             </div>
-
 
             {/* Tablet Mobile */}
             <div className={`${styles.mobileNavbar} ${!isMenuOpen ? styles.hidden : ''}`}>
@@ -171,8 +125,7 @@ const NavBar = () => {
                         <nav className={styles.navbarMobile}>
                             <ul className={styles.nav_listMobile}>
                                 <li
-                                    className={`${styles.nav_itemMobile} ${router.pathname === "/" ? styles.active : ""
-                                        }`}
+                                    className={`${styles.nav_itemMobile} ${router.pathname === "/" ? styles.active : ""}`}
                                 >
                                     <div className={styles.grouplinkMobile}>
                                         <Link
@@ -184,12 +137,10 @@ const NavBar = () => {
                                                 <i className="fa-solid fa-house-circle-check"></i>
                                             </span>  Home
                                         </Link>
-
                                     </div>
                                 </li>
                                 <li
-                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith("/ket-qua-xo-so-mien-bac") ? styles.active : ""
-                                        }`}
+                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith("/ket-qua-xo-so-mien-bac") ? styles.active : ""}`}
                                 >
                                     <div className={styles.grouplinkMobile}>
                                         <Link
@@ -204,21 +155,16 @@ const NavBar = () => {
                                             className={styles.icon}
                                         >
                                             <i
-                                                className={`fa-solid ${isMenuOpenList === "xsmb"
-                                                    ? "fa-chevron-up"
-                                                    : "fa-chevron-down"
-                                                    }`}
+                                                className={`fa-solid ${isMenuOpenList === "xsmb" ? "fa-chevron-up" : "fa-chevron-down"}`}
                                             ></i>
                                         </span>
                                     </div>
                                     <ul
-                                        className={`${styles.nav__menuMobile} ${isMenuOpenList === "xsmb" ? styles.menuList : ""
-                                            }`}
+                                        className={`${styles.nav__menuMobile} ${isMenuOpenList === "xsmb" ? styles.menuList : ""}`}
                                     >
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmb/xo-so-mien-bac/thu-2" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmb/xo-so-mien-bac/thu-2" ? styles.active : ""}`}
                                                 href="/xsmb/xo-so-mien-bac/thu-2"
                                                 onClick={toggleMenu}
                                             >
@@ -227,8 +173,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmb/xo-so-mien-bac/thu-3" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmb/xo-so-mien-bac/thu-3" ? styles.active : ""}`}
                                                 href="/xsmb/xo-so-mien-bac/thu-3"
                                                 onClick={toggleMenu}
                                             >
@@ -237,8 +182,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmb/xo-so-mien-bac/thu-4" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmb/xo-so-mien-bac/thu-4" ? styles.active : ""}`}
                                                 href="/xsmb/xo-so-mien-bac/thu-4"
                                                 onClick={toggleMenu}
                                             >
@@ -247,8 +191,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmb/xo-so-mien-bac/thu-5" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmb/xo-so-mien-bac/thu-5" ? styles.active : ""}`}
                                                 href="/xsmb/xo-so-mien-bac/thu-5"
                                                 onClick={toggleMenu}
                                             >
@@ -257,8 +200,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmb/xo-so-mien-bac/thu-6" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmb/xo-so-mien-bac/thu-6" ? styles.active : ""}`}
                                                 href="/xsmb/xo-so-mien-bac/thu-6"
                                                 onClick={toggleMenu}
                                             >
@@ -267,8 +209,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmb/xo-so-mien-bac/thu-7" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmb/xo-so-mien-bac/thu-7" ? styles.active : ""}`}
                                                 href="/xsmb/xo-so-mien-bac/thu-7"
                                                 onClick={toggleMenu}
                                             >
@@ -277,8 +218,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmb/xo-so-mien-bac/chu-nhat" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmb/xo-so-mien-bac/chu-nhat" ? styles.active : ""}`}
                                                 href="/xsmb/xo-so-mien-bac/chu-nhat"
                                                 onClick={toggleMenu}
                                             >
@@ -288,8 +228,7 @@ const NavBar = () => {
                                     </ul>
                                 </li>
                                 <li
-                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith("/ket-qua-xo-so-mien-nam") ? styles.active : ""
-                                        }`}
+                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith("/ket-qua-xo-so-mien-nam") ? styles.active : ""}`}
                                 >
                                     <div className={styles.grouplinkMobile}>
                                         <Link
@@ -304,21 +243,16 @@ const NavBar = () => {
                                             className={styles.icon}
                                         >
                                             <i
-                                                className={`fa-solid ${isMenuOpenList === "xsmn"
-                                                    ? "fa-chevron-up"
-                                                    : "fa-chevron-down"
-                                                    }`}
+                                                className={`fa-solid ${isMenuOpenList === "xsmn" ? "fa-chevron-up" : "fa-chevron-down"}`}
                                             ></i>
                                         </span>
                                     </div>
                                     <ul
-                                        className={`${styles.nav__menuMobile} ${isMenuOpenList === "xsmn" ? styles.menuList : ""
-                                            }`}
+                                        className={`${styles.nav__menuMobile} ${isMenuOpenList === "xsmn" ? styles.menuList : ""}`}
                                     >
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmn/thu-2" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmn/thu-2" ? styles.active : ""}`}
                                                 href="/xsmn/thu-2"
                                                 onClick={toggleMenu}
                                             >
@@ -327,8 +261,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmn/thu-3" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmn/thu-3" ? styles.active : ""}`}
                                                 href="/xsmn/thu-3"
                                                 onClick={toggleMenu}
                                             >
@@ -337,8 +270,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmn/thu-4" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmn/thu-4" ? styles.active : ""}`}
                                                 href="/xsmn/thu-4"
                                                 onClick={toggleMenu}
                                             >
@@ -347,8 +279,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmn/thu-5" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmn/thu-5" ? styles.active : ""}`}
                                                 href="/xsmn/thu-5"
                                                 onClick={toggleMenu}
                                             >
@@ -357,8 +288,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmn/thu-6" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmn/thu-6" ? styles.active : ""}`}
                                                 href="/xsmn/thu-6"
                                                 onClick={toggleMenu}
                                             >
@@ -367,8 +297,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmn/thu-7" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmn/thu-7" ? styles.active : ""}`}
                                                 href="/xsmn/thu-7"
                                                 onClick={toggleMenu}
                                             >
@@ -377,8 +306,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmn/chu-nhat" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmn/chu-nhat" ? styles.active : ""}`}
                                                 href="/xsmn/chu-nhat"
                                                 onClick={toggleMenu}
                                             >
@@ -388,8 +316,7 @@ const NavBar = () => {
                                     </ul>
                                 </li>
                                 <li
-                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith("/ket-qua-xo-so-mien-trung") ? styles.active : ""
-                                        }`}
+                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith("/ket-qua-xo-so-mien-trung") ? styles.active : ""}`}
                                 >
                                     <div className={styles.grouplinkMobile}>
                                         <Link
@@ -404,21 +331,16 @@ const NavBar = () => {
                                             className={styles.icon}
                                         >
                                             <i
-                                                className={`fa-solid ${isMenuOpenList === "xsmt"
-                                                    ? "fa-chevron-up"
-                                                    : "fa-chevron-down"
-                                                    }`}
+                                                className={`fa-solid ${isMenuOpenList === "xsmt" ? "fa-chevron-up" : "fa-chevron-down"}`}
                                             ></i>
                                         </span>
                                     </div>
                                     <ul
-                                        className={`${styles.nav__menuMobile} ${isMenuOpenList === "xsmt" ? styles.menuList : ""
-                                            }`}
+                                        className={`${styles.nav__menuMobile} ${isMenuOpenList === "xsmt" ? styles.menuList : ""}`}
                                     >
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmt/xo-so-mien-trung/thu-2" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmt/xo-so-mien-trung/thu-2" ? styles.active : ""}`}
                                                 href="/xsmt/xo-so-mien-trung/thu-2"
                                                 onClick={toggleMenu}
                                             >
@@ -427,8 +349,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmt/xo-so-mien-trung/thu-3" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmt/xo-so-mien-trung/thu-3" ? styles.active : ""}`}
                                                 href="/xsmt/xo-so-mien-trung/thu-3"
                                                 onClick={toggleMenu}
                                             >
@@ -437,8 +358,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmt/xo-so-mien-trung/thu-4" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmt/xo-so-mien-trung/thu-4" ? styles.active : ""}`}
                                                 href="/xsmt/xo-so-mien-trung/thu-4"
                                                 onClick={toggleMenu}
                                             >
@@ -447,8 +367,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmt/xo-so-mien-trung/thu-5" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmt/xo-so-mien-trung/thu-5" ? styles.active : ""}`}
                                                 href="/xsmt/xo-so-mien-trung/thu-5"
                                                 onClick={toggleMenu}
                                             >
@@ -457,8 +376,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmt/xo-so-mien-trung/thu-6" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmt/xo-so-mien-trung/thu-6" ? styles.active : ""}`}
                                                 href="/xsmt/xo-so-mien-trung/thu-6"
                                                 onClick={toggleMenu}
                                             >
@@ -467,8 +385,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmt/xo-so-mien-trung/thu-7" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmt/xo-so-mien-trung/thu-7" ? styles.active : ""}`}
                                                 href="/xsmt/xo-so-mien-trung/thu-7"
                                                 onClick={toggleMenu}
                                             >
@@ -477,8 +394,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmt/xo-so-mien-trung/chu-nhat" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/xsmt/xo-so-mien-trung/chu-nhat" ? styles.active : ""}`}
                                                 href="/xsmt/xo-so-mien-trung/chu-nhat"
                                                 onClick={toggleMenu}
                                             >
@@ -488,8 +404,7 @@ const NavBar = () => {
                                     </ul>
                                 </li>
                                 <li
-                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith("/thongke") ? styles.active : ""
-                                        }`}
+                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith("/thongke") ? styles.active : ""}`}
                                 >
                                     <div className={styles.grouplinkMobile}>
                                         <Link
@@ -504,21 +419,16 @@ const NavBar = () => {
                                             className={styles.icon}
                                         >
                                             <i
-                                                className={`fa-solid ${isMenuOpenList === "thongke"
-                                                    ? "fa-chevron-up"
-                                                    : "fa-chevron-down"
-                                                    }`}
+                                                className={`fa-solid ${isMenuOpenList === "thongke" ? "fa-chevron-up" : "fa-chevron-down"}`}
                                             ></i>
                                         </span>
                                     </div>
                                     <ul
-                                        className={`${styles.nav__menuMobile} ${isMenuOpenList === "thongke" ? styles.menuList : ""
-                                            }`}
+                                        className={`${styles.nav__menuMobile} ${isMenuOpenList === "thongke" ? styles.menuList : ""}`}
                                     >
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/lo-gan" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/lo-gan" ? styles.active : ""}`}
                                                 href="/thongke/lo-gan"
                                                 onClick={toggleMenu}
                                             >
@@ -527,8 +437,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/giai-dac-biet" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/giai-dac-biet" ? styles.active : ""}`}
                                                 href="/thongke/giai-dac-biet"
                                                 onClick={toggleMenu}
                                             >
@@ -537,8 +446,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/dau-duoi" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/dau-duoi" ? styles.active : ""}`}
                                                 href="/thongke/dau-duoi"
                                                 onClick={toggleMenu}
                                             >
@@ -547,8 +455,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/giai-dac-biet-tuan" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/giai-dac-biet-tuan" ? styles.active : ""}`}
                                                 href="/thongke/giai-dac-biet-tuan"
                                                 onClick={toggleMenu}
                                             >
@@ -557,8 +464,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/Tan-Suat-Lo-to" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/Tan-Suat-Lo-to" ? styles.active : ""}`}
                                                 href="/thongke/Tan-Suat-Lo-to"
                                                 onClick={toggleMenu}
                                             >
@@ -567,8 +473,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/Tan-Suat-Lo-Cap" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/Tan-Suat-Lo-Cap" ? styles.active : ""}`}
                                                 href="/thongke/Tan-Suat-Lo-Cap"
                                                 onClick={toggleMenu}
                                             >
@@ -577,8 +482,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "#" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "#" ? styles.active : ""}`}
                                                 href="#"
                                                 onClick={toggleMenu}
                                             >
@@ -588,8 +492,7 @@ const NavBar = () => {
                                     </ul>
                                 </li>
                                 <li
-                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith("/tao-dan-de-dac-biet") ? styles.active : ""
-                                        }`}
+                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith("/tao-dan-de-dac-biet") ? styles.active : ""}`}
                                 >
                                     <div className={styles.grouplinkMobile}>
                                         <Link
@@ -604,21 +507,16 @@ const NavBar = () => {
                                             className={styles.icon}
                                         >
                                             <i
-                                                className={`fa-solid ${isMenuOpenList === "tao-dan-de-dac-biet"
-                                                    ? "fa-chevron-up"
-                                                    : "fa-chevron-down"
-                                                    }`}
+                                                className={`fa-solid ${isMenuOpenList === "tao-dan-de-dac-biet" ? "fa-chevron-up" : "fa-chevron-down"}`}
                                             ></i>
                                         </span>
                                     </div>
                                     <ul
-                                        className={`${styles.nav__menuMobile} ${isMenuOpenList === "tao-dan-de-dac-biet" ? styles.menuList : ""
-                                            }`}
+                                        className={`${styles.nav__menuMobile} ${isMenuOpenList === "tao-dan-de-dac-biet" ? styles.menuList : ""}`}
                                     >
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/tao-dan-de-dac-biet" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/tao-dan-de-dac-biet" ? styles.active : ""}`}
                                                 href="/tao-dan-de-dac-biet/"
                                                 onClick={toggleMenu}
                                             >
@@ -627,8 +525,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/taodande/dan-2d/tao-dan-de-2d" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/taodande/dan-2d/tao-dan-de-2d" ? styles.active : ""}`}
                                                 href="/taodande/dan-2d/tao-dan-de-2d"
                                                 onClick={toggleMenu}
                                             >
@@ -637,8 +534,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/taodande/dan-3d4d/tao-dan-de-3d4d" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/taodande/dan-3d4d/tao-dan-de-3d4d" ? styles.active : ""}`}
                                                 href="/taodande/dan-3d4d/tao-dan-de-3d4d"
                                                 onClick={toggleMenu}
                                             >
@@ -647,8 +543,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/taodande/tao-dan-ngau-nhien9x0x" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/taodande/tao-dan-ngau-nhien9x0x" ? styles.active : ""}`}
                                                 href="/taodande/tao-dan-ngau-nhien9x0x/"
                                                 onClick={toggleMenu}
                                             >
@@ -658,8 +553,7 @@ const NavBar = () => {
                                     </ul>
                                 </li>
                                 <li
-                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith("/news") ? styles.active : ""
-                                        }`}
+                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith("/news") ? styles.active : ""}`}
                                 >
                                     <div className={styles.grouplinkMobile}>
                                         <Link
@@ -674,21 +568,16 @@ const NavBar = () => {
                                             className={styles.icon}
                                         >
                                             <i
-                                                className={`fa-solid ${isMenuOpenList === "news"
-                                                    ? "fa-chevron-up"
-                                                    : "fa-chevron-down"
-                                                    }`}
+                                                className={`fa-solid ${isMenuOpenList === "news" ? "fa-chevron-up" : "fa-chevron-down"}`}
                                             ></i>
                                         </span>
                                     </div>
                                     <ul
-                                        className={`${styles.nav__menuMobile} ${isMenuOpenList === "news" ? styles.menuList : ""
-                                            }`}
+                                        className={`${styles.nav__menuMobile} ${isMenuOpenList === "news" ? styles.menuList : ""}`}
                                     >
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/lo-gan" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/lo-gan" ? styles.active : ""}`}
                                                 href="#"
                                                 onClick={toggleMenu}
                                             >
@@ -697,8 +586,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/giai-dac-biet" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/giai-dac-biet" ? styles.active : ""}`}
                                                 href="#"
                                                 onClick={toggleMenu}
                                             >
@@ -708,8 +596,7 @@ const NavBar = () => {
                                     </ul>
                                 </li>
                                 <li
-                                    className={`${styles.nav_itemMobile} ${router.pathname === "/soicau/soi-cau-mien-bac" ? styles.active : ""
-                                        }`}
+                                    className={`${styles.nav_itemMobile} ${router.pathname === "/soicau/soi-cau-mien-bac" ? styles.active : ""}`}
                                 >
                                     <div className={styles.grouplinkMobile}>
                                         <Link
@@ -724,21 +611,16 @@ const NavBar = () => {
                                             className={styles.icon}
                                         >
                                             <i
-                                                className={`fa-solid ${isMenuOpenList === "soicau"
-                                                    ? "fa-chevron-up"
-                                                    : "fa-chevron-down"
-                                                    }`}
+                                                className={`fa-solid ${isMenuOpenList === "soicau" ? "fa-chevron-up" : "fa-chevron-down"}`}
                                             ></i>
                                         </span>
                                     </div>
                                     <ul
-                                        className={`${styles.nav__menuMobile} ${isMenuOpenList === "soicau" ? styles.menuList : ""
-                                            }`}
+                                        className={`${styles.nav__menuMobile} ${isMenuOpenList === "soicau" ? styles.menuList : ""}`}
                                     >
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/soicau/soi-cau-mien-bac" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/soicau/soi-cau-mien-bac" ? styles.active : ""}`}
                                                 href="/soicau/soi-cau-mien-bac"
                                                 onClick={toggleMenu}
                                             >
@@ -747,8 +629,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/soicau/soi-cau-mien-trung" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/soicau/soi-cau-mien-trung" ? styles.active : ""}`}
                                                 href="/soicau/soi-cau-mien-trung"
                                                 onClick={toggleMenu}
                                             >
@@ -757,8 +638,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/dau-duoi" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/thongke/dau-duoi" ? styles.active : ""}`}
                                                 href="#"
                                                 onClick={toggleMenu}
                                             >
@@ -768,8 +648,7 @@ const NavBar = () => {
                                     </ul>
                                 </li>
                                 <li
-                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith("/quaythu") ? styles.active : ""
-                                        }`}
+                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith("/quaythu") ? styles.active : ""}`}
                                 >
                                     <div className={styles.grouplinkMobile}>
                                         <Link
@@ -784,21 +663,16 @@ const NavBar = () => {
                                             className={styles.icon}
                                         >
                                             <i
-                                                className={`fa-solid ${isMenuOpenList === "quaythu"
-                                                    ? "fa-chevron-up"
-                                                    : "fa-chevron-down"
-                                                    }`}
+                                                className={`fa-solid ${isMenuOpenList === "quaythu" ? "fa-chevron-up" : "fa-chevron-down"}`}
                                             ></i>
                                         </span>
                                     </div>
                                     <ul
-                                        className={`${styles.nav__menuMobile} ${isMenuOpenList === "quaythu" ? styles.menuList : ""
-                                            }`}
+                                        className={`${styles.nav__menuMobile} ${isMenuOpenList === "quaythu" ? styles.menuList : ""}`}
                                     >
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/quaythu/mienbac" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/quaythu/mienbac" ? styles.active : ""}`}
                                                 href="#"
                                                 onClick={toggleMenu}
                                             >
@@ -807,8 +681,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/quaythu/mientrung" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "/quaythu/mientrung" ? styles.active : ""}`}
                                                 href="#"
                                                 onClick={toggleMenu}
                                             >
@@ -817,8 +690,7 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "quaythu/miennam" ? styles.active : ""
-                                                    }`}
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === "quaythu/miennam" ? styles.active : ""}`}
                                                 href="#"
                                                 onClick={toggleMenu}
                                             >
@@ -828,8 +700,7 @@ const NavBar = () => {
                                     </ul>
                                 </li>
                                 <li
-                                    className={`${styles.nav_itemMobile} ${router.pathname === "/diendan" ? styles.active : ""
-                                        }`}
+                                    className={`${styles.nav_itemMobile} ${router.pathname === "/diendan" ? styles.active : ""}`}
                                 >
                                     <div className={styles.grouplinkMobile}>
                                         <Link
@@ -842,8 +713,7 @@ const NavBar = () => {
                                     </div>
                                 </li>
                                 <li
-                                    className={`${styles.nav_itemMobile} ${router.pathname === "/login" ? styles.active : ""
-                                        }`}
+                                    className={`${styles.nav_itemMobile} ${router.pathname === "/login" ? styles.active : ""}`}
                                 >
                                     <div className={styles.grouplinkMobile}>
                                         <Link

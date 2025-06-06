@@ -9,7 +9,7 @@ const CongCuHot = () => {
     const router = useRouter();
 
     const items = [
-        { title: "Tạo dàn nhanh đặc biệt", href: "/tao-dan-dac-biet" },
+        { title: "Tạo dàn nhanh đặc biệt", href: "/tao-dan-de-dac-biet" },
         { title: "Tạo dàn 2D", href: "/taodande/dan-2d/tao-dan-de-2d" },
         { title: "Tạo dàn 3D/4D", href: "/taodande/dan-3d4d/tao-dan-de-3d4d" },
         { title: "Tạo dàn 9X0X ngẫu nhiên", href: "/taodande/tao-dan-ngau-nhien9x0x/" },
