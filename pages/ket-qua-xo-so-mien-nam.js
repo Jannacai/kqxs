@@ -128,6 +128,12 @@ const XSMN = ({ initialData }) => {
                             "name": "XSMN",
                             "url": "https://www.xsmb.win",
                         },
+                        "license": "https://creativecommons.org/licenses/by/4.0/",
+                        "creator": {
+                            "@type": "Organization",
+                            "name": "XSMB.WIN",
+                            "url": "https://www.xsmb.win"
+                        }
                     })}
                 </script>
             </Head>

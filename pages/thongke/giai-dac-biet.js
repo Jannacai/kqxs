@@ -345,7 +345,7 @@ const GiaiDacBiet = ({ initialStats, initialMetadata, initialDays, initialRegion
                         <>
                             {days >= 20 ? (
                                 <table className={styles.table}>
-                                    <caption className={styles.caption}>Thống kê Giải Đặc Biệt{region} {tinh ? `- ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh)}` : ''} trong {days} ngày</caption>
+                                    <caption className={styles.caption}>Thống kê Giải Đặc Biệt {region} {tinh ? `- ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh)}` : ''} trong {days} ngày</caption>
                                     <thead>
                                         <tr>
                                             <th>Giải Đặc Biệt</th>
