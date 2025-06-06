@@ -9,7 +9,7 @@ import TableDate from '../component/tableDateKQXS';
 import CongCuHot from '../component/CongCuHot';
 import { apiMB } from './api/kqxs/kqxsMB';
 import styles from '../public/css/kqxsMB.module.css';
-import { LotteryProvider } from '../contexts/LotteryContext.js';
+
 
 // Lazy load components
 const PostList = dynamic(() => import('./post/list.js'), { ssr: false });
@@ -151,14 +151,11 @@ const XSMB = ({ initialData }) => {
                     </div>
                     <div>
                         <TableDate />
-                        <LotteryProvider>
-
                             {initialData ? (
                                 <KQXS data={initialData} station="xsmb">Miền Bắc</KQXS>
                             ) : (
                                 <span>Đang tải kết quả...</span>
                             )}
-                        </LotteryProvider>
                         <div className="desc1">
                             <h1 className='heading'>XSMB.WIN | Trang Kết Quả Xổ Số Miền Bắc Nhanh Nhất - Chính Xác Nhất - XSMB</h1>
                             <p>
