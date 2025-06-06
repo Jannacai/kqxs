@@ -18,7 +18,12 @@
     border-radius: 8px;
     margin-bottom: 24px;
 }
-
+.caption {
+    font-style: italic;
+    text-align: center;
+    padding: 8px 0;
+    color: #000000a1;
+}
 /* Nút Điều hướng */
 .actionBtn {
     display: flex;

@@ -15,7 +15,12 @@
     align-items: center;
     justify-content: center;
 }
-
+.caption {
+    font-style: italic;
+    text-align: center;
+    padding: 8px 0;
+    color: #000000a1;
+}
 .actionTK {
     line-height: 20px;
     border: 1px solid #0396FF;

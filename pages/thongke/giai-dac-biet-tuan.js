@@ -484,6 +484,7 @@ const GiaiDacBietTheoTuan = ({ initialStats, initialMetadata, initialMonth, init
                     {!loading && !error && (
                         <div className={styles.tableContainer}>
                             <table className={styles.table} aria-label="Bảng thống kê giải đặc biệt theo tuần">
+                                <caption className={styles.caption}>Thống kê Giải Đặc Biệt Tuần {region} {tinh ? `- ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh)}` : ''} trong {days} ngày</caption>
                                 <thead>
                                     <tr>
                                         <th>Thứ 2</th>

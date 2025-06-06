@@ -274,6 +274,7 @@ const TanSuatLoCap = ({ initialStats, initialMetadata, initialDays, initialRegio
                                 <div className={styles.tableWrapper}>
                                     <div className={styles.tableTitle}>Thống kê 90 cặp số</div>
                                     <table className={styles.tableTanSuatLoto}>
+                                        <caption className={styles.caption}>Thống kê Tần Suất Lô Cặp {region} {tinh ? `- ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh)}` : ''} trong {days} ngày</caption>
                                         <thead>
                                             <tr>
                                                 <th>Cặp số</th>
