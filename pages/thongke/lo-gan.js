@@ -368,7 +368,22 @@ const Logan = ({ initialStats, initialMetadata, initialDays, initialRegion, init
                         <Suspense fallback={<div>Loading...</div>}>
                             <DescriptionContent />
                         </Suspense>
+
                     )}
+                    <h3 className={styles.h3}>Thống kê Lô Gan Miền Bắc là gì?</h3>
+                    <p className={styles.desc}>
+                        Thống kê lô gan Miền Bắc (hay còn gọi là lô khan Miền Bắc, số rắn) là thống kê những cặp số lô tô (2 số cuối) lâu chưa về trên bảng kết quả Miền Bắc trong một khoảng thời gian, ví dụ như 5 ngày hoặc hơn. Đây là những con loto gan lì không chịu xuất hiện. Số ngày gan (kỳ gan) là số lần mở thưởng mà bộ số đó chưa về tính đến hôm nay.
+                    </p>
+                    <h3 className={styles.h3}>Thống kê lô khan Miền Bắc gồm có những gì?</h3>
+                    <p className={styles.desc}>
+                        Những con lô lâu chưa về (lô lên gan) từ 00-99, số ngày gan và số ngày gan cực đại, kỷ lục lâu chưa về nhất (gan max) là tổng bao nhiêu ngày.
+                    </p>
+                    <p className={styles.desc}>
+                        Thống kê cặp lô gan xổ số Miền Bắc (bao gồm 1 số và số lộn của chính nó) lâu chưa về nhất tính đến hôm nay cùng với thời gian gan cực đại của các cặp số đó.
+                    </p>
+                    <p className={styles.desc}>
+                        Người chơi xổ số sẽ dễ dàng nhận biết lô gan XSMB bằng cách xem thống kê những con lô ít xuất hiện nhất trong bảng kết quả. Gan Cực Đại: Số lần kỷ lục mà một con số lâu nhất chưa về.
+                    </p>
                     <button
                         className={styles.toggleBtn}
                         onClick={toggleContent}
