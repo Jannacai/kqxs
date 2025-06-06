@@ -6,7 +6,8 @@ import React from 'react';
 import { useLottery } from '../../contexts/LotteryContext';
 
 const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange, filterTypes, isLiveWindow }) => {
-    const { liveData, setLiveData, setIsLiveDataComplete } = useLottery() || {};
+    const lotteryContext = useLottery();
+    const { liveData, setLiveData, setIsLiveDataComplete } = lotteryContext || {};
     const [isTodayLoading, setIsTodayLoading] = useState(true);
     const [error, setError] = useState(null);
     const [retryCount, setRetryCount] = useState(0);
@@ -54,7 +55,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     }), [today, station]);
 
     useEffect(() => {
-        if (!setLiveData || !setIsLiveDataComplete) return;
+        if (typeof window === 'undefined' || !setLiveData || !setIsLiveDataComplete) return;
 
         const cachedLiveData = localStorage.getItem(`liveData:${station}:${today}`);
         if (cachedLiveData) {
@@ -85,6 +86,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     }, [isLiveWindow, emptyResult, station, today, setLiveData, setIsLiveDataComplete]);
 
     useEffect(() => {
+        if (typeof window === 'undefined' || !setLiveData || !isLiveWindow || retryCount > maxRetries) return;
         let eventSource;
 
         const fetchInitialData = async (retry = 0) => {
@@ -116,7 +118,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                     setError(null);
                 }
             } catch (error) {
-                console.error(`Lỗi khi lấy dữ liệu khởi tạo từ Redis (lần ${retry + 1}):`, error.message);
+                console.error(`Lỗi khi lấy dữ liệu từ Redis (lần ${retry + 1}):`, error.message);
                 if (retry < fetchMaxRetries) {
                     setTimeout(() => fetchInitialData(retry + 1), fetchRetryInterval);
                 } else {
@@ -161,9 +163,9 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                                     val => typeof val === 'string' && val !== '...' && val !== '***'
                                 );
                                 setIsLiveDataComplete(isComplete);
+                                setIsTodayLoading(false);
                                 return updatedData;
                             });
-                            setIsTodayLoading(false);
                             setRetryCount(0);
                             setError(null);
                         }
@@ -174,7 +176,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             });
 
             eventSource.onerror = () => {
-                console.log('Lỗi SSE, đóng kết nối...');
+                console.error('Lỗi SSE, đóng kết nối...');
                 eventSource.close();
                 if (retryCount < maxRetries) {
                     setTimeout(() => {
@@ -184,14 +186,13 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                     setError('Mất kết nối trực tiếp, đang tải dữ liệu thủ công...');
                     setLiveData(emptyResult);
                     setIsLiveDataComplete(false);
+                    setIsTodayLoading(false);
                 }
             };
         };
 
-        if (isLiveWindow && retryCount <= maxRetries && setLiveData) {
-            fetchInitialData();
-            connectSSE();
-        }
+        fetchInitialData();
+        connectSSE();
 
         return () => {
             if (eventSource) {
@@ -199,14 +200,14 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                 eventSource.close();
             }
         };
-    }, [isLiveWindow, station, retryCount, maxRetries, retryInterval, today, setLiveData, setIsLiveDataComplete]);
+    }, [isLiveWindow, station, retryCount, today, setLiveData, setIsLiveDataComplete]);
 
     if (!liveData) {
         return <div className={styles.error}>Đang tải dữ liệu...</div>;
     }
 
     const tableKey = liveData.drawDate + liveData.station;
-    const currentFilter = filterTypes[tableKey] || 'all';
+    const currentFilter = filterTypes?.[tableKey] || 'all';
 
     const getPrizeNumbers = () => {
         const lastTwoNumbers = [];
@@ -514,32 +515,5 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
         </div>
     );
 };
-
-// Sử dụng getServerSideProps để truyền props và bật SSR
-export async function getServerSideProps(context) {
-    const today = new Date().toLocaleDateString('vi-VN', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-    }).replace(/\//g, '-');
-    return {
-        props: {
-            station: 'xsmb',
-            today,
-            isLiveWindow: isWithinLiveWindow(), // Hàm kiểm tra khung giờ trực tiếp
-            filterTypes: {}, // Có thể lấy từ context hoặc database nếu cần
-            getHeadAndTailNumbers: null, // Placeholder, cần triển khai nếu dùng
-            handleFilterChange: null, // Placeholder, cần triển khai nếu dùng
-        },
-    };
-}
-
-// Hàm kiểm tra khung giờ trực tiếp (18:14–18:36)
-function isWithinLiveWindow() {
-    const now = new Date();
-    const hours = now.getHours();
-    const minutes = now.getMinutes();
-    return (hours === 18 && minutes >= 14 && minutes <= 36);
-}
 
 export default React.memo(LiveResult);
