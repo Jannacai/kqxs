@@ -28,9 +28,9 @@ const KQXS = ({ station, date, dayOfWeek, data }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const [isLiveWindow, setIsLiveWindow] = useState(false);
     const [hasTriggeredScraper, setHasTriggeredScraper] = useState(false);
-    const hour = 18;
-    const minute1 = 53;
-    const minute2 = 54;
+    const hour = 19;
+    const minute1 = 12;
+    const minute2 = 13;
 
     const router = useRouter();
     const itemsPerPage = 3;
@@ -56,8 +56,19 @@ const KQXS = ({ station, date, dayOfWeek, data }) => {
             startTime.setHours(startHour, startMinute, 0, 0);
             const endTime = new Date(startTime.getTime() + duration);
 
+            const offset = now.getTimezoneOffset() / 60;
+            if (offset !== -7) {
+                console.warn(`Client timezone offset is ${offset} hours, expected +07`);
+            }
+
             const isLive = now >= startTime && now <= endTime;
-            setIsLiveWindow(prev => (prev !== isLive ? isLive : prev));
+            setIsLiveWindow(prev => {
+                if (prev !== isLive) {
+                    console.log(`isLiveWindow changed to ${isLive} at ${now.toLocaleString('vi-VN')}`);
+                    return isLive;
+                }
+                return prev;
+            });
 
             if (
                 isLive &&
@@ -87,8 +98,11 @@ const KQXS = ({ station, date, dayOfWeek, data }) => {
 
         checkTime();
         const intervalId = setInterval(checkTime, 5000);
-        return () => clearInterval(intervalId);
-    }, [hasTriggeredScraper, station, today]);
+        return () => {
+            console.log('Cleaning up interval');
+            clearInterval(intervalId);
+        };
+    }, [hasTriggeredScraper, station]);
 
     const isLiveMode = useMemo(() => {
         if (!date) return true;
@@ -105,7 +119,7 @@ const KQXS = ({ station, date, dayOfWeek, data }) => {
         const todayDayOfWeek = new Date().toLocaleString('vi-VN', { weekday: 'long' });
         const inputDayOfWeek = dayMap[dayOfWeek?.toLowerCase()];
         return inputDayOfWeek && inputDayOfWeek === todayDayOfWeek;
-    }, [date, today, dayOfWeek]);
+    }, [date, dayOfWeek, today]);
 
     const fetchData = useCallback(async () => {
         try {
@@ -118,9 +132,15 @@ const KQXS = ({ station, date, dayOfWeek, data }) => {
                 const cacheAge = cachedTime ? now.getTime() - parseInt(cachedTime) : Infinity;
 
                 if (!isUpdateWindow && cachedData && cacheAge < CACHE_DURATION) {
-                    setData(JSON.parse(cachedData));
-                    setLoading(false);
-                    return;
+                    try {
+                        setData(JSON.parse(cachedData));
+                        setLoading(false);
+                        return;
+                    } catch (error) {
+                        console.error('Error parsing cached data:', error);
+                        localStorage.removeItem(CACHE_KEY);
+                        localStorage.removeItem(`${CACHE_KEY}_time`);
+                    }
                 }
             }
 
@@ -217,6 +237,11 @@ const KQXS = ({ station, date, dayOfWeek, data }) => {
     useEffect(() => {
         if (typeof window === 'undefined' || !isLiveDataComplete || !liveData || liveData.drawDate !== today) return;
 
+        const prevLiveDataStr = JSON.stringify(data1.find(item => item.drawDate === today));
+        const newLiveDataStr = JSON.stringify(liveData);
+
+        if (prevLiveDataStr === newLiveDataStr) return;
+
         setData(prevData => {
             const filteredData = prevData.filter(item => item.drawDate !== today);
             const formattedLiveData = {
@@ -254,10 +279,14 @@ const KQXS = ({ station, date, dayOfWeek, data }) => {
             }
             return newData;
         });
-        setFilterTypes(prev => ({
-            ...prev,
-            [`${liveData.drawDate}${liveData.station}`]: prev[`${liveData.drawDate}${liveData.station}`] || 'all',
-        }));
+
+        setFilterTypes(prev => {
+            const newFilter = { ...prev, [`${liveData.drawDate}${liveData.station}`]: prev[`${liveData.drawDate}${liveData.station}`] || 'all' };
+            if (JSON.stringify(prev) !== JSON.stringify(newFilter)) {
+                return newFilter;
+            }
+            return prev;
+        });
     }, [isLiveDataComplete, liveData, today, CACHE_KEY]);
 
     const handleFilterChange = useCallback((pageKey, value) => {

@@ -1,9 +1,17 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import styles from '../../public/css/kqxsMB.module.css';
 import { getFilteredNumber } from "../../library/utils/filterUtils";
-import { apiMB } from "../api/kqxs/kqxsMB";
 import React from 'react';
 import { useLottery } from '../../contexts/LotteryContext';
+
+// Hàm debounce để giới hạn tần suất cập nhật state
+const debounce = (func, wait) => {
+    let timeout;
+    return (...args) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func(...args), wait);
+    };
+};
 
 const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange, filterTypes, isLiveWindow }) => {
     const lotteryContext = useLottery();
@@ -57,18 +65,24 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     useEffect(() => {
         if (typeof window === 'undefined' || !setLiveData || !setIsLiveDataComplete) return;
 
-        const cachedLiveData = localStorage.getItem(`liveData:${station}:${today}`);
+        const cacheKey = `liveData:${station}:${today}`;
+        const cachedLiveData = localStorage.getItem(cacheKey);
         if (cachedLiveData) {
             try {
                 const parsedData = JSON.parse(cachedLiveData);
-                setLiveData(parsedData);
-                const isComplete = Object.values(parsedData).every(
-                    val => typeof val === 'string' && val !== '...' && val !== '***'
-                );
-                setIsLiveDataComplete(isComplete);
-                setIsTodayLoading(false);
+                if (parsedData && typeof parsedData === 'object') {
+                    setLiveData(parsedData);
+                    const isComplete = Object.values(parsedData).every(
+                        val => typeof val === 'string' && val !== '...' && val !== '***'
+                    );
+                    setIsLiveDataComplete(isComplete);
+                    setIsTodayLoading(false);
+                } else {
+                    throw new Error('Invalid cached data format');
+                }
             } catch (error) {
                 console.error('Error parsing cachedLiveData:', error);
+                localStorage.removeItem(cacheKey);
                 setLiveData(emptyResult);
                 setIsLiveDataComplete(false);
                 setIsTodayLoading(isLiveWindow ? true : false);
@@ -84,6 +98,10 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             setError(null);
         }
     }, [isLiveWindow, emptyResult, station, today, setLiveData, setIsLiveDataComplete]);
+
+    const debouncedSetLiveData = useCallback(debounce((newData) => {
+        setLiveData(newData);
+    }, 500), [setLiveData]);
 
     useEffect(() => {
         if (typeof window === 'undefined' || !setLiveData || !isLiveWindow || retryCount > maxRetries) return;
@@ -103,8 +121,8 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                     throw new Error(`HTTP error! Status: ${response.status}`);
                 }
                 const initialData = await response.json();
-                if (initialData) {
-                    setLiveData(prev => {
+                if (initialData && typeof initialData === 'object') {
+                    debouncedSetLiveData(prev => {
                         const updatedData = { ...prev, ...initialData };
                         localStorage.setItem(`liveData:${station}:${today}`, JSON.stringify(updatedData));
                         const isComplete = Object.values(updatedData).every(
@@ -116,6 +134,8 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                     });
                     setRetryCount(0);
                     setError(null);
+                } else {
+                    throw new Error('Invalid initial data format');
                 }
             } catch (error) {
                 console.error(`Lỗi khi lấy dữ liệu từ Redis (lần ${retry + 1}):`, error.message);
@@ -128,7 +148,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             }
         };
 
-        const connectSSE = () => {
+        const connectSSE = useCallback(() => {
             if (!station || !today) {
                 console.warn('Cannot connect SSE: Invalid station or today');
                 return;
@@ -146,10 +166,11 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
 
             prizeTypes.forEach(prizeType => {
                 eventSource.addEventListener(prizeType, (event) => {
+                    if (!setLiveData) return;
                     try {
                         const data = JSON.parse(event.data);
                         if (data && data[prizeType]) {
-                            setLiveData(prev => {
+                            debouncedSetLiveData(prev => {
                                 const updatedData = {
                                     ...prev,
                                     [prizeType]: data[prizeType],
@@ -184,12 +205,12 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                     }, retryInterval);
                 } else {
                     setError('Mất kết nối trực tiếp, đang tải dữ liệu thủ công...');
-                    setLiveData(emptyResult);
+                    debouncedSetLiveData(emptyResult);
                     setIsLiveDataComplete(false);
                     setIsTodayLoading(false);
                 }
             };
-        };
+        }, [station, today, retryCount, setLiveData, setIsLiveDataComplete]);
 
         fetchInitialData();
         connectSSE();
@@ -200,10 +221,10 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                 eventSource.close();
             }
         };
-    }, [isLiveWindow, station, retryCount, today, setLiveData, setIsLiveDataComplete]);
+    }, [isLiveWindow, station, retryCount, today, setLiveData, setIsLiveDataComplete, connectSSE]);
 
-    if (!liveData) {
-        return <div className={styles.error}>Đang tải dữ liệu...</div>;
+    if (!liveData || Object.keys(liveData).length === 0 || !liveData.drawDate || !liveData.station) {
+        return <div className={styles.loading}>Đang khởi tạo dữ liệu...</div>;
     }
 
     const tableKey = liveData.drawDate + liveData.station;
@@ -221,12 +242,12 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
         addNumber(liveData.maDB);
         addNumber(liveData.specialPrize_0);
         addNumber(liveData.firstPrize_0);
-        for (let i = 0; i < 2; i++) addNumber(liveData[`secondPrize_${i}`]);
-        for (let i = 0; i < 6; i++) addNumber(liveData[`threePrizes_${i}`]);
-        for (let i = 0; i < 4; i++) addNumber(liveData[`fourPrizes_${i}`]);
-        for (let i = 0; i < 6; i++) addNumber(liveData[`fivePrizes_${i}`]);
-        for (let i = 0; i < 3; i++) addNumber(liveData[`sixPrizes_${i}`]);
-        for (let i = 0; i < 4; i++) addNumber(liveData[`sevenPrizes_${i}`]);
+        for (let i = 0; i < 2; i++) addNumber(liveData[`secondPrize_${i}`] || '...');
+        for (let i = 0; i < 6; i++) addNumber(liveData[`threePrizes_${i}`] || '...');
+        for (let i = 0; i < 4; i++) addNumber(liveData[`fourPrizes_${i}`] || '...');
+        for (let i = 0; i < 6; i++) addNumber(liveData[`fivePrizes_${i}`] || '...');
+        for (let i = 0; i < 3; i++) addNumber(liveData[`sixPrizes_${i}`] || '...');
+        for (let i = 0; i < 4; i++) addNumber(liveData[`sevenPrizes_${i}`] || '...');
 
         const heads = Array(10).fill().map(() => []);
         const tails = Array(10).fill().map(() => []);
@@ -263,11 +284,11 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             <div className={styles.kqxs}>
                 <div className={styles.header}>
                     <h2 className={styles.kqxs__title}>
-                        Kết Quả Xổ Số - <span>{liveData.station}</span> ({liveData.tentinh})
+                        Kết Quả Xổ Số - <span>{liveData.station}</span> ({liveData.tentinh || 'Miền Bắc'})
                     </h2>
                     <div className={styles.kqxs__action}>
                         <a className={styles.kqxs__actionLink} href="#!">{liveData.station}</a>
-                        <a className={`${styles.kqxs__actionLink} ${styles.dayOfWeek}`} href="#!">{liveData.dayOfWeek}</a>
+                        <a className={`${styles.kqxs__actionLink} ${styles.dayOfWeek}`} href="#!">{liveData.dayOfWeek || 'Hôm nay'}</a>
                         <a className={styles.kqxs__actionLink} href="#!">{liveData.drawDate}</a>
                     </div>
                 </div>
@@ -309,7 +330,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             <td className={styles.rowXS}>
                                 {[0, 1].map(i => (
                                     <span key={i} className={styles.span2}>
-                                        {liveData[`secondPrize_${i}`] === '...' ? (
+                                        {(liveData[`secondPrize_${i}`] || '...') === '...' ? (
                                             <span className={styles.ellipsis}></span>
                                         ) : (
                                             getFilteredNumber(liveData[`secondPrize_${i}`], currentFilter)
@@ -323,7 +344,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             <td className={styles.rowXS}>
                                 {[0, 1, 2].map(i => (
                                     <span key={i} className={`${styles.span3} ${styles.g3}`}>
-                                        {liveData[`threePrizes_${i}`] === '...' ? (
+                                        {(liveData[`threePrizes_${i}`] || '...') === '...' ? (
                                             <span className={styles.ellipsis}></span>
                                         ) : (
                                             getFilteredNumber(liveData[`threePrizes_${i}`], currentFilter)
@@ -337,7 +358,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             <td className={styles.rowXS}>
                                 {[3, 4, 5].map(i => (
                                     <span key={i} className={styles.span3}>
-                                        {liveData[`threePrizes_${i}`] === '...' ? (
+                                        {(liveData[`threePrizes_${i}`] || '...') === '...' ? (
                                             <span className={styles.ellipsis}></span>
                                         ) : (
                                             getFilteredNumber(liveData[`threePrizes_${i}`], currentFilter)
@@ -351,7 +372,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             <td className={styles.rowXS}>
                                 {[0, 1, 2, 3].map(i => (
                                     <span key={i} className={styles.span4}>
-                                        {liveData[`fourPrizes_${i}`] === '...' ? (
+                                        {(liveData[`fourPrizes_${i}`] || '...') === '...' ? (
                                             <span className={styles.ellipsis}></span>
                                         ) : (
                                             getFilteredNumber(liveData[`fourPrizes_${i}`], currentFilter)
@@ -365,7 +386,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             <td className={styles.rowXS}>
                                 {[0, 1, 2].map(i => (
                                     <span key={i} className={`${styles.span3} ${styles.g3}`}>
-                                        {liveData[`fivePrizes_${i}`] === '...' ? (
+                                        {(liveData[`fivePrizes_${i}`] || '...') === '...' ? (
                                             <span className={styles.ellipsis}></span>
                                         ) : (
                                             getFilteredNumber(liveData[`fivePrizes_${i}`], currentFilter)
@@ -379,7 +400,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             <td className={styles.rowXS}>
                                 {[3, 4, 5].map(i => (
                                     <span key={i} className={styles.span3}>
-                                        {liveData[`fivePrizes_${i}`] === '...' ? (
+                                        {(liveData[`fivePrizes_${i}`] || '...') === '...' ? (
                                             <span className={styles.ellipsis}></span>
                                         ) : (
                                             getFilteredNumber(liveData[`fivePrizes_${i}`], currentFilter)
@@ -393,7 +414,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             <td className={styles.rowXS}>
                                 {[0, 1, 2].map(i => (
                                     <span key={i} className={styles.span3}>
-                                        {liveData[`sixPrizes_${i}`] === '...' ? (
+                                        {(liveData[`sixPrizes_${i}`] || '...') === '...' ? (
                                             <span className={styles.ellipsis}></span>
                                         ) : (
                                             getFilteredNumber(liveData[`sixPrizes_${i}`], currentFilter)
@@ -407,7 +428,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             <td className={styles.rowXS}>
                                 {[0, 1, 2, 3].map(i => (
                                     <span key={i} className={`${styles.span4} ${styles.highlight}`}>
-                                        {liveData[`sevenPrizes_${i}`] === '...' ? (
+                                        {(liveData[`sevenPrizes_${i}`] || '...') === '...' ? (
                                             <span className={styles.ellipsis}></span>
                                         ) : (
                                             getFilteredNumber(liveData[`sevenPrizes_${i}`], currentFilter)
@@ -459,8 +480,8 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             <div className={styles.TKe_content}>
                 <div className={styles.TKe_contentTitle}>
                     <span className={styles.title}>Bảng Lô Tô - </span>
-                    <span className={styles.desc}>{liveData.tentinh}</span>
-                    <span className={styles.dayOfWeek}>{`${liveData.dayOfWeek} - `}</span>
+                    <span className={styles.desc}>{liveData.tentinh || 'Miền Bắc'}</span>
+                    <span className={styles.dayOfWeek}>{`${liveData.dayOfWeek || 'Hôm nay'} - `}</span>
                     <span className={styles.desc}>{liveData.drawDate}</span>
                 </div>
                 <table className={styles.tableKey}>
@@ -475,7 +496,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             <tr key={index}>
                                 <td className={styles.t_h}>{index}</td>
                                 <td>
-                                    {heads && heads[index] && heads[index].length > 0 ? (
+                                    {heads && heads[index]?.length > 0 ? (
                                         heads[index].map((num, idx) => (
                                             <span
                                                 key={idx}
@@ -492,7 +513,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                                 </td>
                                 <td className={styles.t_h}>{index}</td>
                                 <td>
-                                    {tails && tails[index] && tails[index].length > 0 ? (
+                                    {tails && tails[index]?.length > 0 ? (
                                         tails[index].map((num, idx) => (
                                             <span
                                                 key={idx}
