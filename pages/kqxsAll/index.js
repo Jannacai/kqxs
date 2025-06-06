@@ -18,57 +18,47 @@ const SkeletonLoading = () => (
     </div>
 );
 
-const KQXS = ({ station, date, dayOfWeek, data }) => {
-    const lotteryContext = useLottery();
-    const { liveData, isLiveDataComplete } = lotteryContext || {};
-    const [data1, setData] = useState(data || []);
+const KQXS = (props) => {
+    const { liveData, isLiveDataComplete } = useLottery();
+    const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [filterTypes, setFilterTypes] = useState({});
     const [currentPage, setCurrentPage] = useState(1);
     const [isLiveWindow, setIsLiveWindow] = useState(false);
     const [hasTriggeredScraper, setHasTriggeredScraper] = useState(false);
-    const hour = 19;
-    const minute1 = 19;
-    const minute2 = 20;
+    const hour = 18;
+    const minute1 = 16;
+    const minute2 = 26;
 
     const router = useRouter();
+    const dayof = props.data4;
+    const station = props.station || "xsmb";
+    const date = props.data3;
+
     const itemsPerPage = 3;
 
     const today = new Date().toLocaleDateString('vi-VN', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
-    }).replace(/\//g, '-');
+    });
 
     const startHour = hour;
     const startMinute = minute1;
     const duration = 22 * 60 * 1000;
 
-    const CACHE_KEY = `LiveData_${station}_${date || 'null'}_${dayOfWeek || 'null'}`;
+    const CACHE_KEY = `xsmb_data_${station}_${date || 'null'}_${dayof || 'null'}`;
 
     useEffect(() => {
-        if (typeof window === 'undefined') return;
-
         const checkTime = () => {
             const now = new Date();
             const startTime = new Date();
             startTime.setHours(startHour, startMinute, 0, 0);
             const endTime = new Date(startTime.getTime() + duration);
 
-            const offset = now.getTimezoneOffset() / 60;
-            if (offset !== -7) {
-                console.warn(`Client timezone offset is ${offset} hours, expected +07`);
-            }
-
             const isLive = now >= startTime && now <= endTime;
-            setIsLiveWindow(prev => {
-                if (prev !== isLive) {
-                    console.log(`isLiveWindow changed to ${isLive} at ${now.toLocaleString('vi-VN')}`);
-                    return isLive;
-                }
-                return prev;
-            });
+            setIsLiveWindow(prev => prev !== isLive ? isLive : prev);
 
             if (
                 isLive &&
@@ -98,15 +88,12 @@ const KQXS = ({ station, date, dayOfWeek, data }) => {
 
         checkTime();
         const intervalId = setInterval(checkTime, 5000);
-        return () => {
-            console.log('Cleaning up interval');
-            clearInterval(intervalId);
-        };
-    }, [hasTriggeredScraper, station]);
+        return () => clearInterval(intervalId);
+    }, [hasTriggeredScraper, station, today]);
 
     const isLiveMode = useMemo(() => {
-        if (!date) return true;
-        if (date === today) return true;
+        if (!props.data3) return true;
+        if (props.data3 === today) return true;
         const dayMap = {
             'thu-2': 'Thứ Hai',
             'thu-3': 'Thứ Ba',
@@ -114,37 +101,31 @@ const KQXS = ({ station, date, dayOfWeek, data }) => {
             'thu-5': 'Thứ Năm',
             'thu-6': 'Thứ Sáu',
             'thu-7': 'Thứ Bảy',
-            'chu-nhat': 'Chủ Nhật',
+            'chu-nhat': 'Chủ Nhật'
         };
         const todayDayOfWeek = new Date().toLocaleString('vi-VN', { weekday: 'long' });
-        const inputDayOfWeek = dayMap[dayOfWeek?.toLowerCase()];
+        const inputDayOfWeek = dayMap[props.data3?.toLowerCase()];
         return inputDayOfWeek && inputDayOfWeek === todayDayOfWeek;
-    }, [date, dayOfWeek, today]);
+    }, [props.data3, today]);
 
     const fetchData = useCallback(async () => {
         try {
             const now = new Date();
             const isUpdateWindow = now.getHours() === 18 && now.getMinutes() >= 14 && now.getMinutes() <= 35;
 
-            if (typeof window !== 'undefined') {
-                const cachedData = localStorage.getItem(CACHE_KEY);
-                const cachedTime = localStorage.getItem(`${CACHE_KEY}_time`);
-                const cacheAge = cachedTime ? now.getTime() - parseInt(cachedTime) : Infinity;
+            // Kiểm tra cache
+            const cachedData = localStorage.getItem(CACHE_KEY);
+            const cachedTime = localStorage.getItem(`${CACHE_KEY}_time`);
+            const cacheAge = cachedTime ? now.getTime() - parseInt(cachedTime) : Infinity;
 
-                if (!isUpdateWindow && cachedData && cacheAge < CACHE_DURATION) {
-                    try {
-                        setData(JSON.parse(cachedData));
-                        setLoading(false);
-                        return;
-                    } catch (error) {
-                        console.error('Error parsing cached data:', error);
-                        localStorage.removeItem(CACHE_KEY);
-                        localStorage.removeItem(`${CACHE_KEY}_time`);
-                    }
-                }
+            if (!isUpdateWindow && cachedData && cacheAge < CACHE_DURATION) {
+                setData(JSON.parse(cachedData));
+                setLoading(false);
+                return;
             }
 
-            if (data1 && Array.isArray(data1) && data1.length > 0) {
+            // Kiểm tra props.data
+            if (props.data && Array.isArray(props.data) && props.data.length > 0) {
                 const dayMap = {
                     'thu-2': 'Thứ Hai',
                     'thu-3': 'Thứ Ba',
@@ -152,40 +133,39 @@ const KQXS = ({ station, date, dayOfWeek, data }) => {
                     'thu-5': 'Thứ Năm',
                     'thu-6': 'Thứ Sáu',
                     'thu-7': 'Thứ Bảy',
-                    'chu-nhat': 'Chủ Nhật',
+                    'chu-nhat': 'Chủ Nhật'
                 };
-                const isPropsDataValid = data1.every(item => {
+                const isPropsDataValid = props.data.every(item => {
                     const itemDate = new Date(item.drawDate).toLocaleDateString('vi-VN', {
                         day: '2-digit',
                         month: '2-digit',
                         year: 'numeric',
-                    }).replace(/\//g, '-');
+                    });
                     const matchesStation = item.station === station;
                     const matchesDate = !date || itemDate === date;
-                    const matchesDayOfWeek = !dayOfWeek || item.dayOfWeek.toLowerCase() === dayMap[dayOfWeek.toLowerCase()]?.toLowerCase();
+                    const matchesDayOfWeek = !dayof || item.dayOfWeek.toLowerCase() === dayMap[dayof.toLowerCase()]?.toLowerCase();
                     return matchesStation && matchesDate && matchesDayOfWeek;
                 });
 
                 if (isPropsDataValid) {
-                    const formattedData = data1.map(item => ({
+                    const formattedData = props.data.map(item => ({
                         ...item,
                         drawDate: new Date(item.drawDate).toLocaleDateString('vi-VN', {
                             day: '2-digit',
                             month: '2-digit',
                             year: 'numeric',
-                        }).replace(/\//g, '-'),
+                        }),
                     }));
                     setData(formattedData);
-                    if (typeof window !== 'undefined') {
-                        localStorage.setItem(CACHE_KEY, JSON.stringify(formattedData));
-                        localStorage.setItem(`${CACHE_KEY}_time`, now.getTime().toString());
-                    }
+                    localStorage.setItem(CACHE_KEY, JSON.stringify(formattedData));
+                    localStorage.setItem(`${CACHE_KEY}_time`, now.getTime().toString());
                     setLoading(false);
                     return;
                 }
             }
 
-            const result = await apiMB.getLottery(station, date, dayOfWeek);
+            // Gọi API
+            const result = await apiMB.getLottery(station, date, dayof);
             const dataArray = Array.isArray(result) ? result : [result];
 
             const formattedData = dataArray.map(item => ({
@@ -194,7 +174,7 @@ const KQXS = ({ station, date, dayOfWeek, data }) => {
                     day: '2-digit',
                     month: '2-digit',
                     year: 'numeric',
-                }).replace(/\//g, '-'),
+                }),
             }));
 
             setData(prevData => {
@@ -205,10 +185,8 @@ const KQXS = ({ station, date, dayOfWeek, data }) => {
                 return prevData;
             });
 
-            if (typeof window !== 'undefined') {
-                localStorage.setItem(CACHE_KEY, JSON.stringify(formattedData));
-                localStorage.setItem(`${CACHE_KEY}_time`, now.getTime().toString());
-            }
+            localStorage.setItem(CACHE_KEY, JSON.stringify(formattedData));
+            localStorage.setItem(`${CACHE_KEY}_time`, now.getTime().toString());
 
             setFilterTypes(prevFilters => {
                 const newFilters = formattedData.reduce((acc, item) => {
@@ -228,65 +206,56 @@ const KQXS = ({ station, date, dayOfWeek, data }) => {
             setError('Không thể tải dữ liệu, vui lòng thử lại sau');
             setLoading(false);
         }
-    }, [station, date, dayOfWeek, data1]);
+    }, [station, date, dayof, props.data]);
 
     useEffect(() => {
         fetchData();
     }, [fetchData]);
 
+    // Cập nhật cache khi liveData đầy đủ
     useEffect(() => {
-        if (typeof window === 'undefined' || !isLiveDataComplete || !liveData || liveData.drawDate !== today) return;
-
-        const prevLiveDataStr = JSON.stringify(data1.find(item => item.drawDate === today));
-        const newLiveDataStr = JSON.stringify(liveData);
-
-        if (prevLiveDataStr === newLiveDataStr) return;
-
-        setData(prevData => {
-            const filteredData = prevData.filter(item => item.drawDate !== today);
-            const formattedLiveData = {
-                ...liveData,
-                drawDate: new Date(liveData.drawDate).toLocaleDateString('vi-VN', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                }).replace(/\//g, '-'),
-                specialPrize: [liveData.specialPrize_0],
-                firstPrize: [liveData.firstPrize_0],
-                secondPrize: [liveData.secondPrize_0, liveData.secondPrize_1],
-                threePrizes: [
-                    liveData.threePrizes_0, liveData.threePrizes_1, liveData.threePrizes_2,
-                    liveData.threePrizes_3, liveData.threePrizes_4, liveData.threePrizes_5,
-                ],
-                fourPrizes: [
-                    liveData.fourPrizes_0, liveData.fourPrizes_1, liveData.fourPrizes_2, liveData.fourPrizes_3,
-                ],
-                fivePrizes: [
-                    liveData.fivePrizes_0, liveData.fivePrizes_1, liveData.fivePrizes_2,
-                    liveData.fivePrizes_3, liveData.fivePrizes_4, liveData.fivePrizes_5,
-                ],
-                sixPrizes: [liveData.sixPrizes_0, liveData.sixPrizes_1, liveData.sixPrizes_2],
-                sevenPrizes: [
-                    liveData.sevenPrizes_0, liveData.sevenPrizes_1, liveData.sevenPrizes_2, liveData.sevenPrizes_3,
-                ],
-            };
-            const newData = [formattedLiveData, ...filteredData].sort((a, b) =>
-                new Date(b.drawDate.split('-').reverse().join('-')) - new Date(a.drawDate.split('-').reverse().join('-'))
-            );
-            if (typeof window !== 'undefined') {
+        if (isLiveDataComplete && liveData && liveData.drawDate === today) {
+            setData(prevData => {
+                // Loại bỏ dữ liệu cũ của ngày hôm nay và thêm liveData
+                const filteredData = prevData.filter(item => item.drawDate !== today);
+                const formattedLiveData = {
+                    ...liveData,
+                    drawDate: new Date(liveData.drawDate).toLocaleDateString('vi-VN', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                    }),
+                    specialPrize: [liveData.specialPrize_0],
+                    firstPrize: [liveData.firstPrize_0],
+                    secondPrize: [liveData.secondPrize_0, liveData.secondPrize_1],
+                    threePrizes: [
+                        liveData.threePrizes_0, liveData.threePrizes_1, liveData.threePrizes_2,
+                        liveData.threePrizes_3, liveData.threePrizes_4, liveData.threePrizes_5,
+                    ],
+                    fourPrizes: [
+                        liveData.fourPrizes_0, liveData.fourPrizes_1, liveData.fourPrizes_2, liveData.fourPrizes_3,
+                    ],
+                    fivePrizes: [
+                        liveData.fivePrizes_0, liveData.fivePrizes_1, liveData.fivePrizes_2,
+                        liveData.fivePrizes_3, liveData.fivePrizes_4, liveData.fivePrizes_5,
+                    ],
+                    sixPrizes: [liveData.sixPrizes_0, liveData.sixPrizes_1, liveData.sixPrizes_2],
+                    sevenPrizes: [
+                        liveData.sevenPrizes_0, liveData.sevenPrizes_1, liveData.sevenPrizes_2, liveData.sevenPrizes_3,
+                    ],
+                };
+                const newData = [formattedLiveData, ...filteredData].sort((a, b) =>
+                    new Date(b.drawDate.split('/').reverse().join('-')) - new Date(a.drawDate.split('/').reverse().join('-'))
+                );
                 localStorage.setItem(CACHE_KEY, JSON.stringify(newData));
                 localStorage.setItem(`${CACHE_KEY}_time`, new Date().getTime().toString());
-            }
-            return newData;
-        });
-
-        setFilterTypes(prev => {
-            const newFilter = { ...prev, [`${liveData.drawDate}${liveData.station}`]: prev[`${liveData.drawDate}${liveData.station}`] || 'all' };
-            if (JSON.stringify(prev) !== JSON.stringify(newFilter)) {
-                return newFilter;
-            }
-            return prev;
-        });
+                return newData;
+            });
+            setFilterTypes(prev => ({
+                ...prev,
+                [`${liveData.drawDate}${liveData.station}`]: prev[`${liveData.drawDate}${liveData.station}`] || 'all',
+            }));
+        }
     }, [isLiveDataComplete, liveData, today, CACHE_KEY]);
 
     const handleFilterChange = useCallback((pageKey, value) => {
@@ -330,17 +299,15 @@ const KQXS = ({ station, date, dayOfWeek, data }) => {
         return { heads, tails };
     }, []);
 
-    const totalPages = useMemo(() => Math.ceil(data1.length / itemsPerPage), [data1]);
+    const totalPages = useMemo(() => Math.ceil(data.length / itemsPerPage), [data]);
     const startIndex = useMemo(() => (currentPage - 1) * itemsPerPage, [currentPage]);
     const endIndex = useMemo(() => startIndex + itemsPerPage, [startIndex]);
-    const currentData = useMemo(() => data1.slice(startIndex, endIndex), [data1, startIndex, endIndex]);
+    const currentData = useMemo(() => data.slice(startIndex, endIndex), [data, startIndex, endIndex]);
 
     const goToPage = useCallback((page) => {
         if (page >= 1 && page <= totalPages) {
             setCurrentPage(page);
-            if (typeof window !== 'undefined') {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     }, [totalPages]);
 
@@ -619,7 +586,7 @@ const KQXS = ({ station, date, dayOfWeek, data }) => {
                     </div>
                 );
             })}
-            {data1.length > 1 && (
+            {data.length > 1 && (
                 <div className={styles.pagination}>
                     <a
                         href={`/ket-qua-xo-so-mien-bac?page=${currentPage - 1}`}
@@ -647,49 +614,5 @@ const KQXS = ({ station, date, dayOfWeek, data }) => {
         </div>
     );
 };
-
-export async function getServerSideProps(context) {
-    const { query } = context;
-    const station = query.station || 'xsmb';
-    const date = query.date || new Date().toLocaleDateString('vi-VN', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-    }).replace(/\//g, '-');
-    const dayOfWeek = query.dayOfWeek || null;
-
-    try {
-        const result = await apiMB.getLottery(station, date, dayOfWeek);
-        const dataArray = Array.isArray(result) ? result : [result];
-
-        const formattedData = dataArray.map(item => ({
-            ...item,
-            drawDate: new Date(item.drawDate).toLocaleDateString('vi-VN', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-            }).replace(/\//g, '-'),
-        }));
-
-        return {
-            props: {
-                station,
-                date,
-                dayOfWeek,
-                data: formattedData,
-            },
-        };
-    } catch (error) {
-        console.error('Lỗi khi lấy dữ liệu trong getServerSideProps:', error);
-        return {
-            props: {
-                station,
-                date,
-                dayOfWeek,
-                data: [],
-            },
-        };
-    }
-}
 
 export default React.memo(KQXS);
