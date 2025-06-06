@@ -335,6 +335,7 @@ const Logan = ({ initialStats, initialMetadata, initialDays, initialRegion, init
                     {error && <p className={styles.error}>{error}</p>}
                     {!loading && !error && tableData.length > 0 && (
                         <table className={styles.tableLoGan}>
+                            <caption className={styles.caption}>Thống kê lô gan {region} {tinh ? `- ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh)}` : ''} trong {days} ngày</caption>
                             <thead>
                                 <tr>
                                     <th>Số</th>

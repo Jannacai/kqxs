@@ -8,6 +8,13 @@
     background-color: #ffffff;
 }
 
+.caption {
+    font-style: italic;
+    text-align: center;
+    padding: 8px 0;
+    color: #ccc;
+}
+
 /* Navigation buttons */
 .actionBtn {
     display: flex;
@@ -560,4 +567,5 @@
     .maxGap {
         font-size: 0.9rem;
         font-weight: 500;
-    } }
+    }
+}

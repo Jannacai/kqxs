@@ -18,6 +18,9 @@
 
 .caption {
     font-style: italic;
+    text-align: center;
+    padding: 8px 0;
+    color: #ccc;
 }
 
 .actionTK {
