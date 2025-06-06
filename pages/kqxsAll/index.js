@@ -6,7 +6,7 @@ import { apiMB } from "../api/kqxs/kqxsMB";
 import React from 'react';
 import LiveResult from './LiveResult';
 import { useInView } from 'react-intersection-observer';
-import { useLottery } from '../contexts/LotteryContext';
+import { useLottery } from '../../contexts/LotteryContext';
 
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // Cache 24 giờ
 
@@ -28,8 +28,8 @@ const KQXS = (props) => {
     const [isLiveWindow, setIsLiveWindow] = useState(false);
     const [hasTriggeredScraper, setHasTriggeredScraper] = useState(false);
     const hour = 18;
-    const minute1 = 12;
-    const minute2 = 14;
+    const minute1 = 16;
+    const minute2 = 17;
 
     const router = useRouter();
     const dayof = props.data4;

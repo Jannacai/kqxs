@@ -7,7 +7,7 @@ import ListXSMB from '../component/listXSMB';
 import ListXSMN from '../component/listXSMN';
 import CongCuHot from '../component/CongCuHot';
 import TableDate from '../component/tableDateKQXS';
-import { LotteryProvider } from '../pages/contexts/LotteryContext';
+import { LotteryProvider } from '../contexts/LotteryContext';
 
 const KQXS = dynamic(() => import('./kqxsAll/index'), { ssr: false });
 const PostList = dynamic(() => import('./post/list'), { ssr: false });

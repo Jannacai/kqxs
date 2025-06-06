@@ -9,7 +9,7 @@ import TableDate from '../component/tableDateKQXS';
 import CongCuHot from '../component/CongCuHot';
 import { apiMB } from './api/kqxs/kqxsMB';
 import styles from '../public/css/kqxsMB.module.css';
-import { LotteryProvider } from '../pages/contexts/LotteryContext';
+import { LotteryProvider } from '../contexts/LotteryContext.js';
 
 // Lazy load components
 const PostList = dynamic(() => import('./post/list.js'), { ssr: false });

@@ -3,7 +3,7 @@ import styles from '../../public/css/kqxsMB.module.css';
 import { getFilteredNumber } from "../../library/utils/filterUtils";
 import { apiMB } from "../api/kqxs/kqxsMB";
 import React from 'react';
-import { useLottery } from '../contexts/LotteryContext';
+import { useLottery } from '../../contexts/LotteryContext';
 
 const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange, filterTypes, isLiveWindow }) => {
     const { liveData, setLiveData, setIsLiveDataComplete } = useLottery();
