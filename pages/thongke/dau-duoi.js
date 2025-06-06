@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, lazy, Suspense } from 'react';
+import { debounce } from 'lodash';
 import Head from 'next/head';
 import { apiMB } from '../api/kqxs/kqxsMB';
 import { apiMT } from '../api/kqxs/kqxsMT';
@@ -74,7 +75,7 @@ const SkeletonTableByDate = (props) => (
     </table>
 );
 
-// Ánh xạ tên tỉnh sang slug (không dấu)
+// Ánh xạ tên tỉnh sang slug
 const provinceSlugs = {
     "Vũng Tàu": "vung-tau",
     "Cần Thơ": "can-tho",
@@ -125,8 +126,10 @@ const mienTrungProvinces = [
     "Ninh Thuận", "Gia Lai", "Quảng Ngãi", "Đắk Nông", "Kon Tum"
 ];
 
+// Lazy load DescriptionContent
+const DescriptionContent = lazy(() => import('./DescriptionDauDuoi'));
+
 const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats, initialMetadata, initialDays, initialRegion, initialTinh }) => {
-    // State cho bảng 1 (Đầu/Đuôi của tất cả các giải)
     const router = useRouter();
     const [dauStats, setDauStats] = useState(initialDauStats || []);
     const [duoiStats, setDuoiStats] = useState(initialDuoiStats || []);
@@ -137,7 +140,6 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    // State cho bảng 2 (Đầu/Đuôi giải Đặc Biệt)
     const [specialDauDuoiStats, setSpecialDauDuoiStats] = useState(initialSpecialDauDuoiStats || []);
     const [specialDays, setSpecialDays] = useState(initialDays || 30);
     const [specialRegion, setSpecialRegion] = useState(initialRegion || 'Miền Bắc');
@@ -146,7 +148,6 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
     const [specialLoading, setSpecialLoading] = useState(false);
     const [specialError, setSpecialError] = useState(null);
 
-    // State cho bảng Đầu Loto theo ngày (bảng 3)
     const [dauStatsByDate, setDauStatsByDate] = useState({});
     const [dauByDateDays, setDauByDateDays] = useState(initialDays || 30);
     const [dauByDateRegion, setDauByDateRegion] = useState(initialRegion || 'Miền Bắc');
@@ -155,7 +156,6 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
     const [dauByDateLoading, setDauByDateLoading] = useState(false);
     const [dauByDateError, setDauByDateError] = useState(null);
 
-    // State cho bảng Đuôi Loto theo ngày (bảng 4)
     const [duoiStatsByDate, setDuoiStatsByDate] = useState({});
     const [duoiByDateDays, setDuoiByDateDays] = useState(initialDays || 30);
     const [duoiByDateRegion, setDuoiByDateRegion] = useState(initialRegion || 'Miền Bắc');
@@ -164,24 +164,62 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
     const [duoiByDateLoading, setDuoiByDateLoading] = useState(false);
     const [duoiByDateError, setDuoiByDateError] = useState(null);
 
-    // State cho chức năng thu gọn/xem thêm
     const [isExpanded, setIsExpanded] = useState(false);
 
-    // Hàm xử lý chuyển đổi trạng thái thu gọn/xem thêm
     const toggleContent = () => {
         setIsExpanded(!isExpanded);
     };
 
-    // Kết hợp Đầu/Đuôi của bảng 1 thành một mảng để hiển thị trên cùng hàng
-    const combinedDauDuoiStats = dauStats.map((dauStat, index) => ({
-        number: index,
-        dauCount: dauStat.count,
-        dauPercentage: dauStat.percentage,
-        duoiCount: duoiStats[index].count,
-        duoiPercentage: duoiStats[index].percentage,
-    }));
+    // Memoize combinedDauDuoiStats
+    const combinedDauDuoiStats = useMemo(() => {
+        return dauStats.map((dauStat, index) => ({
+            number: index,
+            dauCount: dauStat.count,
+            dauPercentage: dauStat.percentage,
+            duoiCount: duoiStats[index]?.count || 0,
+            duoiPercentage: duoiStats[index]?.percentage || '0',
+        }));
+    }, [dauStats, duoiStats]);
 
-    const fetchDauDuoiStats = useCallback(async (days, region, tinh) => {
+    // Memoize specialDauDuoiStats
+    const memoizedSpecialDauDuoiStats = useMemo(() => {
+        return specialDauDuoiStats.map(stat => ({
+            number: stat.number,
+            dauCount: stat.dauCount || 0,
+            dauPercentage: stat.dauPercentage || '0',
+            duoiCount: stat.duoiCount || 0,
+            duoiPercentage: stat.duoiPercentage || '0',
+        }));
+    }, [specialDauDuoiStats]);
+
+    // Memoize dauStatsByDateArray
+    const dauTotalsByDate = useMemo(() => Array(10).fill(0), []);
+    const dauStatsByDateArray = useMemo(() => {
+        return Object.entries(dauStatsByDate).map(([date, stats]) => {
+            const row = { date, stats: Array(10).fill(0) };
+            stats.forEach((count, index) => {
+                row.stats[index] = count;
+                dauTotalsByDate[index] += count;
+            });
+            return row;
+        });
+    }, [dauStatsByDate]);
+
+    // Memoize duoiStatsByDateArray
+    const duoiTotalsByDate = useMemo(() => Array(10).fill(0), []);
+    const duoiStatsByDateArray = useMemo(() => {
+        return Object.entries(duoiStatsByDate).map(([date, stats]) => {
+            const row = { date, stats: Array(10).fill(0) };
+            stats.forEach((count, index) => {
+                row.stats[index] = count;
+                duoiTotalsByDate[index] += count;
+            });
+            return row;
+        });
+    }, [duoiStatsByDate]);
+
+    // Debounce API calls
+    const fetchDauDuoiStats = useCallback(debounce(async (days, region, tinh) => {
         setLoading(true);
         setError(null);
         try {
@@ -206,9 +244,9 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, 300), []);
 
-    const fetchSpecialDauDuoiStats = useCallback(async (specialDays, specialRegion, specialTinh) => {
+    const fetchSpecialDauDuoiStats = useCallback(debounce(async (specialDays, specialRegion, specialTinh) => {
         setSpecialLoading(true);
         setSpecialError(null);
         try {
@@ -221,21 +259,19 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
             } else if (specialRegion === 'Miền Nam') {
                 specialData = await apiMN.getDauDuoiStats(specialDays, specialTinh);
             }
-            console.log('Fetched special data:', specialData);
             setSpecialDauDuoiStats(specialData.specialDauDuoiStats || []);
             setSpecialMetadata(specialData.metadata || {});
         } catch (err) {
             const errorMessage = err.message || 'Có lỗi xảy ra khi lấy dữ liệu.';
-            console.error('Fetch special error:', errorMessage);
             setSpecialError(errorMessage);
             setSpecialDauDuoiStats([]);
             setSpecialMetadata({});
         } finally {
             setSpecialLoading(false);
         }
-    }, []);
+    }, 300), []);
 
-    const fetchDauStatsByDate = useCallback(async (dauByDateDays, dauByDateRegion, dauByDateTinh) => {
+    const fetchDauStatsByDate = useCallback(debounce(async (dauByDateDays, dauByDateRegion, dauByDateTinh) => {
         setDauByDateLoading(true);
         setDauByDateError(null);
         try {
@@ -258,9 +294,9 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
         } finally {
             setDauByDateLoading(false);
         }
-    }, []);
+    }, 300), []);
 
-    const fetchDuoiStatsByDate = useCallback(async (duoiByDateDays, duoiByDateRegion, duoiByDateTinh) => {
+    const fetchDuoiStatsByDate = useCallback(debounce(async (duoiByDateDays, duoiByDateRegion, duoiByDateTinh) => {
         setDuoiByDateLoading(true);
         setDuoiByDateError(null);
         try {
@@ -283,7 +319,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
         } finally {
             setDuoiByDateLoading(false);
         }
-    }, []);
+    }, 300), []);
 
     const handleDaysChange = useCallback((e) => {
         const selectedDays = Number(e.target.value);
@@ -292,7 +328,6 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
 
     const handleSpecialDaysChange = useCallback((e) => {
         const selectedSpecialDays = Number(e.target.value);
-        console.log('Selected special days:', selectedSpecialDays);
         setSpecialDays(selectedSpecialDays);
     }, []);
 
@@ -308,83 +343,76 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
 
     const handleTinhChange = useCallback((e) => {
         const selectedValue = e.target.value;
-        console.log('Selected value:', selectedValue);
         if (selectedValue === 'Miền Bắc') {
             setRegion('Miền Bắc');
             setTinh(null);
-            fetchDauDuoiStats(days, 'Miền Bắc', null);
         } else {
             const provinceName = e.target.options[e.target.selectedIndex].text;
             const selectedRegion = e.target.options[e.target.selectedIndex].parentElement.label;
             setRegion(selectedRegion);
             setTinh(provinceSlugs[provinceName]);
-            fetchDauDuoiStats(days, selectedRegion, provinceSlugs[provinceName]);
         }
-    }, [days, fetchDauDuoiStats]);
+    }, []);
 
     const handleSpecialTinhChange = useCallback((e) => {
         const selectedValue = e.target.value;
-        console.log('Selected special value:', selectedValue);
         if (selectedValue === 'Miền Bắc') {
             setSpecialRegion('Miền Bắc');
             setSpecialTinh(null);
-            fetchSpecialDauDuoiStats(specialDays, 'Miền Bắc', null);
         } else {
             const provinceName = e.target.options[e.target.selectedIndex].text;
             const selectedRegion = e.target.options[e.target.selectedIndex].parentElement.label;
             setSpecialRegion(selectedRegion);
             setSpecialTinh(provinceSlugs[provinceName]);
-            fetchSpecialDauDuoiStats(specialDays, selectedRegion, provinceSlugs[provinceName]);
         }
-    }, [specialDays, fetchSpecialDauDuoiStats]);
+    }, []);
 
     const handleDauByDateTinhChange = useCallback((e) => {
         const selectedValue = e.target.value;
         if (selectedValue === 'Miền Bắc') {
             setDauByDateRegion('Miền Bắc');
             setDauByDateTinh(null);
-            fetchDauStatsByDate(dauByDateDays, 'Miền Bắc', null);
         } else {
             const provinceName = e.target.options[e.target.selectedIndex].text;
             const selectedRegion = e.target.options[e.target.selectedIndex].parentElement.label;
             setDauByDateRegion(selectedRegion);
             setDauByDateTinh(provinceSlugs[provinceName]);
-            fetchDauStatsByDate(dauByDateDays, selectedRegion, provinceSlugs[provinceName]);
         }
-    }, [dauByDateDays, fetchDauStatsByDate]);
+    }, []);
 
     const handleDuoiByDateTinhChange = useCallback((e) => {
         const selectedValue = e.target.value;
         if (selectedValue === 'Miền Bắc') {
             setDuoiByDateRegion('Miền Bắc');
             setDuoiByDateTinh(null);
-            fetchDuoiStatsByDate(duoiByDateDays, 'Miền Bắc', null);
         } else {
             const provinceName = e.target.options[e.target.selectedIndex].text;
             const selectedRegion = e.target.options[e.target.selectedIndex].parentElement.label;
             setDuoiByDateRegion(selectedRegion);
             setDuoiByDateTinh(provinceSlugs[provinceName]);
-            fetchDuoiStatsByDate(duoiByDateDays, selectedRegion, provinceSlugs[provinceName]);
         }
-    }, [duoiByDateDays, fetchDuoiStatsByDate]);
+    }, []);
 
     useEffect(() => {
         fetchDauDuoiStats(days, region, tinh);
+        return () => fetchDauDuoiStats.cancel();
     }, [days, region, tinh, fetchDauDuoiStats]);
 
     useEffect(() => {
         fetchSpecialDauDuoiStats(specialDays, specialRegion, specialTinh);
+        return () => fetchSpecialDauDuoiStats.cancel();
     }, [specialDays, specialRegion, specialTinh, fetchSpecialDauDuoiStats]);
 
     useEffect(() => {
         fetchDauStatsByDate(dauByDateDays, dauByDateRegion, dauByDateTinh);
+        return () => fetchDauStatsByDate.cancel();
     }, [dauByDateDays, dauByDateRegion, dauByDateTinh, fetchDauStatsByDate]);
 
     useEffect(() => {
         fetchDuoiStatsByDate(duoiByDateDays, duoiByDateRegion, duoiByDateTinh);
+        return () => fetchDuoiStatsByDate.cancel();
     }, [duoiByDateDays, duoiByDateRegion, duoiByDateTinh, fetchDuoiStatsByDate]);
 
-    // Logic hiển thị nút "Quay lại đầu trang"
     useEffect(() => {
         const handleScroll = () => {
             const scrollTop = window.scrollY || document.documentElement.scrollTop;
@@ -401,7 +429,6 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // Thêm trạng thái active cho select
     useEffect(() => {
         const selects = document.querySelectorAll(`.${styles.selectBox}`);
         selects.forEach(select => {
@@ -426,49 +453,41 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
     }, [tinh, specialTinh, dauByDateTinh, duoiByDateTinh]);
 
     const getMessage = () => {
-        const provinceName = region === 'Miền Bắc' ? 'Miền Bắc' : Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh);
+        const provinceName = region === 'Miền Bắc' ? 'Miền Bắc' : Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh) || '';
         const regionText = region === 'Miền Bắc' ? (
             <span className={styles.highlightProvince}>Miền Bắc</span>
         ) : (
-            <>
-                {region} - <span className={styles.highlightProvince}>{provinceName}</span>
-            </>
+            <>{region} - <span className={styles.highlightProvince}>{provinceName}</span></>
         );
         return (
             <>
-                Thống kê Đầu / Duôi Loto trong{' '}<br></br>
-                <span className={styles.highlightDraws}>{metadata.totalDraws || 0} lần quay</span>{' '}
-                Xổ số {regionText}
+                Thống kê Đầu / Đuôi Loto trong<br></br>
+                <span className={styles.highlightDraws}>{metadata.totalDraws || 0} lần quay</span> Xổ số {regionText}
             </>
         );
     };
 
     const getSpecialMessage = () => {
-        const provinceName = specialRegion === 'Miền Bắc' ? 'Miền Bắc' : Object.keys(provinceSlugs).find(key => provinceSlugs[key] === specialTinh);
+        const provinceName = specialRegion === 'Miền Bắc' ? 'Miền Bắc' : Object.keys(provinceSlugs).find(key => provinceSlugs[key] === specialTinh) || '';
         const regionText = specialRegion === 'Miền Bắc' ? (
             <span className={styles.highlightProvince}>Miền Bắc</span>
         ) : (
-            <>
-                {specialRegion} - <span className={styles.highlightProvince}>{provinceName}</span>
-            </>
+            <>{specialRegion} - <span className={styles.highlightProvince}>{provinceName}</span></>
         );
         return (
             <>
-                Thống kê Đầu / Đuôi Giải Đặc Biệt trong{' '}<br></br>
-                <span className={styles.highlightDraws}>{specialMetadata.totalDraws || 0} lần quay</span>{' '}
-                Xổ số {regionText}
+                Thống kê Đầu / Đuôi Giải Đặc Biệt trong<br></br>
+                <span className={styles.highlightDraws}>{specialMetadata.totalDraws || 0} lần quay</span> Xổ số {regionText}
             </>
         );
     };
 
     const getDauByDateMessage = () => {
-        const provinceName = dauByDateRegion === 'Miền Bắc' ? 'Miền Bắc' : Object.keys(provinceSlugs).find(key => provinceSlugs[key] === dauByDateTinh);
+        const provinceName = dauByDateRegion === 'Miền Bắc' ? 'Miền Bắc' : Object.keys(provinceSlugs).find(key => provinceSlugs[key] === dauByDateTinh) || '';
         const regionText = dauByDateRegion === 'Miền Bắc' ? (
             <span className={styles.highlightProvince}>Miền Bắc</span>
         ) : (
-            <>
-                {dauByDateRegion} - <span className={styles.highlightProvince}>{provinceName}</span>
-            </>
+            <>{dauByDateRegion} - <span className={styles.highlightProvince}>{provinceName}</span></>
         );
         return (
             <>
@@ -479,30 +498,26 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
     };
 
     const getDuoiByDateMessage = () => {
-        const provinceName = duoiByDateRegion === 'Miền Bắc' ? 'Miền Bắc' : Object.keys(provinceSlugs).find(key => provinceSlugs[key] === duoiByDateTinh);
+        const provinceName = duoiByDateRegion === 'Miền Bắc' ? 'Miền Bắc' : Object.keys(provinceSlugs).find(key => provinceSlugs[key] === duoiByDateTinh) || '';
         const regionText = duoiByDateRegion === 'Miền Bắc' ? (
             <span className={styles.highlightProvince}>Miền Bắc</span>
         ) : (
-            <>
-                {duoiByDateRegion} - <span className={styles.highlightProvince}>{provinceName}</span>
-            </>
+            <>{duoiByDateRegion} - <span className={styles.highlightProvince}>{provinceName}</span></>
         );
         return (
             <>
-                Thống kê Đuôi Loto theo ngày - Xổ số <br></br>
+                Thống kê Đuôi Loto theo ngày - Xổ số<br></br>
                 {regionText}
             </>
         );
     };
 
     const getTitle = () => {
-        const provinceName = region === 'Miền Bắc' ? 'Miền Bắc' : Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh);
+        const provinceName = region === 'Miền Bắc' ? 'Miền Bắc' : Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh) || '';
         const regionText = region === 'Miền Bắc' ? (
             <span className={styles.highlightProvince}>Miền Bắc</span>
         ) : (
-            <>
-                {region} - <span className={styles.highlightProvince}>{provinceName}</span>
-            </>
+            <>{region} - <span className={styles.highlightProvince}>{provinceName}</span></>
         );
         return (
             <>
@@ -511,51 +526,33 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
         );
     };
 
-    const pageTitle = getTitle();
-    const pageDescription = `Xem bảng thống kê Đầu Đuôi loto Xổ số ${region === 'Miền Bắc' ? 'Miền Bắc' : `${region} - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh)}`} trong ${metadata.filterType || ''}. Cập nhật dữ liệu từ ${metadata.startDate || ''} đến ${metadata.endDate || ''}.`;
-
-    // Tính tổng cho Đầu
-    const dauTotalsByDate = Array(10).fill(0);
-    const dauStatsByDateArray = Object.entries(dauStatsByDate).map(([date, stats]) => {
-        const row = { date, stats: Array(10).fill(0) };
-        stats.forEach((count, index) => {
-            row.stats[index] = count;
-            dauTotalsByDate[index] += count;
-        });
-        return row;
-    });
-
-    // Tính tổng cho Đuôi
-    const duoiTotalsByDate = Array(10).fill(0);
-    const duoiStatsByDateArray = Object.entries(duoiStatsByDate).map(([date, stats]) => {
-        const row = { date, stats: Array(10).fill(0) };
-        stats.forEach((count, index) => {
-            row.stats[index] = count;
-            duoiTotalsByDate[index] += count;
-        });
-        return row;
-    });
+    const pageTitle = region === 'Miền Bắc'
+        ? `Thống kê Đầu Đuôi Loto Xổ Số Miền Bắc`
+        : `Thống kê Đầu Đuôi Loto Xổ Số ${region} - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh) || ''}`;
+    const pageDescription = `Xem thống kê Đầu Đuôi loto Xổ số ${region === 'Miền Bắc' ? 'Miền Bắc' : `${region} - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh) || ''}`} trong ${days} ngày. Cập nhật mới nhất ${metadata.startDate && metadata.endDate ? `từ ${metadata.startDate} đến ${metadata.endDate}` : 'hàng ngày'}.`;
 
     return (
         <div className="container">
             <Head>
                 <title>{pageTitle}</title>
                 <meta name="description" content={pageDescription} />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <meta name="robots" content="index, follow" />
                 <meta property="og:title" content={pageTitle} />
                 <meta property="og:description" content={pageDescription} />
                 <meta property="og:type" content="website" />
-                <meta property="og:url" content={`https://xsmb.win/thongke/dau-duoi`} />
-                <meta property="og:image" content="https://xsmb.win/zalotelegram.png" />
+                <meta property="og:url" content="https://xsmb.win/thongke/dau-duoi" />
+                <meta property="og:image" content="https://xsmb.win/images/dau-duoi-table.webp" />
                 <link rel="canonical" href="https://xsmb.win/thongke/dau-duoi" />
             </Head>
 
             <div className={styles.container}>
                 <div className={styles.titleGroup}>
-                    <h1 className={styles.title}>{pageTitle}</h1>
+                    <h1 className={styles.title}>{getTitle()}</h1>
                     <div className={styles.actionBtn}>
-                        <Link className={styles.actionTK} href="giai-dac-biet">Thống Kê Giải Đặc Biệt </Link>
-                        <Link className={`${styles.actionTK} ${router.pathname.startsWith('/thongke/dau-duoi') ? styles.active : ''}`} href="dau-duoi">Thống Kê Đầu Đuôi </Link>
-                        <Link className={`${styles.actionTK} ${router.pathname.startsWith('/thongke/giai-dac-biet-tuan') ? styles.active : ''}`} href="giai-dac-biet-tuan">Thống Kê Giải Đặc Biệt Tuần </Link>
+                        <Link className={styles.actionTK} href="/thongke/giai-dac-biet">Thống Kê Giải Đặc Biệt</Link>
+                        <Link className={`${styles.actionTK} ${router.pathname.startsWith('/thongke/dau-duoi') ? styles.active : ''}`} href="/thongke/dau-duoi">Thống Kê Đầu Đuôi</Link>
+                        <Link className={`${styles.actionTK} ${router.pathname.startsWith('/thongke/giai-dac-biet-tuan') ? styles.active : ''}`} href="/thongke/giai-dac-biet-tuan">Thống Kê Giải Đặc Biệt Tuần</Link>
                     </div>
                 </div>
 
@@ -564,6 +561,9 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                     <div>
                         <div className="metadata">
                             <h2 className={styles.title}>{getMessage()}</h2>
+                            <p className={styles.updateTime}>
+                                Cập nhật lúc: {new Date().toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </p>
                         </div>
 
                         <div className={styles.group_Select}>
@@ -572,7 +572,8 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                                 <select
                                     className={styles.selectBox}
                                     onChange={handleTinhChange}
-                                    value={tinh ? tinh : "Miền Bắc"}
+                                    value={tinh || 'Miền Bắc'}
+                                    aria-label="Chọn tỉnh hoặc vùng để xem thống kê đầu đuôi loto"
                                 >
                                     <option value="Miền Bắc">Miền Bắc</option>
                                     <optgroup label="Miền Nam">
@@ -598,6 +599,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                                     className={styles.selectBox}
                                     value={days}
                                     onChange={handleDaysChange}
+                                    aria-label="Chọn khoảng thời gian thống kê đầu đuôi loto"
                                 >
                                     <option value={30}>30 ngày</option>
                                     <option value={60}>60 ngày</option>
@@ -623,6 +625,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                         {!loading && !error && combinedDauDuoiStats.length > 0 && (
                             <div>
                                 <table className={styles.tableDauDuoi}>
+                                    <caption>Thống kê Đầu Đuôi Loto {region} {tinh ? `- ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh)}` : ''} trong {days} ngày</caption>
                                     <thead>
                                         <tr>
                                             <th>Số</th>
@@ -668,7 +671,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                     {/* Bảng 2: Thống kê Đầu/Đuôi giải Đặc Biệt */}
                     {specialLoading && <SkeletonSpecialTable />}
                     {specialError && <p className={styles.error}>{specialError}</p>}
-                    {!specialLoading && !specialError && specialDauDuoiStats.length > 0 && (
+                    {!specialLoading && !specialError && memoizedSpecialDauDuoiStats.length > 0 && (
                         <div className="mt-8">
                             <div className="metadata">
                                 <h2 className={`${styles.title} ${styles.title2}`}>{getSpecialMessage()}</h2>
@@ -680,7 +683,8 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                                     <select
                                         className={styles.selectBox}
                                         onChange={handleSpecialTinhChange}
-                                        value={specialTinh ? specialTinh : "Miền Bắc"}
+                                        value={specialTinh || 'Miền Bắc'}
+                                        aria-label="Chọn tỉnh hoặc vùng để xem thống kê đầu đuôi giải đặc biệt"
                                     >
                                         <option value="Miền Bắc">Miền Bắc</option>
                                         <optgroup label="Miền Nam">
@@ -706,6 +710,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                                         className={styles.selectBox}
                                         value={specialDays}
                                         onChange={handleSpecialDaysChange}
+                                        aria-label="Chọn khoảng thời gian thống kê đầu đuôi giải đặc biệt"
                                     >
                                         <option value={30}>30 ngày</option>
                                         <option value={60}>60 ngày</option>
@@ -727,6 +732,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                             </div>
 
                             <table className={styles.tableSpecialDauDuoi}>
+                                <caption>Thống kê Đầu Đuôi Giải Đặc Biệt {specialRegion} {specialTinh ? `- ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === specialTinh)}` : ''} trong {specialDays} ngày</caption>
                                 <thead>
                                     <tr>
                                         <th>Số</th>
@@ -735,7 +741,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {specialDauDuoiStats.map((stat, index) => (
+                                    {memoizedSpecialDauDuoiStats.map((stat, index) => (
                                         <tr key={index}>
                                             <td>{stat.number}</td>
                                             <td>
@@ -762,7 +768,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                             </table>
                         </div>
                     )}
-                    {!specialLoading && !specialError && specialDauDuoiStats.length === 0 && specialMetadata.message && (
+                    {!specialLoading && !specialError && memoizedSpecialDauDuoiStats.length === 0 && specialMetadata.message && (
                         <p className={styles.noData}>{specialMetadata.message}</p>
                     )}
                 </div>
@@ -780,7 +786,8 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                                 <select
                                     className={styles.selectBox}
                                     onChange={handleDauByDateTinhChange}
-                                    value={dauByDateTinh ? dauByDateTinh : "Miền Bắc"}
+                                    value={dauByDateTinh || 'Miền Bắc'}
+                                    aria-label="Chọn tỉnh hoặc vùng để xem thống kê đầu loto theo ngày"
                                 >
                                     <option value="Miền Bắc">Miền Bắc</option>
                                     <optgroup label="Miền Nam">
@@ -806,6 +813,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                                     className={styles.selectBox}
                                     value={dauByDateDays}
                                     onChange={handleDauByDateDaysChange}
+                                    aria-label="Chọn khoảng thời gian thống kê đầu loto theo ngày"
                                 >
                                     <option value={30}>30 ngày</option>
                                     <option value={60}>60 ngày</option>
@@ -831,6 +839,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                         {!dauByDateLoading && !dauByDateError && dauStatsByDateArray.length > 0 && (
                             <div>
                                 <table className={styles.tableDauDuoiByDate}>
+                                    <caption>Thống kê Đầu Loto theo ngày {dauByDateRegion} {dauByDateTinh ? `- ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === dauByDateTinh)}` : ''} trong {dauByDateDays} ngày</caption>
                                     <thead>
                                         <tr>
                                             <th>Ngày</th>
@@ -887,7 +896,8 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                                 <select
                                     className={styles.selectBox}
                                     onChange={handleDuoiByDateTinhChange}
-                                    value={duoiByDateTinh ? duoiByDateTinh : "Miền Bắc"}
+                                    value={duoiByDateTinh || 'Miền Bắc'}
+                                    aria-label="Chọn tỉnh hoặc vùng để xem thống kê đuôi loto theo ngày"
                                 >
                                     <option value="Miền Bắc">Miền Bắc</option>
                                     <optgroup label="Miền Nam">
@@ -913,6 +923,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                                     className={styles.selectBox}
                                     value={duoiByDateDays}
                                     onChange={handleDuoiByDateDaysChange}
+                                    aria-label="Chọn khoảng thời gian thống kê đuôi loto theo ngày"
                                 >
                                     <option value={30}>30 ngày</option>
                                     <option value={60}>60 ngày</option>
@@ -938,6 +949,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                         {!duoiByDateLoading && !duoiByDateError && duoiStatsByDateArray.length > 0 && (
                             <div>
                                 <table className={styles.tableDauDuoiByDate}>
+                                    <caption>Thống kê Đuôi Loto theo ngày {duoiByDateRegion} {duoiByDateTinh ? `- ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === duoiByDateTinh)}` : ''} trong {duoiByDateDays} ngày</caption>
                                     <thead>
                                         <tr>
                                             <th>Ngày</th>
@@ -982,40 +994,26 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                 </div>
 
                 <div className={styles.Group_Content}>
-                    <h2 className={styles.heading}>XSMN.WIN - Thống Kê Đầu Đuôi Loto Chính Xác Nhất</h2>
-                    <div className={`${styles.contentWrapper} ${isExpanded ? styles.expanded : styles.collapsed}`}>
-                        <h3 className={styles.h3}>Thống Kê Đầu Đuôi Loto Là Gì?</h3>
-                        <p className={styles.desc}>
-                            Thống kê Đầu Đuôi loto là bảng thống kê tần suất xuất hiện của các chữ số đầu (Đầu) và chữ số cuối (Đuôi) trong 2 số cuối của các giải xổ số trong một khoảng thời gian nhất định (30 hoặc 60 ngày). Đây là công cụ hữu ích giúp người chơi nhận biết các chữ số nào đang xuất hiện nhiều hoặc ít để đưa ra quyết định chơi loto hiệu quả hơn.
-                        </p>
-                        <h3 className={styles.h3}>Thông Tin Trong Thống Kê Đầu Đuôi:</h3>
-                        <p className={styles.desc}>- Tần suất xuất hiện của Đầu số (0-9) và Đuôi số (0-9) trong 2 số cuối của các giải.</p>
-                        <p className={styles.desc}>- Phần trăm xuất hiện của từng Đầu/Đuôi, đi kèm số lần xuất hiện cụ thể.</p>
-                        <p className={styles.desc}>- Khoảng thời gian thống kê (30 ngày hoặc 60 ngày hoặc 90,...1 năm), cùng với ngày bắt đầu và ngày kết thúc.</p>
-                        <h3 className={styles.h3}>Ý Nghĩa Của Bảng Đầu Đuôi:</h3>
-                        <p className={styles.desc}>- **Đầu số**: Thống kê tần suất của chữ số đầu tiên trong 2 số cuối của các giải, ví dụ Đầu 0, Đầu 1,..., Đầu 9.</p>
-                        <p className={styles.desc}>- **Đuôi số**: Thống kê tần suất của chữ số cuối cùng trong 2 số cuối của các giải, ví dụ Đuôi 0, Đuôi 1,..., Đuôi 9.</p>
-                        <p className={styles.desc}>- Thanh ngang màu xanh dương thể hiện trực quan phần trăm xuất hiện, giúp người chơi dễ dàng nhận biết chữ số nào xuất hiện nhiều nhất hoặc ít nhất.</p>
-                        <h3 className={styles.h3}>Lợi Ích Của Thống Kê Đầu Đuôi:</h3>
-                        <p className={styles.desc}>- Giúp người chơi nhận biết xu hướng xuất hiện của các chữ số, từ đó chọn số may mắn để chơi loto.</p>
-                        <p className={styles.desc}>- Cung cấp dữ liệu chính xác, cập nhật nhanh chóng từ kết quả xổ số.</p>
-                        <p className={styles.desc}>
-                            XSMB.WIN cung cấp công cụ thống kê Đầu Đuôi loto hoàn toàn miễn phí, giúp người chơi có thêm thông tin để tăng cơ hội trúng thưởng. Chúc bạn may mắn!
-                        </p>
-                        <p className={styles.desc}>
-                            Thống kê Đầu Đuôi loto. Xem thống kê Đầu Đuôi hôm nay nhanh và chính xác tại <a href="https://xsmb.win" className={styles.action}>XSMB.WIN</a>.
-                        </p>
-                    </div>
+                    <h2 className={styles.heading}>XSMB.WIN - Thống Kê Đầu Đuôi Loto Chính Xác Nhất</h2>
+                    <h3 className={styles.h3}>Thống Kê Đầu Đuôi Loto Là Gì?</h3>
+                    <p className={styles.desc}>
+                        Thống kê Đầu Đuôi loto là bảng thống kê tần suất xuất hiện của các chữ số đầu (Đầu) và chữ số cuối (Đuôi) trong 2 số cuối của các giải xổ số trong một khoảng thời gian nhất định (30 hoặc 60 ngày). Đây là công cụ hữu ích giúp người chơi nhận biết các chữ số nào đang xuất hiện nhiều hoặc ít để đưa ra quyết định chơi loto hiệu quả hơn.
+                    </p>
+                    <Suspense fallback={<div>Loading...</div>}>
+                        <div className={`${styles.contentWrapper} ${isExpanded ? styles.expanded : styles.collapsed}`}>
+                            <DescriptionContent />
+                        </div>
+                    </Suspense>
                     <button className={styles.toggleBtn} onClick={toggleContent}>
                         {isExpanded ? 'Thu gọn' : 'Xem thêm'}
                     </button>
                 </div>
 
-
                 <button
                     id="scrollToTopBtn"
                     className={styles.scrollToTopBtn}
                     onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                    title="Quay lại đầu trang"
                 >
                     ↑
                 </button>
@@ -1027,5 +1025,45 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
         </div>
     );
 };
+
+export async function getServerSideProps() {
+    try {
+        const days = 30;
+        const region = 'Miền Bắc';
+        const tinh = null;
+
+        const data = await apiMB.getDauDuoiStats(days);
+        const dateData = await apiMB.getDauDuoiStatsByDate(days);
+
+        return {
+            props: {
+                initialDauStats: data.dauStatistics || [],
+                initialDuoiStats: data.duoiStatistics || [],
+                initialSpecialDauDuoiStats: data.specialDauDuoiStats || [],
+                initialMetadata: data.metadata || {},
+                initialDays: days,
+                initialRegion: region,
+                initialTinh: tinh,
+                initialDauStatsByDate: dateData.dauStatsByDate || {},
+                initialDuoiStatsByDate: dateData.duoiStatsByDate || {},
+            },
+        };
+    } catch (error) {
+        console.error('Error in getServerSideProps:', error.message);
+        return {
+            props: {
+                initialDauStats: [],
+                initialDuoiStats: [],
+                initialSpecialDauDuoiStats: [],
+                initialMetadata: {},
+                initialDays: 30,
+                initialRegion: 'Miền Bắc',
+                initialTinh: null,
+                initialDauStatsByDate: {},
+                initialDuoiStatsByDate: {},
+            },
+        };
+    }
+}
 
 export default DauDuoi;

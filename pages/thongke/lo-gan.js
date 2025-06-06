@@ -234,7 +234,7 @@ const Logan = ({ initialStats, initialMetadata, initialDays, initialRegion, init
 
     const pageTitle = region === 'Miền Bắc'
         ? `Lô gan miền Bắc - Thống kê Lô Gan XSMB - Lo gan MB`
-        : `Thống kê Lô Gan ${region} - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh) || ''} lâu chưa về nhất`;
+        : `Lô gan miền Bắc - Thống kê lô gan XSMB ${region} - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh) || ''} lâu chưa về nhất`;
     const pageDescription = `Xem bảng thống kê Lô Gan ${region === 'Miền Bắc' ? 'Miền Bắc' : `${region} - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh) || ''}`} lâu chưa về nhất. Cập nhật dữ liệu từ ${metadata.startDate} đến ${metadata.endDate || 'hàng ngày'}.`;
 
     return (
@@ -283,6 +283,8 @@ const Logan = ({ initialStats, initialMetadata, initialDays, initialRegion, init
                                 className={styles.selectBox}
                                 onChange={handleTinhChange}
                                 value={tinh || 'Miền Bắc'}
+                                aria-label="Chọn tỉnh để xem thống kê lô gan"
+
                             >
                                 <option value="Miền Bắc">Miền Bắc</option>
                                 <optgroup label="Miền Nam">
@@ -308,6 +310,8 @@ const Logan = ({ initialStats, initialMetadata, initialDays, initialRegion, init
                                 className={styles.selectBox}
                                 value={days}
                                 onChange={handleDaysChange}
+                                aria-label="Chọn thời gian để xem thống kê lô gan"
+
                             >
                                 <option value={6}>6 ngày</option>
                                 <option value={7}>7 đến 14 ngày</option>
@@ -363,7 +367,7 @@ const Logan = ({ initialStats, initialMetadata, initialDays, initialRegion, init
                 </div>
 
                 <div className={styles.groupContent}>
-                    <h2 className={styles.heading}>XSMN.WIN - Thống Kê Lô Gan Chính Xác Nhất</h2>
+                    <h2 className={styles.heading}>XSMB.WIN - Thống Kê Lô Gan Chính Xác Nhất</h2>
                     <h3 className={styles.h3}>Thống kê Lô Gan Miền Bắc là gì?</h3>
                     <p className={styles.desc}>
                         Thống kê lô gan Miền Bắc (hay còn gọi là lô khan Miền Bắc, số rắn) là thống kê những cặp số lô tô (2 số cuối) lâu chưa về trên bảng kết quả Miền Bắc trong một khoảng thời gian, ví dụ như 5 ngày hoặc hơn. Đây là những con loto gan lì không chịu xuất hiện. Số ngày gan (kỳ gan) là số lần mở thưởng mà bộ số đó chưa về tính đến hôm nay.

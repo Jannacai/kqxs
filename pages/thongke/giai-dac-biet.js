@@ -273,6 +273,8 @@ const GiaiDacBiet = ({ initialStats, initialMetadata, initialDays, initialRegion
                 <meta property="og:title" content={pageTitle} />
                 <meta property="og:description" content={pageDescription} />
                 <meta property="og:type" content="website" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <meta name="robots" content="index, follow" />
                 <meta property="og:url" content={`https://xsmb.win/thongke/giai-dac-biet`} />
                 <meta property="og:image" content="https://xsmb.win/zalotelegram.png" />
                 <link rel="canonical" href="https://xsmb.win/thongke/giai-dac-biet" />
@@ -297,7 +299,9 @@ const GiaiDacBiet = ({ initialStats, initialMetadata, initialDays, initialRegion
                     <div className={styles.group_Select}>
                         <div className={styles.selectGroup}>
                             <label className={styles.options}>Chọn tỉnh: </label>
-                            <select className={styles.select} onChange={handleRegionChange}>
+                            <select className={styles.select} onChange={handleRegionChange}
+                                aria-label="Chọn tỉnh để xem thống kê giải đặc biệt"
+                                >
                                 <option value="Miền Bắc">Miền Bắc</option>
                                 <optgroup label="Miền Nam">
                                     {mienNamProvinces.map(province => (
@@ -318,7 +322,9 @@ const GiaiDacBiet = ({ initialStats, initialMetadata, initialDays, initialRegion
 
                         <div className={styles.selectGroup}>
                             <label className={styles.options}>Chọn thời gian: </label>
-                            <select className={styles.select} value={days} onChange={handleDaysChange}>
+                            <select className={styles.select} value={days} onChange={handleDaysChange}
+                                aria-label="Chọn thời gian để xem thống kê giải đặc biệt"
+                                >
                                 <option value={10}>10 ngày</option>
                                 <option value={20}>20 ngày</option>
                                 <option value={30}>30 ngày</option>

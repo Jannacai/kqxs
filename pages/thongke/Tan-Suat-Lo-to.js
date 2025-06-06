@@ -199,6 +199,8 @@ const TanSuatLoto = ({ initialStats, initialMetadata, initialDays, initialRegion
                 <meta property="og:title" content={pageTitle} />
                 <meta property="og:description" content={pageDescription} />
                 <meta property="og:type" content="website" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <meta name="robots" content="index, follow" />
                 <meta property="og:url" content={`https://yourdomain.com/thongke/tan-suat-loto`} />
                 <meta property="og:image" content="https://yourdomain.com/images/thongke-tan-suat-loto.jpg" />
                 <link rel="canonical" href="https://yourdomain.com/thongke/tan-suat-loto" />
@@ -219,7 +221,9 @@ const TanSuatLoto = ({ initialStats, initialMetadata, initialDays, initialRegion
                         <div className={styles.group_Select}>
                             <div className={styles.selectGroup}>
                                 <label className={styles.options}>Chọn tỉnh:</label>
-                                <select className={styles.seclect} onChange={handleTinhChange}>
+                                <select className={styles.seclect} onChange={handleTinhChange}
+                                    aria-label="Chọn tỉnh hoặc vùng để xem tần suất loto"
+                                >
                                     <option value="Miền Bắc">Miền Bắc</option>
                                     <optgroup label="Miền Nam">
                                         {mienNamProvinces.map(prov => (
@@ -240,7 +244,8 @@ const TanSuatLoto = ({ initialStats, initialMetadata, initialDays, initialRegion
 
                             <div className={styles.selectGroup}>
                                 <label className={styles.options}>Chọn thời gian:</label>
-                                <select className={styles.seclect} value={days} onChange={handleDaysChange}>
+                                <select className={styles.seclect} value={days} onChange={handleDaysChange}
+                                    aria-label="Chọn thời gian để xem tần suất loto">
                                     <option value={30}>30 ngày</option>
                                     <option value={60}>60 ngày</option>
                                     <option value={90}>90 ngày</option>

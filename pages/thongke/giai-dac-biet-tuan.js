@@ -387,6 +387,8 @@ const GiaiDacBietTheoTuan = ({ initialStats, initialMetadata, initialMonth, init
                 <meta property="og:title" content={pageTitle} />
                 <meta property="og:description" content={pageDescription} />
                 <meta property="og:type" content="website" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <meta name="robots" content="index, follow" />
                 <meta property="og:url" content={`https://xsmb.win/thongke/giai-dac-biet-theo-tuan`} />
                 <meta property="og:image" content="https://xsmb.win/zalotelegram.png" />
                 <link rel="canonical" href="https://xsmb.win/thongke/giai-dac-biet-theo-tuan" />
@@ -413,7 +415,9 @@ const GiaiDacBietTheoTuan = ({ initialStats, initialMetadata, initialMonth, init
 
                         <div className={styles.selectGroup}>
                             <label className={styles.options}>Chọn miền: </label>
-                            <select className={styles.select} onChange={handleRegionChange} value={region}>
+                            <select className={styles.select} onChange={handleRegionChange} value={region}
+                                aria-label="Chọn miền để xem thống kê giải đặc biệt tuần"
+                                    >
                                 <option value="Miền Bắc">Miền Bắc</option>
                                 <option value="Miền Trung">Miền Trung</option>
                                 <option value="Miền Nam">Miền Nam</option>
@@ -433,6 +437,8 @@ const GiaiDacBietTheoTuan = ({ initialStats, initialMetadata, initialMonth, init
                                             setTinh(newTinh);
                                         }}
                                         value={tinh || 'all'}
+                                        aria-label="Chọn tỉnh để xem thống kê giải đặc biệt tuần"
+
                                     >
                                         <option value="all">Tất cả</option>
                                         <optgroup label={region}>
@@ -449,7 +455,9 @@ const GiaiDacBietTheoTuan = ({ initialStats, initialMetadata, initialMonth, init
 
                         <div className={styles.selectGroup}>
                             <label className={styles.options}>Chọn tháng: </label>
-                            <select className={styles.select} value={month} onChange={handleMonthChange}>
+                            <select className={styles.select} value={month} onChange={handleMonthChange}
+                                aria-label="Chọn tháng để xem thống kê giải đặc biệt tuần"
+                                >
                                 {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
                                     <option key={m} value={m}>{`Tháng ${m}`}</option>
                                 ))}
@@ -458,7 +466,9 @@ const GiaiDacBietTheoTuan = ({ initialStats, initialMetadata, initialMonth, init
 
                         <div className={styles.selectGroup}>
                             <label className={styles.options}>Chọn năm: </label>
-                            <select className={styles.select} value={year} onChange={handleYearChange}>
+                            <select className={styles.select} value={year} onChange={handleYearChange}
+                                aria-label="Chọn năm để xem thống kê giải đặc biệt tuần"
+                                >
                                 {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(y => (
                                     <option key={y} value={y}>{y}</option>
                                 ))}
