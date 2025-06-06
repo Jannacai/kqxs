@@ -29,8 +29,8 @@ const KQXS = ({ station, date, dayOfWeek, data }) => {
     const [isLiveWindow, setIsLiveWindow] = useState(false);
     const [hasTriggeredScraper, setHasTriggeredScraper] = useState(false);
     const hour = 19;
-    const minute1 = 12;
-    const minute2 = 13;
+    const minute1 = 19;
+    const minute2 = 20;
 
     const router = useRouter();
     const itemsPerPage = 3;
