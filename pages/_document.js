@@ -50,7 +50,13 @@ export default function Document() {
                         "sameAs": [
                             "https://zalo.me/your-zalo-oa-link",
                             "https://t.me/YourChannel"
-                        ]
+                        ],
+                        "license": "https://creativecommons.org/licenses/by/4.0/",
+                        "creator": {
+                            "@type": "Organization",
+                            "name": "XSMB.WIN",
+                            "url": "https://www.xsmb.win"
+                        }
                     })}
                 </script>
 

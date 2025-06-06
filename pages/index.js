@@ -82,6 +82,7 @@ export default function Home() {
                             "keywords": ["xổ số", "miền bắc", "kết quả", "xsmb", "lô tô", "đầu đuôi", "soi cầu xsmb"],
                             "url": canonicalUrl,
                         },
+
                         {
                             "@context": "https://schema.org",
                             "@type": "Organization",
@@ -94,6 +95,14 @@ export default function Home() {
                             ]
                         },
                         {
+                            "license": "https://creativecommons.org/licenses/by/4.0/",
+                            "creator": {
+                                "@type": "Organization",
+                                "name": "XSMB.WIN",
+                                "url": "https://www.xsmb.win"
+                            }
+                        },
+                        {
                             "@context": "https://schema.org",
                             "@type": "WebSite",
                             "name": "XSMB",
@@ -103,7 +112,7 @@ export default function Home() {
                                 "target": "https://xsmb.win/search?q={search_term_string}",
                                 "query-input": "required name=search_term_string"
                             }
-                        }
+                        },
                     ])}
                 </script>
             </Head>
