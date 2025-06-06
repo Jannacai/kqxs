@@ -625,7 +625,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                         {!loading && !error && combinedDauDuoiStats.length > 0 && (
                             <div>
                                 <table className={styles.tableDauDuoi}>
-                                    <caption>Thống kê Đầu Đuôi Loto {region} {tinh ? `- ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh)}` : ''} trong {days} ngày</caption>
+                                    <caption>Thống kê Đầu Đuôi Loto {region} {tinh ? `- ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh)}` : ''} trong {days} ngày</caption><br></br>
                                     <thead>
                                         <tr>
                                             <th>Số</th>
@@ -732,7 +732,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                             </div>
 
                             <table className={styles.tableSpecialDauDuoi}>
-                                <caption>Thống kê Đầu Đuôi Giải Đặc Biệt {specialRegion} {specialTinh ? `- ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === specialTinh)}` : ''} trong {specialDays} ngày</caption>
+                                <caption>Thống kê Đầu Đuôi Giải Đặc Biệt {specialRegion} {specialTinh ? `- ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === specialTinh)}` : ''} trong {specialDays} ngày</caption><br></br>
                                 <thead>
                                     <tr>
                                         <th>Số</th>
@@ -839,7 +839,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                         {!dauByDateLoading && !dauByDateError && dauStatsByDateArray.length > 0 && (
                             <div>
                                 <table className={styles.tableDauDuoiByDate}>
-                                    <caption>Thống kê Đầu Loto theo ngày {dauByDateRegion} {dauByDateTinh ? `- ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === dauByDateTinh)}` : ''} trong {dauByDateDays} ngày</caption>
+                                    <caption>Thống kê Đầu Loto theo ngày {dauByDateRegion} {dauByDateTinh ? `- ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === dauByDateTinh)}` : ''} trong {dauByDateDays} ngày</caption><br></br>
                                     <thead>
                                         <tr>
                                             <th>Ngày</th>
@@ -949,7 +949,7 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                         {!duoiByDateLoading && !duoiByDateError && duoiStatsByDateArray.length > 0 && (
                             <div>
                                 <table className={styles.tableDauDuoiByDate}>
-                                    <caption>Thống kê Đuôi Loto theo ngày {duoiByDateRegion} {duoiByDateTinh ? `- ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === duoiByDateTinh)}` : ''} trong {duoiByDateDays} ngày</caption>
+                                    <caption className={styles.caption}>Thống kê Đuôi Loto theo ngày {duoiByDateRegion} {duoiByDateTinh ? `- ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === duoiByDateTinh)}` : ''} trong {duoiByDateDays} ngày</caption><br></br>
                                     <thead>
                                         <tr>
                                             <th>Ngày</th>

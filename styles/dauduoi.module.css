@@ -16,6 +16,10 @@
     justify-content: center;
 }
 
+.caption {
+    font-style: italic;
+}
+
 .actionTK {
     line-height: 20px;
     border: 1px solid #0396FF;
@@ -571,7 +575,7 @@
     .container {
         padding: 12px;
     }
-   
+
     .titleGroup {
         padding: 16px 8px;
     }
