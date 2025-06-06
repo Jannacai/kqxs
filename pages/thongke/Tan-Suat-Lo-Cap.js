@@ -1,11 +1,15 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
 import { apiMB } from '../api/kqxs/kqxsMB';
 import { apiMT } from '../api/kqxs/kqxsMT';
 import { apiMN } from '../api/kqxs/kqxsMN';
 import styles from '../../styles/tansuatLoCap.module.css';
 import ThongKe from '../../component/thongKe';
 import CongCuHot from '../../component/CongCuHot';
+import Link from 'next/link';
+
 // Skeleton Loading Component
 const SkeletonRow = () => (
     <tr>
@@ -77,7 +81,7 @@ const mienNamProvinces = [
     "Tất cả tỉnh",
     "Vũng Tàu", "Cần Thơ", "Đồng Tháp", "TP.Hồ Chí Minh", "Cà Mau", "Bến Tre", "Bạc Liêu", "Sóc Trăng",
     "Đồng Nai", "An Giang", "Tây Ninh", "Bình Thuận", "Vĩnh Long", "Trà Vinh", "Long An", "Bình Phước",
-    "Hậu Giang", "Kien Giang", "Tiền Giang", "Đà Lạt"
+    "Hậu Giang", "Kiên Giang", "Tiền Giang", "Đà Lạt"
 ];
 
 const mienTrungProvinces = [
@@ -87,6 +91,7 @@ const mienTrungProvinces = [
 ];
 
 const TanSuatLoCap = ({ initialStats, initialMetadata, initialDays, initialRegion, initialTinh }) => {
+    const router = useRouter();
     const [stats, setStats] = useState(initialStats || []);
     const [metadata, setMetadata] = useState(initialMetadata || {});
     const [days, setDays] = useState(initialDays || 30);
@@ -168,17 +173,17 @@ const TanSuatLoCap = ({ initialStats, initialMetadata, initialDays, initialRegio
     }, []);
 
     const getMessage = () => {
-        const regionText = region === 'Miền Bắc' ? 'Miền Bắc' : `${region}${tinh === 'all' ? ' - Tất cả tỉnh' : ` - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh) || ''}`}`;
-        return `Thống kê Tần Suất Lô Cặp trong ${metadata.totalDraws || 0} lần quay Xổ số ${regionText}`;
+        const regionText = region === 'Miền Bắc' ? 'Miền Bắc' : `${ region }${ tinh === 'all' ? ' - Tất cả tỉnh' : ` - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh) || ''}` } `;
+        return `Thống kê Tần Suất Lô Cặp trong ${ metadata.totalDraws || 0 } lần quay Xổ số ${ regionText } `;
     };
 
     const getTitle = () => {
-        const regionText = region === 'Miền Bắc' ? 'Miền Bắc' : `${region}${tinh === 'all' ? ' - Tất cả tỉnh' : ` - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh) || ''}`}`;
-        return `Thống kê Tần Suất Lô Cặp Xổ Số ${regionText}`;
+        const regionText = region === 'Miền Bắc' ? 'Miền Bắc' : `${ region }${ tinh === 'all' ? ' - Tất cả tỉnh' : ` - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh) || ''}` } `;
+        return `Thống kê Tần Suất Lô Cặp Xổ Số ${ regionText } `;
     };
 
     const pageTitle = getTitle();
-    const pageDescription = `Xem bảng thống kê Tần Suất Lô Cặp Xổ số ${region === 'Miền Bắc' ? 'Miền Bắc' : `${region}${tinh === 'all' ? ' - Tất cả tỉnh' : ` - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh) || ''}`}`} trong ${metadata.filterType || ''}. Cập nhật dữ liệu từ ${metadata.startDate || ''} đến ${metadata.endDate || ''}.`;
+    const pageDescription = `Xem bảng thống kê Tần Suất Lô Cặp Xổ số ${ region === 'Miền Bắc' ? 'Miền Bắc' : `${region}${tinh === 'all' ? ' - Tất cả tỉnh' : ` - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh) || ''}`}` } trong ${ metadata.filterType || '' }. Cập nhật dữ liệu từ ${ metadata.startDate || '' } đến ${ metadata.endDate || '' }.`;
 
     // Tính ngưỡng highlight (trung bình + 1 độ lệch chuẩn)
     const counts = stats.map(stat => stat.count);
@@ -200,11 +205,25 @@ const TanSuatLoCap = ({ initialStats, initialMetadata, initialDays, initialRegio
                 <meta property="og:url" content={`https://yourdomain.com/thongke/tan-suat-lo-cap`} />
                 <meta property="og:image" content="https://yourdomain.com/images/thongke-tan-suat-lo-cap.jpg" />
                 <link rel="canonical" href="https://yourdomain.com/thongke/tan-suat-lo-cap" />
-            </Head>
+            </Head >
 
             <div className={styles.container}>
                 <div className={styles.titleGroup}>
                     <h1 className={styles.title}>{pageTitle}</h1>
+                    <div className={styles.actionBtn}>
+                        <Link className={styles.actionTK} href="/thongke/dau-duoi">
+                            Thống Kê Đầu Đuôi
+                        </Link>
+                        <Link
+                            className={`${styles.actionTK} ${router.pathname.startsWith('/thongke/tan-suat-lo-cap') ? styles.active : ''}`}
+                            href="/thongke/tan-suat-lo-cap"
+                        >
+                            Thống Kê Tần Suất Lô Cặp
+                        </Link>
+                        <Link className={styles.actionTK} href="/thongke/giai-dac-biet">
+                            Thống Kê Giải Đặc Biệt
+                        </Link>
+                    </div>
                 </div>
 
                 <div className={styles.content}>
@@ -270,7 +289,6 @@ const TanSuatLoCap = ({ initialStats, initialMetadata, initialDays, initialRegio
 
                         {!loading && !error && stats.length > 0 && (
                             <div className={styles.tableContainer}>
-                                {/* Bảng duy nhất hiển thị tất cả 90 cặp số */}
                                 <div className={styles.tableWrapper}>
                                     <div className={styles.tableTitle}>Thống kê 90 cặp số</div>
                                     <table className={styles.tableTanSuatLoto}>
@@ -288,14 +306,11 @@ const TanSuatLoCap = ({ initialStats, initialMetadata, initialDays, initialRegio
                                             {stats.map((stat, index) => {
                                                 const [xx, yy] = stat.pair.split('-');
                                                 return (
-                                                    <tr
-                                                        key={index}
-                                                        className={stat.count >= highlightThreshold ? styles.highlight : ''}
-                                                    >
+                                                    <tr key={index}>
                                                         <td>{stat.pair}</td>
-                                                        <td>{stat.count}</td>
-                                                        <td>{xx}: {stat.xxCount} lần</td>
-                                                        <td>{yy}: {stat.yyCount} lần</td>
+                                                        <td><span className={styles.countNumber}>{stat.count}</span></td>
+                                                        <td>{xx}: <span className={styles.countNumber}>{stat.xxCount}</span> lần</td>
+                                                        <td>{yy}: <span className={styles.countNumber}>{stat.yyCount}</span> lần</td>
                                                         <td>
                                                             <div className={styles.appearance}>
                                                                 <div
@@ -334,7 +349,7 @@ const TanSuatLoCap = ({ initialStats, initialMetadata, initialDays, initialRegio
                         <p className={styles.desc}>- Khoảng thời gian thống kê (30 ngày, 60 ngày,..., 1 năm), cùng với ngày bắt đầu và ngày kết thúc.</p>
                         <h3 className={styles.h3}>Ý Nghĩa Của Thống Kê Tần Suất Lô Cặp:</h3>
                         <p className={styles.desc}>- Giúp người chơi nhận biết xu hướng xuất hiện của các cặp loto, từ đó chọn cặp số may mắn để chơi.</p>
-                        <p className={styles.desc}>- Thanh ngang màu tím thể hiện trực quan tỷ lệ xuất hiện, giúp người chơi dễ dàng nhận biết cặp số nào xuất hiện nhiều nhất hoặc ít nhất.</p>
+                        <p className={styles.desc}>- Thanh ngang màu cam thể hiện trực quan tỷ lệ xuất hiện, giúp người chơi dễ dàng nhận biết cặp số nào xuất hiện nhiều nhất hoặc ít nhất.</p>
                         <h3 className={styles.h3}>Lợi Ích Của Thống Kê Tần Suất Lô Cặp:</h3>
                         <p className={styles.desc}>- Cung cấp dữ liệu chính xác, cập nhật nhanh chóng từ kết quả xổ số.</p>
                         <p className={styles.desc}>- Giúp người chơi có thêm thông tin để tăng cơ hội trúng thưởng.</p>
@@ -366,7 +381,7 @@ const TanSuatLoCap = ({ initialStats, initialMetadata, initialDays, initialRegio
                 <ThongKe />
                 <CongCuHot />
             </div>
-        </div>
+        </div >
     );
 };
 

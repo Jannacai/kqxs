@@ -90,7 +90,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
         const fetchInitialData = async (retry = 0) => {
             if (!station || !today || !/^\d{2}-\d{2}-\d{4}$/.test(today)) {
                 console.warn('Invalid station or today value:', { station, today });
-                setError('Dữ liệu đầu vào không hợp lệ');
+                setError('');
                 setIsTodayLoading(false);
                 return;
             }

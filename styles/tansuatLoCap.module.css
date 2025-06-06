@@ -1,234 +1,312 @@
-/* Style cơ bản cho container và các thành phần chung */
+/* Tổng thể container */
 .container {
     width: 100%;
-    max-width: 1280px;
+    max-width: 1200px;
     margin: 0 auto;
     font-family: "Inter", sans-serif;
-    padding: 32px;
-    background-color: #f5f7fa;
-    border-radius: 16px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    padding: 16px;
+    background-color: #ffffff;
 }
 
-.titleGroup {
-    text-align: center;
-    padding: 28px 16px;
-    background: linear-gradient(135deg, #e0f2fe 0%, #f9fafb 100%);
-    border: 1px solid #dbeafe;
-    border-radius: 16px;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-    margin-bottom: 40px;
+/* Nút Điều hướng */
+.actionBtn {
+    display: flex;
+    background-color: #ffffff;
+    align-items: center;
+    justify-content: center;
 }
+
 .caption {
     font-style: italic;
     text-align: center;
     padding: 8px 0;
     color: #000000a1;
 }
+
+.actionTK {
+    line-height: 20px;
+    border: 1px solid #0396FF;
+    padding: 10px;
+    width: 100%;
+    color: #0396FF;
+    text-align: center;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.actionTK:hover {
+    background-color: #0396FF;
+    color: #ffffff;
+}
+
+.active {
+    color: #ffffff;
+    background-color: #0396FF;
+}
+
+/* Tiêu đề chính */
+.titleGroup {
+    text-align: center;
+    padding: 24px 12px;
+    border: 1px solid #e5e7eb;
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
+    background: #ffeca0;
+    border-radius: 8px;
+    margin-bottom: 24px;
+}
+
 .title {
-    font-family: "Sora", sans-serif;
-    font-size: 2.25rem;
+    font-family: "Inter", sans-serif;
+    font-size: 1.5rem;
     font-weight: 700;
-    color: #1e40af;
-    margin-bottom: 12px;
-    letter-spacing: 0.5px;
-    line-height: 1.3;
+    color: #c80505;
+    margin-bottom: 8px;
+    line-height: 1.4;
     text-align: center;
 }
 
+/* Nội dung chính */
 .content {
-    margin-top: 32px;
-    padding: 40px;
-    border: 2px solid #1e40af;
-    border-radius: 16px;
+    margin-top: 24px;
+    padding: 10px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
     background-color: #ffffff;
-    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease;
 }
 
 .content:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.14);
+    transform: translateY(-1px);
 }
 
+/* Metadata */
+.metadata {
+    text-align: center;
+    margin-bottom: 16px;
+    font-size: 1rem;
+    color: #4b5563;
+}
+
+.error {
+    color: #c80505;
+    text-align: center;
+    margin: 16px 0;
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+.noData {
+    text-align: center;
+    color: #4b5563;
+    margin: 16px 0;
+    font-style: italic;
+    font-size: 0.95rem;
+}
+
+/* Nhóm chọn tỉnh và thời gian */
 .group_Select {
-    margin-top: 32px;
+    margin-top: 24px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 20px;
+    gap: 16px;
     flex-wrap: wrap;
 }
 
 .selectGroup {
     display: flex;
     align-items: center;
-    gap: 16px;
-    min-width: 220px;
+    gap: 12px;
 }
 
 .dateTime {
-    padding: 8px 0;
-    font-size: 1.1rem;
-    color: #1e40af;
-    font-weight: 600;
+    padding: 4px 0;
+    font-size: 0.95rem;
+    color: #c80505;
+    font-weight: 700;
 }
 
 .dateTime span {
-    color: #111827;
+    color: #1f2937;
     font-weight: 500;
 }
 
 .seclect {
-    border: 2px solid #1e40af;
-    border-radius: 10px;
-    width: 100%;
-    max-width: 220px;
-    height: 48px;
-    padding: 0 16px;
-    font-size: 1.1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    width: 150px;
+    height: 38px;
+    padding: 0 10px;
+    font-size: 1rem;
     background-color: #ffffff;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
-    appearance: none;
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231e40af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right 16px center;
-    background-size: 18px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-.seclect:hover,
+.seclect:hover {
+    border-color: #c80505;
+    box-shadow: 0 0 0 2px rgba(200, 5, 5, 0.1);
+}
+
 .seclect:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
-    background-color: #f8fafc;
-    outline: none;
+    border-color: #ed1c25;
+    box-shadow: 0 0 0 2px rgba(237, 28, 37, 0.2);
+    background-color: #fff5f5;
+}
+
+.seclect.active {
+    border-color: #ed1c25;
+    background-color: #fff5f5;
+    font-weight: 600;
+    color: #ed1c25;
 }
 
 .options {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #374151;
-    white-space: nowrap;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #1f2937;
 }
 
-/* Style cho container chứa bảng */
+/* Bảng dữ liệu */
 .tableContainer {
-    margin-top: 32px;
+    margin-top: 12px;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
-/* Wrapper cho bảng */
+/* Thanh cuộn tùy chỉnh */
+.tableContainer::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+}
+
+.tableContainer::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.tableContainer::-webkit-scrollbar-thumb {
+    background: #ed1c25;
+    border-radius: 4px;
+}
+
+.tableContainer::-webkit-scrollbar-thumb:hover {
+    background: #c80505;
+}
+
 .tableWrapper {
     width: 100%;
-    max-width: 100%;
-    /* Chiếm toàn bộ chiều rộng */
     background-color: #ffffff;
-    border-radius: 16px;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-    overflow-x: auto;
+    border-radius: 8px;
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
+    overflow-x: hidden;
 }
 
-/* Tiêu đề cho bảng */
 .tableTitle {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
     font-weight: 700;
-    color: #1e40af;
-    padding: 20px;
-    background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%);
-    border-bottom: 3px solid #1e40af;
-    border-radius: 16px 16px 0 0;
+    color: #c80505;
+    padding: 12px;
+    background: #ffeca0;
+    border-bottom: 2px solid #e5e7eb;
+    border-radius: 8px 8px 0 0;
     text-align: center;
-    letter-spacing: 0.5px;
 }
 
-/* Style cho bảng Tần Suất Loto */
 .tableTanSuatLoto {
     width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    font-size: 1.05rem;
+    border-collapse: collapse;
+    font-size: 0.95rem;
     background-color: #ffffff;
-    border-radius: 0 0 16px 16px;
+    border-radius: 0 0 8px 8px;
+    table-layout: fixed;
 }
 
 .tableTanSuatLoto th,
 .tableTanSuatLoto td {
     padding: 12px 16px;
-    border: 1px solid #d1d5db;
+    border: 1px solid #e5e7eb;
     text-align: center;
-    transition: background-color 0.3s ease, color 0.3s ease;
-    min-width: 100px;
-    /* Tăng min-width để cột rộng hơn */
+    transition: background-color 0.3s ease;
 }
 
 .tableTanSuatLoto th {
-    background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+    background: #ed1c25;
     color: #ffffff;
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    font-size: 0.95rem;
-    position: sticky;
-    top: 0;
-    z-index: 10;
+    letter-spacing: 0.3px;
 }
 
-/* Điều chỉnh chiều rộng cột để tận dụng không gian rộng hơn */
-.tableTanSuatLoto th:nth-child(1),
-.tableTanSuatLoto td:nth-child(1) {
-    width: 15%;
-}
-
-.tableTanSuatLoto th:nth-child(2),
-.tableTanSuatLoto td:nth-child(2) {
-    width: 15%;
-}
-
-.tableTanSuatLoto th:nth-child(3),
-.tableTanSuatLoto td:nth-child(3) {
-    width: 25%;
-}
-
-.tableTanSuatLoto th:nth-child(4),
-.tableTanSuatLoto td:nth-child(4) {
-    width: 25%;
-}
-
-.tableTanSuatLoto th:nth-child(5),
-.tableTanSuatLoto td:nth-child(5) {
-    width: 20%;
-}
-
-.tableTanSuatLoto td {
-    color: #111827;
-    font-weight: 500;
-    font-size: 1rem;
-}
-
-.tableTanSuatLoto tr:nth-child(even) {
-    background-color: #f9fafb;
+.tableTanSuatLoto tr:nth-child(odd) {
+    background-color: #e5e7eb63;
 }
 
 .tableTanSuatLoto tr:hover {
     background-color: #e0f2fe;
 }
 
-/* Highlight các số loto có tần suất cao */
-.tableTanSuatLoto tr.highlight {
-    background-color: #fef08a;
-    font-weight: 600;
+/* Điều chỉnh chiều rộng cột */
+.tableTanSuatLoto th:nth-child(1) {
+    width: 20%;
+    /* Tăng lên để cân bằng với các cột khác */
+    min-width: 100px;
+    color: #fff;
+    font-weight: 700;
 }
 
-.tableTanSuatLoto tr.highlight td {
-    color: #b91c1c;
+.tableTanSuatLoto td:nth-child(1) {
+    width: 20%;
+    font-size: 1.1rem;
+    min-width: 100px;
+    color: var(--primary-color);
+    font-weight: 700;
+}
+
+.tableTanSuatLoto th:nth-child(2),
+.tableTanSuatLoto td:nth-child(2) {
+    width: 15%;
+    /* Giảm chiều rộng */
+    min-width: 80px;
+    color: #ffff;
+    font-weight: 700;
+}
+
+.tableTanSuatLoto th:nth-child(3),
+.tableTanSuatLoto td:nth-child(3) {
+    width: 15%;
+    /* Giảm chiều rộng */
+    min-width: 90px;
+}
+
+.tableTanSuatLoto th:nth-child(4),
+.tableTanSuatLoto td:nth-child(4) {
+    width: 15%;
+    /* Giảm chiều rộng */
+    min-width: 90px;
+}
+
+.tableTanSuatLoto th:nth-child(5),
+.tableTanSuatLoto td:nth-child(5) {
+    width: 35%;
+    /* Tăng lên để chứa progress bar */
+    min-width: 120px;
+}
+
+/* Style cho số lần xuất hiện */
+.countNumber {
+    color: #15803d;
+    /* Màu xanh lá cây cho số */
+    font-weight: 700;
+    /* Tăng kích thước chữ trên desktop */
 }
 
 /* Style cho thanh ngang biểu thị phần trăm */
 .progressBar {
-    background: linear-gradient(90deg, #6d28d9 0%, #a855f7 100%);
-    height: 20px;
-    border-radius: 8px;
+    background: #ed8936;
+    height: 18px;
+    border-radius: 4px;
     transition: width 0.6s ease-in-out;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     min-width: 10px;
 }
 
@@ -236,24 +314,24 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    font-size: 1rem;
-    color: #111827;
+    font-size: 0.95rem;
+    color: #1f2937;
     justify-content: center;
 }
 
 .appearance span {
     white-space: nowrap;
     color: #4b5563;
-    font-weight: 600;
+    font-weight: 500;
 }
 
-/* Style cho skeleton loading */
+/* Skeleton loading */
 .skeleton {
     background: linear-gradient(90deg, #e5e7eb 25%, #d1d5db 50%, #e5e7eb 75%);
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
-    height: 24px;
-    border-radius: 8px;
+    height: 18px;
+    border-radius: 4px;
 }
 
 @keyframes shimmer {
@@ -266,126 +344,89 @@
     }
 }
 
-/* Style cho metadata và thông báo */
-.metadata {
-    text-align: center;
-    margin-bottom: 32px;
-    font-size: 1.25rem;
-    color: #374151;
-    font-weight: 600;
-    background: #f8fafc;
-    padding: 12px;
-    border-radius: 10px;
-}
-
-.error {
-    color: #dc2626;
-    text-align: center;
-    margin: 32px 0;
-    font-weight: 600;
-    font-size: 1.1rem;
-    background-color: #fef2f2;
-    padding: 16px;
-    border-radius: 10px;
-    border: 1px solid #fecaca;
-}
-
-.noData {
-    text-align: center;
-    color: #6b7280;
-    margin: 32px 0;
-    font-style: italic;
-    font-size: 1.1rem;
-    background-color: #f3f4f6;
-    padding: 16px;
-    border-radius: 10px;
-}
-
-/* Style cho phần nội dung mô tả */
+/* Nội dung mô tả */
 .Group_Content {
-    margin-top: 40px;
-    padding: 32px;
+    margin-top: 32px;
+    padding: 24px;
     border: 1px solid #e5e7eb;
-    border-radius: 16px;
+    border-radius: 8px;
     background-color: #ffffff;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .heading {
-    font-size: 1.75rem;
+    padding: 12px 0;
     font-weight: 700;
-    color: #1e40af;
-    padding-bottom: 16px;
-    border-bottom: 3px solid #1e40af;
-    margin-bottom: 20px;
+    font-size: 1.3rem;
+    line-height: 1.4;
+    color: #c80505;
+    border-bottom: 1px solid #e5e7eb;
 }
 
 .h3 {
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: #111827;
-    margin-top: 20px;
-    margin-bottom: 12px;
+    padding: 8px 0;
+    font-weight: 700;
+    font-size: 1.1rem;
+    line-height: 1.3;
+    color: #1f2937;
 }
 
 .desc {
-    font-size: 1.1rem;
-    line-height: 1.7;
+    padding: 4px 0;
+    font-size: 0.95rem;
+    line-height: 1.5;
     color: #4b5563;
-    margin-bottom: 16px;
 }
 
 .action {
-    color: #1e40af;
-    font-weight: 600;
-    text-decoration: none;
-    transition: color 0.3s ease, text-decoration 0.3s ease;
+    color: #c80505;
+    font-weight: 500;
+    transition: color 0.3s ease;
 }
 
 .action:hover {
-    color: #3b82f6;
-    text-decoration: underline;
+    color: #991b1b;
 }
 
-/* Style cho nút "Quay lại đầu trang" */
+/* Nút quay lại đầu trang */
 .scrollToTopBtn {
     position: fixed;
-    bottom: 40px;
-    right: 40px;
+    bottom: 16px;
+    right: 16px;
     display: none;
-    width: 56px;
-    height: 56px;
-    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+    width: 46px;
+    height: 46px;
+    background: #ed1c25;
     color: #ffffff;
-    font-size: 1.75rem;
+    font-size: 1.2rem;
     font-weight: 700;
     border: none;
     border-radius: 50%;
     cursor: pointer;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-    transition: opacity 0.3s ease, transform 0.3s ease, background 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: opacity 0.3s ease, transform 0.3s ease;
     z-index: 1000;
 }
 
 .scrollToTopBtn:hover {
-    opacity: 0.95;
-    transform: scale(1.1);
-    background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+    background: #c80505;
+    opacity: 0.9;
+    transform: translateY(-3px);
 }
 
 .scrollToTopBtn:active {
-    transform: scale(0.95);
+    transform: translateY(0);
 }
 
-/* Style cho chức năng thu gọn/xem thêm */
+/* Collapsible content */
 .contentWrapper {
     transition: max-height 0.5s ease-in-out, opacity 0.3s ease;
     overflow: hidden;
 }
 
 .contentWrapper.collapsed {
-    max-height: 300px;
-    opacity: 0.9;
+    max-height: 280px;
+    opacity: 0.8;
 }
 
 .contentWrapper.expanded {
@@ -395,23 +436,23 @@
 
 .toggleBtn {
     display: block;
-    margin: 32px auto;
-    padding: 14px 32px;
-    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+    margin: 16px auto;
+    padding: 10px 20px;
+    background: #ed1c25;
     color: #ffffff;
-    font-size: 1.1rem;
-    font-weight: 600;
+    font-size: 0.95rem;
+    font-weight: 500;
     border: none;
-    border-radius: 10px;
+    border-radius: 6px;
     cursor: pointer;
     transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .toggleBtn:hover {
-    background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
-    transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+    background: #c80505;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 .toggleBtn:active {
@@ -421,74 +462,133 @@
 /* Responsive Design */
 @media (max-width: 1024px) {
     .container {
-        padding: 24px;
+        padding: 12px;
     }
 
     .titleGroup {
-        padding: 24px 12px;
+        padding: 16px 8px;
     }
 
     .title {
-        font-size: 2rem;
-    }
-
-    .content {
-        padding: 32px;
+        font-size: 1.4rem;
     }
 
     .group_Select {
         flex-direction: column;
-        gap: 16px;
+        gap: 12px;
         align-items: flex-start;
     }
 
     .selectGroup {
-        width: 100%;
-        min-width: 0;
+        width: 300px;
+        justify-content: space-between;
+        gap: 8px;
     }
 
     .seclect {
-        max-width: 100%;
+        width: 190px;
+        height: 36px;
+        font-size: 0.9rem;
     }
 
-    .tableTanSuatLoto {
-        font-size: 1rem;
+    .options {
+        font-size: 0.9rem;
     }
 
     .tableTanSuatLoto th,
     .tableTanSuatLoto td {
-        padding: 10px 14px;
+        padding: 10px 12px;
     }
 }
 
 @media (max-width: 768px) {
     .container {
-        padding: 16px;
+        min-width: 100%;
+        padding: 8px;
     }
 
     .title {
-        font-size: 1.75rem;
+        font-size: 1.2rem;
     }
 
-    .content {
-        padding: 24px;
+    .actionBtn {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .actionTK {
+        padding: 8px;
+        font-size: 0.9rem;
+    }
+
+    .seclect {
+        width: 130px;
+        height: 36px;
+        font-size: 0.9rem;
+    }
+
+    .options {
+        font-size: 0.9rem;
+    }
+
+    .tableContainer {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
 
     .tableTanSuatLoto {
-        font-size: 0.95rem;
+
+        font-size: 0.85rem;
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
     }
 
     .tableTanSuatLoto th,
     .tableTanSuatLoto td {
-        padding: 8px 12px;
+        padding: 8px 10px;
+        min-width: 60px;
+        /* Giảm để phù hợp với chiều rộng hẹp hơn */
     }
 
-    .scrollToTopBtn {
-        bottom: 32px;
-        right: 32px;
-        width: 48px;
-        height: 48px;
-        font-size: 1.5rem;
+    .tableTanSuatLoto th:nth-child(1),
+    .tableTanSuatLoto td:nth-child(1) {
+        width: 20%;
+        min-width: 80px;
+        font-size: 0.9rem;
+    }
+
+    .tableTanSuatLoto th:nth-child(2),
+    .tableTanSuatLoto td:nth-child(2) {
+        width: 15%;
+        min-width: 60px;
+        /* Giảm chiều rộng */
+        font-size: 0.9rem;
+    }
+
+    .tableTanSuatLoto th:nth-child(3),
+    .tableTanSuatLoto td:nth-child(3) {
+        width: 15%;
+        min-width: 70px;
+        /* Giảm chiều rộng */
+    }
+
+    .tableTanSuatLoto th:nth-child(4),
+    .tableTanSuatLoto td:nth-child(4) {
+        width: 15%;
+        min-width: 70px;
+        /* Giảm chiều rộng */
+    }
+
+    .tableTanSuatLoto th:nth-child(5),
+    .tableTanSuatLoto td:nth-child(5) {
+        width: 35%;
+        min-width: 100px;
+    }
+
+    .countNumber {
+        font-size: 0.95rem;
+        /* Tăng kích thước chữ trên mobile */
     }
 
     .progressBar {
@@ -496,67 +596,78 @@
     }
 
     .appearance {
-        gap: 10px;
+        gap: 8px;
     }
 }
 
 @media (max-width: 480px) {
-    .container {
-        padding: 12px;
-    }
-
     .title {
-        font-size: 1.5rem;
+        font-size: 1.1rem;
     }
 
-    .content {
-        padding: 16px;
+    .actionBtn {
+        grid-template-columns: 1fr;
+    }
+
+    .actionTK {
+        padding: 6px;
+        font-size: 0.85rem;
     }
 
     .seclect {
-        max-width: 100%;
-        height: 44px;
-        font-size: 1rem;
+        width: 190px;
+        height: 32px;
+        font-size: 0.85rem;
+    }
+
+    .options {
+        font-size: 0.85rem;
     }
 
     .tableTanSuatLoto {
-        font-size: 0.9rem;
+        font-size: 0.8rem;
     }
 
     .tableTanSuatLoto th,
     .tableTanSuatLoto td {
-        padding: 6px 10px;
-    }
-
-    /* Ẩn cột "Số lần xuất hiện số 1" và "Số lần xuất hiện số 2" trên mobile */
-    .tableTanSuatLoto th:nth-child(3),
-    .tableTanSuatLoto td:nth-child(3),
-    .tableTanSuatLoto th:nth-child(4),
-    .tableTanSuatLoto td:nth-child(4) {
-        display: none;
+        padding: 6px 8px;
+        min-width: 50px;
     }
 
     .tableTanSuatLoto th:nth-child(1),
     .tableTanSuatLoto td:nth-child(1) {
-        width: 25%;
+        width: 20%;
+        min-width: 70px;
+        font-size: 1rem;
     }
 
     .tableTanSuatLoto th:nth-child(2),
     .tableTanSuatLoto td:nth-child(2) {
-        width: 25%;
+        width: 15%;
+        min-width: 50px;
+    }
+
+    .tableTanSuatLoto th:nth-child(3),
+    .tableTanSuatLoto td:nth-child(3) {
+        width: 15%;
+        min-width: 60px;
+    }
+
+    .tableTanSuatLoto th:nth-child(4),
+    .tableTanSuatLoto td:nth-child(4) {
+        width: 15%;
+        min-width: 60px;
     }
 
     .tableTanSuatLoto th:nth-child(5),
     .tableTanSuatLoto td:nth-child(5) {
-        width: 50%;
+        width: 35%;
+        min-width: 80px;
     }
 
-    .scrollToTopBtn {
-        bottom: 24px;
-        right: 24px;
-        width: 40px;
-        height: 40px;
-        font-size: 1.25rem;
+    .countNumber {
+        font-size: 0.9rem;
+        /* Tăng nhẹ trên màn hình nhỏ hơn */
     }
 
     .progressBar {
@@ -566,20 +677,11 @@
     .appearance {
         flex-direction: column;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
     }
 
     .tableTitle {
-        font-size: 1.25rem;
-        padding: 16px;
-    }
-
-    .metadata {
         font-size: 1.1rem;
-    }
-
-    .error,
-    .noData {
-        font-size: 1rem;
+        padding: 10px;
     }
 }
