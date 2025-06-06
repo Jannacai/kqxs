@@ -7,6 +7,7 @@ import ListXSMB from '../component/listXSMB';
 import ListXSMN from '../component/listXSMN';
 import CongCuHot from '../component/CongCuHot';
 import TableDate from '../component/tableDateKQXS';
+import { LotteryProvider } from '../pages/contexts/LotteryContext';
 
 const KQXS = dynamic(() => import('./kqxsAll/index'), { ssr: false });
 const PostList = dynamic(() => import('./post/list'), { ssr: false });
@@ -138,7 +139,9 @@ export default function Home() {
                             />
                         </a>
                     </div>
-                    <KQXS>{"Miền Bắc"}</KQXS>
+                    <LotteryProvider>
+                        <KQXS>{"Miền Bắc"}</KQXS>
+                    </LotteryProvider>
                     <div className="desc1">
                         <h1 className='heading'>XSMB.WIN | Trang Kết Quả Xổ Số Miền Bắc Nhanh Nhất - Chính Xác Nhất - XSMB</h1>
                         <p>

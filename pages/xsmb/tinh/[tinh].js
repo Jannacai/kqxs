@@ -8,6 +8,7 @@ import CongCuHot from '../../../component/CongCuHot';
 import ListXSMT from '../../../component/listXSMT';
 import ListXSMB from '../../../component/listXSMB';
 import ListXSMN from '../../../component/listXSMN';
+import { LotteryProvider } from '../../contexts/LotteryContext';
 
 import Image from 'next/image';
 // Giả lập API để lấy thông tin ngày
@@ -38,7 +39,10 @@ export default function XsmtPage() {
                 <ListXSMT></ListXSMT>
                 <ListXSMN></ListXSMN>
             </div>
-            <KQXS tinh={tinh}></KQXS>
+            <LotteryProvider>
+
+                <KQXS tinh={tinh}></KQXS>
+            </LotteryProvider>
             <div>
                 <ThongKe></ThongKe>
                 <CongCuHot />

@@ -1,13 +1,14 @@
-import { apiMB } from "../api/kqxs/kqxsMB";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import styles from '../../public/css/kqxsMB.module.css';
 import { getFilteredNumber } from "../../library/utils/filterUtils";
 import { useRouter } from 'next/router';
+import { apiMB } from "../api/kqxs/kqxsMB";
 import React from 'react';
 import LiveResult from './LiveResult';
 import { useInView } from 'react-intersection-observer';
+import { useLottery } from '../contexts/LotteryContext';
 
-const CACHE_DURATION = 24 * 60 * 60 * 1000; // Cache 24 giờ ngoài khung giờ cập nhật
+const CACHE_DURATION = 24 * 60 * 60 * 1000; // Cache 24 giờ
 
 const SkeletonLoading = () => (
     <div className={styles.skeleton}>
@@ -18,6 +19,7 @@ const SkeletonLoading = () => (
 );
 
 const KQXS = (props) => {
+    const { liveData, isLiveDataComplete } = useLottery();
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -26,11 +28,10 @@ const KQXS = (props) => {
     const [isLiveWindow, setIsLiveWindow] = useState(false);
     const [hasTriggeredScraper, setHasTriggeredScraper] = useState(false);
     const hour = 18;
-    const minute1 = 13;
+    const minute1 = 12;
     const minute2 = 14;
 
     const router = useRouter();
-
     const dayof = props.data4;
     const station = props.station || "xsmb";
     const date = props.data3;
@@ -47,10 +48,8 @@ const KQXS = (props) => {
     const startMinute = minute1;
     const duration = 22 * 60 * 1000;
 
-    // Tạo khóa cache duy nhất dựa trên station, date, và dayof
     const CACHE_KEY = `xsmb_data_${station}_${date || 'null'}_${dayof || 'null'}`;
 
-    // useEffect kiểm tra thời gian
     useEffect(() => {
         const checkTime = () => {
             const now = new Date();
@@ -109,7 +108,6 @@ const KQXS = (props) => {
         return inputDayOfWeek && inputDayOfWeek === todayDayOfWeek;
     }, [props.data3, today]);
 
-    // fetchData với cache
     const fetchData = useCallback(async () => {
         try {
             const now = new Date();
@@ -120,14 +118,13 @@ const KQXS = (props) => {
             const cachedTime = localStorage.getItem(`${CACHE_KEY}_time`);
             const cacheAge = cachedTime ? now.getTime() - parseInt(cachedTime) : Infinity;
 
-            // Sử dụng cache nếu không phải khung giờ cập nhật và cache còn hợp lệ
             if (!isUpdateWindow && cachedData && cacheAge < CACHE_DURATION) {
                 setData(JSON.parse(cachedData));
                 setLoading(false);
                 return;
             }
 
-            // Kiểm tra props.data xem có khớp với dayof, date, và station
+            // Kiểm tra props.data
             if (props.data && Array.isArray(props.data) && props.data.length > 0) {
                 const dayMap = {
                     'thu-2': 'Thứ Hai',
@@ -167,7 +164,7 @@ const KQXS = (props) => {
                 }
             }
 
-            // Gọi API với station, date, và dayof
+            // Gọi API
             const result = await apiMB.getLottery(station, date, dayof);
             const dataArray = Array.isArray(result) ? result : [result];
 
@@ -215,6 +212,52 @@ const KQXS = (props) => {
         fetchData();
     }, [fetchData]);
 
+    // Cập nhật cache khi liveData đầy đủ
+    useEffect(() => {
+        if (isLiveDataComplete && liveData && liveData.drawDate === today) {
+            setData(prevData => {
+                // Loại bỏ dữ liệu cũ của ngày hôm nay và thêm liveData
+                const filteredData = prevData.filter(item => item.drawDate !== today);
+                const formattedLiveData = {
+                    ...liveData,
+                    drawDate: new Date(liveData.drawDate).toLocaleDateString('vi-VN', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                    }),
+                    specialPrize: [liveData.specialPrize_0],
+                    firstPrize: [liveData.firstPrize_0],
+                    secondPrize: [liveData.secondPrize_0, liveData.secondPrize_1],
+                    threePrizes: [
+                        liveData.threePrizes_0, liveData.threePrizes_1, liveData.threePrizes_2,
+                        liveData.threePrizes_3, liveData.threePrizes_4, liveData.threePrizes_5,
+                    ],
+                    fourPrizes: [
+                        liveData.fourPrizes_0, liveData.fourPrizes_1, liveData.fourPrizes_2, liveData.fourPrizes_3,
+                    ],
+                    fivePrizes: [
+                        liveData.fivePrizes_0, liveData.fivePrizes_1, liveData.fivePrizes_2,
+                        liveData.fivePrizes_3, liveData.fivePrizes_4, liveData.fivePrizes_5,
+                    ],
+                    sixPrizes: [liveData.sixPrizes_0, liveData.sixPrizes_1, liveData.sixPrizes_2],
+                    sevenPrizes: [
+                        liveData.sevenPrizes_0, liveData.sevenPrizes_1, liveData.sevenPrizes_2, liveData.sevenPrizes_3,
+                    ],
+                };
+                const newData = [formattedLiveData, ...filteredData].sort((a, b) =>
+                    new Date(b.drawDate.split('/').reverse().join('-')) - new Date(a.drawDate.split('/').reverse().join('-'))
+                );
+                localStorage.setItem(CACHE_KEY, JSON.stringify(newData));
+                localStorage.setItem(`${CACHE_KEY}_time`, new Date().getTime().toString());
+                return newData;
+            });
+            setFilterTypes(prev => ({
+                ...prev,
+                [`${liveData.drawDate}${liveData.station}`]: prev[`${liveData.drawDate}${liveData.station}`] || 'all',
+            }));
+        }
+    }, [isLiveDataComplete, liveData, today, CACHE_KEY]);
+
     const handleFilterChange = useCallback((pageKey, value) => {
         setFilterTypes(prev => ({ ...prev, [pageKey]: value }));
     }, []);
@@ -231,8 +274,7 @@ const KQXS = (props) => {
             ...(data2.fourPrizes || []).map(num => getFilteredNumber(num, 'last2')),
             ...(data2.fivePrizes || []).map(num => getFilteredNumber(num, 'last2')),
             ...(data2.sixPrizes || []).map(num => getFilteredNumber(num, 'last2')),
-        ]
-            .filter(num => num && num !== '' && !isNaN(num));
+        ].filter(num => num && num !== '' && !isNaN(num));
 
         const heads = Array(10).fill().map(() => []);
         const tails = Array(10).fill().map(() => []);
