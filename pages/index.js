@@ -177,7 +177,7 @@ export default function Home({ drawDate }) {
                 </div>
             </div>
             <div className='container'>
-                {/* <PostList /> */}
+                <PostList />
             </div>
         </div>
     );

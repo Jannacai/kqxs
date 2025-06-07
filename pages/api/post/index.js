@@ -1,7 +1,6 @@
-// pages/api/postApi.js
 import { getSession } from "next-auth/react";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://backendkqxs.onrender.com";
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
 
 export const getPosts = async (context) => {
     const session = await getSession(context);
@@ -29,19 +28,18 @@ export const createPost = async (postData) => {
     const session = await getSession();
     const url = `${API_BASE_URL}/api/posts`;
     try {
-        const formData = new FormData();
-        formData.append("title", postData.title);
-        formData.append("description", postData.description);
-        if (postData.img) {
-            formData.append("img", postData.img);
-        }
         const response = await fetch(url, {
             method: "POST",
             headers: {
+                "Content-Type": "application/json",
                 Authorization: `Bearer ${session?.accessToken}`,
                 "Cache-Control": "no-cache",
             },
-            body: formData,
+            body: JSON.stringify({
+                title: postData.title,
+                description: postData.description,
+                img: postData.img,
+            }),
         });
 
         if (!response.ok) {
@@ -56,8 +54,6 @@ export const createPost = async (postData) => {
     }
 };
 
-// Thêm hàm getPostById
-// Sửa hàm getPostById để không yêu cầu access token
 export const getPostById = async (id) => {
     const url = `${API_BASE_URL}/api/posts/${id}`;
     try {
