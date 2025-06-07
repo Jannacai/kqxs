@@ -8,14 +8,21 @@ import ListXSMN from '../component/listXSMN';
 import CongCuHot from '../component/CongCuHot';
 import TableDate from '../component/tableDateKQXS';
 
-
 const KQXS = dynamic(() => import('./kqxsAll/index'), { ssr: false });
 const PostList = dynamic(() => import('./post/list'), { ssr: false });
 
-export default function Home() {
+export async function getServerSideProps() {
     const today = new Date();
     const drawDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
 
+    return {
+        props: {
+            drawDate,
+        },
+    };
+}
+
+export default function Home({ drawDate }) {
     const title = `XSMB - Kết Quả Xổ Số Miền Bắc - KQXSMB Hôm Nay ${drawDate}`;
     const description = `Xem kết quả xổ số Miền Bắc ngày ${drawDate} nhanh nhất, chính xác với thông tin giải đặc biệt, lô tô, đầu đuôi, thống kê đa dạng, tạo dàn 2D, 3D, 4D, dàn ngẫu nhiên 9x0x đặc biệt.`;
     const canonicalUrl = 'https://xsmb.win';
@@ -83,7 +90,6 @@ export default function Home() {
                             "keywords": ["xổ số", "miền bắc", "kết quả", "xsmb", "lô tô", "đầu đuôi", "soi cầu xsmb"],
                             "url": canonicalUrl,
                         },
-
                         {
                             "@context": "https://schema.org",
                             "@type": "Organization",
@@ -136,10 +142,11 @@ export default function Home() {
                                 muted
                                 playsInline
                                 alt='xổ số bắc trung nam'
+                                suppressHydrationWarning
                             />
                         </a>
                     </div>
-                        <KQXS>{"Miền Bắc"}</KQXS>                  
+                    <KQXS>{"Miền Bắc"}</KQXS>
                     <div className="desc1">
                         <h1 className='heading'>XSMB.WIN | Trang Kết Quả Xổ Số Miền Bắc Nhanh Nhất - Chính Xác Nhất - XSMB</h1>
                         <p>
@@ -163,6 +170,7 @@ export default function Home() {
                                 muted
                                 playsInline
                                 alt='xổ số bắc trung nam'
+                                suppressHydrationWarning
                             />
                         </a>
                     </div>

@@ -173,17 +173,17 @@ const TanSuatLoCap = ({ initialStats, initialMetadata, initialDays, initialRegio
     }, []);
 
     const getMessage = () => {
-        const regionText = region === 'Miền Bắc' ? 'Miền Bắc' : `${ region }${ tinh === 'all' ? ' - Tất cả tỉnh' : ` - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh) || ''}` } `;
-        return `Thống kê Tần Suất Lô Cặp trong ${ metadata.totalDraws || 0 } lần quay Xổ số ${ regionText } `;
+        const regionText = region === 'Miền Bắc' ? 'Miền Bắc' : `${region}${tinh === 'all' ? ' - Tất cả tỉnh' : ` - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh) || ''}`} `;
+        return `Thống kê Tần Suất Lô Cặp trong ${metadata.totalDraws || 0} lần quay Xổ số ${regionText} `;
     };
 
     const getTitle = () => {
-        const regionText = region === 'Miền Bắc' ? 'Miền Bắc' : `${ region }${ tinh === 'all' ? ' - Tất cả tỉnh' : ` - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh) || ''}` } `;
-        return `Thống kê Tần Suất Lô Cặp Xổ Số ${ regionText } `;
+        const regionText = region === 'Miền Bắc' ? 'Miền Bắc' : `${region}${tinh === 'all' ? ' - Tất cả tỉnh' : ` - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh) || ''}`} `;
+        return `Thống kê Tần Suất Lô Cặp Xổ Số ${regionText} `;
     };
 
     const pageTitle = getTitle();
-    const pageDescription = `Xem bảng thống kê Tần Suất Lô Cặp Xổ số ${ region === 'Miền Bắc' ? 'Miền Bắc' : `${region}${tinh === 'all' ? ' - Tất cả tỉnh' : ` - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh) || ''}`}` } trong ${ metadata.filterType || '' }. Cập nhật dữ liệu từ ${ metadata.startDate || '' } đến ${ metadata.endDate || '' }.`;
+    const pageDescription = `Xem bảng thống kê Tần Suất Lô Cặp Xổ số ${region === 'Miền Bắc' ? 'Miền Bắc' : `${region}${tinh === 'all' ? ' - Tất cả tỉnh' : ` - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh) || ''}`}`} trong ${metadata.filterType || ''}. Cập nhật dữ liệu từ ${metadata.startDate || ''} đến ${metadata.endDate || ''}.`;
 
     // Tính ngưỡng highlight (trung bình + 1 độ lệch chuẩn)
     const counts = stats.map(stat => stat.count);
@@ -260,7 +260,7 @@ const TanSuatLoCap = ({ initialStats, initialMetadata, initialDays, initialRegio
                                 <label className={styles.options}>Chọn thời gian:</label>
                                 <select className={styles.seclect} value={days} onChange={handleDaysChange}
                                     aria-label="Chọn thời gian để xem thống kê tần suất lô cặp"
-                                    >
+                                >
                                     <option value={30}>30 ngày</option>
                                     <option value={60}>60 ngày</option>
                                     <option value={90}>90 ngày</option>
@@ -279,7 +279,7 @@ const TanSuatLoCap = ({ initialStats, initialMetadata, initialDays, initialRegio
                         {loading && (
                             <div className={styles.tableContainer}>
                                 <div className={styles.tableWrapper}>
-                                    <div className={styles.tableTitle}>Thống kê 90 cặp số</div>
+                                    <div className={styles.tableTitle}>Thống kê các cặp số xuất hiện nhiều</div>
                                     <SkeletonTable />
                                 </div>
                             </div>
