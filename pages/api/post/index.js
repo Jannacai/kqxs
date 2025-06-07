@@ -2,24 +2,22 @@ import { getSession } from "next-auth/react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
 
-export const getPosts = async (context) => {
-    const session = await getSession(context);
-    const url = `${API_BASE_URL}/api/posts`;
+export const getPosts = async (context = null, page = 1, limit = 10) => {
+    const url = `${API_BASE_URL}/api/posts?page=${page}&limit=${limit}`;
     try {
         const response = await fetch(url, {
             method: "GET",
             headers: {
                 "Cache-Control": "no-cache",
-                Authorization: `Bearer ${session?.accessToken}`,
             },
         });
         if (!response.ok) {
             const errorText = await response.text();
             throw new Error(`Có lỗi khi lấy danh sách bài viết: ${response.status} - ${errorText}`);
         }
-        const result = await response.json();
-        return result;
+        return await response.json();
     } catch (error) {
+        console.error("getPosts error:", error);
         throw error;
     }
 };
@@ -32,24 +30,24 @@ export const createPost = async (postData) => {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                Authorization: `Bearer ${session?.accessToken}`,
+                ...(session?.accessToken && { Authorization: `Bearer ${session.accessToken}` }),
                 "Cache-Control": "no-cache",
             },
             body: JSON.stringify({
                 title: postData.title,
                 description: postData.description,
-                img: postData.img,
+                img: postData.img || "",
+                category: postData.category || "Thể thao",
             }),
         });
-
         if (!response.ok) {
             const errorText = await response.text();
+            console.error("API error:", errorText);
             throw new Error(`Có lỗi khi đăng bài: ${response.status} - ${errorText}`);
         }
-
-        const result = await response.json();
-        return result;
+        return await response.json();
     } catch (error) {
+        console.error("createPost error:", error);
         throw error;
     }
 };
@@ -65,12 +63,12 @@ export const getPostById = async (id) => {
         });
         if (!response.ok) {
             const errorText = await response.text();
+            console.error("API error:", errorText);
             throw new Error(`Có lỗi khi lấy bài viết: ${response.status} - ${errorText}`);
         }
-
-        const result = await response.json();
-        return result;
+        return await response.json();
     } catch (error) {
+        console.error("getPostById error:", error);
         throw error;
     }
 };

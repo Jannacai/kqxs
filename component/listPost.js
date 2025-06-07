@@ -20,7 +20,7 @@ const ListPost = (props) => {
 
     const allRecentSortedPosts = useMemo(() => {
         if (!Array.isArray(allPosts)) return [];
-        return allPosts; // Backend đã lọc và sắp xếp
+        return allPosts;
     }, [allPosts]);
 
     const totalPosts = allRecentSortedPosts.length;
@@ -140,14 +140,12 @@ const ListPost = (props) => {
                         return (
                             <div key={uniqueKey} className={itemClassName} role="article">
                                 <Link href={`/post/${post._id}`} aria-label={`Xem bài viết ${post.title}`}>
-
                                     <img
                                         className={styles.imgPost}
                                         src={post.img && post.img.startsWith('http') ? post.img : imgItem.src}
                                         alt={`Hình ảnh bài viết: ${post.title}`}
                                         onError={(e) => { e.target.onerror = null; e.target.src = imgItem.src }}
                                     />
-
                                 </Link>
                                 <span className={styles.postDate}>{formattedDate}</span>
                                 <h3 className={styles.title} onClick={() => router.push(`/post/${post._id}`)}>

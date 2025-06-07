@@ -40,20 +40,14 @@
 }
 
 .labelGroupIMG {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
-    margin-top: 10px;
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
     border-radius: 10px;
     border: 2px dashed #000;
-    width: 100%;
-    min-height: 100px;
-    background-color: #ccc;
-    cursor: pointer;
-    font-size: 1.4rem;
-    font-weight: 600;
-    z-index: 10;
+    margin-top: 10px;
+    display: block;
+    background-color: #ddd;
 }
 
 .groupIcon {
@@ -100,7 +94,6 @@
     font-size: 16px;
 }
 
-/* styles/createPost.module.css */
 .header {
     display: flex;
     justify-content: space-between;

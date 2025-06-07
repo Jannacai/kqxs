@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { createPost } from "../pages/api/post/index";
+import { createPost, getPosts } from "../pages/api/post/index";
 import styles from "../styles/createPost.module.css";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/router";
@@ -20,17 +20,26 @@ const postSchema = z.object({
         .string()
         .min(20, "Nội dung phải có ít nhất 20 ký tự")
         .nonempty("Nội dung không được để trống"),
-    image: z
+    img: z // Đổi từ image thành img
         .string()
         .url("Vui lòng nhập một URL hợp lệ")
         .optional()
         .or(z.literal("")),
+    img2: z // Đổi từ image2 thành img2
+        .string()
+        .url("Vui lòng nhập một URL hợp lệ")
+        .optional()
+        .or(z.literal("")),
+    category: z.enum(["Thể thao", "Đời sống"], {
+        required_error: "Vui lòng chọn một chủ đề"
+    })
 });
 
 const CreatePost = () => {
     const { data: session, status } = useSession();
     const router = useRouter();
     const [previewUrl, setPreviewUrl] = useState("");
+    const [previewUrl2, setPreviewUrl2] = useState("");
 
     const {
         register,
@@ -42,7 +51,9 @@ const CreatePost = () => {
         defaultValues: {
             title: "",
             description: "",
-            image: "",
+            img: "",
+            img2: "",
+            category: "Thể thao"
         },
     });
 
@@ -60,13 +71,17 @@ const CreatePost = () => {
         return null;
     }
 
-    if (session.user.role !== "ADMIN") {
+    if (session?.user?.role !== "ADMIN") {
         return <p>Bạn không có quyền đăng bài. Chỉ quản trị viên (ADMIN) được phép.</p>;
     }
 
-    const handleImageChange = debounce((event) => {
+    const handleImageChange = debounce((event, isSecondImage = false) => {
         const url = event.target.value;
-        setPreviewUrl(url || "");
+        if (isSecondImage) {
+            setPreviewUrl2(url || "");
+        } else {
+            setPreviewUrl(url || "");
+        }
     }, 300);
 
     const onSubmit = async (data) => {
@@ -74,13 +89,30 @@ const CreatePost = () => {
             const postData = {
                 title: data.title,
                 description: data.description,
-                img: data.image || "",
+                img: data.img || "",
+                img2: data.img2 || "",
+                category: data.category
             };
-            console.log("Submitting postData:", postData);
-            await createPost(postData);
+            console.log("Sending postData:", postData); // Debug
+            const response = await createPost(postData);
+            console.log("Create post response:", response); // Debug
             reset();
             setPreviewUrl("");
-            toast.success("Đăng bài thành công!");
+            setPreviewUrl2("");
+            toast.success("Đăng bài thành công!", {
+                position: "top-right",
+                autoClose: 3000,
+            });
+            try {
+                const updatedPosts = await getPosts(null, 1, 10);
+                router.push('/posts');
+            } catch (error) {
+                console.error("Error refreshing posts:", error);
+                toast.error("Không thể làm mới danh sách bài viết", {
+                    position: "top-right",
+                    autoClose: 5000,
+                });
+            }
         } catch (error) {
             console.error("Submit error:", error);
             if (error.message.includes("Invalid token")) {
@@ -88,7 +120,10 @@ const CreatePost = () => {
                 router.push("/login");
                 return;
             }
-            toast.error(error.message || "Đã có lỗi xảy ra khi đăng bài");
+            toast.error(error.message || "Đã có lỗi xảy ra khi đăng bài", {
+                position: "top-right",
+                autoClose: 5000,
+            });
         }
     };
 
@@ -96,7 +131,7 @@ const CreatePost = () => {
         <div className={styles.container}>
             <ToastContainer />
             <div className={styles.header}>
-                <h1 className={styles.Create_postTitle}>Đăng Bài Tin Tức Thể Thao</h1>
+                <h1 className={styles.Create_postTitle}>Đăng Bài Tin Tức</h1>
             </div>
             <div className="container" style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
                 <form onSubmit={handleSubmit(onSubmit)} className={styles.formGroup} aria-label="Form đăng bài">
@@ -133,26 +168,79 @@ const CreatePost = () => {
                     </div>
 
                     <div className={styles.Group}>
-                        <span className={styles.titleGroup}>URL Hình Ảnh (Nếu Có)</span>
+                        <span className={styles.titleGroup}>Chủ đề</span>
+                        <div className={styles.checkboxGroup}>
+                            <label>
+                                <input
+                                    type="radio"
+                                    value="Thể thao"
+                                    {...register("category")}
+                                    defaultChecked
+                                />
+                                Thể thao
+                            </label>
+                            <label>
+                                <input
+                                    type="radio"
+                                    value="Đời sống"
+                                    {...register("category")}
+                                />
+                                Đời sống
+                            </label>
+                            {errors.category && (
+                                <span id="category-error" className={styles.error}>{errors.category.message}</span>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className={styles.Group}>
+                        <span className={styles.titleGroup}>URL Hình Ảnh 1 (Nếu Có)</span>
                         <input
                             id="imageInput"
-                            {...register("image")}
+                            {...register("img")} // Đổi từ image thành img
                             type="text"
-                            placeholder="Nhập URL hình ảnh"
+                            placeholder="Nhập URL hình ảnh 1"
                             className={styles.inputGroup_title}
-                            onChange={handleImageChange}
-                            aria-describedby="image-error"
+                            onChange={(e) => handleImageChange(e, false)}
+                            aria-describedby="img-error"
                         />
-                        {errors.image && (
-                            <span id="image-error" className={styles.error}>{errors.image.message}</span>
+                        {errors.img && (
+                            <span id="img-error" className={styles.error}>{errors.img.message}</span>
                         )}
                         {previewUrl && (
                             <img
                                 id="imagePreview"
                                 src={previewUrl}
-                                alt="Xem trước hình ảnh bài viết"
+                                alt="Xem trước hình ảnh bài viết 1"
                                 className={styles.labelGroupIMG}
-                                onError={(e) => { e.target.src = ""; }}
+                                loading="lazy"
+                                onError={(e) => { e.target.src = "/placeholder.png"; }}
+                            />
+                        )}
+                    </div>
+
+                    <div className={styles.Group}>
+                        <span className={styles.titleGroup}>URL Hình Ảnh 2 (Nếu Có)</span>
+                        <input
+                            id="imageInput2"
+                            {...register("img2")} // Đổi từ image2 thành img2
+                            type="text"
+                            placeholder="Nhập URL hình ảnh 2"
+                            className={styles.inputGroup_title}
+                            onChange={(e) => handleImageChange(e, true)}
+                            aria-describedby="img2-error"
+                        />
+                        {errors.img2 && (
+                            <span id="img2-error" className={styles.error}>{errors.img2.message}</span>
+                        )}
+                        {previewUrl2 && (
+                            <img
+                                id="imagePreview2"
+                                src={previewUrl2}
+                                alt="Xem trước hình ảnh bài viết 2"
+                                className={styles.labelGroupIMG}
+                                loading="lazy"
+                                onError={(e) => { e.target.src = "/placeholder.png"; }}
                             />
                         )}
                     </div>

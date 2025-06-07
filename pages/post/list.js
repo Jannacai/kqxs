@@ -1,52 +1,76 @@
-// pages/posts/list.js
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { getPosts } from "../../pages/api/post/index";
-import Listpost from "../../component/listPost"
-import styles from "../../styles/postList.module.css"; // Tạo file CSS nếu cần
+import ListPost from "../../component/listPost";
+import styles from "../../styles/postList.module.css";
 
 const PostList = () => {
     const router = useRouter();
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
 
     useEffect(() => {
         const fetchPosts = async () => {
+            setLoading(true);
             try {
-        
-                const data = await getPosts();
-          
-                setPosts(data);
+                const data = await getPosts(null, page, 10);
+                setPosts(data.posts || []);
+                setTotalPages(data.totalPages || 1);
                 setLoading(false);
-                if (data === undefined) {
-                    console.error("LỖI: Hàm getPosts() đã trả về undefined!");
-                    // Có thể set lỗi hoặc giữ posts là mảng rỗng
-                    setError("Không thể lấy dữ liệu bài viết (API trả về undefined).");
-                    // setPosts([]); // Đảm bảo posts vẫn là mảng
-                } else {
-                    setPosts(data); // Chỉ set state nếu data không phải undefined
-                }
             } catch (err) {
                 console.error("Lỗi xảy ra trong fetchPosts:", err);
                 setError(err.message || "Đã có lỗi xảy ra khi lấy danh sách bài viết");
                 setLoading(false);
             }
         };
-
         fetchPosts();
-    }, []);
+    }, [page]);
+
+    const handlePageChange = (newPage) => {
+        if (newPage >= 1 && newPage <= totalPages) {
+            setPage(newPage);
+        }
+    };
 
     if (loading) {
-        return <p>Đang tải...</p>;
+        return (
+            <div className={styles.postContainer}>
+                {Array(4).fill().map((_, i) => (
+                    <div key={i} className={styles.itemPlaceholder}>
+                        <div className={styles.imgSkeleton}></div>
+                        <div className={styles.textSkeleton}></div>
+                    </div>
+                ))}
+            </div>
+        );
     }
 
     if (error) {
-        return <p className={styles.error}>{error}</p>;
+        return (
+            <div className={styles.error}>
+                <p>{error}</p>
+                <button onClick={() => setPage(1)}>Thử lại</button>
+            </div>
+        );
     }
+
     return (
-        <div >
-            <Listpost appa={posts} />
+        <div>
+            <ListPost appa={posts} />
+            {totalPages > 1 && (
+                <div className={styles.pagination}>
+                    <button onClick={() => handlePageChange(page - 1)} disabled={page === 1}>
+                        Trang trước
+                    </button>
+                    <span>Trang {page} / {totalPages}</span>
+                    <button onClick={() => handlePageChange(page + 1)} disabled={page === totalPages}>
+                        Trang sau
+                    </button>
+                </div>
+            )}
         </div>
     );
 };
