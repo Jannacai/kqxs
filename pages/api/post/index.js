@@ -37,6 +37,9 @@ export const createPost = async (postData) => {
                 title: postData.title,
                 description: postData.description,
                 img: postData.img || "",
+                caption: postData.caption || "",
+                img2: postData.img2 || "",
+                caption2: postData.caption2 || "",
                 category: postData.category || "Thể thao",
             }),
         });

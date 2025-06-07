@@ -28,8 +28,8 @@ const KQXS = (props) => {
     const [isLiveWindow, setIsLiveWindow] = useState(false);
     const [hasTriggeredScraper, setHasTriggeredScraper] = useState(false);
     const hour = 18;
-    const minute1 = 13;
-    const minute2 = 14;
+    const minute1 = 8;
+    const minute2 = 8;
 
     const router = useRouter();
     const dayof = props.data4;

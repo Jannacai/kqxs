@@ -1,100 +1,234 @@
+.pageWrapper {
+    background-color: #f5f5f5;
+    padding: 20px 0;
+}
+
 .container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
+    max-width: 1100px;
+    margin: 0 40px 0 143px;
+    padding: 0 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 50px;
     box-sizing: border-box;
-    overflow-x: hidden;
-    /* Ngăn cuộn ngang */
 }
 
 .contentWrapper {
-    max-width: 100%;
-    margin: 0 auto;
+    flex: 0 0 72%;
+    max-width: 72%;
+    background: white;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.date {
-    display: inline-block;
-    font-size: 1.1rem;
-    font-weight: 500;
-    color: #fff;
-    background: linear-gradient(135deg, #90F7EC 10%, #32CCBC 100%);
+.relatedPosts {
+    flex: 0 0 20%;
+    max-width: 20%;
+}
+
+.relatedTitle {
+    font-family: "Merriweather", serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 15px;
+}
+
+.relatedItem {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 15px;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.2s ease;
+}
+
+.relatedItem:hover {
+    transform: scale(1.02);
+}
+
+.relatedItem:hover .relatedItemTitle {
+    color: #e63946;
+    /* Đổi màu khi hover */
+}
+
+.relatedImage {
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
     border-radius: 6px;
-    padding: 6px 12px;
-    margin: 15px 0 10px;
-    font-family: "Poppins", sans-serif;
+}
+
+.relatedItemTitle {
+    font-family: "Roboto", sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #333;
+    line-height: 1.4;
+    margin: 0;
+    transition: color 0.2s ease;
+}
+
+.noRelated {
+    font-family: "Roboto", sans-serif;
+    font-size: 0.9rem;
+    color: #666;
+    font-style: italic;
+}
+
+.footballPosts {
+    margin-top: 30px;
+}
+
+.footballTitle {
+    font-family: "Merriweather", serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 20px;
+}
+
+.footballItem {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.2s ease;
+}
+
+.footballItem:hover {
+    transform: scale(1.02);
+}
+
+.footballItem:hover .footballItemTitle {
+    color: #e63946;
+    /* Đổi màu khi hover */
+}
+
+.footballImage {
+    width: 150px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+
+.footballContent {
+    flex: 1;
+}
+
+.footballItemTitle {
+    font-family: "Roboto", sans-serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+    line-height: 1.4;
+    margin: 0 0 5px;
+    transition: color 0.2s ease;
+}
+
+.footballItemExcerpt {
+    font-family: "Roboto", sans-serif;
+    font-size: 0.95rem;
+    color: #666;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.noFootball {
+    font-family: "Roboto", sans-serif;
+    font-size: 0.9rem;
+    color: #666;
+    font-style: italic;
 }
 
 .title {
-    font-family: "Poppins", sans-serif;
+    font-family: "Merriweather", serif;
     font-weight: 700;
-    font-size: 2.2rem;
+    font-size: 2.5rem;
     line-height: 1.3;
-    color: #333;
-    margin: 10px 0;
-    max-width: 100%;
+    color: #1a1a1a;
+    margin: 0 0 15px;
+}
+
+.meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.date {
+    font-family: "Roboto", sans-serif;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #fff;
+    background: linear-gradient(135deg, #ff6b6b 10%, #e63946 100%);
+    border-radius: 6px;
+    padding: 6px 12px;
 }
 
 .author {
-    font-family: "Poppins", sans-serif;
+    font-family: "Roboto", sans-serif;
     font-style: italic;
-    font-size: 0.95rem;
-    color: #666;
-    margin-bottom: 20px;
+    font-size: 1rem;
+    color: #555;
+}
+
+.imageWrapper {
+    margin: 20px 0;
 }
 
 .image {
     width: 100%;
-    /* Cố định chiều cao */
-    object-fit: cover;
-    /* Giữ tỷ lệ */
     max-width: 100%;
-    /* Ngăn vượt container */
-    display: block;
-    /* Loại bỏ khoảng trống dưới */
+    height: auto;
+    object-fit: cover;
     border-radius: 8px;
-    /* Bo góc */
-    margin: 0 auto 15px;
-    background-color: #e0e0e0;
-    /* Placeholder */
-    overflow: hidden;
-    /* Ngăn méo */
+    display: block;
+}
+
+.caption {
+    font-family: "Roboto", sans-serif;
+    font-style: italic;
+    font-size: 0.9rem;
+    color: #666;
+    text-align: center;
+    margin-top: 10px;
 }
 
 .imagePlaceholder {
     width: 100%;
-    height: 200px;
+    height: 250px;
     background-color: #e0e0e0;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 8px;
-    margin: 0 auto 15px;
-    font-family: "Poppins", sans-serif;
+    margin: 20px 0;
+    font-family: "Roboto", sans-serif;
     font-style: italic;
     color: #666;
     font-size: 1rem;
 }
 
-.chuthich {
-    font-family: "Poppins", sans-serif;
-    font-style: italic;
-    font-size: 0.9rem;
-    color: #555;
-    text-align: center;
-    margin: 10px 0;
+.content {
+    margin: 20px 0;
 }
 
 .description {
-    font-family: "Poppins", sans-serif;
+    font-family: "Roboto", sans-serif;
     font-size: 1.1rem;
-    line-height: 1.7;
+    line-height: 1.8;
     color: #333;
     margin: 15px 0;
-    max-width: 100%;
 }
 
-.nguon {
-    font-family: "Poppins", sans-serif;
+.source {
+    font-family: "Roboto", sans-serif;
     font-style: italic;
     font-size: 0.95rem;
     color: #666;
@@ -105,79 +239,122 @@
 .backButton {
     display: inline-block;
     padding: 12px 24px;
-    background-color: #0070f3;
+    background: linear-gradient(135deg, #ff6b6b 10%, #e63946 100%);
     color: white;
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    font-family: "Poppins", sans-serif;
+    font-family: "Roboto", sans-serif;
     font-size: 1rem;
     font-weight: 500;
-    transition: background-color 0.3s ease;
-    margin: 20px 0;
+    transition: opacity 0.3s ease;
 }
 
 .backButton:hover {
-    background-color: #005bb5;
+    opacity: 0.9;
+}
+
+.loading,
+.error {
+    font-family: "Roboto", sans-serif;
+    font-size: 1.2rem;
+    text-align: center;
+    color: #333;
+    margin: 40px 0;
 }
 
 .error {
-    font-family: "Poppins", sans-serif;
-    color: red;
-    text-align: center;
-    font-size: 1.1rem;
-    margin: 20px 0;
+    color: #e63946;
 }
 
 /* Responsive */
-@media (max-width: 576px) {
+@media (max-width: 768px) {
     .container {
-        padding: 15px;
-    }
-
-    .contentWrapper {
+        flex-direction: column;
+        margin: 0 15px;
         padding: 0 10px;
     }
 
-    .date {
+    .contentWrapper {
+        flex: 0 0 100%;
+        max-width: 100%;
+        padding: 20px;
+    }
+
+    .relatedPosts {
+        flex: 0 0 100%;
+        max-width: 100%;
+        margin-top: 20px;
+    }
+
+    .relatedImage {
+        height: 90px;
+    }
+
+    .relatedItemTitle {
+        font-size: 0.9rem;
+    }
+
+    .footballImage {
+        width: 120px;
+        height: 80px;
+    }
+
+    .footballItemTitle {
         font-size: 1rem;
-        padding: 5px 10px;
-        width: auto;
+    }
+
+    .footballItemExcerpt {
+        font-size: 0.9rem;
     }
 
     .title {
-        font-size: 1.8rem;
+        font-size: 2rem;
     }
 
+    .date,
     .author {
         font-size: 0.9rem;
     }
 
-    .image {
-        /* height: 150px; */
-    }
-
     .imagePlaceholder {
-        height: 150px;
-        font-size: 0.9rem;
+        height: 200px;
     }
 
     .description {
         font-size: 1rem;
-        line-height: 1.6;
-    }
-
-    .chuthich {
-        font-size: 0.85rem;
-    }
-
-    .nguon {
-        font-size: 0.9rem;
     }
 
     .backButton {
         width: 100%;
-        padding: 12px;
         text-align: center;
+    }
+}
+
+@media (max-width: 576px) {
+    .title {
+        font-size: 1.8rem;
+    }
+
+    .relatedTitle,
+    .footballTitle {
+        font-size: 1.2rem;
+    }
+
+    .imagePlaceholder {
+        height: 150px;
+    }
+
+    .caption {
+        font-size: 0.85rem;
+    }
+
+    .source {
+        font-size: 0.9rem;
+    }
+
+    .footballImage {
+        width: 100px;
+        height: 70px;
     }
 }

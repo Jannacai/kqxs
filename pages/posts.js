@@ -20,14 +20,24 @@ const postSchema = z.object({
         .string()
         .min(20, "Nội dung phải có ít nhất 20 ký tự")
         .nonempty("Nội dung không được để trống"),
-    img: z // Đổi từ image thành img
+    img: z
         .string()
         .url("Vui lòng nhập một URL hợp lệ")
         .optional()
         .or(z.literal("")),
-    img2: z // Đổi từ image2 thành img2
+    caption: z
+        .string()
+        .max(100, "Chú thích không được dài quá 100 ký tự")
+        .optional()
+        .or(z.literal("")),
+    img2: z
         .string()
         .url("Vui lòng nhập một URL hợp lệ")
+        .optional()
+        .or(z.literal("")),
+    caption2: z
+        .string()
+        .max(100, "Chú thích không được dài quá 100 ký tự")
         .optional()
         .or(z.literal("")),
     category: z.enum(["Thể thao", "Đời sống"], {
@@ -52,7 +62,9 @@ const CreatePost = () => {
             title: "",
             description: "",
             img: "",
+            caption: "",
             img2: "",
+            caption2: "",
             category: "Thể thao"
         },
     });
@@ -90,12 +102,14 @@ const CreatePost = () => {
                 title: data.title,
                 description: data.description,
                 img: data.img || "",
+                caption: data.caption || "",
                 img2: data.img2 || "",
+                caption2: data.caption2 || "",
                 category: data.category
             };
-            console.log("Sending postData:", postData); // Debug
+            console.log("Sending postData:", postData);
             const response = await createPost(postData);
-            console.log("Create post response:", response); // Debug
+            console.log("Create post response:", response);
             reset();
             setPreviewUrl("");
             setPreviewUrl2("");
@@ -197,7 +211,7 @@ const CreatePost = () => {
                         <span className={styles.titleGroup}>URL Hình Ảnh 1 (Nếu Có)</span>
                         <input
                             id="imageInput"
-                            {...register("img")} // Đổi từ image thành img
+                            {...register("img")}
                             type="text"
                             placeholder="Nhập URL hình ảnh 1"
                             className={styles.inputGroup_title}
@@ -207,6 +221,20 @@ const CreatePost = () => {
                         {errors.img && (
                             <span id="img-error" className={styles.error}>{errors.img.message}</span>
                         )}
+                        <label htmlFor="caption" className={styles.labelGroup}>
+                            <span className={styles.titleGroup}>Chú thích Hình Ảnh 1</span>
+                            <input
+                                id="caption"
+                                {...register("caption")}
+                                type="text"
+                                placeholder="Nhập chú thích cho hình ảnh 1"
+                                className={styles.inputGroup_title}
+                                aria-describedby="caption-error"
+                            />
+                            {errors.caption && (
+                                <span id="caption-error" className={styles.error}>{errors.caption.message}</span>
+                            )}
+                        </label>
                         {previewUrl && (
                             <img
                                 id="imagePreview"
@@ -223,7 +251,7 @@ const CreatePost = () => {
                         <span className={styles.titleGroup}>URL Hình Ảnh 2 (Nếu Có)</span>
                         <input
                             id="imageInput2"
-                            {...register("img2")} // Đổi từ image2 thành img2
+                            {...register("img2")}
                             type="text"
                             placeholder="Nhập URL hình ảnh 2"
                             className={styles.inputGroup_title}
@@ -233,6 +261,20 @@ const CreatePost = () => {
                         {errors.img2 && (
                             <span id="img2-error" className={styles.error}>{errors.img2.message}</span>
                         )}
+                        <label htmlFor="caption2" className={styles.labelGroup}>
+                            <span className={styles.titleGroup}>Chú thích Hình Ảnh 2</span>
+                            <input
+                                id="caption2"
+                                {...register("caption2")}
+                                type="text"
+                                placeholder="Nhập chú thích cho hình ảnh 2"
+                                className={styles.inputGroup_title}
+                                aria-describedby="caption2-error"
+                            />
+                            {errors.caption2 && (
+                                <span id="caption2-error" className={styles.error}>{errors.caption2.message}</span>
+                            )}
+                        </label>
                         {previewUrl2 && (
                             <img
                                 id="imagePreview2"
