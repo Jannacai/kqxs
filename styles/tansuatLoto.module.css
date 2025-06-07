@@ -1,56 +1,120 @@
 
-/* Style cơ bản cho container và các thành phần chung */
+/* Tổng thể container */
 .container {
     width: 100%;
     max-width: 1200px;
     margin: 0 auto;
     font-family: "Inter", sans-serif;
-    padding: 24px;
-    background-color: #f9fafb;
-    border-radius: 12px;
+    padding: 16px;
+    background-color: #ffffff;
 }
 
+/* Nút Điều hướng */
+.actionBtn {
+    display: flex;
+    background-color: #ffffff;
+    align-items: center;
+    justify-content: center;
+}
+
+.actionTK {
+    line-height: 20px;
+    border: 1px solid #ed1c25;
+    padding: 10px;
+    width: 100%;
+    color: #ed1c25;
+    text-align: center;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.actionTK:hover {
+    background-color: #ed1c25;
+    color: #ffffff;
+}
+
+.active {
+    color: #ffffff;
+    background-color: #ed1c25;
+}
+
+/* Tiêu đề chính */
 .titleGroup {
     text-align: center;
-    padding: 24px 16px;
-    background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
+    padding: 24px 12px;
     border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-    margin-bottom: 32px;
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
+    background: #ffeca0;
+    border-radius: 8px;
+    margin-bottom: 24px;
 }
+
+.title {
+    font-family: "Inter", sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #c80505;
+    margin-bottom: 8px;
+    line-height: 1.4;
+    text-align: center;
+}
+
 .caption {
     font-style: italic;
     text-align: center;
     padding: 8px 0;
     color: #000000a1;
 }
-.title {
-    font-family: "Sora", sans-serif;
-    font-size: 2rem;
-    font-weight: 700;
-    color: #1e3a8a;
-    margin-bottom: 8px;
-    letter-spacing: 0.3px;
-    line-height: 1.3;
-    text-align: center;
-}
 
+/* Nội dung chính */
 .content {
     margin-top: 24px;
-    padding: 32px;
-    border: 2px solid #1e3a8a;
-    border-radius: 12px;
+    padding: 10px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
     background-color: #ffffff;
-    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease;
 }
 
 .content:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    transform: translateY(-1px);
 }
 
+/* Metadata */
+.metadata {
+    text-align: center;
+    margin-bottom: 16px;
+    font-size: 1rem;
+    color: #4b5563;
+}
+
+.metadata span.totalDraws {
+    color: #c80505;
+    font-weight: 700;
+}
+
+.metadata span.regionText {
+    color: #ed8936;
+    font-weight: 600;
+}
+
+.error {
+    color: #c80505;
+    text-align: center;
+    margin: 16px 0;
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+.noData {
+    text-align: center;
+    color: #4b5563;
+    margin: 16px 0;
+    font-style: italic;
+    font-size: 0.95rem;
+}
+
+/* Nhóm chọn tỉnh và thời gian */
 .group_Select {
     margin-top: 24px;
     display: flex;
@@ -64,118 +128,171 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    min-width: 200px;
 }
 
 .dateTime {
-    padding: 6px 0;
-    font-size: 1rem;
-    color: #1e3a8a;
-    font-weight: 600;
+    padding: 4px 0;
+    font-size: 0.95rem;
+    color: #c80505;
+    font-weight: 700;
 }
 
 .dateTime span {
     color: #1f2937;
+    font-weight: 500;
 }
 
 .seclect {
-    border: 2px solid #1e3a8a;
-    border-radius: 8px;
-    width: 100%;
-    max-width: 200px;
-    height: 44px;
-    padding: 0 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    width: 150px;
+    height: 38px;
+    padding: 0 10px;
     font-size: 1rem;
     background-color: #ffffff;
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
     appearance: none;
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231e3a8a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23c80505' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
     background-repeat: no-repeat;
-    background-position: right 12px center;
+    background-position: right 10px center;
     background-size: 16px;
 }
 
-.seclect:hover,
+.seclect:hover {
+    border-color: #c80505;
+    box-shadow: 0 0 0 2px rgba(200, 5, 5, 0.1);
+}
+
 .seclect:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    border-color: #ed1c25;
+    box-shadow: 0 0 0 2px rgba(237, 28, 37, 0.2);
+    background-color: #fff5f5;
     outline: none;
 }
 
-.options {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #374151;
+/* Container chứa hai bảng */
+.tableContainer {
+    margin-top: 12px;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
     white-space: nowrap;
+    display: flex;
+    flex-direction: row-reverse;
+    /* Đảo ngược thứ tự để thanh cuộn lên đầu */
+    direction: rtl;
+    /* Đảo hướng để thanh cuộn xuất hiện ở đầu */
+    gap: 24px;
+    padding-bottom: 8px;
+    /* Để hiển thị thanh cuộn rõ ràng hơn */
 }
 
-/* Style cho container chứa hai bảng */
-.tableContainer {
-    display: flex;
-    gap: 24px;
-    flex-wrap: wrap;
-    margin-top: 24px;
-    justify-content: center;
+/* Thanh cuộn tùy chỉnh */
+.tableContainer::-webkit-scrollbar {
+    height: 8px;
+}
+
+.tableContainer::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.tableContainer::-webkit-scrollbar-thumb {
+    background: #ed1c25;
+    border-radius: 4px;
+}
+
+.tableContainer::-webkit-scrollbar-thumb:hover {
+    background: #c80505;
 }
 
 /* Wrapper cho mỗi bảng */
 .tableWrapper {
-    flex: 1;
-    min-width: 300px;
-    max-width: 500px;
+    display: inline-block;
+    direction: ltr;
+    /* Đảm bảo nội dung bảng từ trái sang phải */
+    width: calc(50% - 12px);
+    /* Chiếm gần hết chiều rộng, trừ khoảng cách giữa hai bảng */
+    min-width: 350px;
+    /* Tăng min-width để chứa nội dung tốt hơn */
     background-color: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-    overflow-x: auto;
+    border-radius: 8px;
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
+    vertical-align: top;
 }
 
 /* Tiêu đề cho mỗi bảng */
 .tableTitle {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: #1e3a8a;
-    padding: 16px;
-    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-    border-bottom: 2px solid #1e3a8a;
-    border-radius: 12px 12px 0 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #c80505;
+    padding: 12px;
+    background: #ffeca0;
+    border-bottom: 2px solid #e5e7eb;
+    border-radius: 8px 8px 0 0;
     text-align: center;
 }
 
-/* Style cho bảng Tần Suất Loto */
+/* Bảng Tần Suất Loto */
 .tableTanSuatLoto {
     width: 100%;
     border-collapse: collapse;
-    font-size: 1rem;
+    font-size: 0.95rem;
     background-color: #ffffff;
-    border-radius: 0 0 12px 12px;
+    border-radius: 0 0 8px 8px;
+    table-layout: fixed;
 }
 
 .tableTanSuatLoto th,
 .tableTanSuatLoto td {
-    padding: 14px 16px;
+    padding: 12px 8px;
+    /* Giảm padding ngang để tối ưu không gian */
     border: 1px solid #e5e7eb;
     text-align: center;
     transition: background-color 0.3s ease;
+    overflow: hidden;
+    /* Ngăn nội dung tràn */
+    text-overflow: ellipsis;
+    /* Thêm dấu ... nếu nội dung quá dài */
+    white-space: nowrap;
+    /* Ngăn chữ xuống dòng */
 }
 
 .tableTanSuatLoto th {
-    background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+    background: #ed1c25;
     color: #ffffff;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
 }
 
-.tableTanSuatLoto td {
-    color: #1f2937;
-}
-
-.tableTanSuatLoto tr:nth-child(even) {
-    background-color: #f9fafb;
+.tableTanSuatLoto tr:nth-child(odd) {
+    background-color: #e5e7eb63;
 }
 
 .tableTanSuatLoto tr:hover {
-    background-color: #f1f5f9;
+    background-color: #e0f2fe;
+}
+
+/* Điều chỉnh chiều rộng cột */
+.tableTanSuatLoto th:nth-child(1),
+.tableTanSuatLoto td:nth-child(1) {
+    width: 20%;
+    min-width: 60px;
+    font-weight: 700;
+}
+
+.tableTanSuatLoto th:nth-child(2),
+.tableTanSuatLoto td:nth-child(2) {
+    width: 30%;
+    min-width: 80px;
+    /* Tăng min-width để chứa số lần xuất hiện lớn */
+}
+
+.tableTanSuatLoto th:nth-child(3),
+.tableTanSuatLoto td:nth-child(3) {
+    width: 50%;
+    min-width: 100px;
+    /* Giảm min-width để tối ưu không gian */
 }
 
 /* Highlight các số loto có tần suất cao */
@@ -185,38 +302,41 @@
 }
 
 .tableTanSuatLoto tr.highlight td {
-    color: #b91c1c;
+    color: #c80505;
 }
 
-/* Style cho thanh ngang biểu thị phần trăm */
+/* Thanh ngang biểu thị phần trăm */
 .progressBar {
-    background: linear-gradient(90deg, #7c3aed 0%, #a78bfa 100%);
-    height: 16px;
-    border-radius: 6px;
-    transition: width 0.5s ease-in-out;
+    background: #ed8936;
+    height: 18px;
+    border-radius: 4px;
+    transition: width 0.6s ease-in-out;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    min-width: 10px;
 }
 
 .appearance {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     font-size: 0.95rem;
     color: #1f2937;
+    justify-content: center;
 }
 
 .appearance span {
     white-space: nowrap;
     color: #4b5563;
+    font-weight: 500;
 }
 
-/* Style cho skeleton loading */
+/* Skeleton loading */
 .skeleton {
-    background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+    background: linear-gradient(90deg, #e5e7eb 25%, #d1d5db 50%, #e5e7eb 75%);
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
-    height: 20px;
-    border-radius: 6px;
+    height: 18px;
+    border-radius: 4px;
 }
 
 @keyframes shimmer {
@@ -229,113 +349,81 @@
     }
 }
 
-/* Style cho metadata và thông báo */
-.metadata {
-    text-align: center;
-    margin-bottom: 24px;
-    font-size: 1.125rem;
-    color: #4b5563;
-    font-weight: 500;
-}
-
-.error {
-    color: #ef4444;
-    text-align: center;
-    margin: 24px 0;
-    font-weight: 500;
-    font-size: 1rem;
-    background-color: #fef2f2;
-    padding: 12px;
-    border-radius: 8px;
-}
-
-.noData {
-    text-align: center;
-    color: #6b7280;
-    margin: 24px 0;
-    font-style: italic;
-    font-size: 1rem;
-    background-color: #f3f4f6;
-    padding: 12px;
-    border-radius: 8px;
-}
-
-/* Style cho phần nội dung mô tả */
+/* Nội dung mô tả */
 .Group_Content {
     margin-top: 32px;
     padding: 24px;
     border: 1px solid #e5e7eb;
-    border-radius: 12px;
+    border-radius: 8px;
     background-color: #ffffff;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .heading {
-    font-size: 1.5rem;
+    padding: 12px 0;
     font-weight: 700;
-    color: #1e3a8a;
-    padding-bottom: 12px;
-    border-bottom: 2px solid #1e3a8a;
-    margin-bottom: 16px;
+    font-size: 1.3rem;
+    line-height: 1.4;
+    color: #c80505;
+    border-bottom: 1px solid #e5e7eb;
 }
 
 .h3 {
-    font-size: 1.25rem;
-    font-weight: 600;
+    padding: 8px 0;
+    font-weight: 700;
+    font-size: 1.1rem;
+    line-height: 1.3;
     color: #1f2937;
-    margin-top: 16px;
-    margin-bottom: 8px;
 }
 
 .desc {
-    font-size: 1rem;
-    line-height: 1.6;
+    padding: 4px 0;
+    font-size: 0.95rem;
+    line-height: 1.5;
     color: #4b5563;
-    margin-bottom: 12px;
 }
 
 .action {
-    color: #1e3a8a;
-    font-weight: 600;
-    text-decoration: none;
+    color: #c80505;
+    font-weight: 500;
     transition: color 0.3s ease;
 }
 
 .action:hover {
-    color: #3b82f6;
-    text-decoration: underline;
+    color: #991b1b;
 }
 
-/* Style cho nút "Quay lại đầu trang" */
+/* Nút quay lại đầu trang */
 .scrollToTopBtn {
     position: fixed;
-    bottom: 32px;
-    right: 32px;
+    bottom: 16px;
+    right: 16px;
     display: none;
-    width: 48px;
-    height: 48px;
-    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    width: 46px;
+    height: 46px;
+    background: #ed1c25;
     color: #ffffff;
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     font-weight: 700;
     border: none;
     border-radius: 50%;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     transition: opacity 0.3s ease, transform 0.3s ease;
     z-index: 1000;
 }
 
 .scrollToTopBtn:hover {
-    opacity: 0.95;
-    transform: scale(1.05);
+    background: #c80505;
+    opacity: 0.9;
+    transform: translateY(-3px);
 }
 
 .scrollToTopBtn:active {
-    transform: scale(0.95);
+    transform: translateY(0);
 }
 
-/* Style cho chức năng thu gọn/xem thêm */
+/* Collapsible content */
 .contentWrapper {
     transition: max-height 0.5s ease-in-out, opacity 0.3s ease;
     overflow: hidden;
@@ -343,7 +431,7 @@
 
 .contentWrapper.collapsed {
     max-height: 280px;
-    opacity: 0.85;
+    opacity: 0.8;
 }
 
 .contentWrapper.expanded {
@@ -353,23 +441,23 @@
 
 .toggleBtn {
     display: block;
-    margin: 24px auto;
-    padding: 12px 24px;
-    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    margin: 16px auto;
+    padding: 10px 20px;
+    background: #ed1c25;
     color: #ffffff;
-    font-size: 1rem;
-    font-weight: 600;
+    font-size: 0.95rem;
+    font-weight: 500;
     border: none;
-    border-radius: 8px;
+    border-radius: 6px;
     cursor: pointer;
     transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .toggleBtn:hover {
-    background: linear-gradient(135deg, #3b82f6 0%, #1e3a8a 100%);
+    background: #c80505;
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 .toggleBtn:active {
@@ -379,19 +467,25 @@
 /* Responsive Design */
 @media (max-width: 1024px) {
     .container {
-        padding: 16px;
+        padding: 12px;
     }
 
     .titleGroup {
-        padding: 20px 12px;
+        padding: 16px 8px;
     }
 
     .title {
-        font-size: 1.75rem;
+        font-size: 1.4rem;
     }
 
-    .content {
-        padding: 24px;
+    .actionBtn {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .actionTK {
+        padding: 8px;
+        font-size: 0.9rem;
     }
 
     .group_Select {
@@ -401,63 +495,103 @@
     }
 
     .selectGroup {
-        width: 100%;
-        min-width: 0;
+        width: 300px;
+        justify-content: space-between;
+        gap: 8px;
     }
 
     .seclect {
-        max-width: 100%;
+        width: 190px;
+        height: 36px;
+        font-size: 0.9rem;
     }
 
     .tableContainer {
-        flex-direction: column;
-        gap: 16px;
-        align-items: center;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
 
     .tableWrapper {
-        min-width: 100%;
-        max-width: none;
-    }
-
-    .tableTanSuatLoto {
-        font-size: 0.95rem;
+        width: calc(50% - 12px);
+        min-width: 300px;
     }
 
     .tableTanSuatLoto th,
     .tableTanSuatLoto td {
-        padding: 12px 14px;
+        padding: 10px 6px;
     }
 }
 
 @media (max-width: 768px) {
     .container {
-        padding: 12px;
+        min-width: 100%;
+        padding: 8px;
     }
 
     .title {
-        font-size: 1.5rem;
+        font-size: 1.2rem;
     }
 
-    .content {
-        padding: 16px;
+    .actionBtn {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .actionTK {
+        padding: 8px;
+        font-size: 0.0.9rem;
+    }
+
+    .seclect {
+        width: 130px;
+        height: 36px;
+        font-size: 0.9rem;
+    }
+
+    .options {
+        font-size: 0.9rem;
+    }
+
+    .tableWrapper {
+        width: calc(50% - 12px);
+        min-width: 280px;
     }
 
     .tableTanSuatLoto {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
     }
 
     .tableTanSuatLoto th,
     .tableTanSuatLoto td {
-        padding: 10px 12px;
+        padding: 8px 4px;
+        min-width: 50px;
     }
 
-    .scrollToTopBtn {
-        bottom: 24px;
-        right: 24px;
-        width: 40px;
-        height: 40px;
-        font-size: 1.25rem;
+    .tableTanSuatLoto th:nth-child(1),
+    .tableTanSuatLoto td:nth-child(1) {
+        width: 25%;
+        min-width: 50px;
+        font-size: 0.9rem;
+    }
+
+    .tableTanSuatLoto th:nth-child(2),
+    .tableTanSuatLoto td:nth-child(2) {
+        width: 30%;
+        min-width: 60px;
+    }
+
+    .tableTanSuatLoto th:nth-child(3),
+    .tableTanSuatLoto td:nth-child(3) {
+        width: 45%;
+        /* Giảm chiều rộng cột Tỷ lệ trên mobile */
+        min-width: 80px;
+    }
+
+    .progressBar {
+        height: 16px;
+    }
+
+    .appearance {
+        gap: 6px;
     }
 }
 
@@ -467,47 +601,77 @@
     }
 
     .title {
-        font-size: 1.25rem;
+        font-size: 1.1rem;
     }
 
-    .content {
-        padding: 12px;
+    .actionBtn {
+        grid-template-columns: 1fr;
+    }
+
+    .actionTK {
+        padding: 6px;
+        font-size: 0.85rem;
     }
 
     .seclect {
-        max-width: 100%;
+        width: 190px;
+        height: 32px;
+        font-size: 0.85rem;
+    }
+
+    .options {
+        font-size: 0.85rem;
+    }
+
+    .tableWrapper {
+        width: 100%;
+        /* Chiếm toàn bộ chiều rộng trên mobile nhỏ */
+        min-width: 250px;
     }
 
     .tableTanSuatLoto {
-        font-size: 0.85rem;
+        font-size: 0.8rem;
     }
 
     .tableTanSuatLoto th,
     .tableTanSuatLoto td {
-        padding: 8px 10px;
+        padding: 6px 4px;
+        min-width: 40px;
     }
 
-    .scrollToTopBtn {
-        bottom: 16px;
-        right: 16px;
-        width: 36px;
-        height: 36px;
-        font-size: 1rem;
+    .tableTanSuatLoto th:nth-child(1),
+    .tableTanSuatLoto td:nth-child(1) {
+        width: 25%;
+        min-width: 40px;
+        font-size: 0.9rem;
+    }
+
+    .tableTanSuatLoto th:nth-child(n2),
+    .tableTanSuatLoto td:nth-child(2) {
+        width: 30%;
+        min-width: 50px;
+    }
+
+    .tableTanSuatLoto th:nth-child(3),
+    .tableTanSuatLoto td:nth-child(n3) {
+        width: 45%;
+        /* Giảm chiều rộng cột */
+        min-width: 70px;
     }
 
     .progressBar {
-        height: 12px;
+        height: 14px;
     }
 
     .appearance {
         flex-direction: column;
         align-items: center;
-        gap: 8px;
+        gap: 4px;
     }
 
     .tableTitle {
-        font-size: 1.125rem;
-        padding: 12px;
+        font-size: 1.1rem;
+        padding: 10px;
     }
 }
 

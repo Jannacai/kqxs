@@ -1,12 +1,15 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
 import { apiMB } from '../api/kqxs/kqxsMB';
 import { apiMT } from '../api/kqxs/kqxsMT';
 import { apiMN } from '../api/kqxs/kqxsMN';
 import styles from '../../styles/tansuatLoto.module.css';
 import ThongKe from '../../component/thongKe';
 import CongCuHot from '../../component/CongCuHot';
+import Link from 'next/link';
+
 // Skeleton Loading Component cho bảng Tần Suất Loto
 const SkeletonRow = () => (
     <tr>
@@ -21,7 +24,7 @@ const SkeletonTable = () => (
         <thead>
             <tr>
                 <th>Số</th>
-                <th>Số lần xuất hiện</th>
+                <th>Lần xuất hiện</th>
                 <th>Tỷ lệ</th>
             </tr>
         </thead>
@@ -31,7 +34,7 @@ const SkeletonTable = () => (
     </table>
 );
 
-// Ánh xạ tên tỉnh sang slug (không dấu)
+// Ánh xạ tên tỉnh sang slug
 const provinceSlugs = {
     "Vũng Tàu": "vung-tau",
     "Cần Thơ": "can-tho",
@@ -82,7 +85,7 @@ const mienTrungProvinces = [
 ];
 
 const TanSuatLoto = ({ initialStats, initialMetadata, initialDays, initialRegion, initialTinh }) => {
-    // State cho bảng Tần Suất Loto
+    const router = useRouter();
     const [stats, setStats] = useState(initialStats || []);
     const [metadata, setMetadata] = useState(initialMetadata || {});
     const [days, setDays] = useState(initialDays || 30);
@@ -90,8 +93,6 @@ const TanSuatLoto = ({ initialStats, initialMetadata, initialDays, initialRegion
     const [tinh, setTinh] = useState(initialTinh || null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-
-    // State cho chức năng thu gọn/xem thêm
     const [isExpanded, setIsExpanded] = useState(false);
 
     // Hàm xử lý chuyển đổi trạng thái thu gọn/xem thêm
@@ -169,7 +170,14 @@ const TanSuatLoto = ({ initialStats, initialMetadata, initialDays, initialRegion
 
     const getMessage = () => {
         const regionText = region === 'Miền Bắc' ? 'Miền Bắc' : `${region} - ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh)} `;
-        return `Thống kê Tần Suất Loto trong ${metadata.totalDraws || 0} lần quay Xổ số ${regionText} `;
+        return (
+            <>
+                Thống kê Tần Suất Loto trong{' '}
+                <span className={styles.totalDraws}>{metadata.totalDraws || 0}</span>{' '}
+                lần quay Xổ số{' '}
+                <span className={styles.regionText}>{regionText}</span>
+            </>
+        );
     };
 
     const getTitle = () => {
@@ -209,10 +217,23 @@ const TanSuatLoto = ({ initialStats, initialMetadata, initialDays, initialRegion
             <div className={styles.container}>
                 <div className={styles.titleGroup}>
                     <h1 className={styles.title}>{pageTitle}</h1>
+                    <div className={styles.actionBtn}>
+                        <Link className={styles.actionTK} href="/thongke/dau-duoi">
+                            Thống Kê Đầu Đuôi
+                        </Link>
+                        <Link
+                            className={`${styles.actionTK} ${router.pathname.startsWith('/thongke/Tan-Suat-Lo-to') ? styles.active : ''}`}
+                            href="/thongke/Tan-Suat-Lo-to"
+                        >
+                            Thống Kê Tần Suất Loto
+                        </Link>
+                        <Link className={styles.actionTK} href="/thongke/giai-dac-biet">
+                            Thống Kê Giải Đặc Biệt
+                        </Link>
+                    </div>
                 </div>
 
                 <div className={styles.content}>
-                    {/* Bảng: Thống kê Tần Suất Loto */}
                     <div>
                         <div className={styles.metadata}>
                             <p>{getMessage()}</p>
@@ -278,15 +299,13 @@ const TanSuatLoto = ({ initialStats, initialMetadata, initialDays, initialRegion
 
                         {!loading && !error && stats.length > 0 && (
                             <div className={styles.tableContainer}>
-                                {/* Bảng bên trái (00-49) */}
                                 <div className={styles.tableWrapper}>
                                     <div className={styles.tableTitle}>Số 00-49</div>
                                     <table className={styles.tableTanSuatLoto}>
-                                        <caption className={styles.caption}>Thống kê Tần Suất Lô Tô {region} {tinh ? `- ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh)}` : ''} trong {days} ngày</caption>
                                         <thead>
                                             <tr>
                                                 <th>Số</th>
-                                                <th>Số lần xuất hiện</th>
+                                                <th>Lần xuất hiện</th>
                                                 <th>Tỷ lệ</th>
                                             </tr>
                                         </thead>
@@ -312,15 +331,13 @@ const TanSuatLoto = ({ initialStats, initialMetadata, initialDays, initialRegion
                                         </tbody>
                                     </table>
                                 </div>
-
-                                {/* Bảng bên phải (50-99) */}
                                 <div className={styles.tableWrapper}>
                                     <div className={styles.tableTitle}>Số 50-99</div>
                                     <table className={styles.tableTanSuatLoto}>
                                         <thead>
                                             <tr>
                                                 <th>Số</th>
-                                                <th>Số lần xuất hiện</th>
+                                                <th>Lần xuất hiện</th>
                                                 <th>Tỷ lệ</th>
                                             </tr>
                                         </thead>
@@ -368,7 +385,7 @@ const TanSuatLoto = ({ initialStats, initialMetadata, initialDays, initialRegion
                         <p className={styles.desc}>- Khoảng thời gian thống kê (30 ngày, 60 ngày,..., 1 năm), cùng với ngày bắt đầu và ngày kết thúc.</p>
                         <h3 className={styles.h3}>Ý Nghĩa Của Thống Kê Tần Suất Loto:</h3>
                         <p className={styles.desc}>- Giúp người chơi nhận biết xu hướng xuất hiện của các số loto, từ đó chọn số may mắn để chơi.</p>
-                        <p className={styles.desc}>- Thanh ngang màu tím thể hiện trực quan tỷ lệ xuất hiện, giúp người chơi dễ dàng nhận biết số nào xuất hiện nhiều nhất hoặc ít nhất.</p>
+                        <p className={styles.desc}>- Thanh ngang màu cam thể hiện trực quan tỷ lệ xuất hiện, giúp người chơi dễ dàng nhận biết số nào xuất hiện nhiều nhất hoặc ít nhất.</p>
                         <h3 className={styles.h3}>Lợi Ích Của Thống Kê Tần Suất Loto:</h3>
                         <p className={styles.desc}>- Cung cấp dữ liệu chính xác, cập nhật nhanh chóng từ kết quả xổ số.</p>
                         <p className={styles.desc}>- Giúp người chơi có thêm thông tin để tăng cơ hội trúng thưởng.</p>
@@ -441,7 +458,5 @@ export async function getServerSideProps() {
         };
     }
 };
-
-
 
 export default TanSuatLoto;

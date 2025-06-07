@@ -215,8 +215,8 @@ const TanSuatLoCap = ({ initialStats, initialMetadata, initialDays, initialRegio
                             Thống Kê Đầu Đuôi
                         </Link>
                         <Link
-                            className={`${styles.actionTK} ${router.pathname.startsWith('/thongke/tan-suat-lo-cap') ? styles.active : ''}`}
-                            href="/thongke/tan-suat-lo-cap"
+                            className={`${styles.actionTK} ${router.pathname.startsWith('/thongke/Tan-Suat-Lo-Cap') ? styles.active : ''}`}
+                            href="thongke/Tan-Suat-Lo-Cap"
                         >
                             Thống Kê Tần Suất Lô Cặp
                         </Link>
