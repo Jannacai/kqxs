@@ -5,7 +5,7 @@
 
 .container {
     max-width: 1100px;
-    margin: 0 40px 0 143px;
+    margin: 0 40px 0 103px;
     padding: 0 20px;
     display: flex;
     flex-wrap: wrap;
@@ -15,7 +15,7 @@
 
 .contentWrapper {
     flex: 0 0 72%;
-    max-width: 72%;
+    max-width: 92%;
     background: white;
     padding: 25px;
     border-radius: 8px;
@@ -51,12 +51,15 @@
 
 .relatedItem:hover .relatedItemTitle {
     color: #e63946;
-    /* Đổi màu khi hover */
+}
+
+.relatedItem[title] {
+    cursor: pointer;
 }
 
 .relatedImage {
     width: 100%;
-    height: 100px;
+    height: 130px;
     object-fit: cover;
     border-radius: 6px;
 }
@@ -105,7 +108,10 @@
 
 .footballItem:hover .footballItemTitle {
     color: #e63946;
-    /* Đổi màu khi hover */
+}
+
+.footballItem[title] {
+    cursor: pointer;
 }
 
 .footballImage {
@@ -271,33 +277,198 @@
 @media (max-width: 768px) {
     .container {
         flex-direction: column;
-        margin: 0 15px;
+        margin: 0 10px;
         padding: 0 10px;
+        gap: 30px;
     }
 
     .contentWrapper {
         flex: 0 0 100%;
         max-width: 100%;
-        padding: 20px;
+        padding: 15px;
+        border-radius: 10px;
+        order: 1;
     }
 
     .relatedPosts {
         flex: 0 0 100%;
         max-width: 100%;
-        margin-top: 20px;
+        margin-top: 25px;
+        order: 2;
+        /* Hiển thị trước footballPosts */
+    }
+
+    .footballPosts {
+        margin-top: 25px;
+        order: 3;
+        /* Hiển thị sau relatedPosts */
+    }
+
+    .relatedItem {
+        flex-direction: row;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 20px;
+        padding: 10px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
     }
 
     .relatedImage {
-        height: 90px;
+        width: 100px;
+        height: 80px;
+        border-radius: 6px;
+        flex-shrink: 0;
     }
 
     .relatedItemTitle {
-        font-size: 0.9rem;
+        font-size: 1rem;
+        font-weight: 600;
+        line-height: 1.4;
+        flex: 1;
+    }
+
+    .noRelated {
+        font-size: 0.95rem;
+        padding: 10px;
+    }
+
+    .footballItem {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 10px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+        margin-bottom: 15px;
     }
 
     .footballImage {
-        width: 120px;
-        height: 80px;
+        width: 100%;
+        height: 180px;
+        border-radius: 6px;
+    }
+
+    .footballItemTitle {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-top: 10px;
+    }
+
+    .footballItemExcerpt {
+        font-size: 0.95rem;
+        line-height: 1.6;
+        color: #555;
+    }
+
+    .noFootball {
+        font-size: 0.95rem;
+        padding: 10px;
+    }
+
+    .title {
+        font-size: 1.8rem;
+        line-height: 1.4;
+        margin-bottom: 20px;
+    }
+
+    .meta {
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+
+    .date,
+    .author {
+        font-size: 0.95rem;
+        padding: 5px 10px;
+    }
+
+    .imageWrapper {
+        margin: 15px 0;
+    }
+
+    .image {
+        border-radius: 6px;
+    }
+
+    .imagePlaceholder {
+        height: 200px;
+        font-size: 0.95rem;
+        border-radius: 6px;
+    }
+
+    .caption {
+        font-size: 0.9rem;
+        margin-top: 8px;
+    }
+
+    .description {
+        font-size: 1.05rem;
+        line-height: 1.7;
+    }
+
+    .source {
+        font-size: 0.9rem;
+        margin: 15px 0;
+    }
+
+    .backButton {
+        width: 100%;
+        padding: 12px;
+        font-size: 1.1rem;
+        border-radius: 8px;
+        text-align: center;
+    }
+
+    .loading,
+    .error {
+        font-size: 1.1rem;
+        margin: 30px 0;
+    }
+}
+
+@media (max-width: 576px) {
+    .container {
+        margin: 0 5px;
+        padding: 0 5px;
+    }
+
+    .contentWrapper {
+        padding: 10px;
+    }
+
+    .title {
+        font-size: 1.6rem;
+        line-height: 1.35;
+    }
+
+    .relatedTitle,
+    .footballTitle {
+        font-size: 1.3rem;
+        margin-bottom: 15px;
+    }
+
+    .relatedItem {
+        padding: 8px;
+        gap: 12px;
+    }
+
+    .relatedImage {
+        width: 90px;
+        height: 70px;
+    }
+
+    .relatedItemTitle {
+        font-size: 0.95rem;
+    }
+
+    .footballItem {
+        padding: 8px;
+    }
+
+    .footballImage {
+        height: 200px;
     }
 
     .footballItemTitle {
@@ -308,53 +479,25 @@
         font-size: 0.9rem;
     }
 
-    .title {
-        font-size: 2rem;
-    }
-
-    .date,
-    .author {
-        font-size: 0.9rem;
-    }
-
-    .imagePlaceholder {
-        height: 200px;
-    }
-
-    .description {
-        font-size: 1rem;
-    }
-
-    .backButton {
-        width: 100%;
-        text-align: center;
-    }
-}
-
-@media (max-width: 576px) {
-    .title {
-        font-size: 1.8rem;
-    }
-
-    .relatedTitle,
-    .footballTitle {
-        font-size: 1.2rem;
-    }
-
     .imagePlaceholder {
         height: 150px;
+        font-size: 0.9rem;
     }
 
     .caption {
         font-size: 0.85rem;
     }
 
-    .source {
-        font-size: 0.9rem;
+    .description {
+        font-size: 1rem;
     }
 
-    .footballImage {
-        width: 100px;
-        height: 70px;
+    .source {
+        font-size: 0.85rem;
+    }
+
+    .backButton {
+        padding: 10px;
+        font-size: 1rem;
     }
 }

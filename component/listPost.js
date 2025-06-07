@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import Head from "next/head";
-import imgItem from "../public/asset/img/backgrond.png";
+import imgItem from "../public/backgrond.png";
 import { useRouter } from "next/router";
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import styles from "../styles/listpost.module.css";
