@@ -117,16 +117,8 @@ const CreatePost = () => {
                 position: "top-right",
                 autoClose: 3000,
             });
-            try {
-                const updatedPosts = await getPosts(null, 1, 10);
-                router.push(`/tin-tuc/${response.slug}-${response._id}`);
-            } catch (error) {
-                console.error("Error refreshing posts:", error);
-                toast.error("Không thể làm mới danh sách bài viết", {
-                    position: "top-right",
-                    autoClose: 5000,
-                });
-            }
+            // Chuyển hướng đến trang chi tiết bài viết
+            router.push(`/tin-tuc/${response.slug}-${response._id}`);
         } catch (error) {
             console.error("Submit error:", error);
             let errorMessage = "Đã có lỗi xảy ra khi đăng bài. Vui lòng thử lại.";

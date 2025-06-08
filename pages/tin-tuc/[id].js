@@ -7,7 +7,7 @@ import styles from "../../styles/postDetail.module.css";
 
 const PostDetail = () => {
     const router = useRouter();
-    const { id } = router.query; // id ở đây là slug-id hoặc chỉ id
+    const { id } = router.query;
     const [post, setPost] = useState(null);
     const [relatedPosts, setRelatedPosts] = useState([]);
     const [footballPosts, setFootballPosts] = useState([]);
@@ -35,7 +35,6 @@ const PostDetail = () => {
     const fetchPostData = useCallback(async () => {
         if (!id) return;
         try {
-            // Tách id từ slug-id nếu cần
             const actualId = id.includes('-') ? id.split('-').pop() : id;
             const data = await fetchWithRetry(() => getCombinedPostData(actualId, true));
             console.log("Fetched data:", data);
@@ -55,6 +54,52 @@ const PostDetail = () => {
             setLoading(false);
         }
     }, [id]);
+
+    // Xử lý bài viết mới
+    useEffect(() => {
+        const handleNewPost = (event) => {
+            const newPost = event.detail;
+            console.log("New post received:", newPost);
+            if (!newPost || !newPost._id || newPost._id === post?._id) return;
+
+            // Cập nhật relatedPostsPool
+            setRelatedPostsPool(prev => {
+                if (newPost.category !== post?.category) return prev;
+                let newPool = [...prev];
+                if (newPool.length >= 15) {
+                    // Tìm bài cũ nhất
+                    const oldestIndex = newPool.reduce((maxIndex, item, index, arr) =>
+                        new Date(item.createdAt) < new Date(arr[maxIndex].createdAt) ? index : maxIndex, 0);
+                    newPool[oldestIndex] = newPost; // Thay thế bài cũ nhất
+                } else {
+                    newPool.push(newPost);
+                }
+                newPool = newPool.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                console.log("Updated relatedPostsPool:", newPool.map(p => p._id));
+                return newPool;
+            });
+
+            // Cập nhật footballPostsPool
+            setFootballPostsPool(prev => {
+                if (newPost.category !== "Thể thao") return prev;
+                let newPool = [...prev];
+                if (newPool.length >= 15) {
+                    // Tìm bài cũ nhất
+                    const oldestIndex = newPool.reduce((maxIndex, item, index, arr) =>
+                        new Date(item.createdAt) < new Date(arr[maxIndex].createdAt) ? index : maxIndex, 0);
+                    newPool[oldestIndex] = newPost; // Thay thế bài cũ nhất
+                } else {
+                    newPool.push(newPost);
+                }
+                newPool = newPool.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                console.log("Updated footballPostsPool:", newPool.map(p => p._id));
+                return newPool;
+            });
+        };
+
+        window.addEventListener('newPostCreated', handleNewPost);
+        return () => window.removeEventListener('newPostCreated', handleNewPost);
+    }, [post?.category, post?._id]);
 
     useEffect(() => {
         fetchPostData();
@@ -186,7 +231,7 @@ const PostDetail = () => {
     };
 
     const RelatedPostItem = React.memo(({ post }) => (
-        <Link href={`/post/${post.slug}-${post._id}`} className={styles.relatedItem} title={post.title}>
+        <Link href={`/tin-tuc/${post.slug}-${post._id}`} className={styles.relatedItem} title={post.title}>
             <img
                 src={post.img || '/backgrond.png'}
                 alt={post.title}
@@ -199,7 +244,7 @@ const PostDetail = () => {
     ));
 
     const FootballPostItem = React.memo(({ post }) => (
-        <Link href={`/post/${post.slug}-${post._id}`} className={styles.footballItem} title={post.title}>
+        <Link href={`/tin-tuc/${post.slug}-${post._id}`} className={styles.footballItem} title={post.title}>
             <img
                 src={post.img || '/backgrond.png'}
                 alt={post.title}
@@ -229,7 +274,7 @@ const PostDetail = () => {
                 <meta property="og:description" content={metaDescription} />
                 <meta property="og:image" content={post.img || "/backgrond.png"} />
                 <meta property="og:type" content="article" />
-                <meta property="og:url" content={`https://xsmb.win/post/${post.slug}-${post._id}`} />
+                <meta property="og:url" content={`https://xsmb.win/tin-tuc/${post.slug}-${post._id}`} />
                 <meta name="twitter:card" content="summary_large_image" />
                 <meta name="twitter:title" content={post.title} />
                 <meta name="twitter:description" content={metaDescription} />
@@ -326,7 +371,7 @@ const RenderContent = React.memo(({ content, img2, caption2, title }) => {
                         onError={(e) => { e.target.src = '/backgrond.png'; }}
                     />
                     {caption2 && (
-                        <figcaption className={styles.caption}>{caption2}</figcaption>
+                        <span className={styles.caption}>{caption2}</span>
                     )}
                 </figure>
             )}

@@ -22,6 +22,12 @@ const setCachedPosts = (key, data) => {
     localStorage.setItem(key, JSON.stringify({ data: uniquePosts, timestamp: Date.now() }));
 };
 
+const clearCombinedCache = () => {
+    Object.keys(localStorage)
+        .filter((key) => key.startsWith("combined:"))
+        .forEach((key) => localStorage.removeItem(key));
+};
+
 export const getPosts = async (context = null, page = 1, limit = 15, category = null, refresh = false) => {
     const cacheKey = `posts:page:${page}:limit:${limit}:category:${category || 'all'}`;
     if (!refresh) {
@@ -82,9 +88,13 @@ export const createPost = async (postData) => {
             throw new Error(`Có lỗi khi đăng bài: ${response.status} - ${errorText}`);
         }
         const data = await response.json();
+        // Xóa cache
         Object.keys(localStorage)
             .filter((key) => key.startsWith("posts:") || key.startsWith("post:"))
             .forEach((key) => localStorage.removeItem(key));
+        clearCombinedCache();
+        // Gửi sự kiện newPostCreated
+        window.dispatchEvent(new CustomEvent('newPostCreated', { detail: data }));
         return data;
     } catch (error) {
         console.error("createPost error:", error);
