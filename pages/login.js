@@ -64,16 +64,14 @@ export default function Login() {
                     >
                         ✕
                     </button>
-                    <div className={styles.header}>
-                        <h1 className={styles.title}>Đăng nhập</h1>
-                    </div>
+                    <h1 className={styles.title}>Đăng nhập</h1>
                     <p className={styles.dangky}>
                         Chưa có tài khoản? <Link href="/register">Đăng ký ngay</Link>
                     </p>
                     <form className={styles.formContainer} onSubmit={handleSubmit}>
                         <div className={styles.formGroup}>
                             <label className={styles.labelName}>
-                                Tên người dùng
+                                Tên người dùng:
                                 <input
                                     className={styles.inputName}
                                     type="text"
@@ -87,7 +85,7 @@ export default function Login() {
                         </div>
                         <div className={styles.formGroup}>
                             <label className={styles.labelPassword}>
-                                Mật khẩu
+                                Mật khẩu:
                                 <input
                                     className={styles.inputPassword}
                                     type="password"

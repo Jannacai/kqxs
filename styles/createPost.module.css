@@ -1,10 +1,36 @@
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
 .modalOverlay {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.6);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -15,6 +41,14 @@
 
 .container {
     max-width: 640px;
+    /* Khôi phục kích thước cho form đăng bài */
+    width: 100%;
+    margin: 0 auto;
+}
+
+.errorContainer {
+    max-width: 400px;
+    /* Thu hẹp chỉ cho modal thông báo */
     width: 100%;
     margin: 0 auto;
 }
@@ -25,15 +59,42 @@
     padding: 32px;
     background-color: #ffffff;
     border-radius: 12px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
     max-height: 85vh;
     overflow-y: auto;
+    animation: fadeIn 0.5s ease-out;
 }
 
 .formGroupInner {
     display: flex;
     flex-direction: column;
     gap: 24px;
+}
+
+.errorModal {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 24px;
+    background-color: #fef2f2;
+    border: 2px solid #e11d48;
+    border-radius: 12px;
+    animation: fadeIn 0.5s ease-out, pulse 1.5s ease-in-out infinite;
+}
+
+.errorModalIcon {
+    font-size: 2.5rem;
+    color: #e11d48;
+    margin-bottom: 8px;
+}
+
+.errorModalMessage {
+    font-size: 1.125rem;
+    font-weight: 500;
+    color: #111827;
+    text-align: center;
+    line-height: 1.5;
 }
 
 .closeButton {
@@ -46,11 +107,12 @@
     color: #374151;
     cursor: pointer;
     padding: 4px;
-    transition: color 0.2s ease;
+    transition: color 0.2s ease, transform 0.2s ease;
 }
 
 .closeButton:hover {
     color: #dc2626;
+    transform: scale(1.2);
 }
 
 .Create_postTitle {
@@ -185,6 +247,7 @@
 .submitForm {
     display: block;
     width: 100%;
+    max-width: 200px;
     padding: 12px;
     border-radius: 8px;
     background-color: #3b82f6;
@@ -193,11 +256,13 @@
     font-weight: 500;
     border: none;
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    transition: background-color 0.2s ease, transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .submitForm:hover {
     background-color: #2563eb;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .submitForm:disabled {
@@ -219,10 +284,29 @@
 
     .container {
         max-width: 100%;
+        /* Đảm bảo modal đăng bài rộng tối đa trên mobile */
+    }
+
+    .errorContainer {
+        max-width: 90%;
+        /* Modal thông báo vẫn hẹp trên mobile */
     }
 
     .formGroup {
         padding: 20px;
+    }
+
+    .errorModal {
+        padding: 16px;
+        gap: 16px;
+    }
+
+    .errorModalIcon {
+        font-size: 2rem;
+    }
+
+    .errorModalMessage {
+        font-size: 1rem;
     }
 
     .closeButton {
@@ -286,6 +370,7 @@
     .submitForm {
         padding: 10px;
         font-size: 0.75rem;
+        max-width: 160px;
     }
 
     .buttonGroup {

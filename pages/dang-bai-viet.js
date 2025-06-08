@@ -6,9 +6,9 @@ import styles from "../styles/createPost.module.css";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import { debounce } from 'lodash';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { debounce } from "lodash";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const postSchema = z.object({
     title: z
@@ -41,8 +41,8 @@ const postSchema = z.object({
         .optional()
         .or(z.literal("")),
     category: z.enum(["Thể thao", "Đời sống"], {
-        required_error: "Vui lòng chọn một chủ đề"
-    })
+        required_error: "Vui lòng chọn một chủ đề",
+    }),
 });
 
 const CreatePost = () => {
@@ -66,7 +66,7 @@ const CreatePost = () => {
             caption: "",
             img2: "",
             caption2: "",
-            category: "Thể thao"
+            category: "Thể thao",
         },
     });
 
@@ -94,7 +94,7 @@ const CreatePost = () => {
                 caption: data.caption || "",
                 img2: data.img2 || "",
                 caption2: data.caption2 || "",
-                category: data.category
+                category: data.category,
             };
             console.log("Sending postData:", postData);
             const response = await createPost(postData);
@@ -141,7 +141,35 @@ const CreatePost = () => {
     }
 
     if (session?.user?.role !== "ADMIN") {
-        return <p>Bạn không có quyền đăng bài. Chỉ quản trị viên (ADMIN) được phép.</p>;
+        return (
+            <div className={styles.modalOverlay}>
+                <div className={styles.container}>
+                    <div className={styles.formGroup}>
+                        <button
+                            className={styles.closeButton}
+                            onClick={handleCloseModal}
+                            aria-label="Đóng modal"
+                        >
+                            ✕
+                        </button>
+                        <div className={styles.errorModal}>
+                            <span className={styles.errorModalIcon}>⚠️</span>
+                            <p className={styles.errorModalMessage}>
+                                Bạn không có quyền đăng bài. Chỉ quản trị viên (ADMIN) được phép.
+                            </p>
+                            <div className={styles.buttonGroup}>
+                                <button
+                                    className={styles.submitForm}
+                                    onClick={handleCloseModal}
+                                >
+                                    Về trang chủ
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     if (!isModalOpen) {
