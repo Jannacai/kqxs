@@ -19,7 +19,7 @@ export default function Register() {
     }
 
     if (status === "authenticated") {
-        router.push("/posts");
+        router.push("/dang-bai-viet");
         return null;
     }
 
@@ -68,7 +68,7 @@ export default function Register() {
             if (result.error) {
                 setError(result.error);
             } else {
-                router.push("/posts");
+                router.push("/dang-bai-viet");
             }
         } catch (error) {
             setError(error.message || "Đã có lỗi xảy ra khi đăng ký");
@@ -104,7 +104,7 @@ export default function Register() {
                     <form className={styles.formContainer} onSubmit={handleSubmit}>
                         <div className={styles.formGroup}>
                             <label className={styles.labelName}>
-                                Tên người dùng:
+                                Tên đăng nhập:
                                 <input
                                     className={styles.inputName}
                                     type="text"
@@ -118,7 +118,7 @@ export default function Register() {
                         </div>
                         <div className={styles.formGroup}>
                             <label className={styles.labelName}>
-                                Họ và tên:
+                                Biệt Danh:
                                 <input
                                     className={styles.inputName}
                                     type="text"

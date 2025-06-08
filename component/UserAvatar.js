@@ -1,7 +1,6 @@
-// components/UserAvatar.js
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import styles from '../styles/userAvatar.module.css';
 
 const UserAvatar = () => {
@@ -9,6 +8,8 @@ const UserAvatar = () => {
     const router = useRouter();
     const [userInfo, setUserInfo] = useState(null);
     const [fetchError, setFetchError] = useState(null);
+    const [isSubmenuOpen, setIsSubmenuOpen] = useState(false);
+    const submenuRef = useRef(null);
 
     useEffect(() => {
         const fetchUserInfo = async () => {
@@ -42,6 +43,17 @@ const UserAvatar = () => {
         }
     }, [status, session]);
 
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (submenuRef.current && !submenuRef.current.contains(event.target)) {
+                setIsSubmenuOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     const handleLogout = async () => {
         if (!session?.refreshToken) {
             await signOut({ redirect: false });
@@ -68,35 +80,63 @@ const UserAvatar = () => {
             setFetchError(null);
         } catch (error) {
             console.error('Logout error:', error.message);
-            await signOut({ redirect: false }); // Vẫn đăng xuất client nếu server lỗi
+            await signOut({ redirect: false });
             router.push('/login');
         }
+        setIsSubmenuOpen(false);
     };
 
-    const getInitials = (username) => {
-        return username ? username.charAt(0).toUpperCase() : 'U';
+    const getDisplayName = (fullname) => {
+        if (!fullname) return 'User';
+        const nameParts = fullname.trim().split(' ');
+        return nameParts[nameParts.length - 1];
+    };
+
+    const getInitials = (fullname) => {
+        if (!fullname) return 'U';
+        const nameParts = fullname.trim().split(' ');
+        return nameParts[nameParts.length - 1].charAt(0).toUpperCase();
+    };
+
+    const getRoleColorClass = (role) => {
+        return role?.toLowerCase() === 'admin' ? styles.admin : styles.user;
     };
 
     if (status === "unauthenticated") {
-        return null; // Không hiển thị avatar nếu chưa đăng nhập
+        return null;
     }
 
     return (
-        <div className={styles.userInfo}>
+        <div className={styles.userInfo} ref={submenuRef}>
             {fetchError ? (
                 <p className={styles.error}>Không thể lấy thông tin: {fetchError}</p>
             ) : userInfo ? (
                 <>
-                    <div className={styles.avatar}>
+                    <div
+                        className={`${styles.avatar} ${getRoleColorClass(userInfo.role)}`}
+                        onClick={() => setIsSubmenuOpen(!isSubmenuOpen)}
+                    >
                         {getInitials(userInfo.fullname)}
                     </div>
                     <div className={styles.info}>
-                        <span className={styles.username}>{userInfo.fullname}</span>
-                        <span className={styles.username}>{userInfo.role}</span>
+                        <span
+                            className={styles.username}
+                            onClick={() => setIsSubmenuOpen(!isSubmenuOpen)}
+                        >
+                            {getDisplayName(userInfo.fullname)}
+                        </span>
+                        <span className={`${styles.role} ${getRoleColorClass(userInfo.role)}`}>
+                            {userInfo.role}
+                        </span>
                     </div>
-                    <button onClick={handleLogout} className={styles.logoutButton}>
-                        Đăng xuất
-                    </button>
+                    {isSubmenuOpen && (
+                        <div className={styles.submenu}>
+                            <span className={styles.fullname}>{userInfo.fullname}</span>
+                            <button onClick={handleLogout} className={styles.logoutButton}>
+                                Đăng xuất
+                            </button>
+                        </div>
+                    )}
                 </>
             ) : (
                 " "
