@@ -12,7 +12,7 @@ import styles from '../public/css/kqxsMB.module.css';
 import Skeleton from 'react-loading-skeleton';
 
 // Lazy load components
-const PostList = dynamic(() => import('./post/list.js'), { ssr: false });
+const PostList = dynamic(() => import('./tin-tuc/list.js'), { ssr: false });
 const ThongKe = dynamic(() => import('../component/thongKe.js'), { ssr: true });
 const DynamicCalendar = dynamic(() => import('../component/caledar'), { ssr: false });
 const DynamicListXSMB = dynamic(() => import('../component/listXSMB'), { ssr: false });

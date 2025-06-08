@@ -12,7 +12,7 @@ import styles from '../public/css/kqxsMB.module.css';
 
 
 // Lazy load components
-const PostList = dynamic(() => import('./post/list.js'), { ssr: false });
+const PostList = dynamic(() => import('./tin-tuc/list.js'), { ssr: false });
 const ThongKe = dynamic(() => import('../component/thongKe.js'), { ssr: true });
 
 export async function getStaticProps() {
@@ -151,11 +151,11 @@ const XSMB = ({ initialData }) => {
                     </div>
                     <div>
                         <TableDate />
-                            {initialData ? (
-                                <KQXS data={initialData} station="xsmb">Miền Bắc</KQXS>
-                            ) : (
-                                <span>Đang tải kết quả...</span>
-                            )}
+                        {initialData ? (
+                            <KQXS data={initialData} station="xsmb">Miền Bắc</KQXS>
+                        ) : (
+                            <span>Đang tải kết quả...</span>
+                        )}
                         <div className="desc1">
                             <h1 className='heading'>XSMB.WIN | Trang Kết Quả Xổ Số Miền Bắc Nhanh Nhất - Chính Xác Nhất - XSMB</h1>
                             <p>

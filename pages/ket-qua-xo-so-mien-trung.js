@@ -5,7 +5,7 @@ import ThongKe from '../component/thongKe';
 import ListXSMT from '../component/listXSMT';
 import ListXSMB from '../component/listXSMB';
 import ListXSMN from '../component/listXSMN';
-import PostList from './post/list';
+import PostList from './tin-tuc/list';
 import TableDate from '../component/tableDateKQXS';
 import CongCuHot from '../component/CongCuHot';
 import { apiMT } from './api/kqxs/kqxsMT';
