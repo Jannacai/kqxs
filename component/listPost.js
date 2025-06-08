@@ -80,7 +80,7 @@ const ListPost = (props) => {
     if (totalPosts === 0) {
         return (
             <div className={styles.postContainer}>
-                <h2 className={styles.postTitle}>Tin Tức Bóng Đá 24h</h2>
+                <h2 className={styles.postTitle}>Tin Tức Mới Nhất 24h</h2>
                 <p>Không có bài viết nào trong 2 ngày gần đây.</p>
                 <Link href="/posts/archive" aria-label="Xem bài viết cũ">
                     Xem bài viết cũ hơn
@@ -92,7 +92,6 @@ const ListPost = (props) => {
     return (
         <div className={styles.postContainer} onMouseEnter={() => { setIsPaused(true); resetTimer(); }} onMouseLeave={() => { setIsPaused(false); }}>
             <Head>
-                {/* <title>Tin Tức Bóng Đá 24h</title> */}
                 <meta name="description" content="Cập nhật tin tức bóng đá mới nhất trong 24h qua" />
                 <meta property="og:title" content="Tin Tức Bóng Đá 24h" />
                 <meta property="og:description" content="Cập nhật tin tức bóng đá mới nhất trong 24h qua" />
@@ -116,7 +115,7 @@ const ListPost = (props) => {
                     })}
                 </script>
             </Head>
-            <h2 className={styles.postTitle}>Tin Tức Bóng Đá 24h</h2>
+            <h2 className={styles.postTitle}>Tin Tức Mới Nhất 24h</h2>
             <div className={styles.listPostWrapper}>
                 <div className={styles.listPost}>
                     {postsCurrentlyOnDisplay.map((post, index) => {
@@ -147,7 +146,12 @@ const ListPost = (props) => {
                                         onError={(e) => { e.target.onerror = null; e.target.src = imgItem.src }}
                                     />
                                 </Link>
-                                <span className={styles.postDate}>{formattedDate}</span>
+                                <div className={styles.postMeta}>
+                                    <span className={styles.postDate}>{formattedDate}</span>
+                                    <span className={`${styles.postCategory} ${post.category === 'Thể thao' ? styles.sportCategory : styles.lifestyleCategory}`}>
+                                        {post.category}
+                                    </span>
+                                </div>
                                 <h3 className={styles.title} onClick={() => router.push(`/tin-tuc/${post.slug}-${post._id}`)}>
                                     {post.title}
                                 </h3>
@@ -158,10 +162,34 @@ const ListPost = (props) => {
                         );
                     })}
                 </div>
-                {totalPosts > 1 && (
-                    <div className={styles.controls}>
-                        <button onClick={handlePrev} aria-label="Bài viết trước"><i className="fa-solid fa-chevron-left"></i></button>
-                        <button onClick={handleNext} aria-label="Bài viết tiếp theo"><i className="fa-solid fa-chevron-right"></i></button>
+                <div className={styles.controls}>
+                    <button
+                        onClick={handlePrev}
+                        aria-label="Bài viết trước"
+                        disabled={totalPosts <= 1}
+                        className={totalPosts <= 1 ? styles.disabled : ''}
+                    >
+                        <i className="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <button
+                        onClick={handleNext}
+                        aria-label="Bài viết tiếp theo"
+                        disabled={totalPosts <= 1}
+                        className={totalPosts <= 1 ? styles.disabled : ''}
+                    >
+                        <i className="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+                {totalPosts > displaySlots && (
+                    <div className={styles.dotControls}>
+                        {Array.from({ length: totalPosts }).map((_, index) => (
+                            <button
+                                key={`dot-${index}`}
+                                className={`${styles.dot} ${highlightIndex === index ? styles.activeDot : ''}`}
+                                onClick={() => handleManualChange(index)}
+                                aria-label={`Chuyển đến bài viết ${index + 1}`}
+                            ></button>
+                        ))}
                     </div>
                 )}
             </div>
