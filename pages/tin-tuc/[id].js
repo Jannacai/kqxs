@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
-import { getPostById, getPosts } from "../api/post/index";
+import { getCombinedPostData } from "../api/post/index";
 import Link from "next/link";
 import styles from "../../styles/postDetail.module.css";
 
 const PostDetail = () => {
     const router = useRouter();
-    const { id } = router.query;
+    const { id } = router.query; // id ở đây là slug-id hoặc chỉ id
     const [post, setPost] = useState(null);
     const [relatedPosts, setRelatedPosts] = useState([]);
     const [footballPosts, setFootballPosts] = useState([]);
@@ -18,7 +18,7 @@ const PostDetail = () => {
     const [relatedIndex, setRelatedIndex] = useState(0);
     const [footballIndex, setFootballIndex] = useState(0);
 
-    const fetchWithRetry = async (fetchFn, maxRetries = 3, delay = 10000) => {
+    const fetchWithRetry = async (fetchFn, maxRetries = 3, delay = 3000) => {
         for (let i = 0; i < maxRetries; i++) {
             try {
                 return await fetchFn();
@@ -32,125 +32,102 @@ const PostDetail = () => {
         }
     };
 
-    const fetchPost = useCallback(async () => {
+    const fetchPostData = useCallback(async () => {
         if (!id) return;
         try {
-            const data = await getPostById(id, true);
-            setPost(data);
+            // Tách id từ slug-id nếu cần
+            const actualId = id.includes('-') ? id.split('-').pop() : id;
+            const data = await fetchWithRetry(() => getCombinedPostData(actualId, true));
+            console.log("Fetched data:", data);
+            setPost(data.post);
+            const uniqueRelated = [...new Map(data.related.map(item => [item._id, item])).values()];
+            const uniqueFootball = [...new Map(data.football.map(item => [item._id, item])).values()];
+            setRelatedPostsPool(uniqueRelated.slice(0, 15) || []);
+            setFootballPostsPool(uniqueFootball.slice(0, 15) || []);
+            setRelatedPosts(uniqueRelated.slice(0, 4) || []);
+            setFootballPosts(uniqueFootball.slice(0, 3) || []);
+            setRelatedIndex(4);
+            setFootballIndex(3);
             setLoading(false);
         } catch (err) {
+            console.error("Fetch error:", err);
             setError(err.message || "Đã có lỗi xảy ra khi lấy chi tiết bài viết");
             setLoading(false);
         }
     }, [id]);
 
-    const fetchRelatedPostsPool = useCallback(async () => {
-        if (!post?.category) return;
-        try {
-            const response = await fetchWithRetry(() =>
-                getPosts(null, 1, 15, post.category, true)
-            );
-            const seenIds = new Set();
-            const filteredPosts = response.posts
-                .filter(p => p._id !== id && !seenIds.has(p._id) && seenIds.add(p._id))
-                .slice(0, 15);
-            console.log("Related Posts Pool:", filteredPosts.map(p => p._id));
-            setRelatedPostsPool(filteredPosts);
-            setRelatedPosts(filteredPosts.slice(0, 4));
-            setRelatedIndex(4);
-        } catch (err) {
-            console.error("Error fetching related posts pool:", err);
-            if (err.message.includes("429")) {
-                setError("Quá nhiều yêu cầu, vui lòng đợi một chút...");
-            }
-        }
-    }, [id, post?.category]);
-
-    const fetchFootballPostsPool = useCallback(async () => {
-        try {
-            const response = await fetchWithRetry(() =>
-                getPosts(null, 1, 15, "Thể thao", true)
-            );
-            const seenIds = new Set();
-            const filteredPosts = response.posts
-                .filter(p => p._id !== id && !seenIds.has(p._id) && seenIds.add(p._id))
-                .slice(0, 15);
-            console.log("Football Posts Pool:", filteredPosts.map(p => p._id));
-            setFootballPostsPool(filteredPosts);
-            setFootballPosts(filteredPosts.slice(0, 3));
-            setFootballIndex(3);
-        } catch (err) {
-            console.error("Error fetching football posts pool:", err);
-            if (err.message.includes("429")) {
-                setError("Quá nhiều yêu cầu, vui lòng đợi một chút...");
-            }
-        }
-    }, [id]);
-
     useEffect(() => {
-        fetchPost();
-    }, [fetchPost]);
-
-    useEffect(() => {
-        if (post?.category) {
-            fetchRelatedPostsPool();
-            fetchFootballPostsPool();
-        }
-    }, [post?.category, fetchRelatedPostsPool, fetchFootballPostsPool]);
+        fetchPostData();
+    }, [fetchPostData]);
 
     useEffect(() => {
         const rotatePosts = () => {
+            if (relatedPostsPool.length === 0 || footballPostsPool.length === 0) {
+                console.log("Pool rỗng, bỏ qua xoay vòng");
+                return;
+            }
+
             setRelatedPosts(prev => {
-                if (relatedPostsPool.length === 0) return prev;
+                if (prev.length < 4) return prev;
                 const currentIds = new Set(prev.map(p => p._id));
                 let nextIndex = relatedIndex;
                 let nextPost = relatedPostsPool[nextIndex];
+                let attempts = 0;
+                const maxAttempts = relatedPostsPool.length;
 
-                while (nextPost && currentIds.has(nextPost._id) && nextIndex < relatedPostsPool.length) {
+                while (nextPost && (currentIds.has(nextPost._id) || !nextPost) && attempts < maxAttempts) {
                     nextIndex = (nextIndex + 1) % relatedPostsPool.length;
                     nextPost = relatedPostsPool[nextIndex];
+                    attempts++;
                 }
 
                 const newPosts = [...prev.slice(0, 3), nextPost || prev[3]];
-                console.log("Related Posts Updated:", newPosts.map(p => p._id));
+                const uniqueNewPosts = [...new Map(newPosts.map(item => [item._id, item])).values()];
+                console.log("Related Posts Updated:", uniqueNewPosts.map(p => p._id));
                 setRelatedIndex((nextIndex + 1) % relatedPostsPool.length);
-                return newPosts;
+                return uniqueNewPosts.length >= 4 ? uniqueNewPosts : prev;
             });
 
             setFootballPosts(prev => {
-                if (footballPostsPool.length === 0) return prev;
+                if (prev.length < 3) return prev;
                 const currentIds = new Set(prev.map(p => p._id));
                 let nextIndex = footballIndex;
                 let nextPost = footballPostsPool[nextIndex];
+                let attempts = 0;
+                const maxAttempts = footballPostsPool.length;
 
-                while (nextPost && currentIds.has(nextPost._id) && nextIndex < footballPostsPool.length) {
+                while (nextPost && (currentIds.has(nextPost._id) || !nextPost) && attempts < maxAttempts) {
                     nextIndex = (nextIndex + 1) % footballPostsPool.length;
                     nextPost = footballPostsPool[nextIndex];
+                    attempts++;
                 }
 
                 const newPosts = [...prev.slice(0, 2), nextPost || prev[2]];
-                console.log("Football Posts Updated:", newPosts.map(p => p._id));
+                const uniqueNewPosts = [...new Map(newPosts.map(item => [item._id, item])).values()];
+                console.log("Football Posts Updated:", uniqueNewPosts.map(p => p._id));
                 setFootballIndex((nextIndex + 1) % footballPostsPool.length);
-                return newPosts;
+                return uniqueNewPosts.length >= 3 ? uniqueNewPosts : prev;
             });
 
             setTimeout(() => {
                 setRelatedPosts(prev => {
                     if (prev.length < 4) return prev;
                     const newPosts = [prev[3], ...prev.slice(0, 3)];
-                    console.log("Related Posts Rotated:", newPosts.map(p => p._id));
-                    return newPosts;
+                    const uniqueNewPosts = [...new Map(newPosts.map(item => [item._id, item])).values()];
+                    console.log("Related Posts Rotated:", uniqueNewPosts.map(p => p._id));
+                    return uniqueNewPosts.length >= 4 ? uniqueNewPosts : prev;
                 });
                 setFootballPosts(prev => {
                     if (prev.length < 3) return prev;
                     const newPosts = [prev[2], ...prev.slice(0, 2)];
-                    console.log("Football Posts Rotated:", newPosts.map(p => p._id));
-                    return newPosts;
+                    const uniqueNewPosts = [...new Map(newPosts.map(item => [item._id, item])).values()];
+                    console.log("Football Posts Rotated:", uniqueNewPosts.map(p => p._id));
+                    return uniqueNewPosts.length >= 3 ? uniqueNewPosts : prev;
                 });
-            }, 5000);
+            }, 10000);
         };
 
-        const interval = setInterval(rotatePosts, 10000);
+        const interval = setInterval(rotatePosts, 20000);
         return () => clearInterval(interval);
     }, [relatedIndex, footballIndex, relatedPostsPool, footballPostsPool]);
 
@@ -209,7 +186,7 @@ const PostDetail = () => {
     };
 
     const RelatedPostItem = React.memo(({ post }) => (
-        <Link href={`/post/${post._id}`} className={styles.relatedItem} title={post.title}>
+        <Link href={`/post/${post.slug}-${post._id}`} className={styles.relatedItem} title={post.title}>
             <img
                 src={post.img || '/backgrond.png'}
                 alt={post.title}
@@ -222,7 +199,7 @@ const PostDetail = () => {
     ));
 
     const FootballPostItem = React.memo(({ post }) => (
-        <Link href={`/post/${post._id}`} className={styles.footballItem} title={post.title}>
+        <Link href={`/post/${post.slug}-${post._id}`} className={styles.footballItem} title={post.title}>
             <img
                 src={post.img || '/backgrond.png'}
                 alt={post.title}
@@ -252,7 +229,7 @@ const PostDetail = () => {
                 <meta property="og:description" content={metaDescription} />
                 <meta property="og:image" content={post.img || "/backgrond.png"} />
                 <meta property="og:type" content="article" />
-                <meta property="og:url" content={`https://xsmb.win/post/${id}`} />
+                <meta property="og:url" content={`https://xsmb.win/post/${post.slug}-${post._id}`} />
                 <meta name="twitter:card" content="summary_large_image" />
                 <meta name="twitter:title" content={post.title} />
                 <meta name="twitter:description" content={metaDescription} />

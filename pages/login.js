@@ -26,7 +26,7 @@ export default function Login() {
     }
 
     if (status === "authenticated") {
-        router.push("/posts");
+        router.push("/dang-bai-viet");
         return null;
     }
 

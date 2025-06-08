@@ -324,7 +324,7 @@
 
     .relatedItemTitle {
         font-size: 1rem;
-        font-weight: 600;
+        font-weight: 700;
         line-height: 1.4;
         flex: 1;
     }
@@ -352,7 +352,7 @@
 
     .footballItemTitle {
         font-size: 1.1rem;
-        font-weight: 600;
+        font-weight: 700;
         margin-top: 10px;
     }
 

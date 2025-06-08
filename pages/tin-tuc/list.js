@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { getPosts } from "../../pages/api/post/index";
+import { getPosts } from "../api/post/index";
 import ListPost from "../../component/listPost";
 import styles from "../../styles/postList.module.css";
 

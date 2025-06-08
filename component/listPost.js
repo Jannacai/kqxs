@@ -16,7 +16,7 @@ const ListPost = (props) => {
     const router = useRouter();
     const allPosts = props.appa;
     const displaySlots = 4;
-    const timerDuration = 3000;
+    const timerDuration = 6000;
 
     const allRecentSortedPosts = useMemo(() => {
         if (!Array.isArray(allPosts)) return [];
@@ -92,7 +92,7 @@ const ListPost = (props) => {
     return (
         <div className={styles.postContainer} onMouseEnter={() => { setIsPaused(true); resetTimer(); }} onMouseLeave={() => { setIsPaused(false); }}>
             <Head>
-                <title>Tin Tức Bóng Đá 24h</title>
+                {/* <title>Tin Tức Bóng Đá 24h</title> */}
                 <meta name="description" content="Cập nhật tin tức bóng đá mới nhất trong 24h qua" />
                 <meta property="og:title" content="Tin Tức Bóng Đá 24h" />
                 <meta property="og:description" content="Cập nhật tin tức bóng đá mới nhất trong 24h qua" />
@@ -110,7 +110,7 @@ const ListPost = (props) => {
                                 description: post.description?.slice(0, 100),
                                 image: post.img || imgItem.src,
                                 datePublished: post.createdAt,
-                                url: `https://yourdomain.com/post/${post._id}`,
+                                url: `https://xsmb.win/tin-tuc/${post.slug}-${post._id}`,
                             },
                         })),
                     })}
@@ -121,7 +121,7 @@ const ListPost = (props) => {
                 <div className={styles.listPost}>
                     {postsCurrentlyOnDisplay.map((post, index) => {
                         const itemClassName = `${styles.itemPost} ${index === 1 ? styles.active : ''}`;
-                        const uniqueKey = `${post?._id || `post-${index}`}-${index}`;
+                        const uniqueKey = `${post?._id || `tin-tuc-${index}`}-${index}`;
                         let formattedDate = 'Ngày đăng';
                         if (post.createdAt) {
                             try {
@@ -139,7 +139,7 @@ const ListPost = (props) => {
                         }
                         return (
                             <div key={uniqueKey} className={itemClassName} role="article">
-                                <Link href={`/post/${post._id}`} aria-label={`Xem bài viết ${post.title}`}>
+                                <Link href={`/tin-tuc/${post.slug}-${post._id}`} aria-label={`Xem bài viết ${post.title}`}>
                                     <img
                                         className={styles.imgPost}
                                         src={post.img && post.img.startsWith('http') ? post.img : imgItem.src}
@@ -148,7 +148,7 @@ const ListPost = (props) => {
                                     />
                                 </Link>
                                 <span className={styles.postDate}>{formattedDate}</span>
-                                <h3 className={styles.title} onClick={() => router.push(`/post/${post._id}`)}>
+                                <h3 className={styles.title} onClick={() => router.push(`/tin-tuc/${post.slug}-${post._id}`)}>
                                     {post.title}
                                 </h3>
                                 <p className={styles.desc}>

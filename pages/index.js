@@ -9,7 +9,7 @@ import CongCuHot from '../component/CongCuHot';
 import TableDate from '../component/tableDateKQXS';
 
 const KQXS = dynamic(() => import('./kqxsAll/index'), { ssr: false });
-const PostList = dynamic(() => import('./post/list'), { ssr: false });
+const PostList = dynamic(() => import('./tin-tuc/list'), { ssr: false });
 
 export async function getServerSideProps() {
     const today = new Date();

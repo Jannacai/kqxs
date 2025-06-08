@@ -7,7 +7,7 @@ const getCachedPosts = (key) => {
     if (cached) {
         const { data, timestamp } = JSON.parse(cached);
         const age = Date.now() - timestamp;
-        if (age < 5 * 60 * 1000) {
+        if (age < 15 * 60 * 1000) {
             return data;
         }
     }
@@ -15,7 +15,6 @@ const getCachedPosts = (key) => {
 };
 
 const setCachedPosts = (key, data) => {
-    // Loại bỏ bài viết trùng _id trước khi lưu cache
     const seenIds = new Set();
     const uniquePosts = data.posts
         ? { ...data, posts: data.posts.filter(post => !seenIds.has(post._id) && seenIds.add(post._id)) }
@@ -83,7 +82,6 @@ export const createPost = async (postData) => {
             throw new Error(`Có lỗi khi đăng bài: ${response.status} - ${errorText}`);
         }
         const data = await response.json();
-        // Xóa tất cả cache trong localStorage liên quan đến posts
         Object.keys(localStorage)
             .filter((key) => key.startsWith("posts:") || key.startsWith("post:"))
             .forEach((key) => localStorage.removeItem(key));
@@ -121,6 +119,38 @@ export const getPostById = async (id, refresh = false) => {
         return data;
     } catch (error) {
         console.error("getPostById error:", error);
+        throw error;
+    }
+};
+
+export const getCombinedPostData = async (id, refresh = false) => {
+    const cacheKey = `combined:${id}`;
+    if (!refresh) {
+        const cached = getCachedPosts(cacheKey);
+        if (cached) {
+            return cached;
+        }
+    }
+
+    const actualId = id.includes('-') ? id.split('-').pop() : id;
+    const url = `${API_BASE_URL}/api/posts/combined/${actualId}`;
+    try {
+        const response = await fetch(url, {
+            method: "GET",
+            headers: {
+                "Cache-Control": "no-cache",
+            },
+        });
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("API error:", errorText);
+            throw new Error(`Có lỗi khi lấy dữ liệu bài viết: ${response.status} - ${errorText}`);
+        }
+        const data = await response.json();
+        setCachedPosts(cacheKey, data);
+        return data;
+    } catch (error) {
+        console.error("getCombinedPostData error:", error);
         throw error;
     }
 };

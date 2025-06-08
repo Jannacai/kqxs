@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { createPost, getPosts } from "../pages/api/post/index";
+import { createPost, getPosts } from "./api/post/index";
 import styles from "../styles/createPost.module.css";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/router";
@@ -119,7 +119,7 @@ const CreatePost = () => {
             });
             try {
                 const updatedPosts = await getPosts(null, 1, 10);
-                router.push('/posts');
+                router.push(`/tin-tuc/${response.slug}-${response._id}`);
             } catch (error) {
                 console.error("Error refreshing posts:", error);
                 toast.error("Không thể làm mới danh sách bài viết", {
@@ -129,12 +129,17 @@ const CreatePost = () => {
             }
         } catch (error) {
             console.error("Submit error:", error);
+            let errorMessage = "Đã có lỗi xảy ra khi đăng bài. Vui lòng thử lại.";
             if (error.message.includes("Invalid token")) {
                 await signOut({ redirect: false });
                 router.push("/login");
                 return;
+            } else if (error.message.includes("Invalid data")) {
+                errorMessage = "Dữ liệu không hợp lệ. Vui lòng kiểm tra tiêu đề và nội dung.";
+            } else if (error.message.includes("Failed to save post")) {
+                errorMessage = "Lỗi hệ thống khi lưu bài viết. Vui lòng liên hệ quản trị viên.";
             }
-            toast.error(error.message || "Đã có lỗi xảy ra khi đăng bài", {
+            toast.error(errorMessage, {
                 position: "top-right",
                 autoClose: 5000,
             });
