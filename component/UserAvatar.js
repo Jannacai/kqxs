@@ -14,7 +14,7 @@ const UserAvatar = () => {
     useEffect(() => {
         const fetchUserInfo = async () => {
             if (!session?.accessToken) {
-                setFetchError('No access token available');
+                setFetchError('Không có access token');
                 return;
             }
 
@@ -22,12 +22,13 @@ const UserAvatar = () => {
                 const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/me`, {
                     headers: {
                         Authorization: `Bearer ${session.accessToken}`,
+                        "User-Agent": "UserAvatar-Client",
                     },
                 });
 
                 if (!res.ok) {
-                    const errorText = await res.text();
-                    throw new Error(`Failed to fetch user info: ${res.status} - ${errorText}`);
+                    const errorText = await res.json();
+                    throw new Error(`Không thể lấy thông tin: ${errorText.error}`);
                 }
 
                 const data = await res.json();
@@ -35,13 +36,17 @@ const UserAvatar = () => {
             } catch (error) {
                 console.error('Error fetching user info:', error);
                 setFetchError(error.message);
+                if (error.message.includes("Invalid token") || session?.error === "RefreshTokenError") {
+                    signOut({ redirect: false });
+                    router.push('/login?error=SessionExpired');
+                }
             }
         };
 
         if (status === "authenticated") {
             fetchUserInfo();
         }
-    }, [status, session]);
+    }, [status, session, router]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -66,12 +71,13 @@ const UserAvatar = () => {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    "User-Agent": "UserAvatar-Client",
                 },
                 body: JSON.stringify({ refreshToken: session.refreshToken }),
             });
 
             if (!res.ok) {
-                throw new Error('Failed to logout on server');
+                throw new Error('Không thể đăng xuất');
             }
 
             await signOut({ redirect: false });
@@ -109,7 +115,7 @@ const UserAvatar = () => {
     return (
         <div className={styles.userInfo} ref={submenuRef}>
             {fetchError ? (
-                <p className={styles.error}>Không thể lấy thông tin: {fetchError}</p>
+                <p className={styles.error}>{fetchError}</p>
             ) : userInfo ? (
                 <>
                     <div
@@ -139,7 +145,7 @@ const UserAvatar = () => {
                     )}
                 </>
             ) : (
-                " "
+                "Đang tải thông tin..."
             )}
         </div>
     );

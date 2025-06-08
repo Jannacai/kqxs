@@ -1,7 +1,7 @@
-// pages/api/auth/[...nextauth].js
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { jwtDecode } from "jwt-decode"; // Sửa import: dùng named export jwtDecode
+import { jwtDecode } from "jwt-decode";
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
 export default NextAuth({
@@ -19,6 +19,7 @@ export default NextAuth({
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
+                        "User-Agent": "NextAuth-Client",
                     },
                     body: JSON.stringify({ username, password }),
                 });
@@ -53,38 +54,34 @@ export default NextAuth({
                 token.role = user.role;
             }
 
-            // Kiểm tra access token có hết hạn không
             try {
-                const decoded = jwtDecode(token.accessToken); // Sửa: dùng jwtDecode thay vì jwt_decode
+                const decoded = jwtDecode(token.accessToken);
                 const now = Date.now() / 1000;
                 if (decoded.exp > now) {
-                    console.log("Access token still valid");
                     return token;
                 }
 
-                // Access token hết hạn, gọi API refresh token
-                console.log("Access token expired, refreshing...");
                 const res = await fetch(`${API_BASE_URL}/api/auth/refresh-token`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
+                        "User-Agent": "NextAuth-Client",
                     },
                     body: JSON.stringify({ refreshToken: token.refreshToken }),
                 });
 
                 if (!res.ok) {
                     const error = await res.json();
-                    console.error("Failed to refresh token:", error);
-                    throw new Error("Failed to refresh token");
+                    throw new Error(error.error || "Failed to refresh token");
                 }
 
                 const data = await res.json();
                 token.accessToken = data.accessToken;
-                console.log("Access token refreshed:", token.accessToken);
+                token.refreshToken = data.refreshToken; // Cập nhật refreshToken mới
                 return token;
             } catch (error) {
                 console.error("Error in jwt callback:", error.message);
-                token.error = "RefreshTokenError";
+                token.error = error.message === "Refresh token expired" ? "RefreshTokenExpired" : "RefreshTokenError";
                 return token;
             }
         },

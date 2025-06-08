@@ -6,7 +6,9 @@ import Link from "next/link";
 
 export default function Register() {
     const [username, setUsername] = useState("");
+    const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
     const [fullname, setFullname] = useState("");
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -23,54 +25,79 @@ export default function Register() {
         return null;
     }
 
+    const validateInputs = () => {
+        if (username.length < 3) {
+            setError("Tên đăng nhập phải có ít nhất 3 ký tự");
+            return false;
+        }
+        if (!email.match(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)) {
+            setError("Email không hợp lệ");
+            return false;
+        }
+        if (fullname.length < 3) {
+            setError("Biệt danh phải có ít nhất 3 ký tự");
+            return false;
+        }
+        if (password.length < 8) {
+            setError("Mật khẩu phải có ít nhất 8 ký tự");
+            return false;
+        }
+        if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[!@#$%^&*]/.test(password)) {
+            setError("Mật khẩu phải chứa chữ thường, chữ hoa, số và ký tự đặc biệt");
+            return false;
+        }
+        if (password !== confirmPassword) {
+            setError("Mật khẩu xác nhận không khớp");
+            return false;
+        }
+        return true;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
         setError("");
 
+        if (!validateInputs()) {
+            setIsLoading(false);
+            return;
+        }
+
         try {
-            // Gọi API đăng ký
-            const res = await fetch('https://backendkqxs.onrender.com/api/auth/register', {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/register`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    "User-Agent": "Register-Client",
                 },
-                body: JSON.stringify({ username, fullname, password }),
+                body: JSON.stringify({ username, email, fullname, password }),
             });
 
             if (!res.ok) {
-                const text = await res.text();
-                throw new Error(`Request failed with status ${res.status}: ${text}`);
+                const errorData = await res.json();
+                throw new Error(errorData.error || `Đăng ký thất bại: ${res.status}`);
             }
 
-            // Gọi API đăng nhập để lấy thông tin phù hợp với NextAuth
-            const loginRes = await fetch('https://backendkqxs.onrender.com/api/auth/login', {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ username, fullname, password }),
-            });
+            const { accessToken, refreshToken, user } = await res.json();
 
-            if (!loginRes.ok) {
-                const text = await loginRes.text();
-                throw new Error(`Login failed with status ${loginRes.status}: ${text}`);
-            }
+            await new Promise((resolve) => setTimeout(resolve, 500));
 
-            // Đăng nhập tự động bằng NextAuth
             const result = await signIn("credentials", {
                 redirect: false,
                 username,
-                fullname,
                 password,
             });
 
             if (result.error) {
-                setError(result.error);
-            } else {
-                router.push("/dang-bai-viet");
+                console.error("SignIn error:", result.error);
+                throw new Error(result.error);
             }
+
+            alert("Đăng ký thành công!");
+            sessionStorage.setItem('userInfo', JSON.stringify(user));
+            router.push("/dang-bai-viet");
         } catch (error) {
+            console.error("Register error:", error.message);
             setError(error.message || "Đã có lỗi xảy ra khi đăng ký");
         } finally {
             setIsLoading(false);
@@ -118,6 +145,20 @@ export default function Register() {
                         </div>
                         <div className={styles.formGroup}>
                             <label className={styles.labelName}>
+                                Email:
+                                <input
+                                    className={styles.inputName}
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    required
+                                    autoComplete="off"
+                                    aria-describedby="email-error"
+                                />
+                            </label>
+                        </div>
+                        <div className={styles.formGroup}>
+                            <label className={styles.labelName}>
                                 Biệt Danh:
                                 <input
                                     className={styles.inputName}
@@ -141,6 +182,20 @@ export default function Register() {
                                     required
                                     autoComplete="off"
                                     aria-describedby="password-error"
+                                />
+                            </label>
+                        </div>
+                        <div className={styles.formGroup}>
+                            <label className={styles.labelPassword}>
+                                Xác nhận mật khẩu:
+                                <input
+                                    className={styles.inputPassword}
+                                    type="password"
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    required
+                                    autoComplete="off"
+                                    aria-describedby="confirm-password-error"
                                 />
                             </label>
                         </div>

@@ -76,7 +76,7 @@
     /* Căn theo giữa avatar (36px / 2) */
     transform: translateX(-50%);
     /* Căn giữa submenu dưới avatar */
-    background-color: #FFFFFF;
+    background-color: red;
     border: 1px solid #E5E7EB;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);

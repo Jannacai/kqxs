@@ -14,11 +14,14 @@ export default function Login() {
     const { data: session, status } = useSession();
 
     useEffect(() => {
-        if (session?.error === "RefreshTokenError") {
+        if (session?.error === "RefreshTokenError" || session?.error === "RefreshTokenExpired") {
             signOut({ redirect: false });
             setError("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
         }
-    }, [session]);
+        if (router.query.error === "SessionExpired") {
+            setError("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+        }
+    }, [session, router.query]);
 
     if (status === "loading") {
         return <p>Đang tải...</p>;
@@ -48,10 +51,6 @@ export default function Login() {
         setIsModalOpen(false);
         router.push("/");
     };
-
-    if (!isModalOpen) {
-        return null;
-    }
 
     return (
         <div className={styles.modalOverlay}>
@@ -107,6 +106,9 @@ export default function Login() {
                                 {isLoading ? "Đang đăng nhập..." : "Đăng nhập"}
                             </button>
                         </div>
+                        <p className={styles.dangky}>
+                            <Link href="/resetauth/forgot-password">Quên mật khẩu?</Link>
+                        </p>
                     </form>
                 </div>
             </div>
