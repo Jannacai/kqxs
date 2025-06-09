@@ -163,7 +163,7 @@
 .meta {
     display: flex;
     flex-wrap: wrap;
-    gap: 15px;
+    gap: 10px;
     margin-bottom: 20px;
 }
 
@@ -173,6 +173,16 @@
     font-weight: 500;
     color: #fff;
     background: linear-gradient(135deg, #ff6b6b 10%, #e63946 100%);
+    border-radius: 6px;
+    padding: 6px 12px;
+}
+
+.category {
+    font-family: "Roboto", sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #fff;
+    background: var(--category-color, #6b7280);
     border-radius: 6px;
     padding: 6px 12px;
 }
@@ -204,6 +214,7 @@
     color: #666;
     text-align: center;
     margin-top: 10px;
+    display: block;
 }
 
 .imagePlaceholder {
@@ -295,13 +306,11 @@
         max-width: 100%;
         margin-top: 25px;
         order: 2;
-        /* Hiển thị trước footballPosts */
     }
 
     .footballPosts {
         margin-top: 25px;
         order: 3;
-        /* Hiển thị sau relatedPosts */
     }
 
     .relatedItem {
@@ -374,11 +383,12 @@
     }
 
     .meta {
-        gap: 10px;
+        gap: 8px;
         margin-bottom: 15px;
     }
 
     .date,
+    .category,
     .author {
         font-size: 0.95rem;
         padding: 5px 10px;

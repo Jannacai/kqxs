@@ -79,7 +79,7 @@ export const createPost = async (postData) => {
                 caption: postData.caption || "",
                 img2: postData.img2 || "",
                 caption2: postData.caption2 || "",
-                category: postData.category || "Thể thao",
+                category: postData.category,
             }),
         });
         if (!response.ok) {
@@ -88,12 +88,10 @@ export const createPost = async (postData) => {
             throw new Error(`Có lỗi khi đăng bài: ${response.status} - ${errorText}`);
         }
         const data = await response.json();
-        // Xóa cache
         Object.keys(localStorage)
             .filter((key) => key.startsWith("posts:") || key.startsWith("post:"))
             .forEach((key) => localStorage.removeItem(key));
         clearCombinedCache();
-        // Gửi sự kiện newPostCreated
         window.dispatchEvent(new CustomEvent('newPostCreated', { detail: data }));
         return data;
     } catch (error) {
@@ -161,6 +159,27 @@ export const getCombinedPostData = async (id, refresh = false) => {
         return data;
     } catch (error) {
         console.error("getCombinedPostData error:", error);
+        throw error;
+    }
+};
+
+export const getCategories = async () => {
+    const url = `${API_BASE_URL}/api/posts/categories`;
+    try {
+        const response = await fetch(url, {
+            method: "GET",
+            headers: {
+                "Cache-Control": "no-cache",
+            },
+        });
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Có lỗi khi lấy danh sách danh mục: ${response.status} - ${errorText}`);
+        }
+        const data = await response.json();
+        return data.categories;
+    } catch (error) {
+        console.error("getCategories error:", error);
         throw error;
     }
 };

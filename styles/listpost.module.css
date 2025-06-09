@@ -35,16 +35,16 @@
     font-family: 'Inter', sans-serif;
 }
 
-/* Container cho ngày đăng và category */
+/* Container cho ngày đăng và danh mục */
 .postMeta {
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
     margin-bottom: 12px;
     padding: 8px 16px;
     position: relative;
     z-index: 2;
     background: #fff;
-    /* Đảm bảo nền không bị ảnh che */
 }
 
 /* Ngày đăng bài */
@@ -59,7 +59,7 @@
     padding: 4px 12px;
 }
 
-/* Category bài viết */
+/* Danh mục bài viết */
 .postCategory {
     display: inline-flex;
     align-items: center;
@@ -68,18 +68,8 @@
     color: #fff;
     border-radius: 4px;
     padding: 4px 12px;
-}
-
-/* Màu cho category Thể thao */
-.sportCategory {
-    background: var(--background-color);
-    /* Màu xanh cho Thể thao */
-}
-
-/* Màu cho category Đời sống */
-.lifestyleCategory {
-    background: #e11d48;
-    /* Màu hồng cho Đời sống */
+    background: var(--category-color, #6b7280);
+    /* Màu mặc định nếu không có --category-color */
 }
 
 /* Mỗi bài viết */
@@ -92,7 +82,6 @@
     display: flex;
     flex-direction: column;
     position: relative;
-    /* Để z-index của postMeta hoạt động */
 }
 
 .itemPost:hover {

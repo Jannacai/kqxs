@@ -6,6 +6,20 @@ import { useRouter } from "next/router";
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import styles from "../styles/listpost.module.css";
 
+// Hàm gán màu cho danh mục
+const getCategoryColor = (category) => {
+    const categoryColors = {
+        'Thể thao': '#22c55e', // Xanh lá
+        'Đời sống': '#e11d48', // Hồng
+        'Giải trí': '#f59e0b', // Vàng
+        'Tin hot': '#ef4444', // Đỏ
+        // Thêm màu cho danh mục mới tại đây
+        'Công nghệ': '#3b82f6', // Xanh dương
+        'Sức khỏe': '#8b5cf6', // Tím
+    };
+    return categoryColors[category] || '#6b7280'; // Màu xám mặc định nếu danh mục không có trong danh sách
+};
+
 const getStartOfDay = (date) => {
     const start = new Date(date);
     start.setHours(0, 0, 0, 0);
@@ -92,9 +106,9 @@ const ListPost = (props) => {
     return (
         <div className={styles.postContainer} onMouseEnter={() => { setIsPaused(true); resetTimer(); }} onMouseLeave={() => { setIsPaused(false); }}>
             <Head>
-                <meta name="description" content="Cập nhật tin tức bóng đá mới nhất trong 24h qua" />
-                <meta property="og:title" content="Tin Tức Bóng Đá 24h" />
-                <meta property="og:description" content="Cập nhật tin tức bóng đá mới nhất trong 24h qua" />
+                <meta name="description" content="Cập nhật tin tức mới nhất trong 24h qua" />
+                <meta property="og:title" content="Tin Tức 24h" />
+                <meta property="og:description" content="Cập nhật tin tức mới nhất trong 24h qua" />
                 <meta property="og:type" content="website" />
                 <script type="application/ld+json">
                     {JSON.stringify({
@@ -148,9 +162,15 @@ const ListPost = (props) => {
                                 </Link>
                                 <div className={styles.postMeta}>
                                     <span className={styles.postDate}>{formattedDate}</span>
-                                    <span className={`${styles.postCategory} ${post.category === 'Thể thao' ? styles.sportCategory : styles.lifestyleCategory}`}>
-                                        {post.category}
-                                    </span>
+                                    {Array.isArray(post.category) && post.category.map((cat, idx) => (
+                                        <span
+                                            key={`${cat}-${idx}`}
+                                            className={styles.postCategory}
+                                            style={{ '--category-color': getCategoryColor(cat) }}
+                                        >
+                                            {cat}
+                                        </span>
+                                    ))}
                                 </div>
                                 <h3 className={styles.title} onClick={() => router.push(`/tin-tuc/${post.slug}-${post._id}`)}>
                                     {post.title}

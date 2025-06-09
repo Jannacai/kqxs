@@ -1,4 +1,4 @@
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { createPost } from "./api/post/index";
@@ -9,6 +9,9 @@ import { useEffect, useState } from "react";
 import { debounce } from "lodash";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+
+// Danh sách danh mục, lý tưởng là lấy từ API hoặc backend
+const VALID_CATEGORIES = ["Thể thao", "Đời sống", "Giải trí", "Tin hot"];
 
 const postSchema = z.object({
     title: z
@@ -40,9 +43,9 @@ const postSchema = z.object({
         .max(100, "Chú thích không được dài quá 100 ký tự")
         .optional()
         .or(z.literal("")),
-    category: z.enum(["Thể thao", "Đời sống"], {
-        required_error: "Vui lòng chọn một chủ đề",
-    }),
+    category: z
+        .array(z.enum(VALID_CATEGORIES))
+        .min(1, "Vui lòng chọn ít nhất một chủ đề"),
 });
 
 const CreatePost = () => {
@@ -57,6 +60,7 @@ const CreatePost = () => {
         handleSubmit,
         formState: { errors, isSubmitting },
         reset,
+        control,
     } = useForm({
         resolver: zodResolver(postSchema),
         defaultValues: {
@@ -66,7 +70,7 @@ const CreatePost = () => {
             caption: "",
             img2: "",
             caption2: "",
-            category: "Thể thao",
+            category: ["Thể thao"],
         },
     });
 
@@ -323,23 +327,30 @@ const CreatePost = () => {
                         <div className={styles.Group}>
                             <h3 className={styles.subTitle}>Chọn chủ đề *</h3>
                             <div className={styles.checkboxGroup}>
-                                <label>
-                                    <input
-                                        type="radio"
-                                        value="Thể thao"
-                                        {...register("category")}
-                                        defaultChecked
-                                    />
-                                    Thể thao
-                                </label>
-                                <label>
-                                    <input
-                                        type="radio"
-                                        value="Đời sống"
-                                        {...register("category")}
-                                    />
-                                    Đời sống
-                                </label>
+                                <Controller
+                                    name="category"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <>
+                                            {VALID_CATEGORIES.map((cat) => (
+                                                <label key={cat}>
+                                                    <input
+                                                        type="checkbox"
+                                                        value={cat}
+                                                        checked={field.value.includes(cat)}
+                                                        onChange={(e) => {
+                                                            const updatedCategories = e.target.checked
+                                                                ? [...field.value, cat]
+                                                                : field.value.filter((c) => c !== cat);
+                                                            field.onChange(updatedCategories);
+                                                        }}
+                                                    />
+                                                    {cat}
+                                                </label>
+                                            ))}
+                                        </>
+                                    )}
+                                />
                                 {errors.category && (
                                     <span id="category-error" className={styles.error}>{errors.category.message}</span>
                                 )}

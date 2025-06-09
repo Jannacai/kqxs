@@ -64,13 +64,12 @@ const PostDetail = () => {
 
             // Cập nhật relatedPostsPool
             setRelatedPostsPool(prev => {
-                if (newPost.category !== post?.category) return prev;
+                if (!Array.isArray(newPost.category) || !newPost.category.some(cat => post?.category?.includes(cat))) return prev;
                 let newPool = [...prev];
                 if (newPool.length >= 15) {
-                    // Tìm bài cũ nhất
                     const oldestIndex = newPool.reduce((maxIndex, item, index, arr) =>
                         new Date(item.createdAt) < new Date(arr[maxIndex].createdAt) ? index : maxIndex, 0);
-                    newPool[oldestIndex] = newPost; // Thay thế bài cũ nhất
+                    newPool[oldestIndex] = newPost;
                 } else {
                     newPool.push(newPost);
                 }
@@ -81,13 +80,12 @@ const PostDetail = () => {
 
             // Cập nhật footballPostsPool
             setFootballPostsPool(prev => {
-                if (newPost.category !== "Thể thao") return prev;
+                if (!Array.isArray(newPost.category) || !newPost.category.includes("Thể thao")) return prev;
                 let newPool = [...prev];
                 if (newPool.length >= 15) {
-                    // Tìm bài cũ nhất
                     const oldestIndex = newPool.reduce((maxIndex, item, index, arr) =>
                         new Date(item.createdAt) < new Date(arr[maxIndex].createdAt) ? index : maxIndex, 0);
-                    newPool[oldestIndex] = newPost; // Thay thế bài cũ nhất
+                    newPool[oldestIndex] = newPost;
                 } else {
                     newPool.push(newPost);
                 }
@@ -205,27 +203,37 @@ const PostDetail = () => {
         return <p className={styles.error}>Bài viết không tồn tại.</p>;
     }
 
-    const metaDescription = post.description.length > 160
-        ? `${post.description.substring(0, 157)}...`
+    const metaDescription = post.description.length > 150
+        ? `${post.description.substring(0, 147)}...`
         : post.description;
+
+    const canonicalUrl = `https://xsmb.win/tin-tuc/${post.slug}-${post._id}`;
+    const keywords = [post.title, ...post.category, "tin tức", "XSMB.WIN"].join(", ");
+    const imageUrl = post.img && post.img.startsWith('http') ? post.img : "https://xsmb.win/facebook.png";
 
     const structuredData = {
         "@context": "https://schema.org",
-        "@type": "Article",
+        "@type": "NewsArticle",
         "headline": post.title,
         "datePublished": post.createdAt,
+        "dateModified": post.createdAt,
         "author": {
             "@type": "Person",
             "name": post.author?.username || "Admin"
         },
-        "image": post.img || "/backgrond.png",
+        "image": [imageUrl],
         "description": metaDescription,
+        "keywords": keywords,
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": canonicalUrl
+        },
         "publisher": {
             "@type": "Organization",
             "name": "XSMB.WIN",
             "logo": {
                 "@type": "ImageObject",
-                "url": "/logo.png"
+                "url": "https://xsmb.win/logo.png"
             }
         }
     };
@@ -263,23 +271,67 @@ const PostDetail = () => {
         </Link>
     ));
 
+    // Hàm gán màu cho danh mục
+    const getCategoryColor = (category) => {
+        const categoryColors = {
+            'Thể thao': '#22c55e', // Xanh lá
+            'Đời sống': '#e11d48', // Hồng
+            'Giải trí': '#f59e0b', // Vàng
+            'Tin hot': '#ef4444', // Đỏ
+            'Công nghệ': '#3b82f6', // Xanh dương
+            'Sức khỏe': '#8b5cf6', // Tím
+        };
+        return categoryColors[category] || '#6b7280'; // Màu xám mặc định
+    };
+
     return (
         <>
             <Head>
-                <title>{post.title} - XSMB.WIN</title>
+                <meta charSet="UTF-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <title>{`${post.title} - Tin Tức XSMB.WIN`}</title>
                 <meta name="description" content={metaDescription} />
-                <meta name="keywords" content={`${post.title}, ${post.category}, tin tức, XSMB.WIN`} />
+                <meta name="keywords" content={keywords} />
+                <meta name="robots" content="index, follow" />
                 <meta name="author" content={post.author?.username || "Admin"} />
+
+                {/* Open Graph Tags (Facebook, Google) */}
                 <meta property="og:title" content={post.title} />
                 <meta property="og:description" content={metaDescription} />
-                <meta property="og:image" content={post.img || "/backgrond.png"} />
                 <meta property="og:type" content="article" />
-                <meta property="og:url" content={`https://xsmb.win/tin-tuc/${post.slug}-${post._id}`} />
+                <meta property="og:url" content={canonicalUrl} />
+                <meta property="og:image" content={imageUrl} />
+                <meta property="og:image:width" content="1200" />
+                <meta property="og:image:height" content="630" />
+                <meta property="og:image:secure_url" content={imageUrl} />
+                <meta property="og:image:type" content="image/jpeg" />
+                <meta property="og:image:alt" content={post.title} />
+                <meta property="og:site_name" content="XSMB.WIN" />
+                <meta property="og:locale" content="vi_VN" />
+                <meta property="fb:app_id" content={process.env.FB_APP_ID || ''} />
+
+                {/* Zalo */}
+                <meta property="zalo:official_account_id" content={process.env.ZALO_OA_ID || ''} />
+                <meta property="zalo:share_url" content={canonicalUrl} />
+                <meta property="zalo:og:image" content={imageUrl} />
+                <meta property="zalo:og:image:width" content="600" />
+                <meta property="zalo:og:image:height" content="600" />
+
+                {/* Twitter Cards */}
                 <meta name="twitter:card" content="summary_large_image" />
                 <meta name="twitter:title" content={post.title} />
                 <meta name="twitter:description" content={metaDescription} />
-                <meta name="twitter:image" content={post.img || "/backgrond.png"} />
-                <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
+                <meta name="twitter:image" content={imageUrl} />
+                <meta name="twitter:image:alt" content={post.title} />
+
+                {/* Canonical và Alternate */}
+                <link rel="canonical" href={canonicalUrl} />
+                <link rel="alternate" hrefLang="vi" href={canonicalUrl} />
+
+                {/* JSON-LD Schema */}
+                <script type="application/ld+json">
+                    {JSON.stringify(structuredData)}
+                </script>
             </Head>
             <div className={styles.pageWrapper}>
                 <div className={styles.container}>
@@ -287,6 +339,15 @@ const PostDetail = () => {
                         <h1 className={styles.title}>{post.title}</h1>
                         <div className={styles.meta}>
                             <span className={styles.date}>Ngày {formattedDate}</span>
+                            {Array.isArray(post.category) && post.category.map((cat, idx) => (
+                                <span
+                                    key={`${cat}-${idx}`}
+                                    className={styles.category}
+                                    style={{ '--category-color': getCategoryColor(cat) }}
+                                >
+                                    {cat}
+                                </span>
+                            ))}
                             <span className={styles.author}>Tác giả: {post.author?.username || "Admin"}</span>
                         </div>
                         {post.img ? (
@@ -371,7 +432,7 @@ const RenderContent = React.memo(({ content, img2, caption2, title }) => {
                         onError={(e) => { e.target.src = '/backgrond.png'; }}
                     />
                     {caption2 && (
-                        <span className={styles.caption}>{caption2}</span>
+                        <figcaption className={styles.caption}>{caption2}</figcaption>
                     )}
                 </figure>
             )}
