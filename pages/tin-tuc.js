@@ -299,7 +299,7 @@ const EnhancedNewsFeed = () => {
 
     // Component HeroPost
     const HeroPost = React.memo(({ post }) => (
-        <Link href={`/ tin - tuc / ${ post.slug } -${ post._id } `} className={styles.heroPost}>
+        <Link href={`/tin-tuc/${post.slug}-${post._id} `} className={styles.heroPost}>
             <img
                 src={getValidImage(post)}
                 alt={post.title}
@@ -330,7 +330,7 @@ const EnhancedNewsFeed = () => {
 
     // Component SubHeroPost
     const SubHeroPost = React.memo(({ post }) => (
-        <Link href={`/ tin - tuc / ${ post.slug } -${ post._id } `} className={styles.subHeroPost}>
+        <Link href={`/tin-tuc/${post.slug}-${post._id} `} className={styles.subHeroPost}>
             <img
                 src={getValidImage(post)}
                 alt={post.title}
@@ -343,7 +343,7 @@ const EnhancedNewsFeed = () => {
 
     // Component FootballPost
     const FootballPost = React.memo(({ post }) => (
-        <Link href={`/ tin - tuc / ${ post.slug } -${ post._id } `} className={styles.footballPost}>
+        <Link href={`tin-tuc/${post.slug}-${post._id } `} className={styles.footballPost}>
             <img
                 src={getValidImage(post)}
                 alt={post.title}
@@ -356,7 +356,7 @@ const EnhancedNewsFeed = () => {
 
     // Component PostItem
     const PostItem = React.memo(({ post }) => (
-        <Link href={`/ tin - tuc / ${ post.slug } -${ post._id } `} className={styles.postItem}>
+        <Link href={`/tin-tuc/${post.slug}-${post._id}`} className={styles.postItem}>
             <img
                 src={getValidImage(post)}
                 alt={post.title}
