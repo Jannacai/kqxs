@@ -60,17 +60,6 @@ const PostList = () => {
     return (
         <div>
             <ListPost appa={posts} />
-            {totalPages > 1 && (
-                <div className={styles.pagination}>
-                    <button onClick={() => handlePageChange(page - 1)} disabled={page === 1}>
-                        Trang trước
-                    </button>
-                    <span>Trang {page} / {totalPages}</span>
-                    <button onClick={() => handlePageChange(page + 1)} disabled={page === totalPages}>
-                        Trang sau
-                    </button>
-                </div>
-            )}
         </div>
     );
 };
