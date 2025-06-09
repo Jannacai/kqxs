@@ -12,16 +12,16 @@ export default function Document() {
                 <meta charSet="UTF-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
                 <meta name="robots" content="index, follow" />
-                <meta name="description" content={defaultDescription} />
+                {/* <meta name="description" content={defaultDescription} /> */}
                 <meta name="author" content="XSMB.WIN" />
 
                 {/* Open Graph Tags */}
-                <meta property="og:title" content={defaultTitle} />
-                <meta property="og:description" content={defaultDescription} />
+                {/* <meta property="og:title" content={defaultTitle} /> */}
+                {/* <meta property="og:description" content={defaultDescription} /> */}
                 <meta property="og:type" content="website" />
                 <meta property="og:url" content="https://xsmb.win/" />
-                <meta property="og:image" content={defaultImage} />
-                <meta property="og:image:secure_url" content={defaultImage} />
+                {/* <meta property="og:image" content={defaultImage} />
+                <meta property="og:image:secure_url" content={defaultImage} /> */}
                 <meta property="og:image:width" content="1200" />
                 <meta property="og:image:height" content="630" />
                 <meta property="og:image:type" content="image/jpeg" />
@@ -39,9 +39,9 @@ export default function Document() {
 
                 {/* Twitter Cards */}
                 <meta name="twitter:card" content="summary_large_image" />
-                <meta name="twitter:title" content={defaultTitle} />
-                <meta name="twitter:description" content={defaultDescription} />
-                <meta name="twitter:image" content={defaultImage} />
+                {/* <meta name="twitter:title" content={defaultTitle} /> */}
+                {/* <meta name="twitter:description" content={defaultDescription} /> */}
+                {/* <meta name="twitter:image" content={defaultImage} /> */}
                 <meta name="twitter:image:alt" content="XSMB.WIN Logo" />
 
                 {/* Canonical URL mặc định */}
@@ -67,7 +67,7 @@ export default function Document() {
                         "@type": "WebSite",
                         "name": "XSMB.WIN",
                         "url": "https://xsmb.win/",
-                        "description": defaultDescription,
+                        // "description": defaultDescription,
                         "potentialAction": {
                             "@type": "SearchAction",
                             "target": "https://xsmb.win/search?q={search_term_string}",
@@ -107,7 +107,7 @@ export default function Document() {
                 <meta name="theme-color" content="#ffffff" />
 
                 {/* Preload hình ảnh mặc định */}
-                <link rel="preload" href={defaultImage} as="image" />
+                {/* <link rel="preload" href={defaultImage} as="image" /> */}
             </Head>
             <body>
                 <Main />
