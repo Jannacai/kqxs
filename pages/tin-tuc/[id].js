@@ -5,48 +5,21 @@ import { getCombinedPostData } from "../api/post/index";
 import Link from "next/link";
 import styles from "../../styles/postDetail.module.css";
 
-export async function getServerSideProps({ params }) {
-    const { id } = params;
-    if (!id) {
-        return { props: { post: null, error: "ID không hợp lệ" } };
-    }
-
-    try {
-        const actualId = id.includes('-') ? id.split('-').pop() : id;
-        const data = await getCombinedPostData(actualId, true);
-        return {
-            props: {
-                post: data.post || null,
-                relatedPosts: data.related.slice(0, 4) || [],
-                footballPosts: data.football.slice(0, 3) || [],
-                relatedPostsPool: data.related.slice(0, 15) || [],
-                footballPostsPool: data.football.slice(0, 15) || [],
-            },
-        };
-    } catch (err) {
-        return { props: { post: null, error: err.message || "Đã có lỗi xảy ra" } };
-    }
-}
-
-const PostDetail = ({ post, relatedPosts, footballPosts, relatedPostsPool, footballPostsPool, error }) => {
+const PostDetail = () => {
     const router = useRouter();
-    const [loading, setLoading] = useState(!post && !error);
-    const [relatedIndex, setRelatedIndex] = useState(4);
-    const [footballIndex, setFootballIndex] = useState(3);
-    const [displayedRelatedPosts, setDisplayedRelatedPosts] = useState(relatedPosts);
-    const [displayedFootballPosts, setDisplayedFootballPosts] = useState(footballPosts);
+    const { id } = router.query;
+    const [post, setPost] = useState(null);
+    const [relatedPosts, setRelatedPosts] = useState([]);
+    const [footballPosts, setFootballPosts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [relatedPostsPool, setRelatedPostsPool] = useState([]);
+    const [footballPostsPool, setFootballPostsPool] = useState([]);
+    const [relatedIndex, setRelatedIndex] = useState(0);
+    const [footballIndex, setFootballIndex] = useState(0);
 
-    const defaultImage = "https://xsmb.win/default-og-image.jpg"; // 1200x630px
+    const defaultImage = "https://xsmb.win/default-og-image.jpg"; // Hình ảnh mặc định (1200x630px)
     const defaultDescription = "Đọc tin tức mới nhất tại XSMB.WIN - Cập nhật thông tin nhanh chóng, chính xác!";
-
-    const isValidUrl = (string) => {
-        try {
-            new URL(string);
-            return true;
-        } catch (_) {
-            return false;
-        }
-    };
 
     const fetchWithRetry = async (fetchFn, maxRetries = 3, delay = 3000) => {
         for (let i = 0; i < maxRetries; i++) {
@@ -63,16 +36,17 @@ const PostDetail = ({ post, relatedPosts, footballPosts, relatedPostsPool, footb
     };
 
     const fetchPostData = useCallback(async () => {
-        if (!router.query.id) return;
-        setLoading(true);
+        if (!id) return;
         try {
-            const actualId = router.query.id.includes('-') ? router.query.id.split('-').pop() : router.query.id;
+            const actualId = id.includes('-') ? id.split('-').pop() : id;
             const data = await fetchWithRetry(() => getCombinedPostData(actualId, true));
             setPost(data.post);
-            setRelatedPostsPool(data.related.slice(0, 15) || []);
-            setFootballPostsPool(data.football.slice(0, 15) || []);
-            setDisplayedRelatedPosts(data.related.slice(0, 4) || []);
-            setDisplayedFootballPosts(data.football.slice(0, 3) || []);
+            const uniqueRelated = [...new Map(data.related.map(item => [item._id, item])).values()];
+            const uniqueFootball = [...new Map(data.football.map(item => [item._id, item])).values()];
+            setRelatedPostsPool(uniqueRelated.slice(0, 15) || []);
+            setFootballPostsPool(uniqueFootball.slice(0, 15) || []);
+            setRelatedPosts(uniqueRelated.slice(0, 4) || []);
+            setFootballPosts(uniqueFootball.slice(0, 3) || []);
             setRelatedIndex(4);
             setFootballIndex(3);
             setLoading(false);
@@ -80,13 +54,7 @@ const PostDetail = ({ post, relatedPosts, footballPosts, relatedPostsPool, footb
             setError(err.message || "Đã có lỗi xảy ra khi lấy chi tiết bài viết");
             setLoading(false);
         }
-    }, [router.query.id]);
-
-    useEffect(() => {
-        if (!post && !error) {
-            fetchPostData();
-        }
-    }, [fetchPostData, post, error]);
+    }, [id]);
 
     useEffect(() => {
         const handleNewPost = (event) => {
@@ -125,10 +93,14 @@ const PostDetail = ({ post, relatedPosts, footballPosts, relatedPostsPool, footb
     }, [post?.category, post?._id]);
 
     useEffect(() => {
+        fetchPostData();
+    }, [fetchPostData]);
+
+    useEffect(() => {
         const rotatePosts = () => {
             if (relatedPostsPool.length === 0 || footballPostsPool.length === 0) return;
 
-            setDisplayedRelatedPosts(prev => {
+            setRelatedPosts(prev => {
                 if (prev.length < 4) return prev;
                 const currentIds = new Set(prev.map(p => p._id));
                 let nextIndex = relatedIndex;
@@ -148,7 +120,7 @@ const PostDetail = ({ post, relatedPosts, footballPosts, relatedPostsPool, footb
                 return uniqueNewPosts.length >= 4 ? uniqueNewPosts : prev;
             });
 
-            setDisplayedFootballPosts(prev => {
+            setFootballPosts(prev => {
                 if (prev.length < 3) return prev;
                 const currentIds = new Set(prev.map(p => p._id));
                 let nextIndex = footballIndex;
@@ -169,7 +141,7 @@ const PostDetail = ({ post, relatedPosts, footballPosts, relatedPostsPool, footb
             });
         };
 
-        const interval = setInterval(rotatePosts, 60000);
+        const interval = setInterval(rotatePosts, 60000); // Tăng thời gian xoay lên 60 giây
         return () => clearInterval(interval);
     }, [relatedIndex, footballIndex, relatedPostsPool, footballPostsPool]);
 
@@ -186,6 +158,9 @@ const PostDetail = ({ post, relatedPosts, footballPosts, relatedPostsPool, footb
         }
     }, [post?.createdAt]);
 
+    const displayedRelatedPosts = useMemo(() => relatedPosts.slice(0, 4), [relatedPosts]);
+    const displayedFootballPosts = useMemo(() => footballPosts.slice(0, 3), [footballPosts]);
+
     if (loading) {
         return (
             <div className={styles.loading}>
@@ -196,8 +171,12 @@ const PostDetail = ({ post, relatedPosts, footballPosts, relatedPostsPool, footb
         );
     }
 
-    if (error || !post) {
-        return <p className={styles.error}>{error || "Bài viết không tồn tại."}</p>;
+    if (error) {
+        return <p className={styles.error}>{error}</p>;
+    }
+
+    if (!post) {
+        return <p className={styles.error}>Bài viết không tồn tại.</p>;
     }
 
     const metaDescription = post.description
@@ -207,7 +186,7 @@ const PostDetail = ({ post, relatedPosts, footballPosts, relatedPostsPool, footb
         : defaultDescription;
 
     const canonicalUrl = `https://xsmb.win/tin-tuc/${post.slug}-${post._id}`;
-    const imageUrl = post.img && isValidUrl(post.img) ? post.img : defaultImage;
+    const imageUrl = post.img && post.img.startsWith('https') ? post.img : defaultImage;
 
     const structuredData = {
         "@context": "https://schema.org",
@@ -215,42 +194,70 @@ const PostDetail = ({ post, relatedPosts, footballPosts, relatedPostsPool, footb
         "headline": post.title,
         "datePublished": post.createdAt,
         "dateModified": post.createdAt,
-        "author": { "@type": "Person", "name": post.author?.username || "Admin" },
+        "author": {
+            "@type": "Person",
+            "name": post.author?.username || "Admin"
+        },
         "image": [imageUrl],
         "description": metaDescription,
-        "mainEntityOfPage": { "@type": "WebPage", "@id": canonicalUrl },
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": canonicalUrl
+        },
         "publisher": {
             "@type": "Organization",
             "name": "XSMB.WIN",
-            "logo": { "@type": "ImageObject", "url": "https://xsmb.win/logo.png" }
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https://xsmb.win/logo.png"
+            }
         }
     };
 
     const RelatedPostItem = React.memo(({ post }) => (
         <Link href={`/tin-tuc/${post.slug}-${post._id}`} className={styles.relatedItem} title={post.title} aria-label={`Xem bài viết ${post.title}`}>
-            <img src={post.img || defaultImage} alt={post.title} className={styles.relatedImage} loading="lazy" onError={(e) => { e.target.src = defaultImage; }} />
+            <img
+                src={post.img || defaultImage}
+                alt={post.title}
+                className={styles.relatedImage}
+                loading="lazy"
+                onError={(e) => { e.target.src = defaultImage; }}
+            />
             <h3 className={styles.relatedItemTitle}>{post.title}</h3>
         </Link>
     ));
 
     const FootballPostItem = React.memo(({ post }) => (
         <Link href={`/tin-tuc/${post.slug}-${post._id}`} className={styles.footballItem} title={post.title} aria-label={`Xem bài viết ${post.title}`}>
-            <img src={post.img || defaultImage} alt={post.title} className={styles.footballImage} loading="lazy" onError={(e) => { e.target.src = defaultImage; }} />
+            <img
+                src={post.img || defaultImage}
+                alt={post.title}
+                className={styles.footballImage}
+                loading="lazy"
+                onError={(e) => { e.target.src = defaultImage; }}
+            />
             <div className={styles.footballContent}>
                 <h3 className={styles.footballItemTitle}>{post.title}</h3>
-                <p className={styles.footballItemExcerpt}>{post.description.length > 100 ? `${post.description.substring(0, 100)}...` : post.description}</p>
+                <p className={styles.footballItemExcerpt}>
+                    {post.description.length > 100
+                        ? `${post.description.substring(0, 100)}...`
+                        : post.description}
+                </p>
             </div>
         </Link>
     ));
 
-    const getCategoryColor = (category) => ({
-        'Thể thao': '#22c55e',
-        'Đời sống': '#e11d48',
-        'Giải trí': '#f59e0b',
-        'Tin hot': '#ef4444',
-        'Công nghệ': '#3b82f6',
-        'Sức khỏe': '#8b5cf6',
-    }[category] || '#6b7280');
+    const getCategoryColor = (category) => {
+        const categoryColors = {
+            'Thể thao': '#22c55e',
+            'Đời sống': '#e11d48',
+            'Giải trí': '#f59e0b',
+            'Tin hot': '#ef4444',
+            'Công nghệ': '#3b82f6',
+            'Sức khỏe': '#8b5cf6',
+        };
+        return categoryColors[category] || '#6b7280';
+    };
 
     return (
         <>
@@ -274,7 +281,7 @@ const PostDetail = ({ post, relatedPosts, footballPosts, relatedPostsPool, footb
                 <meta property="og:image:alt" content={post.title} />
                 <meta property="og:site_name" content="XSMB.WIN" />
                 <meta property="og:locale" content="vi_VN" />
-                <meta property="fb:app_id" content={process.env.FB_APP_ID} /> {/* Xóa || '' */}
+                <meta property="fb:app_id" content={process.env.FB_APP_ID || ''} />
 
                 <meta property="zalo:official_account_id" content={process.env.ZALO_OA_ID || ''} />
                 <meta property="zalo:share_url" content={canonicalUrl} />
@@ -303,7 +310,11 @@ const PostDetail = ({ post, relatedPosts, footballPosts, relatedPostsPool, footb
                         <div className={styles.meta}>
                             <span className={styles.date}>Ngày {formattedDate}</span>
                             {Array.isArray(post.category) && post.category.map((cat, idx) => (
-                                <span key={`${cat}-${idx}`} className={styles.category} style={{ '--category-color': getCategoryColor(cat) }}>
+                                <span
+                                    key={`${cat}-${idx}`}
+                                    className={styles.category}
+                                    style={{ '--category-color': getCategoryColor(cat) }}
+                                >
                                     {cat}
                                 </span>
                             ))}
@@ -320,20 +331,30 @@ const PostDetail = ({ post, relatedPosts, footballPosts, relatedPostsPool, footb
                                     loading="lazy"
                                     onError={(e) => { e.target.src = defaultImage; }}
                                 />
-                                {post.caption && <figcaption className={styles.caption}>{post.caption}</figcaption>}
+                                {post.caption && (
+                                    <figcaption className={styles.caption}>{post.caption}</figcaption>
+                                )}
                             </figure>
                         ) : (
-                            <div className={styles.imagePlaceholder}>Không có hình ảnh</div>
+                            <div className={styles.imagePlaceholder}>
+                                Không có hình ảnh
+                            </div>
                         )}
                         <RenderContent content={post.description} img2={post.img2} caption2={post.caption2} title={post.title} />
                         <p className={styles.source}>Nguồn: {post.source || "Theo XSMB.WIN"}</p>
-                        <button className={styles.backButton} onClick={() => router.push("/news")} aria-label="Quay lại trang tin tức">
+                        <button
+                            className={styles.backButton}
+                            onClick={() => router.push("/news")}
+                            aria-label="Quay lại trang tin tức"
+                        >
                             Đến Trang Tin Tức
                         </button>
                         <div className={styles.footballPosts}>
                             <h2 className={styles.footballTitle}>Tin bóng đá nổi bật</h2>
                             {displayedFootballPosts.length > 0 ? (
-                                displayedFootballPosts.map((footballPost) => <FootballPostItem key={footballPost._id} post={footballPost} />)
+                                displayedFootballPosts.map((footballPost) => (
+                                    <FootballPostItem key={footballPost._id} post={footballPost} />
+                                ))
                             ) : (
                                 <p className={styles.noFootball}>Không có bài viết bóng đá.</p>
                             )}
@@ -342,7 +363,9 @@ const PostDetail = ({ post, relatedPosts, footballPosts, relatedPostsPool, footb
                     <div className={styles.relatedPosts}>
                         <h2 className={styles.relatedTitle}>Bài viết liên quan</h2>
                         {displayedRelatedPosts.length > 0 ? (
-                            displayedRelatedPosts.map((relatedPost) => <RelatedPostItem key={relatedPost._id} post={relatedPost} />)
+                            displayedRelatedPosts.map((relatedPost) => (
+                                <RelatedPostItem key={relatedPost._id} post={relatedPost} />
+                            ))
                         ) : (
                             <p className={styles.noRelated}>Không có bài viết liên quan.</p>
                         )}
@@ -356,16 +379,25 @@ const PostDetail = ({ post, relatedPosts, footballPosts, relatedPostsPool, footb
 export default PostDetail;
 
 const RenderContent = React.memo(({ content, img2, caption2, title }) => {
-    if (!content) return null;
+    if (!content) {
+        return null;
+    }
 
-    const paragraphs = content.split(/\n\s*\n/).filter(paragraph => paragraph.trim() !== '');
+    const paragraphs = content
+        .split(/\n\s*\n/)
+        .filter(paragraph => paragraph.trim() !== '');
+
     const midIndex = Math.floor(paragraphs.length / 2);
     const firstHalf = paragraphs.slice(0, midIndex);
     const secondHalf = paragraphs.slice(midIndex);
 
     return (
         <div className={styles.content}>
-            {firstHalf.map((paragraph, index) => <p className={styles.description} key={`first-${index}`}>{paragraph}</p>)}
+            {firstHalf.map((paragraph, index) => (
+                <p className={styles.description} key={`first-${index}`}>
+                    {paragraph}
+                </p>
+            ))}
             {img2 && (
                 <figure className={styles.imageWrapper}>
                     <img
@@ -377,10 +409,16 @@ const RenderContent = React.memo(({ content, img2, caption2, title }) => {
                         loading="lazy"
                         onError={(e) => { e.target.src = '/backgrond.png'; }}
                     />
-                    {caption2 && <figcaption className={styles.caption}>{caption2}</figcaption>}
+                    {caption2 && (
+                        <figcaption className={styles.caption}>{caption2}</figcaption>
+                    )}
                 </figure>
             )}
-            {secondHalf.map((paragraph, index) => <p className={styles.description} key={`second-${index}`}>{paragraph}</p>)}
+            {secondHalf.map((paragraph, index) => (
+                <p className={styles.description} key={`second-${index}`}>
+                    {paragraph}
+                </p>
+            ))}
         </div>
     );
 });
