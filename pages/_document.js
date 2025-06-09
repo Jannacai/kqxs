@@ -13,12 +13,12 @@ export default function Document() {
                 <meta name="robots" content="index, follow" />
 
                 {/* Fallback Open Graph Tags */}
-                <meta property="og:title" content={defaultTitle} />
-                <meta property="og:description" content={defaultDescription} />
+                {/* <meta property="og:title" content={defaultTitle} /> */}
+                {/* <meta property="og:description" content={defaultDescription} /> */}
                 <meta property="og:type" content="website" />
                 <meta property="og:url" content="https://xsmb.win/" />
-                <meta property="og:image" content={defaultImage} />
-                <meta property="og:image:secure_url" content={defaultImage} />
+                {/* <meta property="og:image" content={defaultImage} />
+                <meta property="og:image:secure_url" content={defaultImage} /> */}
                 <meta property="og:image:width" content="1200" />
                 <meta property="og:image:height" content="630" />
                 <meta property="og:image:type" content="image/jpeg" />
@@ -36,9 +36,9 @@ export default function Document() {
 
                 {/* Twitter Cards */}
                 <meta name="twitter:card" content="summary_large_image" />
-                <meta name="twitter:title" content={defaultTitle} />
-                <meta name="twitter:description" content={defaultDescription} />
-                <meta name="twitter:image" content={defaultImage} />
+                {/* <meta name="twitter:title" content={defaultTitle} /> */}
+                {/* <meta name="twitter:description" content={defaultDescription} /> */}
+                {/* <meta name="twitter:image" content={defaultImage} /> */}
                 <meta name="twitter:image:alt" content="XSMB.WIN Logo" />
 
                 <link rel="canonical" href="https://xsmb.win/" />
@@ -50,7 +50,7 @@ export default function Document() {
                 <link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-icon-180x180.png" />
                 <link rel="manifest" href="/favicon/manifest.json" />
                 <meta name="theme-color" content="#ffffff" />
-                <link rel="preload" href={defaultImage} as="image" />
+                {/* <link rel="preload" href={defaultImage} as="image" /> */}
 
                 <script async src="https://www.googletagmanager.com/gtag/js?id=G-32BNFX1ZW5"></script>
                 <script
@@ -70,7 +70,7 @@ export default function Document() {
                         "@type": "WebSite",
                         "name": "XSMB.WIN",
                         "url": "https://xsmb.win/",
-                        "description": defaultDescription,
+                        // "description": defaultDescription,
                         "potentialAction": {
                             "@type": "SearchAction",
                             "target": "https://xsmb.win/search?q={search_term_string}",
