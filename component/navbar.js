@@ -1168,11 +1168,11 @@ const NavBar = () => {
                                 </ul>
                             </li>
                             <li
-                                className={`${styles.nav_item} ${router.pathname.startsWith('/tin-tuc') ? styles.active : ''
+                                className={`${styles.nav_item} ${router.pathname.startsWith('/news') ? styles.active : ''
                                     }`}
                             >
                                 <div className={styles.grouplink}>
-                                    <Link href="/tin-tuc" className={styles.nav_itemLink}>
+                                    <Link href="#" className={styles.nav_itemLink}>
                                         Tin Tức
                                     </Link>
                                     <span className={styles.icon}>
