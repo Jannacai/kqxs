@@ -18,6 +18,9 @@ const PostDetail = () => {
     const [relatedIndex, setRelatedIndex] = useState(0);
     const [footballIndex, setFootballIndex] = useState(0);
 
+    const defaultImage = "https://xsmb.win/default-og-image.jpg"; // Hình ảnh mặc định (1200x630px)
+    const defaultDescription = "Đọc tin tức mới nhất tại XSMB.WIN - Cập nhật thông tin nhanh chóng, chính xác!";
+
     const fetchWithRetry = async (fetchFn, maxRetries = 3, delay = 3000) => {
         for (let i = 0; i < maxRetries; i++) {
             try {
@@ -37,7 +40,6 @@ const PostDetail = () => {
         try {
             const actualId = id.includes('-') ? id.split('-').pop() : id;
             const data = await fetchWithRetry(() => getCombinedPostData(actualId, true));
-            console.log("Fetched data:", data);
             setPost(data.post);
             const uniqueRelated = [...new Map(data.related.map(item => [item._id, item])).values()];
             const uniqueFootball = [...new Map(data.football.map(item => [item._id, item])).values()];
@@ -49,20 +51,16 @@ const PostDetail = () => {
             setFootballIndex(3);
             setLoading(false);
         } catch (err) {
-            console.error("Fetch error:", err);
             setError(err.message || "Đã có lỗi xảy ra khi lấy chi tiết bài viết");
             setLoading(false);
         }
     }, [id]);
 
-    // Xử lý bài viết mới
     useEffect(() => {
         const handleNewPost = (event) => {
             const newPost = event.detail;
-            console.log("New post received:", newPost);
             if (!newPost || !newPost._id || newPost._id === post?._id) return;
 
-            // Cập nhật relatedPostsPool
             setRelatedPostsPool(prev => {
                 if (!Array.isArray(newPost.category) || !newPost.category.some(cat => post?.category?.includes(cat))) return prev;
                 let newPool = [...prev];
@@ -73,12 +71,9 @@ const PostDetail = () => {
                 } else {
                     newPool.push(newPost);
                 }
-                newPool = newPool.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-                console.log("Updated relatedPostsPool:", newPool.map(p => p._id));
-                return newPool;
+                return newPool.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
             });
 
-            // Cập nhật footballPostsPool
             setFootballPostsPool(prev => {
                 if (!Array.isArray(newPost.category) || !newPost.category.includes("Thể thao")) return prev;
                 let newPool = [...prev];
@@ -89,9 +84,7 @@ const PostDetail = () => {
                 } else {
                     newPool.push(newPost);
                 }
-                newPool = newPool.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-                console.log("Updated footballPostsPool:", newPool.map(p => p._id));
-                return newPool;
+                return newPool.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
             });
         };
 
@@ -105,10 +98,7 @@ const PostDetail = () => {
 
     useEffect(() => {
         const rotatePosts = () => {
-            if (relatedPostsPool.length === 0 || footballPostsPool.length === 0) {
-                console.log("Pool rỗng, bỏ qua xoay vòng");
-                return;
-            }
+            if (relatedPostsPool.length === 0 || footballPostsPool.length === 0) return;
 
             setRelatedPosts(prev => {
                 if (prev.length < 4) return prev;
@@ -126,7 +116,6 @@ const PostDetail = () => {
 
                 const newPosts = [...prev.slice(0, 3), nextPost || prev[3]];
                 const uniqueNewPosts = [...new Map(newPosts.map(item => [item._id, item])).values()];
-                console.log("Related Posts Updated:", uniqueNewPosts.map(p => p._id));
                 setRelatedIndex((nextIndex + 1) % relatedPostsPool.length);
                 return uniqueNewPosts.length >= 4 ? uniqueNewPosts : prev;
             });
@@ -147,30 +136,12 @@ const PostDetail = () => {
 
                 const newPosts = [...prev.slice(0, 2), nextPost || prev[2]];
                 const uniqueNewPosts = [...new Map(newPosts.map(item => [item._id, item])).values()];
-                console.log("Football Posts Updated:", uniqueNewPosts.map(p => p._id));
                 setFootballIndex((nextIndex + 1) % footballPostsPool.length);
                 return uniqueNewPosts.length >= 3 ? uniqueNewPosts : prev;
             });
-
-            setTimeout(() => {
-                setRelatedPosts(prev => {
-                    if (prev.length < 4) return prev;
-                    const newPosts = [prev[3], ...prev.slice(0, 3)];
-                    const uniqueNewPosts = [...new Map(newPosts.map(item => [item._id, item])).values()];
-                    console.log("Related Posts Rotated:", uniqueNewPosts.map(p => p._id));
-                    return uniqueNewPosts.length >= 4 ? uniqueNewPosts : prev;
-                });
-                setFootballPosts(prev => {
-                    if (prev.length < 3) return prev;
-                    const newPosts = [prev[2], ...prev.slice(0, 2)];
-                    const uniqueNewPosts = [...new Map(newPosts.map(item => [item._id, item])).values()];
-                    console.log("Football Posts Rotated:", uniqueNewPosts.map(p => p._id));
-                    return uniqueNewPosts.length >= 3 ? uniqueNewPosts : prev;
-                });
-            }, 10000);
         };
 
-        const interval = setInterval(rotatePosts, 20000);
+        const interval = setInterval(rotatePosts, 60000); // Tăng thời gian xoay lên 60 giây
         return () => clearInterval(interval);
     }, [relatedIndex, footballIndex, relatedPostsPool, footballPostsPool]);
 
@@ -183,7 +154,6 @@ const PostDetail = () => {
             const year = date.getFullYear();
             return `${day}/${month}/${year}`;
         } catch (error) {
-            console.error("Error formatting date:", error);
             return "Ngày đăng";
         }
     }, [post?.createdAt]);
@@ -192,7 +162,13 @@ const PostDetail = () => {
     const displayedFootballPosts = useMemo(() => footballPosts.slice(0, 3), [footballPosts]);
 
     if (loading) {
-        return <p className={styles.loading}>Đang tải...</p>;
+        return (
+            <div className={styles.loading}>
+                <div className={styles.skeletonTitle}></div>
+                <div className={styles.skeletonImage}></div>
+                <div className={styles.skeletonText}></div>
+            </div>
+        );
     }
 
     if (error) {
@@ -203,13 +179,14 @@ const PostDetail = () => {
         return <p className={styles.error}>Bài viết không tồn tại.</p>;
     }
 
-    const metaDescription = post.description.length > 150
-        ? `${post.description.substring(0, 147)}...`
-        : post.description;
+    const metaDescription = post.description
+        ? post.description.length > 160
+            ? `${post.description.substring(0, 157)}...`
+            : post.description
+        : defaultDescription;
 
     const canonicalUrl = `https://xsmb.win/tin-tuc/${post.slug}-${post._id}`;
-    const keywords = [post.title, ...post.category, "tin tức", "XSMB.WIN"].join(", ");
-    const imageUrl = post.img && post.img.startsWith('http') ? post.img : "https://xsmb.win/facebook.png";
+    const imageUrl = post.img && post.img.startsWith('http') ? post.img : defaultImage;
 
     const structuredData = {
         "@context": "https://schema.org",
@@ -223,7 +200,6 @@ const PostDetail = () => {
         },
         "image": [imageUrl],
         "description": metaDescription,
-        "keywords": keywords,
         "mainEntityOfPage": {
             "@type": "WebPage",
             "@id": canonicalUrl
@@ -239,26 +215,26 @@ const PostDetail = () => {
     };
 
     const RelatedPostItem = React.memo(({ post }) => (
-        <Link href={`/tin-tuc/${post.slug}-${post._id}`} className={styles.relatedItem} title={post.title}>
+        <Link href={`/tin-tuc/${post.slug}-${post._id}`} className={styles.relatedItem} title={post.title} aria-label={`Xem bài viết ${post.title}`}>
             <img
-                src={post.img || '/backgrond.png'}
+                src={post.img || defaultImage}
                 alt={post.title}
                 className={styles.relatedImage}
                 loading="lazy"
-                onError={(e) => { e.target.src = '/backgrond.png'; }}
+                onError={(e) => { e.target.src = defaultImage; }}
             />
             <h3 className={styles.relatedItemTitle}>{post.title}</h3>
         </Link>
     ));
 
     const FootballPostItem = React.memo(({ post }) => (
-        <Link href={`/tin-tuc/${post.slug}-${post._id}`} className={styles.footballItem} title={post.title}>
+        <Link href={`/tin-tuc/${post.slug}-${post._id}`} className={styles.footballItem} title={post.title} aria-label={`Xem bài viết ${post.title}`}>
             <img
-                src={post.img || '/backgrond.png'}
+                src={post.img || defaultImage}
                 alt={post.title}
                 className={styles.footballImage}
                 loading="lazy"
-                onError={(e) => { e.target.src = '/backgrond.png'; }}
+                onError={(e) => { e.target.src = defaultImage; }}
             />
             <div className={styles.footballContent}>
                 <h3 className={styles.footballItemTitle}>{post.title}</h3>
@@ -271,17 +247,16 @@ const PostDetail = () => {
         </Link>
     ));
 
-    // Hàm gán màu cho danh mục
     const getCategoryColor = (category) => {
         const categoryColors = {
-            'Thể thao': '#22c55e', // Xanh lá
-            'Đời sống': '#e11d48', // Hồng
-            'Giải trí': '#f59e0b', // Vàng
-            'Tin hot': '#ef4444', // Đỏ
-            'Công nghệ': '#3b82f6', // Xanh dương
-            'Sức khỏe': '#8b5cf6', // Tím
+            'Thể thao': '#22c55e',
+            'Đời sống': '#e11d48',
+            'Giải trí': '#f59e0b',
+            'Tin hot': '#ef4444',
+            'Công nghệ': '#3b82f6',
+            'Sức khỏe': '#8b5cf6',
         };
-        return categoryColors[category] || '#6b7280'; // Màu xám mặc định
+        return categoryColors[category] || '#6b7280';
     };
 
     return (
@@ -289,46 +264,41 @@ const PostDetail = () => {
             <Head>
                 <meta charSet="UTF-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                <title>{`${post.title} - Tin Tức XSMB.WIN`}</title>
+                <title>{post.title.slice(0, 60)}</title>
                 <meta name="description" content={metaDescription} />
-                <meta name="keywords" content={keywords} />
                 <meta name="robots" content="index, follow" />
                 <meta name="author" content={post.author?.username || "Admin"} />
 
-                {/* Open Graph Tags (Facebook, Google) */}
-                <meta property="og:title" content={post.title} />
+                <meta property="og:title" content={post.title.slice(0, 60)} />
                 <meta property="og:description" content={metaDescription} />
                 <meta property="og:type" content="article" />
                 <meta property="og:url" content={canonicalUrl} />
                 <meta property="og:image" content={imageUrl} />
+                <meta property="og:image:secure_url" content={imageUrl} />
                 <meta property="og:image:width" content="1200" />
                 <meta property="og:image:height" content="630" />
-                <meta property="og:image:secure_url" content={imageUrl} />
                 <meta property="og:image:type" content="image/jpeg" />
                 <meta property="og:image:alt" content={post.title} />
                 <meta property="og:site_name" content="XSMB.WIN" />
                 <meta property="og:locale" content="vi_VN" />
                 <meta property="fb:app_id" content={process.env.FB_APP_ID || ''} />
 
-                {/* Zalo */}
                 <meta property="zalo:official_account_id" content={process.env.ZALO_OA_ID || ''} />
                 <meta property="zalo:share_url" content={canonicalUrl} />
                 <meta property="zalo:og:image" content={imageUrl} />
                 <meta property="zalo:og:image:width" content="600" />
                 <meta property="zalo:og:image:height" content="600" />
 
-                {/* Twitter Cards */}
                 <meta name="twitter:card" content="summary_large_image" />
-                <meta name="twitter:title" content={post.title} />
+                <meta name="twitter:title" content={post.title.slice(0, 60)} />
                 <meta name="twitter:description" content={metaDescription} />
                 <meta name="twitter:image" content={imageUrl} />
                 <meta name="twitter:image:alt" content={post.title} />
 
-                {/* Canonical và Alternate */}
                 <link rel="canonical" href={canonicalUrl} />
                 <link rel="alternate" hrefLang="vi" href={canonicalUrl} />
+                <link rel="preload" href={imageUrl} as="image" />
 
-                {/* JSON-LD Schema */}
                 <script type="application/ld+json">
                     {JSON.stringify(structuredData)}
                 </script>
@@ -354,10 +324,12 @@ const PostDetail = () => {
                             <figure className={styles.imageWrapper}>
                                 <img
                                     src={post.img}
+                                    srcSet={`${post.img} 1200w, ${post.img.replace('.jpg', '-medium.jpg')} 800w, ${post.img.replace('.jpg', '-small.jpg')} 400w`}
+                                    sizes="(max-width: 768px) 100vw, 800px"
                                     alt={post.title}
                                     className={styles.image}
                                     loading="lazy"
-                                    onError={(e) => { e.target.src = '/backgrond.png'; }}
+                                    onError={(e) => { e.target.src = defaultImage; }}
                                 />
                                 {post.caption && (
                                     <figcaption className={styles.caption}>{post.caption}</figcaption>
@@ -370,7 +342,11 @@ const PostDetail = () => {
                         )}
                         <RenderContent content={post.description} img2={post.img2} caption2={post.caption2} title={post.title} />
                         <p className={styles.source}>Nguồn: {post.source || "Theo XSMB.WIN"}</p>
-                        <button className={styles.backButton} onClick={() => router.push("/news")}>
+                        <button
+                            className={styles.backButton}
+                            onClick={() => router.push("/news")}
+                            aria-label="Quay lại trang tin tức"
+                        >
                             Đến Trang Tin Tức
                         </button>
                         <div className={styles.footballPosts}>
@@ -426,6 +402,8 @@ const RenderContent = React.memo(({ content, img2, caption2, title }) => {
                 <figure className={styles.imageWrapper}>
                     <img
                         src={img2}
+                        srcSet={`${img2} 1200w, ${img2.replace('.jpg', '-medium.jpg')} 800w, ${img2.replace('.jpg', '-small.jpg')} 400w`}
+                        sizes="(max-width: 768px) 100vw, 800px"
                         alt={`Hình ảnh bổ sung cho ${title}`}
                         className={styles.image}
                         loading="lazy"
