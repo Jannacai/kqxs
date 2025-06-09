@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import Head from "next/head";
-import imgItem from "../public/backgrond.png";
+import imgItem from "../public/backgrond.png"; // Đảm bảo file tồn tại
 import { useRouter } from "next/router";
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import styles from "../styles/listpost.module.css";
@@ -9,37 +9,31 @@ import styles from "../styles/listpost.module.css";
 // Hàm gán màu cho danh mục
 const getCategoryColor = (category) => {
     const categoryColors = {
-        'Thể thao': '#22c55e', // Xanh lá
-        'Đời sống': '#e11d48', // Hồng
-        'Giải trí': '#f59e0b', // Vàng
-        'Tin hot': '#ef4444', // Đỏ
-        'Công nghệ': '#3b82f6', // Xanh dương
-        'Sức khỏe': '#8b5cf6', // Tím
+        'Thể thao': '#22c55e',
+        'Đời sống': '#e11d48',
+        'Giải trí': '#f59e0b',
+        'Tin hot': '#ef4444',
+        'Công nghệ': '#3b82f6',
+        'Sức khỏe': '#8b5cf6',
     };
-    return categoryColors[category] || '#6b7280'; // Màu xám mặc định
+    return categoryColors[category] || '#6b7280';
 };
 
-const getStartOfDay = (date) => {
-    const start = new Date(date);
-    start.setHours(0, 0, 0, 0);
-    return start.getTime();
-};
-
-// Hàm làm sạch URL hình ảnh
+// Hàm làm sạch URL hình ảnh, đồng bộ với DetailPost
 const cleanImageUrl = (url) => {
-    if (!url || typeof url !== 'string') return imgItem.src;
+    if (!url || typeof url !== 'string') {
+        console.warn(`Invalid image URL: ${url}, using fallback image`);
+        return imgItem.src;
+    }
     try {
-        // Kiểm tra URL có hợp lệ không
         const urlObj = new URL(url);
-        // Kiểm tra phần mở rộng hợp lệ
-        const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
-        const hasValidExtension = validExtensions.some(ext => url.toLowerCase().includes(ext));
-        if (!hasValidExtension) {
+        if (!urlObj.protocol.startsWith('https')) {
+            console.warn(`Non-HTTPS image URL: ${url}, using fallback image`);
             return imgItem.src;
         }
-        // Giữ nguyên URL gốc, không loại bỏ tham số
         return urlObj.toString();
     } catch {
+        console.warn(`Failed to parse image URL: ${url}, using fallback image`);
         return imgItem.src;
     }
 };
@@ -47,11 +41,28 @@ const cleanImageUrl = (url) => {
 const ListPost = (props) => {
     const router = useRouter();
     const allPosts = props.appa;
+
+    // Log để debug dữ liệu đầu vào
+    useEffect(() => {
+        console.log('ListPost props.appa:', JSON.stringify(allPosts, null, 2));
+        allPosts?.forEach((post, index) => {
+            console.log(`Post ${index} (ID: ${post?._id}) mainContents:`, JSON.stringify(post?.mainContents, null, 2));
+            post?.mainContents?.forEach((content, contentIndex) => {
+                if (content?.img) {
+                    console.log(`Post ${post._id} content ${contentIndex} image URL: ${content.img}`);
+                }
+            });
+        });
+    }, [allPosts]);
+
     const displaySlots = 4;
     const timerDuration = 6000;
 
     const allRecentSortedPosts = useMemo(() => {
-        if (!Array.isArray(allPosts)) return [];
+        if (!Array.isArray(allPosts) || allPosts.length === 0) {
+            console.warn('No posts available in props.appa');
+            return [];
+        }
         return allPosts;
     }, [allPosts]);
 
@@ -109,21 +120,29 @@ const ListPost = (props) => {
         handleManualChange(newIndex);
     };
 
-    // Hàm lấy ảnh đầu tiên hợp lệ từ mainContents
+    // Hàm lấy ảnh, đồng bộ với DetailPost
     const getPostImage = (post) => {
-        if (!post.mainContents || !Array.isArray(post.mainContents)) {
+        if (!post || !post.mainContents || !Array.isArray(post.mainContents)) {
+            console.warn(`Post ${post?._id || 'unknown'} has no valid mainContents, using fallback image`);
             return imgItem.src;
         }
-        const validImage = post.mainContents.find(content => content.img && content.img.startsWith('http'));
-        return validImage ? cleanImageUrl(validImage.img) : imgItem.src;
+        const validImage = post.mainContents.find(content => content?.img?.startsWith('https'));
+        if (!validImage) {
+            console.warn(`Post ${post?._id || 'unknown'} has no valid HTTPS image in mainContents, using fallback image`);
+            return imgItem.src;
+        }
+        const cleanedUrl = cleanImageUrl(validImage.img);
+        console.log(`Post ${post._id} selected image URL: ${cleanedUrl}`);
+        return cleanedUrl;
     };
 
     // Hàm lấy mô tả từ mainContents
     const getPostDescription = (post) => {
-        if (!post.mainContents || !Array.isArray(post.mainContents) || !post.mainContents[0]?.description) {
+        if (!post || !post.mainContents || !Array.isArray(post.mainContents) || !post.mainContents[0]?.description) {
             return "";
         }
-        return post.mainContents[0].description.slice(0, 100) + "...";
+        const description = post.mainContents[0].description;
+        return typeof description === 'string' && description.length > 0 ? description.slice(0, 100) + "..." : "";
     };
 
     if (totalPosts === 0) {
@@ -154,16 +173,16 @@ const ListPost = (props) => {
                             position: index + 1,
                             item: {
                                 "@type": "NewsArticle",
-                                headline: post.title,
+                                headline: post?.title || "Bài viết không có tiêu đề",
                                 description: getPostDescription(post),
                                 image: getPostImage(post),
-                                datePublished: post.createdAt,
-                                url: `https://xsmb.win/tin-tuc/${post.slug}-${post._id}`,
+                                datePublished: post?.createdAt || new Date().toISOString(),
+                                url: post ? `https://xsmb.win/tin-tuc/${post.slug}-${post._id}` : '#',
                             },
                         })),
                     })}
-                </script >
-            </Head >
+                </script>
+            </Head>
             <h2 className={styles.postTitle}>Tin Tức Mới Nhất 24h</h2>
             <div className={styles.listPostWrapper}>
                 <div className={styles.listPost}>
@@ -171,9 +190,10 @@ const ListPost = (props) => {
                         const itemClassName = `${styles.itemPost} ${index === 1 ? styles.active : ''}`;
                         const uniqueKey = `${post?._id || `post-${index}`}-${index}`;
                         let formattedDate = 'Ngày đăng';
-                        if (post.createdAt) {
+                        if (post?.createdAt) {
                             try {
                                 const date = new Date(post.createdAt);
+                                if (isNaN(date.getTime())) throw new Error('Invalid date');
                                 const day = String(date.getDate()).padStart(2, '0');
                                 const month = String(date.getMonth() + 1).padStart(2, '0');
                                 const year = date.getFullYear();
@@ -189,21 +209,25 @@ const ListPost = (props) => {
                         const postDescription = getPostDescription(post);
                         return (
                             <div key={uniqueKey} className={itemClassName} role="article">
-                                <Link href={`/tin-tuc/${post.slug}-${post._id}`} aria-label={`Xem bài viết ${post.title}`}>
+                                <Link href={`/tin-tuc/${post.slug}-${post._id}`} aria-label={`Xem bài viết ${post.title || 'không tiêu đề'}`}>
                                     <Image
                                         className={styles.imgPost}
                                         src={postImage}
-                                        alt={`Hình ảnh bài viết: ${post.title}`}
+                                        alt={`Hình ảnh bài viết: ${post.title || 'không tiêu đề'}`}
                                         width={400}
                                         height={250}
-                                        onError={(e) => { e.target.src = imgItem.src; }}
+                                        onError={(e) => {
+                                            console.warn(`Failed to load image for post ${post._id}: ${postImage}`);
+                                            e.target.src = imgItem.src;
+                                        }}
                                         placeholder="blur"
                                         blurDataURL={imgItem.src}
+                                        loading="lazy"
                                     />
                                 </Link>
                                 <div className={styles.postMeta}>
                                     <span className={styles.postDate}>{formattedDate}</span>
-                                    {Array.isArray(post.category) && post.category.map((cat, idx) => (
+                                    {Array.isArray(post.category) && post.category.length > 0 && post.category.map((cat, idx) => (
                                         <span
                                             key={`${cat}-${idx}`}
                                             className={styles.postCategory}
@@ -217,7 +241,7 @@ const ListPost = (props) => {
                                     className={styles.title}
                                     onClick={() => router.push(`/tin-tuc/${post.slug}-${post._id}`)}
                                 >
-                                    {post.title}
+                                    {post.title || 'Không có tiêu đề'}
                                 </h3>
                                 <p className={styles.desc}>
                                     {postDescription}
@@ -257,7 +281,7 @@ const ListPost = (props) => {
                     </div>
                 )}
             </div>
-        </div >
+        </div>
     );
 };
 

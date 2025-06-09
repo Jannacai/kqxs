@@ -1,489 +1,496 @@
  @keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.modalOverlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.6);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    padding: 20px;
-    overflow-y: auto;
-}
-
-.container {
-    max-width: 640px;
-    width: 100%;
-    margin: 0 auto;
-}
-
-.formGroup {
-    position: relative;
-    font-family: "Inter", sans-serif;
-    padding: 32px;
-    background-color: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-    max-height: 85vh;
-    overflow-y: auto;
-    animation: fadeIn 0.3s ease-out;
-}
-
-.formGroupInner {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-}
-
-.orderableGroup {
-    position: relative;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 16px;
-    background-color: #f9fafb;
-}
-
-.orderHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-}
-
-.orderNumber {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #111827;
-    padding: 4px 8px;
-    background-color: #e5e7eb;
-    border-radius: 4px;
-}
-
-.orderButtons {
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    display: flex;
-    gap: 8px;
-}
-
-.orderButton {
-    background: #3b82f6;
-    color: #ffffff;
-    border: none;
-    border-radius: 4px;
-    padding: 4px 8px;
-    cursor: pointer;
-    font-size: 0.875rem;
-    transition: background-color 0.2s ease;
-}
-
-.orderButton:hover {
-    background-color: #2563eb;
-}
-
-.orderButton:disabled {
-    background-color: #9ca3af;
-    cursor: not-allowed;
-}
-
-.removeButton {
-    background: #e11d48;
-    color: #ffffff;
-    border: none;
-    border-radius: 4px;
-    padding: 4px 8px;
-    cursor: pointer;
-    font-size: 0.875rem;
-    transition: background-color 0.2s ease;
-}
-
-.removeButton:hover {
-    background-color: #be123c;
-}
-
-.addButton {
-    background: #10b981;
-    color: #ffffff;
-    border: none;
-    border-radius: 8px;
-    padding: 8px 16px;
-    cursor: pointer;
-    font-size: 0.875rem;
-    margin: 8px 0;
-    transition: background-color 0.2s ease;
-}
-
-.addButton:hover {
-    background-color: #059669;
-}
-
-.toggleButton {
-    background: #6b7280;
-    color: #ffffff;
-    border: none;
-    border-radius: 8px;
-    padding: 8px 16px;
-    cursor: pointer;
-    font-size: 0.875rem;
-    margin: 8px 0;
-    transition: background-color 0.2s ease;
-}
-
-.toggleButton:hover {
-    background-color: #4b5563;
-}
-
-.toggleButtonActive {
-    background: #3b82f6;
-}
-
-.subSectionGroup {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 16px;
-    background-color: #f3f4f6;
-    border-radius: 8px;
-}
-
-.mainContentGroup {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 16px;
-    background-color: #f3f4f6;
-    border-radius: 8px;
-}
-
-.errorModal {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 20px;
-    padding: 24px;
-    background-color: #fef2f2;
-    border: 2px solid #e11d48;
-    border-radius: 12px;
-}
-
-.errorModalIcon {
-    font-size: 2.5rem;
-    color: #e11d48;
-    margin-bottom: 8px;
-}
-
-.errorModalMessage {
-    font-size: 1.125rem;
-    font-weight: 500;
-    color: #111827;
-    text-align: center;
-    line-height: 1.5;
-}
-
-.closeButton {
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    background: none;
-    border: none;
-    font-size: 1.25rem;
-    color: #374151;
-    cursor: pointer;
-    padding: 4px;
-    transition: color 0.2s ease, transform 0.2s ease;
-}
-
-.closeButton:hover {
-    color: #dc2626;
-    transform: scale(1.2);
-}
-
-.Create_postTitle {
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: #111827;
-    margin-bottom: 24px;
-    text-align: center;
-    border-bottom: 2px solid #e5e7eb;
-    padding-bottom: 12px;
-}
-
-.subTitle {
-    font-size: 1rem;
-    font-weight: 500;
-    color: #111827;
-    margin-bottom: 12px;
-    border-left: 3px solid #3b82f6;
-    padding-left: 8px;
-}
-
-.titleGroup {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #374151;
-    display: block;
-    margin-bottom: 8px;
-}
-
-.error {
-    color: #e11d48;
-    font-size: 0.75rem;
-    margin-top: 4px;
-    display: block;
-}
-
-.Group {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.imageGroup {
-    padding: 16px;
-    background-color: #f9fafb;
-    border-radius: 8px;
-    border: 1px solid #e5e7eb;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.labelGroupIMG {
-    width: 100%;
-    max-height: 160px;
-    object-fit: cover;
-    border-radius: 8px;
-    border: 1px solid #e5e7eb;
-    margin-top: 8px;
-    display: block;
-    background-color: #f3f4f6;
-}
-
-.noImageText {
-    font-size: 0.875rem;
-    font-style: italic;
-    color: #6b7280;
-    margin-top: 8px;
-}
-
-.checkboxGroup {
-    display: flex;
-    gap: 24px;
-    padding: 16px;
-    background-color: #e0f2fe;
-    border-radius: 8px;
-    border: 2px solid #3b82f6;
-    margin-bottom: 16px;
-}
-
-.checkboxGroup label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #111827;
-}
-
-.inputGroup_desc,
-.inputGroup_title {
-    width: 100%;
-    border-radius: 8px;
-    border: 1px solid #d1d5db;
-    padding: 12px;
-    font-size: 0.875rem;
-    color: #111827;
-    outline: none;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.inputGroup_title {
-    height: 44px;
-}
-
-.inputGroup_desc {
-    resize: none;
-    min-height: 120px;
-}
-
-.inputGroup_title:focus,
-.inputGroup_desc:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
-}
-
-.submitForm {
-    display: block;
-    width: 100%;
-    max-width: 200px;
-    padding: 12px;
-    border-radius: 8px;
-    background-color: #3b82f6;
-    color: #ffffff;
-    font-size: 0.875rem;
-    font-weight: 500;
-    border: none;
-    cursor: pointer;
-    transition: background-color 0.2s ease, transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.submitForm:hover {
-    background-color: #2563eb;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-}
-
-.submitForm:disabled {
-    background-color: #9ca3af;
-    cursor: not-allowed;
-}
-
-.buttonGroup {
-    display: flex;
-    justify-content: center;
-    gap: 16px;
-}
-
-.addButtons {
-    display: flex;
-    gap: 12px;
-}
-
-.positionToggle {
-    margin-top: 8px;
-}
-
-@media (max-width: 640px) {
-    .modalOverlay {
-        padding: 12px;
-    }
-
-    .container {
-        max-width: 100%;
-    }
-
-    .formGroup {
-        padding: 20px;
-    }
-
-    .errorModal {
-        padding: 16px;
-        gap: 16px;
-    }
-
-    .errorModalIcon {
-        font-size: 2rem;
-    }
-
-    .errorModalMessage {
-        font-size: 1rem;
-    }
-
-    .closeButton {
-        font-size: 1rem;
-        top: 12px;
-        right: 12px;
-    }
-
-    .Create_postTitle {
-        font-size: 1.25rem;
-        padding-bottom: 8px;
-    }
-
-    .subTitle {
-        font-size: 0.875rem;
-        padding-left: 6px;
-    }
-
-    .titleGroup {
-        font-size: 0.75rem;
-    }
-
-    .inputGroup_title,
-    .inputGroup_desc {
-        font-size: 0.75rem;
-        padding: 10px;
-    }
-
-    .inputGroup_title {
-        height: 40px;
-    }
-
-    .inputGroup_desc {
-        min-height: 100px;
-    }
-
-    .labelGroupIMG {
-        max-height: 120px;
-    }
-
-    .imageGroup {
-        padding: 12px;
-    }
-
-    .checkboxGroup {
-        flex-direction: column;
-        gap: 12px;
-        padding: 12px;
-        border: 1px solid #3b82f6;
-    }
-
-    .checkboxGroup label {
-        font-size: 0.75rem;
-    }
-
-    .submitForm {
-        padding: 10px;
-        font-size: 0.75rem;
-        max-width: 160px;
-    }
-
-    .buttonGroup {
-        flex-direction: column;
-        gap: 12px;
-    }
-
-    .addButton,
-    .toggleButton {
-        padding: 6px 12px;
-        font-size: 0.75rem;
-    }
-
-    .orderButton,
-    .removeButton {
-        padding: 3px 6px;
-        font-size: 0.75rem;
-    }
-
-    .addButtons {
-        flex-direction: column;
-        gap: 8px;
-    }
-
-    .orderNumber {
-        font-size: 0.75rem;
-    }
-}
-
+     from {
+         opacity: 0;
+         transform: translateY(20px);
+     }
+
+     to {
+         opacity: 1;
+         transform: translateY(0);
+     }
+ }
+
+ .modalOverlay {
+     position: fixed;
+     top: 0;
+     left: 0;
+     right: 0;
+     bottom: 0;
+     background-color: rgba(0, 0, 0, 0.6);
+     display: flex;
+     justify-content: center;
+     align-items: center;
+     z-index: 1000;
+     padding: 20px;
+     overflow-y: auto;
+ }
+
+ .container {
+     max-width: 640px;
+     width: 100%;
+     margin: 0 auto;
+ }
+
+ .formGroup {
+     position: relative;
+     font-family: "Inter", sans-serif;
+     padding: 32px;
+     background-color: #ffffff;
+     border-radius: 12px;
+     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+     max-height: 85vh;
+     overflow-y: auto;
+     animation: fadeIn 0.3s ease-out;
+ }
+
+ .formGroupInner {
+     display: flex;
+     flex-direction: column;
+     gap: 24px;
+ }
+
+ .orderableGroup {
+     position: relative;
+     border: 1px solid #e5e7eb;
+     border-radius: 8px;
+     padding: 16px;
+     background-color: #f9fafb;
+ }
+
+ .orderHeader {
+     display: flex;
+     justify-content: space-between;
+     align-items: center;
+     margin-bottom: 12px;
+ }
+
+ .orderNumber {
+     font-size: 0.875rem;
+     font-weight: 500;
+     color: #111827;
+     padding: 4px 8px;
+     background-color: #e5e7eb;
+     border-radius: 4px;
+ }
+
+ .orderButtons {
+     position: absolute;
+     top: 16px;
+     right: 16px;
+     display: flex;
+     gap: 8px;
+ }
+
+ .orderButton {
+     background: #3b82f6;
+     color: #ffffff;
+     border: none;
+     border-radius: 4px;
+     padding: 4px 8px;
+     cursor: pointer;
+     font-size: 0.875rem;
+     transition: background-color 0.2s ease;
+ }
+
+ .orderButton:hover {
+     background-color: #2563eb;
+ }
+
+ .orderButton:disabled {
+     background-color: #9ca3af;
+     cursor: not-allowed;
+ }
+
+ .removeButton {
+     background: #e11d48;
+     color: #ffffff;
+     border: none;
+     border-radius: 4px;
+     padding: 4px 8px;
+     cursor: pointer;
+     font-size: 0.875rem;
+     transition: background-color 0.2s ease;
+ }
+
+ .removeButton:hover {
+     background-color: #be123c;
+ }
+
+ .addButton {
+     background: #10b981;
+     color: #ffffff;
+     border: none;
+     border-radius: 8px;
+     padding: 8px 16px;
+     cursor: pointer;
+     font-size: 0.875rem;
+     margin: 8px 0;
+     transition: background-color 0.2s ease;
+ }
+
+ .addButton:hover {
+     background-color: #059669;
+ }
+
+ .toggleButton {
+     background: #6b7280;
+     color: #ffffff;
+     border: none;
+     border-radius: 8px;
+     padding: 8px 16px;
+     cursor: pointer;
+     font-size: 0.875rem;
+     margin: 8px 0;
+     transition: background-color 0.2s ease;
+ }
+
+ .toggleButton:hover {
+     background-color: #4b5563;
+ }
+
+ .toggleButtonActive {
+     background: #3b82f6;
+ }
+
+ .subSectionGroup {
+     display: flex;
+     flex-direction: column;
+     gap: 12px;
+     padding: 16px;
+     background-color: #f3f4f6;
+     border-radius: 8px;
+ }
+
+ .mainContentGroup {
+     display: flex;
+     flex-direction: column;
+     gap: 12px;
+     padding: 16px;
+     background-color: #f3f4f6;
+     border-radius: 8px;
+ }
+
+ .errorModal {
+     display: flex;
+     flex-direction: column;
+     align-items: center;
+     gap: 20px;
+     padding: 24px;
+     background-color: #fef2f2;
+     border: 2px solid #e11d48;
+     border-radius: 12px;
+ }
+
+ .errorModalIcon {
+     font-size: 2.5rem;
+     color: #e11d48;
+     margin-bottom: 8px;
+ }
+
+ .errorModalMessage {
+     font-size: 1.125rem;
+     font-weight: 500;
+     color: #111827;
+     text-align: center;
+     line-height: 1.5;
+ }
+
+ .closeButton {
+     position: absolute;
+     display: flex;
+     align-items: center;
+     justify-content: center;
+     top: 16px;
+     right: 16px;
+     background: none;
+     border: none;
+     font-size: 1.5rem;
+     background-color: red;
+     border-radius: 50%;
+     width: 40px;
+     height: 40px;
+     color: #ffff;
+     cursor: pointer;
+     padding: 4px;
+     transition: color 0.2s ease, transform 0.2s ease;
+ }
+
+ .closeButton:hover {
+     color: #fff;
+     transform: scale(1.2);
+     background-color: #059669;
+ }
+
+ .Create_postTitle {
+     font-size: 1.5rem;
+     font-weight: 600;
+     color: #111827;
+     margin-bottom: 24px;
+     text-align: center;
+     border-bottom: 2px solid #e5e7eb;
+     padding-bottom: 12px;
+ }
+
+ .subTitle {
+     font-size: 1rem;
+     font-weight: 500;
+     color: #111827;
+     margin-bottom: 12px;
+     border-left: 3px solid #3b82f6;
+     padding-left: 8px;
+ }
+
+ .titleGroup {
+     font-size: 0.875rem;
+     font-weight: 500;
+     color: #374151;
+     display: block;
+     margin-bottom: 8px;
+ }
+
+ .error {
+     color: #e11d48;
+     font-size: 0.75rem;
+     margin-top: 4px;
+     display: block;
+ }
+
+ .Group {
+     display: flex;
+     flex-direction: column;
+     gap: 12px;
+ }
+
+ .imageGroup {
+     padding: 16px;
+     background-color: #f9fafb;
+     border-radius: 8px;
+     border: 1px solid #e5e7eb;
+     display: flex;
+     flex-direction: column;
+     gap: 12px;
+ }
+
+ .labelGroupIMG {
+     width: 100%;
+     max-height: 160px;
+     object-fit: cover;
+     border-radius: 8px;
+     border: 1px solid #e5e7eb;
+     margin-top: 8px;
+     display: block;
+     background-color: #f3f4f6;
+ }
+
+ .noImageText {
+     font-size: 0.875rem;
+     font-style: italic;
+     color: #6b7280;
+     margin-top: 8px;
+ }
+
+ .checkboxGroup {
+     display: flex;
+     gap: 24px;
+     padding: 16px;
+     background-color: #e0f2fe;
+     border-radius: 8px;
+     border: 2px solid #3b82f6;
+     margin-bottom: 16px;
+ }
+
+ .checkboxGroup label {
+     display: flex;
+     align-items: center;
+     gap: 8px;
+     font-size: 0.875rem;
+     font-weight: 500;
+     color: #111827;
+ }
+
+ .inputGroup_desc,
+ .inputGroup_title {
+     width: 100%;
+     border-radius: 8px;
+     border: 1px solid #d1d5db;
+     padding: 12px;
+     font-size: 0.875rem;
+     color: #111827;
+     outline: none;
+     transition: border-color 0.2s ease, box-shadow 0.2s ease;
+ }
+
+ .inputGroup_title {
+     height: 44px;
+ }
+
+ .inputGroup_desc {
+     resize: none;
+     min-height: 120px;
+ }
+
+ .inputGroup_title:focus,
+ .inputGroup_desc:focus {
+     border-color: #3b82f6;
+     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+ }
+
+ .header {
+     display: flex;
+     justify-content: space-between;
+     align-items: center;
+     margin-bottom: 24px;
+ }
+
+ .submitForm {
+     display: block;
+     width: 100%;
+     max-width: 200px;
+     padding: 12px;
+     border-radius: 8px;
+     background-color: #3b82f6;
+     color: #ffffff;
+     font-size: 0.875rem;
+     font-weight: 500;
+     border: none;
+     cursor: pointer;
+     transition: background-color 0.2s ease, transform 0.3s ease, box-shadow 0.3s ease;
+ }
+
+ .submitForm:hover {
+     background-color: #2563eb;
+     transform: translateY(-2px);
+     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+ }
+
+ .submitForm:disabled {
+     background-color: #9ca3af;
+     cursor: not-allowed;
+ }
+
+ .buttonGroup {
+     display: flex;
+     justify-content: center;
+     gap: 16px;
+ }
+
+ .addButtons {
+     display: flex;
+     gap: 12px;
+ }
+
+ .positionToggle {
+     margin-top: 8px;
+ }
+
+ @media (max-width: 640px) {
+     .modalOverlay {
+         padding: 12px;
+     }
+
+     .container {
+         max-width: 100%;
+     }
+
+     .formGroup {
+         padding: 20px;
+     }
+
+     .errorModal {
+         padding: 16px;
+         gap: 16px;
+     }
+
+     .errorModalIcon {
+         font-size: 2rem;
+     }
+
+     .errorModalMessage {
+         font-size: 1rem;
+     }
+
+     .closeButton {
+         font-size: 1rem;
+         top: 12px;
+         right: 12px;
+     }
+
+     .Create_postTitle {
+         font-size: 1.25rem;
+         padding-bottom: 8px;
+     }
+
+     .subTitle {
+         font-size: 0.875rem;
+         padding-left: 6px;
+     }
+
+     .titleGroup {
+         font-size: 0.75rem;
+     }
+
+     .inputGroup_title,
+     .inputGroup_desc {
+         font-size: 0.75rem;
+         padding: 10px;
+     }
+
+     .inputGroup_title {
+         height: 40px;
+     }
+
+     .inputGroup_desc {
+         min-height: 100px;
+     }
+
+     .labelGroupIMG {
+         max-height: 120px;
+     }
+
+     .imageGroup {
+         padding: 12px;
+     }
+
+     .checkboxGroup {
+         flex-direction: column;
+         gap: 12px;
+         padding: 12px;
+         border: 1px solid #3b82f6;
+     }
+
+     .checkboxGroup label {
+         font-size: 0.75rem;
+     }
+
+     .submitForm {
+         padding: 10px;
+         font-size: 0.75rem;
+         max-width: 160px;
+     }
+
+     .buttonGroup {
+         flex-direction: column;
+         gap: 12px;
+     }
+
+     .addButton,
+     .toggleButton {
+         padding: 6px 12px;
+         font-size: 0.75rem;
+     }
+
+     .orderButton,
+     .removeButton {
+         padding: 3px 6px;
+         font-size: 0.75rem;
+     }
+
+     .addButtons {
+         flex-direction: column;
+         gap: 8px;
+     }
+
+     .orderNumber {
+         font-size: 0.75rem;
+     }
+ }

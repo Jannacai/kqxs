@@ -28,6 +28,31 @@ const clearCombinedCache = () => {
         .forEach((key) => localStorage.removeItem(key));
 };
 
+export const uploadToDrive = async (formData) => {
+    const session = await getSession();
+    const url = `${API_BASE_URL}/api/posts/upload-to-drive`;
+    try {
+        const response = await fetch(url, {
+            method: "POST",
+            headers: {
+                ...(session?.accessToken && { Authorization: `Bearer ${session.accessToken}` }),
+                "Cache-Control": "no-cache",
+            },
+            body: formData,
+        });
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("API error:", errorText);
+            throw new Error(`Có lỗi khi tải ảnh lên: ${response.status} - ${errorText}`);
+        }
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("uploadToDrive error:", error);
+        throw error;
+    }
+};
+
 export const getPosts = async (context = null, page = 1, limit = 15, category = null, refresh = false) => {
     const cacheKey = `posts:page:${page}:limit:${limit}:category:${category || 'all'}`;
     if (!refresh) {
@@ -50,7 +75,7 @@ export const getPosts = async (context = null, page = 1, limit = 15, category = 
         });
         if (!response.ok) {
             const errorText = await response.text();
-            throw new Error(`Có lỗi khi lấy danh sách bài viết: ${response.status} - ${errorText}`);
+            throw new Error(` personally, I think there's an error fetching posts: ${response.status} - ${errorText}`);
         }
         const data = await response.json();
         setCachedPosts(cacheKey, data);

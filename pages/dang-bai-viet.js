@@ -3,7 +3,7 @@
 import { useForm, Controller, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { createPost } from "./api/post/index";
+import { createPost, uploadToDrive } from "./api/post/index";
 import styles from "../styles/createPost.module.css";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -11,13 +11,13 @@ import { useState, useEffect, useCallback } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-const VALID_CATEGORIES = ["Thể thao", "Đời sống", "Giải trí", "Tin hot"];
+const VALID_CATEGORIES = ["Tin hot", "Thể thao", "Đời sống", "Giải trí"];
 
 const postSchema = z.object({
     title: z
         .string()
         .min(5, "Tiêu đề phải có ít nhất 5 ký tự")
-        .max(100, "Tiêu đề không được dài quá 100 ký tự")
+        .max(200, "Tiêu đề không được dài quá 200 ký tự")
         .nonempty("Tiêu đề không được để trống"),
     mainContents: z
         .array(
@@ -25,7 +25,7 @@ const postSchema = z.object({
                 h2: z
                     .string()
                     .min(5, "Tiêu đề phụ phải có ít nhất 5 ký tự")
-                    .max(100, "Tiêu đề phụ không được dài quá 100 ký tự")
+                    .max(200, "Tiêu đề phụ không được dài quá 200 ký tự")
                     .optional()
                     .or(z.literal("")),
                 description: z
@@ -36,18 +36,16 @@ const postSchema = z.object({
                 img: z
                     .string()
                     .url("Vui lòng nhập một URL hợp lệ")
-                    .refine(
-                        (url) => !url || /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(url),
-                        "URL phải là hình ảnh (jpg, jpeg, png, gif, webp)"
-                    )
                     .optional()
                     .or(z.literal("")),
+                imgFile: z.any().optional(),
                 caption: z
                     .string()
-                    .max(100, "Chú thích không được dài quá 100 ký tự")
+                    .max(200, "Chú thích không được dài quá 200 ký tự")
                     .optional()
                     .or(z.literal("")),
                 isImageFirst: z.boolean().optional(),
+                imageSource: z.enum(["url", "upload"]).optional(),
             })
         )
         .optional(),
@@ -81,7 +79,7 @@ const CreatePost = () => {
         defaultValues: {
             title: "",
             mainContents: [],
-            category: ["Thể thao"],
+            category: ["Tin hot"],
             contentOrder: [],
         },
     });
@@ -113,9 +111,24 @@ const CreatePost = () => {
         []
     );
 
+    const handleFileChange = useCallback(
+        (index) => (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                setValue(`mainContents[${index}].imgFile`, file);
+                const fileUrl = URL.createObjectURL(file);
+                setPreviewUrls((prev) => ({
+                    ...prev,
+                    [`mainContent-${index}`]: fileUrl || "",
+                }));
+            }
+        },
+        [setValue]
+    );
+
     const addMainContent = () => {
         const newIndex = mainContents.length;
-        appendMainContent({ h2: "", description: "", img: "", caption: "", isImageFirst: false });
+        appendMainContent({ h2: "", description: "", img: "", imgFile: null, caption: "", isImageFirst: false, imageSource: "url" });
         appendContentOrder({ type: "mainContent", index: newIndex });
         setMainContentFields((prev) => ({
             ...prev,
@@ -138,11 +151,17 @@ const CreatePost = () => {
         }
     };
 
-    const toggleImagePosition = useCallback(
-        (index) => {
-            setValue(`mainContents[${index}].isImageFirst`, !getValues(`mainContents[${index}].isImageFirst`));
+    const toggleImageSource = useCallback(
+        (index) => (source) => {
+            setValue(`mainContents[${index}].imageSource`, source);
+            setValue(`mainContents[${index}].img`, "");
+            setValue(`mainContents[${index}].imgFile`, null);
+            setPreviewUrls((prev) => ({
+                ...prev,
+                [`mainContent-${index}`]: "",
+            }));
         },
-        [getValues, setValue]
+        [setValue]
     );
 
     const removeContent = (index, contentIndex) => {
@@ -172,16 +191,31 @@ const CreatePost = () => {
         try {
             const postData = {
                 title: data.title,
-                mainContents: data.mainContents.map((item) => ({
-                    h2: item.h2 || "",
-                    description: item.description || "",
-                    img: item.img || "",
-                    caption: item.caption || "",
-                    isImageFirst: item.isImageFirst || false,
-                })),
+                mainContents: [],
                 category: data.category,
                 contentOrder: data.contentOrder,
             };
+
+            for (let i = 0; i < data.mainContents.length; i++) {
+                const content = data.mainContents[i];
+                let imgUrl = content.img;
+
+                if (content.imageSource === "upload" && content.imgFile) {
+                    const formData = new FormData();
+                    formData.append("file", content.imgFile);
+                    const uploadResponse = await uploadToDrive(formData);
+                    imgUrl = uploadResponse.url;
+                }
+
+                postData.mainContents.push({
+                    h2: content.h2 || "",
+                    description: content.description || "",
+                    img: imgUrl || "",
+                    caption: content.caption || "",
+                    isImageFirst: content.isImageFirst || false,
+                });
+            }
+
             const response = await createPost(postData);
             reset();
             setPreviewUrls({});
@@ -193,15 +227,17 @@ const CreatePost = () => {
             router.push(`/tin-tuc/${response.slug}-${response._id}`);
         } catch (error) {
             console.error("Lỗi khi đăng bài:", error);
-            let errorMessage = "Đã có lỗi xảy ra khi đăng bài. Vui lòng thử lại.";
+            let errorMessage = "Lỗi không xác định. Vui lòng thử lại.";
             if (error.message.includes("Invalid token")) {
                 await signOut({ redirect: false });
                 router.push("/ui");
                 return;
             } else if (error.message.includes("Invalid data")) {
-                errorMessage = "Dữ liệu không hợp lệ. Vui lòng kiểm tra tiêu đề, URL hình ảnh, và nội dung.";
+                errorMessage = "Dữ liệu không hợp lệ. Vui lòng kiểm tra tiêu mật khẩu, URL hình ảnh, và nội dung.";
             } else if (error.message.includes("Failed to save post")) {
                 errorMessage = "Lỗi hệ thống khi lưu bài viết. Vui lòng liên hệ quản trị viên.";
+            } else if (error.message.includes("Failed to upload to Google Drive")) {
+                errorMessage = "Lỗi khi tải ảnh lên Google Drive. Vui lòng kiểm tra file ảnh.";
             }
             toast.error(errorMessage, {
                 position: "top-right",
@@ -354,24 +390,65 @@ const CreatePost = () => {
                                             )}
                                         </label>
                                         <div className={styles.imageGroup}>
-                                            <label htmlFor={`mainContents[${item.index}].img`} className={styles.labelGroup}>
-                                                <span className={styles.titleGroup}>URL Hình ảnh</span>
-                                                <input
-                                                    id={`mainContents[${item.index}].img`}
-                                                    {...register(`mainContents[${item.index}].img`)}
-                                                    type="text"
-                                                    placeholder="Nhập URL hình ảnh"
-                                                    className={styles.inputGroup_title}
-                                                    autoComplete="off"
-                                                    onChange={handleImageChange(item.index)}
-                                                    aria-describedby={`mainContent-${item.index}-img-error`}
-                                                />
-                                                {errors.mainContents?.[item.index]?.img && (
-                                                    <span id={`mainContent-${item.index}-img-error`} className={styles.error}>
-                                                        {errors.mainContents[item.index].img.message}
-                                                    </span>
-                                                )}
-                                            </label>
+                                            <div className={styles.imageSourceToggle}>
+                                                <label>
+                                                    <input
+                                                        type="radio"
+                                                        name={`mainContents[${item.index}].imageSource`}
+                                                        value="url"
+                                                        checked={getValues(`mainContents[${item.index}].imageSource`) === "url"}
+                                                        onChange={() => toggleImageSource(item.index)("url")}
+                                                    />
+                                                    Nhập URL
+                                                </label>
+                                                <label>
+                                                    <input
+                                                        type="radio"
+                                                        name={`mainContents[${item.index}].imageSource`}
+                                                        value="upload"
+                                                        checked={getValues(`mainContents[${item.index}].imageSource`) === "upload"}
+                                                        onChange={() => toggleImageSource(item.index)("upload")}
+                                                    />
+                                                    Tải file lên
+                                                </label>
+                                            </div>
+                                            {getValues(`mainContents[${item.index}].imageSource`) === "url" ? (
+                                                <label htmlFor={`mainContents[${item.index}].img`} className={styles.labelGroup}>
+                                                    <span className={styles.titleGroup}>URL Hình ảnh</span>
+                                                    <input
+                                                        id={`mainContents[${item.index}].img`}
+                                                        {...register(`mainContents[${item.index}].img`)}
+                                                        type="text"
+                                                        placeholder="Nhập URL hình ảnh"
+                                                        className={styles.inputGroup_title}
+                                                        autoComplete="off"
+                                                        onChange={handleImageChange(item.index)}
+                                                        aria-describedby={`mainContent-${item.index}-img-error`}
+                                                    />
+                                                    {errors.mainContents?.[item.index]?.img && (
+                                                        <span id={`mainContent-${item.index}-img-error`} className={styles.error}>
+                                                            {errors.mainContents[item.index].img.message}
+                                                        </span>
+                                                    )}
+                                                </label>
+                                            ) : (
+                                                <label htmlFor={`mainContents[${item.index}].imgFile`} className={styles.labelGroup}>
+                                                    <span className={styles.titleGroup}>Tải ảnh lên</span>
+                                                    <input
+                                                        id={`mainContents[${item.index}].imgFile`}
+                                                        type="file"
+                                                        accept="image/jpeg,image/png,image/gif,image/webp"
+                                                        className={styles.inputGroup_title}
+                                                        onChange={handleFileChange(item.index)}
+                                                        aria-describedby={`mainContent-${item.index}-imgFile-error`}
+                                                    />
+                                                    {errors.mainContents?.[item.index]?.imgFile && (
+                                                        <span id={`mainContent-${item.index}-imgFile-error`} className={styles.error}>
+                                                            {errors.mainContents[item.index].imgFile?.message || "Lỗi khi chọn file"}
+                                                        </span>
+                                                    )}
+                                                </label>
+                                            )}
                                             <label htmlFor={`mainContents[${item.index}].caption`} className={styles.labelGroup}>
                                                 <span className={styles.titleGroup}>Chú thích Hình ảnh</span>
                                                 <input
@@ -401,18 +478,33 @@ const CreatePost = () => {
                                                 <p className={styles.noImageText}>Không có hình ảnh</p>
                                             )}
                                         </div>
+                                        {/* Thay thế positionToggle bằng radio buttons */}
                                         <div className={styles.positionToggle}>
-                                            <button
-                                                type="button"
-                                                className={`${styles.toggleButton} ${getValues(`mainContents[${item.index}].isImageFirst`)
-                                                    ? styles.toggleButtonActive
-                                                    : ""
-                                                    }`}
-                                                onClick={() => toggleImagePosition(item.index)}
-                                                aria-label="Đổi vị trí hình ảnh"
-                                            >
-                                                {getValues(`mainContents[${item.index}].isImageFirst`) ? "Hình trên" : "Hình dưới"}
-                                            </button>
+                                            <span className={styles.titleGroup}>Vị trí hình ảnh</span>
+                                            <div className={styles.radioGroup}>
+                                                <label>
+                                                    <input
+                                                        type="radio"
+                                                        name={`mainContents[${item.index}].isImageFirst`}
+                                                        value="true"
+                                                        checked={getValues(`mainContents[${item.index}].isImageFirst`) === true}
+                                                        onChange={() => setValue(`mainContents[${item.index}].isImageFirst`, true)}
+                                                        aria-label="Hình trên"
+                                                    />
+                                                    Hình trên
+                                                </label>
+                                                <label>
+                                                    <input
+                                                        type="radio"
+                                                        name={`mainContents[${item.index}].isImageFirst`}
+                                                        value="false"
+                                                        checked={getValues(`mainContents[${item.index}].isImageFirst`) === false}
+                                                        onChange={() => setValue(`mainContents[${item.index}].isImageFirst`, false)}
+                                                        aria-label="Hình dưới"
+                                                    />
+                                                    Hình dưới
+                                                </label>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
