@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import Head from "next/head";
@@ -260,10 +261,27 @@ const EnhancedNewsFeed = () => {
             const day = String(date.getDate()).padStart(2, "0");
             const month = String(date.getMonth() + 1).padStart(2, "0");
             const year = date.getFullYear();
-            return `${day}/${month}/${year}`;
+            return `${ day } /${month}/${ year } `;
         } catch {
             return "Ngày đăng";
         }
+    }, []);
+
+    // Lấy hình ảnh hợp lệ từ mainContents
+    const getValidImage = useCallback((post) => {
+        if (!post.mainContents || !Array.isArray(post.mainContents)) {
+            return defaultImage;
+        }
+        const validImage = post.mainContents.find(content => content.img && content.img.startsWith('http'));
+        return validImage ? validImage.img : defaultImage;
+    }, []);
+
+    // Lấy mô tả từ mainContents
+    const getPostDescription = useCallback((post) => {
+        if (!post.mainContents || !Array.isArray(post.mainContents) || !post.mainContents[0]?.description) {
+            return "";
+        }
+        return post.mainContents[0].description.slice(0, 150);
     }, []);
 
     // Gán màu danh mục
@@ -279,19 +297,11 @@ const EnhancedNewsFeed = () => {
         return categoryColors[category] || "#6b7280";
     }, []);
 
-    // Kiểm tra URL hình ảnh hợp lệ
-    const getValidImage = useCallback((img) => {
-        if (img && img.startsWith("http")) {
-            return img;
-        }
-        return defaultImage;
-    }, []);
-
     // Component HeroPost
     const HeroPost = React.memo(({ post }) => (
-        <Link href={`/tin-tuc/${post.slug}-${post._id}`} className={styles.heroPost}>
+        <Link href={`/ tin - tuc / ${ post.slug } -${ post._id } `} className={styles.heroPost}>
             <img
-                src={getValidImage(post.img)}
+                src={getValidImage(post)}
                 alt={post.title}
                 className={styles.heroImage}
                 loading="eager"
@@ -302,7 +312,7 @@ const EnhancedNewsFeed = () => {
                     {Array.isArray(post.category) &&
                         post.category.map((cat, idx) => (
                             <span
-                                key={`${cat}-${idx}`}
+                                key={`${ cat } -${ idx } `}
                                 className={styles.postCategory}
                                 style={{ "--category-color": getCategoryColor(cat) }}
                             >
@@ -312,7 +322,7 @@ const EnhancedNewsFeed = () => {
                 </div>
                 <h2 className={styles.heroTitle}>{post.title}</h2>
                 <p className={styles.heroExcerpt}>
-                    {post.description?.slice(0, 150)}...
+                    {getPostDescription(post) || "Không có mô tả"}...
                 </p>
             </div>
         </Link>
@@ -320,9 +330,9 @@ const EnhancedNewsFeed = () => {
 
     // Component SubHeroPost
     const SubHeroPost = React.memo(({ post }) => (
-        <Link href={`/tin-tuc/${post.slug}-${post._id}`} className={styles.subHeroPost}>
+        <Link href={`/ tin - tuc / ${ post.slug } -${ post._id } `} className={styles.subHeroPost}>
             <img
-                src={getValidImage(post.img)}
+                src={getValidImage(post)}
                 alt={post.title}
                 className={styles.subHeroImage}
                 loading="eager"
@@ -333,9 +343,9 @@ const EnhancedNewsFeed = () => {
 
     // Component FootballPost
     const FootballPost = React.memo(({ post }) => (
-        <Link href={`/tin-tuc/${post.slug}-${post._id}`} className={styles.footballPost}>
+        <Link href={`/ tin - tuc / ${ post.slug } -${ post._id } `} className={styles.footballPost}>
             <img
-                src={getValidImage(post.img)}
+                src={getValidImage(post)}
                 alt={post.title}
                 className={styles.footballImage}
                 loading="lazy"
@@ -346,9 +356,9 @@ const EnhancedNewsFeed = () => {
 
     // Component PostItem
     const PostItem = React.memo(({ post }) => (
-        <Link href={`/tin-tuc/${post.slug}-${post._id}`} className={styles.postItem}>
+        <Link href={`/ tin - tuc / ${ post.slug } -${ post._id } `} className={styles.postItem}>
             <img
-                src={getValidImage(post.img)}
+                src={getValidImage(post)}
                 alt={post.title}
                 className={styles.postImage}
                 loading="lazy"
@@ -359,7 +369,7 @@ const EnhancedNewsFeed = () => {
                     {Array.isArray(post.category) &&
                         post.category.map((cat, idx) => (
                             <span
-                                key={`${cat}-${idx}`}
+                                key={`${ cat } -${ idx } `}
                                 className={styles.postCategory}
                                 style={{ "--category-color": getCategoryColor(cat) }}
                             >
@@ -369,7 +379,7 @@ const EnhancedNewsFeed = () => {
                 </div>
                 <h3 className={styles.postTitle}>{post.title}</h3>
                 <p className={styles.postExcerpt}>
-                    {post.description?.slice(0, 100)}...
+                    {getPostDescription(post) || "Không có mô tả"}...
                 </p>
             </div>
         </Link>
@@ -456,7 +466,7 @@ const EnhancedNewsFeed = () => {
                 <div className={styles.container}>
                     <nav className={styles.categoryMenu}>
                         <button
-                            className={`${styles.categoryButton} ${!selectedCategory ? styles.active : ""}`}
+                            className={`${ styles.categoryButton } ${ !selectedCategory ? styles.active : "" } `}
                             onClick={() => setSelectedCategory(null)}
                         >
                             Tất cả
@@ -464,7 +474,7 @@ const EnhancedNewsFeed = () => {
                         {categories.map((category) => (
                             <button
                                 key={category}
-                                className={`${styles.categoryButton} ${selectedCategory === category ? styles.active : ""}`}
+                                className={`${ styles.categoryButton } ${ selectedCategory === category ? styles.active : "" } `}
                                 onClick={() => setSelectedCategory(category)}
                                 style={{ "--category-color": getCategoryColor(category) }}
                             >

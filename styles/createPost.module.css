@@ -1,4 +1,4 @@
-@keyframes fadeIn {
+ @keyframes fadeIn {
     from {
         opacity: 0;
         transform: translateY(20px);
@@ -7,20 +7,6 @@
     to {
         opacity: 1;
         transform: translateY(0);
-    }
-}
-
-@keyframes pulse {
-    0% {
-        transform: scale(1);
-    }
-
-    50% {
-        transform: scale(1.05);
-    }
-
-    100% {
-        transform: scale(1);
     }
 }
 
@@ -41,14 +27,6 @@
 
 .container {
     max-width: 640px;
-    /* Khôi phục kích thước cho form đăng bài */
-    width: 100%;
-    margin: 0 auto;
-}
-
-.errorContainer {
-    max-width: 400px;
-    /* Thu hẹp chỉ cho modal thông báo */
     width: 100%;
     margin: 0 auto;
 }
@@ -62,13 +40,134 @@
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
     max-height: 85vh;
     overflow-y: auto;
-    animation: fadeIn 0.5s ease-out;
+    animation: fadeIn 0.3s ease-out;
 }
 
 .formGroupInner {
     display: flex;
     flex-direction: column;
     gap: 24px;
+}
+
+.orderableGroup {
+    position: relative;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 16px;
+    background-color: #f9fafb;
+}
+
+.orderHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.orderNumber {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #111827;
+    padding: 4px 8px;
+    background-color: #e5e7eb;
+    border-radius: 4px;
+}
+
+.orderButtons {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    display: flex;
+    gap: 8px;
+}
+
+.orderButton {
+    background: #3b82f6;
+    color: #ffffff;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: background-color 0.2s ease;
+}
+
+.orderButton:hover {
+    background-color: #2563eb;
+}
+
+.orderButton:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+}
+
+.removeButton {
+    background: #e11d48;
+    color: #ffffff;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: background-color 0.2s ease;
+}
+
+.removeButton:hover {
+    background-color: #be123c;
+}
+
+.addButton {
+    background: #10b981;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    margin: 8px 0;
+    transition: background-color 0.2s ease;
+}
+
+.addButton:hover {
+    background-color: #059669;
+}
+
+.toggleButton {
+    background: #6b7280;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    margin: 8px 0;
+    transition: background-color 0.2s ease;
+}
+
+.toggleButton:hover {
+    background-color: #4b5563;
+}
+
+.toggleButtonActive {
+    background: #3b82f6;
+}
+
+.subSectionGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    background-color: #f3f4f6;
+    border-radius: 8px;
+}
+
+.mainContentGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    background-color: #f3f4f6;
+    border-radius: 8px;
 }
 
 .errorModal {
@@ -80,7 +179,6 @@
     background-color: #fef2f2;
     border: 2px solid #e11d48;
     border-radius: 12px;
-    animation: fadeIn 0.5s ease-out, pulse 1.5s ease-in-out infinite;
 }
 
 .errorModalIcon {
@@ -176,6 +274,13 @@
     background-color: #f3f4f6;
 }
 
+.noImageText {
+    font-size: 0.875rem;
+    font-style: italic;
+    color: #6b7280;
+    margin-top: 8px;
+}
+
 .checkboxGroup {
     display: flex;
     gap: 24px;
@@ -229,21 +334,6 @@
     margin-bottom: 24px;
 }
 
-.logoutButton {
-    padding: 8px 16px;
-    background-color: #ef4444;
-    color: #ffffff;
-    border: none;
-    border-radius: 8px;
-    font-size: 0.875rem;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-}
-
-.logoutButton:hover {
-    background-color: #dc2626;
-}
-
 .submitForm {
     display: block;
     width: 100%;
@@ -276,7 +366,15 @@
     gap: 16px;
 }
 
-/* Responsive design for mobile */
+.addButtons {
+    display: flex;
+    gap: 12px;
+}
+
+.positionToggle {
+    margin-top: 8px;
+}
+
 @media (max-width: 640px) {
     .modalOverlay {
         padding: 12px;
@@ -284,12 +382,6 @@
 
     .container {
         max-width: 100%;
-        /* Đảm bảo modal đăng bài rộng tối đa trên mobile */
-    }
-
-    .errorContainer {
-        max-width: 90%;
-        /* Modal thông báo vẫn hẹp trên mobile */
     }
 
     .formGroup {
@@ -362,11 +454,6 @@
         font-size: 0.75rem;
     }
 
-    .logoutButton {
-        padding: 6px 12px;
-        font-size: 0.75rem;
-    }
-
     .submitForm {
         padding: 10px;
         font-size: 0.75rem;
@@ -377,4 +464,26 @@
         flex-direction: column;
         gap: 12px;
     }
+
+    .addButton,
+    .toggleButton {
+        padding: 6px 12px;
+        font-size: 0.75rem;
+    }
+
+    .orderButton,
+    .removeButton {
+        padding: 3px 6px;
+        font-size: 0.75rem;
+    }
+
+    .addButtons {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .orderNumber {
+        font-size: 0.75rem;
+    }
 }
+

@@ -7,6 +7,17 @@ module.exports = {
     env: {
         BACKEND_URL: process.env.BACKEND_URL,
     },
+    images: {
+        remotePatterns: [
+            {
+                protocol: 'https',
+                hostname: 'i1-vnexpress.vnecdn.net',
+                port: '',
+                pathname: '/**',
+            },
+            // Thêm các domain khác nếu cần
+        ],
+    },
     async redirects() {
         return [
             { source: '/xsmb/', destination: '/ket-qua-xo-so-mien-bac', permanent: true },

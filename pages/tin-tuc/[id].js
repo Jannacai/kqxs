@@ -18,7 +18,6 @@ const PostDetail = () => {
     const [relatedIndex, setRelatedIndex] = useState(0);
     const [footballIndex, setFootballIndex] = useState(0);
 
-    const defaultImage = "https://xsmb.win/default-og-image.jpg"; // Hình ảnh mặc định (1200x630px)
     const defaultDescription = "Đọc tin tức mới nhất tại XSMB.WIN - Cập nhật thông tin nhanh chóng, chính xác!";
 
     const fetchWithRetry = async (fetchFn, maxRetries = 3, delay = 3000) => {
@@ -141,7 +140,7 @@ const PostDetail = () => {
             });
         };
 
-        const interval = setInterval(rotatePosts, 60000); // Tăng thời gian xoay lên 60 giây
+        const interval = setInterval(rotatePosts, 60000);
         return () => clearInterval(interval);
     }, [relatedIndex, footballIndex, relatedPostsPool, footballPostsPool]);
 
@@ -179,14 +178,16 @@ const PostDetail = () => {
         return <p className={styles.error}>Bài viết không tồn tại.</p>;
     }
 
-    const metaDescription = post.description
-        ? post.description.length > 160
-            ? `${post.description.substring(0, 157)}...`
-            : post.description
+    // Lấy metaDescription từ mainContents[0].description
+    const metaDescription = post.mainContents && post.mainContents[0]?.description
+        ? post.mainContents[0].description.length > 160
+            ? `${post.mainContents[0].description.substring(0, 157)}...`
+            : post.mainContents[0].description
         : defaultDescription;
 
     const canonicalUrl = `https://xsmb.win/tin-tuc/${post.slug}-${post._id}`;
-    const imageUrl = post.img && post.img.startsWith('https') ? post.img : defaultImage;
+    // Lấy imageUrl từ ảnh đầu tiên trong mainContents
+    const imageUrl = post.mainContents?.find(content => content.img?.startsWith('https'))?.img || null;
 
     const structuredData = {
         "@context": "https://schema.org",
@@ -198,7 +199,7 @@ const PostDetail = () => {
             "@type": "Person",
             "name": post.author?.username || "Admin"
         },
-        "image": [imageUrl],
+        "image": imageUrl ? [imageUrl] : [],
         "description": metaDescription,
         "mainEntityOfPage": {
             "@type": "WebPage",
@@ -214,38 +215,49 @@ const PostDetail = () => {
         }
     };
 
-    const RelatedPostItem = React.memo(({ post }) => (
-        <Link href={`/tin-tuc/${post.slug}-${post._id}`} className={styles.relatedItem} title={post.title} aria-label={`Xem bài viết ${post.title}`}>
-            <img
-                src={post.img || defaultImage}
-                alt={post.title}
-                className={styles.relatedImage}
-                loading="lazy"
-                onError={(e) => { e.target.src = defaultImage; }}
-            />
-            <h3 className={styles.relatedItemTitle}>{post.title}</h3>
-        </Link>
-    ));
+    const RelatedPostItem = React.memo(({ post }) => {
+        // Lấy img và title từ mainContents cho related posts
+        const postImage = post.mainContents?.find(content => content.img?.startsWith('https'))?.img;
+        return (
+            <Link href={`/tin-tuc/${post.slug}-${post._id}`} className={styles.relatedItem} title={post.title} aria-label={`Xem bài viết ${post.title}`}>
+                {postImage && (
+                    <img
+                        src={postImage}
+                        alt={post.title}
+                        className={styles.relatedImage}
+                        loading="lazy"
+                    />
+                )}
+                <h3 className={styles.relatedItemTitle}>{post.title}</h3>
+            </Link>
+        );
+    });
 
-    const FootballPostItem = React.memo(({ post }) => (
-        <Link href={`/tin-tuc/${post.slug}-${post._id}`} className={styles.footballItem} title={post.title} aria-label={`Xem bài viết ${post.title}`}>
-            <img
-                src={post.img || defaultImage}
-                alt={post.title}
-                className={styles.footballImage}
-                loading="lazy"
-                onError={(e) => { e.target.src = defaultImage; }}
-            />
-            <div className={styles.footballContent}>
-                <h3 className={styles.footballItemTitle}>{post.title}</h3>
-                <p className={styles.footballItemExcerpt}>
-                    {post.description.length > 100
-                        ? `${post.description.substring(0, 100)}...`
-                        : post.description}
-                </p>
-            </div>
-        </Link>
-    ));
+    const FootballPostItem = React.memo(({ post }) => {
+        // Lấy img và description từ mainContents cho football posts
+        const postImage = post.mainContents?.find(content => content.img?.startsWith('https'))?.img;
+        const postDescription = post.mainContents && post.mainContents[0]?.description || "";
+        return (
+            <Link href={`/tin-tuc/${post.slug}-${post._id}`} className={styles.footballItem} title={post.title} aria-label={`Xem bài viết ${post.title}`}>
+                {postImage && (
+                    <img
+                        src={postImage}
+                        alt={post.title}
+                        className={styles.footballImage}
+                        loading="lazy"
+                    />
+                )}
+                <div className={styles.footballContent}>
+                    <h3 className={styles.footballItemTitle}>{post.title}</h3>
+                    <p className={styles.footballItemExcerpt}>
+                        {postDescription.length > 100
+                            ? `${postDescription.substring(0, 100)}...`
+                            : postDescription}
+                    </p>
+                </div>
+            </Link>
+        );
+    });
 
     const getCategoryColor = (category) => {
         const categoryColors = {
@@ -269,35 +281,44 @@ const PostDetail = () => {
                 <meta name="robots" content="index, follow" />
                 <meta name="author" content={post.author?.username || "Admin"} />
 
+                {imageUrl && (
+                    <>
+                        <meta property="og:image" content={imageUrl} />
+                        <meta property="og:image:secure_url" content={imageUrl} />
+                        <meta property="og:image:width" content="1200" />
+                        <meta property="og:image:height" content="630" />
+                        <meta property="og:image:type" content="image/jpeg" />
+                        <meta property="og:image:alt" content={post.title} />
+                        <meta name="twitter:image" content={imageUrl} />
+                        <meta name="twitter:image:alt" content={post.title} />
+                        <link rel="preload" href={imageUrl} as="image" />
+                    </>
+                )}
+
                 <meta property="og:title" content={post.title.slice(0, 60)} />
                 <meta property="og:description" content={metaDescription} />
                 <meta property="og:type" content="article" />
                 <meta property="og:url" content={canonicalUrl} />
-                <meta property="og:image" content={imageUrl} />
-                <meta property="og:image:secure_url" content={imageUrl} />
-                <meta property="og:image:width" content="1200" />
-                <meta property="og:image:height" content="630" />
-                <meta property="og:image:type" content="image/jpeg" />
-                <meta property="og:image:alt" content={post.title} />
                 <meta property="og:site_name" content="XSMB.WIN" />
                 <meta property="og:locale" content="vi_VN" />
                 <meta property="fb:app_id" content={process.env.FB_APP_ID || ''} />
 
                 <meta property="zalo:official_account_id" content={process.env.ZALO_OA_ID || ''} />
                 <meta property="zalo:share_url" content={canonicalUrl} />
-                <meta property="zalo:og:image" content={imageUrl} />
-                <meta property="zalo:og:image:width" content="600" />
-                <meta property="zalo:og:image:height" content="600" />
+                {imageUrl && (
+                    <>
+                        <meta property="zalo-img" content={imageUrl} />
+                        <meta property="zalo-img:width" content="600" />
+                        <meta property="zalo-img:height" content="600" />
+                    </>
+                )}
 
                 <meta name="twitter:card" content="summary_large_image" />
                 <meta name="twitter:title" content={post.title.slice(0, 60)} />
                 <meta name="twitter:description" content={metaDescription} />
-                <meta name="twitter:image" content={imageUrl} />
-                <meta name="twitter:image:alt" content={post.title} />
 
                 <link rel="canonical" href={canonicalUrl} />
                 <link rel="alternate" hrefLang="vi" href={canonicalUrl} />
-                <link rel="preload" href={imageUrl} as="image" />
 
                 <script type="application/ld+json">
                     {JSON.stringify(structuredData)}
@@ -309,7 +330,7 @@ const PostDetail = () => {
                         <h1 className={styles.title}>{post.title}</h1>
                         <div className={styles.meta}>
                             <span className={styles.date}>Ngày {formattedDate}</span>
-                            {Array.isArray(post.category) && post.category.map((cat, idx) => (
+                            {Array.isArray(post.category) && post.category.length > 0 && post.category.map((cat, idx) => (
                                 <span
                                     key={`${cat}-${idx}`}
                                     className={styles.category}
@@ -320,56 +341,35 @@ const PostDetail = () => {
                             ))}
                             <span className={styles.author}>Tác giả: {post.author?.username || "Admin"}</span>
                         </div>
-                        {post.img ? (
-                            <figure className={styles.imageWrapper}>
-                                <img
-                                    src={post.img}
-                                    srcSet={`${post.img} 1200w, ${post.img.replace('.jpg', '-medium.jpg')} 800w, ${post.img.replace('.jpg', '-small.jpg')} 400w`}
-                                    sizes="(max-width: 768px) 100vw, 800px"
-                                    alt={post.title}
-                                    className={styles.image}
-                                    loading="lazy"
-                                    onError={(e) => { e.target.src = defaultImage; }}
-                                />
-                                {post.caption && (
-                                    <figcaption className={styles.caption}>{post.caption}</figcaption>
-                                )}
-                            </figure>
-                        ) : (
-                            <div className={styles.imagePlaceholder}>
-                                Không có hình ảnh
-                            </div>
-                        )}
-                        <RenderContent content={post.description} img2={post.img2} caption2={post.caption2} title={post.title} />
-                        <p className={styles.source}>Nguồn: {post.source || "Theo XSMB.WIN"}</p>
+                        <RenderContent
+                            contentOrder={post.contentOrder}
+                            mainContents={post.mainContents}
+                            title={post.title}
+                        />
                         <button
                             className={styles.backButton}
-                            onClick={() => router.push("/news")}
+                            onClick={() => router.push("/tin-tuc")}
                             aria-label="Quay lại trang tin tức"
                         >
                             Đến Trang Tin Tức
                         </button>
-                        <div className={styles.footballPosts}>
-                            <h2 className={styles.footballTitle}>Tin bóng đá nổi bật</h2>
-                            {displayedFootballPosts.length > 0 ? (
-                                displayedFootballPosts.map((footballPost) => (
+                        {displayedFootballPosts.length > 0 && (
+                            <div className={styles.footballPosts}>
+                                <h2 className={styles.footballTitle}>Tin bóng đá nổi bật</h2>
+                                {displayedFootballPosts.map((footballPost) => (
                                     <FootballPostItem key={footballPost._id} post={footballPost} />
-                                ))
-                            ) : (
-                                <p className={styles.noFootball}>Không có bài viết bóng đá.</p>
-                            )}
-                        </div>
-                    </div>
-                    <div className={styles.relatedPosts}>
-                        <h2 className={styles.relatedTitle}>Bài viết liên quan</h2>
-                        {displayedRelatedPosts.length > 0 ? (
-                            displayedRelatedPosts.map((relatedPost) => (
-                                <RelatedPostItem key={relatedPost._id} post={relatedPost} />
-                            ))
-                        ) : (
-                            <p className={styles.noRelated}>Không có bài viết liên quan.</p>
+                                ))}
+                            </div>
                         )}
                     </div>
+                    {displayedRelatedPosts.length > 0 && (
+                        <div className={styles.relatedPosts}>
+                            <h2 className={styles.relatedTitle}>Bài viết liên quan</h2>
+                            {displayedRelatedPosts.map((relatedPost) => (
+                                <RelatedPostItem key={relatedPost._id} post={relatedPost} />
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
         </>
@@ -378,47 +378,77 @@ const PostDetail = () => {
 
 export default PostDetail;
 
-const RenderContent = React.memo(({ content, img2, caption2, title }) => {
-    if (!content) {
-        return null;
+const RenderContent = React.memo(({ contentOrder, mainContents, title }) => {
+    if (!contentOrder || contentOrder.length === 0 || !mainContents) {
+        return <p className={styles.noContent}>Không có nội dung để hiển thị.</p>;
     }
-
-    const paragraphs = content
-        .split(/\n\s*\n/)
-        .filter(paragraph => paragraph.trim() !== '');
-
-    const midIndex = Math.floor(paragraphs.length / 2);
-    const firstHalf = paragraphs.slice(0, midIndex);
-    const secondHalf = paragraphs.slice(midIndex);
 
     return (
         <div className={styles.content}>
-            {firstHalf.map((paragraph, index) => (
-                <p className={styles.description} key={`first-${index}`}>
-                    {paragraph}
-                </p>
-            ))}
-            {img2 && (
-                <figure className={styles.imageWrapper}>
-                    <img
-                        src={img2}
-                        srcSet={`${img2} 1200w, ${img2.replace('.jpg', '-medium.jpg')} 800w, ${img2.replace('.jpg', '-small.jpg')} 400w`}
-                        sizes="(max-width: 768px) 100vw, 800px"
-                        alt={`Hình ảnh bổ sung cho ${title}`}
-                        className={styles.image}
-                        loading="lazy"
-                        onError={(e) => { e.target.src = '/backgrond.png'; }}
-                    />
-                    {caption2 && (
-                        <figcaption className={styles.caption}>{caption2}</figcaption>
-                    )}
-                </figure>
-            )}
-            {secondHalf.map((paragraph, index) => (
-                <p className={styles.description} key={`second-${index}`}>
-                    {paragraph}
-                </p>
-            ))}
+            {contentOrder.map((item, index) => {
+                if (item.type === "mainContent" && mainContents[item.index]) {
+                    const content = mainContents[item.index];
+                    return (
+                        <div key={`mainContent-${index}`} className={`${styles.mainContent} ${content.isImageFirst ? styles.imageFirst : ''}`}>
+                            {content.h2 && (
+                                <h2 className={styles.subSectionTitle}>{content.h2}</h2>
+                            )}
+                            {content.isImageFirst ? (
+                                <>
+                                    {content.img && (
+                                        <figure className={styles.imageWrapper}>
+                                            <img
+                                                src={content.img}
+                                                srcSet={`${content.img} 1200w, ${content.img.replace('.jpg', '-medium.jpg')} 800w, ${content.img.replace('.jpg', '-small.jpg')} 400w`}
+                                                sizes="(max-width: 768px) 100vw, 800px"
+                                                alt={content.h2 || title}
+                                                className={styles.image}
+                                                loading="lazy"
+                                            />
+                                            {content.caption && (
+                                                <figcaption className={styles.caption}>{content.caption}</figcaption>
+                                            )}
+                                        </figure>
+                                    )}
+                                    {content.description && (
+                                        <div className={styles.description}>
+                                            {content.description.split(/\n\s*\n/).filter(p => p.trim()).map((paragraph, i) => (
+                                                <p key={`para-${i}`}>{paragraph}</p>
+                                            ))}
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <>
+                                    {content.description && (
+                                        <div className={styles.description}>
+                                            {content.description.split(/\n\s*\n/).filter(p => p.trim()).map((paragraph, i) => (
+                                                <p key={`para-${i}`}>{paragraph}</p>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {content.img && (
+                                        <figure className={styles.imageWrapper}>
+                                            <img
+                                                src={content.img}
+                                                srcSet={`${content.img} 1200w, ${content.img.replace('.jpg', '-medium.jpg')} 800w, ${content.img.replace('.jpg', '-small.jpg')} 400w`}
+                                                sizes="(max-width: 768px) 100vw, 800px"
+                                                alt={content.h2 || title}
+                                                className={styles.image}
+                                                loading="lazy"
+                                            />
+                                            {content.caption && (
+                                                <figcaption className={styles.caption}>{content.caption}</figcaption>
+                                            )}
+                                        </figure>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    );
+                }
+                return null;
+            })}
         </div>
     );
 });

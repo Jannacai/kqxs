@@ -1,16 +1,16 @@
-import { useForm, Controller } from "react-hook-form";
+"use client";
+
+import { useForm, Controller, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { createPost } from "./api/post/index";
 import styles from "../styles/createPost.module.css";
 import { useSession, signOut } from "next-auth/react";
-import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
-import { debounce } from "lodash";
+import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-// Danh sách danh mục, lý tưởng là lấy từ API hoặc backend
 const VALID_CATEGORIES = ["Thể thao", "Đời sống", "Giải trí", "Tin hot"];
 
 const postSchema = z.object({
@@ -19,41 +19,54 @@ const postSchema = z.object({
         .min(5, "Tiêu đề phải có ít nhất 5 ký tự")
         .max(100, "Tiêu đề không được dài quá 100 ký tự")
         .nonempty("Tiêu đề không được để trống"),
-    description: z
-        .string()
-        .min(20, "Nội dung phải có ít nhất 20 ký tự")
-        .nonempty("Nội dung không được để trống"),
-    img: z
-        .string()
-        .url("Vui lòng nhập một URL hợp lệ")
-        .optional()
-        .or(z.literal("")),
-    caption: z
-        .string()
-        .max(100, "Chú thích không được dài quá 100 ký tự")
-        .optional()
-        .or(z.literal("")),
-    img2: z
-        .string()
-        .url("Vui lòng nhập một URL hợp lệ")
-        .optional()
-        .or(z.literal("")),
-    caption2: z
-        .string()
-        .max(100, "Chú thích không được dài quá 100 ký tự")
-        .optional()
-        .or(z.literal("")),
+    mainContents: z
+        .array(
+            z.object({
+                h2: z
+                    .string()
+                    .min(5, "Tiêu đề phụ phải có ít nhất 5 ký tự")
+                    .max(100, "Tiêu đề phụ không được dài quá 100 ký tự")
+                    .optional()
+                    .or(z.literal("")),
+                description: z
+                    .string()
+                    .min(20, "Nội dung phải có ít nhất 20 ký tự")
+                    .optional()
+                    .or(z.literal("")),
+                img: z
+                    .string()
+                    .url("Vui lòng nhập một URL hợp lệ")
+                    .refine(
+                        (url) => !url || /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(url),
+                        "URL phải là hình ảnh (jpg, jpeg, png, gif, webp)"
+                    )
+                    .optional()
+                    .or(z.literal("")),
+                caption: z
+                    .string()
+                    .max(100, "Chú thích không được dài quá 100 ký tự")
+                    .optional()
+                    .or(z.literal("")),
+                isImageFirst: z.boolean().optional(),
+            })
+        )
+        .optional(),
     category: z
         .array(z.enum(VALID_CATEGORIES))
         .min(1, "Vui lòng chọn ít nhất một chủ đề"),
+    contentOrder: z.array(
+        z.object({
+            type: z.literal("mainContent"),
+            index: z.number().optional(),
+        })
+    ),
 });
 
 const CreatePost = () => {
     const { data: session, status } = useSession();
     const router = useRouter();
-    const [previewUrl, setPreviewUrl] = useState("");
-    const [previewUrl2, setPreviewUrl2] = useState("");
-    const [isModalOpen, setIsModalOpen] = useState(true);
+    const [previewUrls, setPreviewUrls] = useState({});
+    const [mainContentFields, setMainContentFields] = useState({});
 
     const {
         register,
@@ -61,17 +74,26 @@ const CreatePost = () => {
         formState: { errors, isSubmitting },
         reset,
         control,
+        getValues,
+        setValue,
     } = useForm({
         resolver: zodResolver(postSchema),
         defaultValues: {
             title: "",
-            description: "",
-            img: "",
-            caption: "",
-            img2: "",
-            caption2: "",
+            mainContents: [],
             category: ["Thể thao"],
+            contentOrder: [],
         },
+    });
+
+    const { fields: mainContents, append: appendMainContent, remove: removeMainContent } = useFieldArray({
+        control,
+        name: "mainContents",
+    });
+
+    const { fields: contentOrder, append: appendContentOrder, remove: removeContentOrder, move: moveContentOrder } = useFieldArray({
+        control,
+        name: "contentOrder",
     });
 
     useEffect(() => {
@@ -80,47 +102,104 @@ const CreatePost = () => {
         }
     }, [status, router]);
 
-    const handleImageChange = debounce((event, isSecondImage = false) => {
-        const url = event.target.value;
-        if (isSecondImage) {
-            setPreviewUrl2(url || "");
+    const handleImageChange = useCallback(
+        (index) => (event) => {
+            const url = event.target.value;
+            setPreviewUrls((prev) => ({
+                ...prev,
+                [`mainContent-${index}`]: url || "",
+            }));
+        },
+        []
+    );
+
+    const addMainContent = () => {
+        const newIndex = mainContents.length;
+        appendMainContent({ h2: "", description: "", img: "", caption: "", isImageFirst: false });
+        appendContentOrder({ type: "mainContent", index: newIndex });
+        setMainContentFields((prev) => ({
+            ...prev,
+            [newIndex]: { showH2: false },
+        }));
+    };
+
+    const toggleH2 = (index) => {
+        setMainContentFields((prev) => ({
+            ...prev,
+            [index]: {
+                ...prev[index],
+                showH2: !prev[index]?.showH2,
+            },
+        }));
+        if (!mainContentFields[index]?.showH2) {
+            setValue(`mainContents[${index}].h2`, "");
         } else {
-            setPreviewUrl(url || "");
+            setValue(`mainContents[${index}].h2`, "");
         }
-    }, 300);
+    };
+
+    const toggleImagePosition = useCallback(
+        (index) => {
+            setValue(`mainContents[${index}].isImageFirst`, !getValues(`mainContents[${index}].isImageFirst`));
+        },
+        [getValues, setValue]
+    );
+
+    const removeContent = (index, contentIndex) => {
+        removeMainContent(contentIndex);
+        setPreviewUrls((prev) => {
+            const newUrls = { ...prev };
+            delete newUrls[`mainContent-${contentIndex}`];
+            return newUrls;
+        });
+        setMainContentFields((prev) => {
+            const newFields = { ...prev };
+            delete newFields[contentIndex];
+            return newFields;
+        });
+        removeContentOrder(index);
+    };
+
+    const moveItem = (index, direction) => {
+        if (direction === "up" && index > 0) {
+            moveContentOrder(index, index - 1);
+        } else if (direction === "down" && index < contentOrder.length - 1) {
+            moveContentOrder(index, index + 1);
+        }
+    };
 
     const onSubmit = async (data) => {
         try {
             const postData = {
                 title: data.title,
-                description: data.description,
-                img: data.img || "",
-                caption: data.caption || "",
-                img2: data.img2 || "",
-                caption2: data.caption2 || "",
+                mainContents: data.mainContents.map((item) => ({
+                    h2: item.h2 || "",
+                    description: item.description || "",
+                    img: item.img || "",
+                    caption: item.caption || "",
+                    isImageFirst: item.isImageFirst || false,
+                })),
                 category: data.category,
+                contentOrder: data.contentOrder,
             };
-            console.log("Sending postData:", postData);
             const response = await createPost(postData);
-            console.log("Create post response:", response);
             reset();
-            setPreviewUrl("");
-            setPreviewUrl2("");
+            setPreviewUrls({});
+            setMainContentFields({});
             toast.success("Đăng bài thành công!", {
                 position: "top-right",
                 autoClose: 3000,
             });
-            setIsModalOpen(false);
             router.push(`/tin-tuc/${response.slug}-${response._id}`);
         } catch (error) {
-            console.error("Submit error:", error);
+            console.error("Lỗi khi đăng bài:", error);
             let errorMessage = "Đã có lỗi xảy ra khi đăng bài. Vui lòng thử lại.";
             if (error.message.includes("Invalid token")) {
                 await signOut({ redirect: false });
-                router.push("/login");
+                router.push("/ui");
                 return;
             } else if (error.message.includes("Invalid data")) {
-                errorMessage = "Dữ liệu không hợp lệ. Vui lòng kiểm tra tiêu đề và nội dung.";
+                errorMessage = "Dữ liệu không hợp lệ. Vui lòng kiểm tra tiêu đề, URL hình ảnh, và nội dung.";
             } else if (error.message.includes("Failed to save post")) {
                 errorMessage = "Lỗi hệ thống khi lưu bài viết. Vui lòng liên hệ quản trị viên.";
             }
@@ -132,7 +211,6 @@ const CreatePost = () => {
     };
 
     const handleCloseModal = () => {
-        setIsModalOpen(false);
         router.push("/");
     };
 
@@ -149,11 +227,7 @@ const CreatePost = () => {
             <div className={styles.modalOverlay}>
                 <div className={styles.container}>
                     <div className={styles.formGroup}>
-                        <button
-                            className={styles.closeButton}
-                            onClick={handleCloseModal}
-                            aria-label="Đóng modal"
-                        >
+                        <button className={styles.closeButton} onClick={handleCloseModal} aria-label="Đóng modal">
                             ✕
                         </button>
                         <div className={styles.errorModal}>
@@ -162,10 +236,7 @@ const CreatePost = () => {
                                 Bạn không có quyền đăng bài. Chỉ quản trị viên (ADMIN) được phép.
                             </p>
                             <div className={styles.buttonGroup}>
-                                <button
-                                    className={styles.submitForm}
-                                    onClick={handleCloseModal}
-                                >
+                                <button className={styles.submitForm} onClick={handleCloseModal}>
                                     Về trang chủ
                                 </button>
                             </div>
@@ -176,19 +247,11 @@ const CreatePost = () => {
         );
     }
 
-    if (!isModalOpen) {
-        return null;
-    }
-
     return (
         <div className={styles.modalOverlay}>
             <div className={styles.container}>
                 <div className={styles.formGroup}>
-                    <button
-                        className={styles.closeButton}
-                        onClick={handleCloseModal}
-                        aria-label="Đóng modal"
-                    >
+                    <button className={styles.closeButton} onClick={handleCloseModal} aria-label="Đóng modal">
                         ✕
                     </button>
                     <ToastContainer />
@@ -212,118 +275,159 @@ const CreatePost = () => {
                                 )}
                             </label>
                         </div>
-
-                        <div className={styles.Group}>
-                            <label htmlFor="description" className={styles.labelGroup}>
-                                <span className={styles.titleGroup}>Nội dung bài viết</span>
-                                <textarea
-                                    id="description"
-                                    {...register("description")}
-                                    className={styles.inputGroup_desc}
-                                    rows={8}
-                                    autoComplete="off"
-                                    aria-describedby="description-error"
-                                />
-                                {errors.description && (
-                                    <span id="description-error" className={styles.error}>{errors.description.message}</span>
-                                )}
-                            </label>
-                        </div>
-
-                        <div className={styles.Group}>
-                            <h3 className={styles.subTitle}>Hình ảnh 1 (Tùy chọn)</h3>
-                            <div className={styles.imageGroup}>
-                                <label htmlFor="imageInput" className={styles.labelGroup}>
-                                    <span className={styles.titleGroup}>URL Hình ảnh 1</span>
-                                    <input
-                                        id="imageInput"
-                                        {...register("img")}
-                                        type="text"
-                                        placeholder="Nhập URL hình ảnh 1"
-                                        className={styles.inputGroup_title}
-                                        autoComplete="off"
-                                        onChange={(e) => handleImageChange(e, false)}
-                                        aria-describedby="img-error"
-                                    />
-                                    {errors.img && (
-                                        <span id="img-error" className={styles.error}>{errors.img.message}</span>
-                                    )}
-                                </label>
-                                <label htmlFor="caption" className={styles.labelGroup}>
-                                    <span className={styles.titleGroup}>Chú thích Hình ảnh 1</span>
-                                    <input
-                                        id="caption"
-                                        {...register("caption")}
-                                        type="text"
-                                        placeholder="Nhập chú thích cho hình ảnh 1"
-                                        className={styles.inputGroup_title}
-                                        autoComplete="off"
-                                        aria-describedby="caption-error"
-                                    />
-                                    {errors.caption && (
-                                        <span id="caption-error" className={styles.error}>{errors.caption.message}</span>
-                                    )}
-                                </label>
-                                {previewUrl && (
-                                    <img
-                                        id="imagePreview"
-                                        src={previewUrl}
-                                        alt="Xem trước hình ảnh bài viết 1"
-                                        className={styles.labelGroupIMG}
-                                        loading="lazy"
-                                        onError={(e) => { e.target.src = "/placeholder.png"; }}
-                                    />
-                                )}
+                        {contentOrder.map((item, index) => (
+                            <div key={`mainContent-${item.index}`} className={styles.orderableGroup}>
+                                <div className={styles.orderHeader}>
+                                    <span className={styles.orderNumber}>Thứ tự: {index + 1}</span>
+                                    <div className={styles.orderButtons}>
+                                        <button
+                                            type="button"
+                                            className={styles.orderButton}
+                                            onClick={() => moveItem(index, "up")}
+                                            disabled={index === 0}
+                                            aria-label="Di chuyển lên"
+                                        >
+                                            ↑
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={styles.orderButton}
+                                            onClick={() => moveItem(index, "down")}
+                                            disabled={index === contentOrder.length - 1}
+                                            aria-label="Di chuyển xuống"
+                                        >
+                                            ↓
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={styles.removeButton}
+                                            onClick={() => removeContent(index, item.index)}
+                                            aria-label="Xóa nhóm nội dung"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className={styles.Group}>
+                                    <h3 className={styles.subTitle}>Nhóm nội dung chính {item.index + 1}</h3>
+                                    <div className={styles.mainContentGroup}>
+                                        {mainContentFields[item.index]?.showH2 && (
+                                            <label htmlFor={`mainContents[${item.index}].h2`} className={styles.labelGroup}>
+                                                <span className={styles.titleGroup}>Tiêu đề phụ</span>
+                                                <input
+                                                    id={`mainContents[${item.index}].h2`}
+                                                    {...register(`mainContents[${item.index}].h2`)}
+                                                    type="text"
+                                                    className={styles.inputGroup_title}
+                                                    autoComplete="off"
+                                                    aria-describedby={`h2-${item.index}-error`}
+                                                />
+                                                {errors.mainContents?.[item.index]?.h2 && (
+                                                    <span id={`h2-${item.index}-error`} className={styles.error}>
+                                                        {errors.mainContents[item.index].h2.message}
+                                                    </span>
+                                                )}
+                                            </label>
+                                        )}
+                                        <button
+                                            type="button"
+                                            className={styles.addButton}
+                                            onClick={() => toggleH2(item.index)}
+                                            aria-label={mainContentFields[item.index]?.showH2 ? "Ẩn tiêu đề phụ" : "Thêm tiêu đề phụ"}
+                                        >
+                                            {mainContentFields[item.index]?.showH2 ? "- Ẩn tiêu đề phụ" : "+ Thêm tiêu đề phụ"}
+                                        </button>
+                                        <label htmlFor={`mainContents[${item.index}].description`} className={styles.labelGroup}>
+                                            <span className={styles.titleGroup}>Nội dung chính</span>
+                                            <textarea
+                                                id={`mainContents[${item.index}].description`}
+                                                {...register(`mainContents[${item.index}].description`)}
+                                                className={styles.inputGroup_desc}
+                                                rows={8}
+                                                autoComplete="off"
+                                                aria-describedby={`mainContent-${item.index}-description-error`}
+                                            />
+                                            {errors.mainContents?.[item.index]?.description && (
+                                                <span id={`mainContent-${item.index}-description-error`} className={styles.error}>
+                                                    {errors.mainContents[item.index].description.message}
+                                                </span>
+                                            )}
+                                        </label>
+                                        <div className={styles.imageGroup}>
+                                            <label htmlFor={`mainContents[${item.index}].img`} className={styles.labelGroup}>
+                                                <span className={styles.titleGroup}>URL Hình ảnh</span>
+                                                <input
+                                                    id={`mainContents[${item.index}].img`}
+                                                    {...register(`mainContents[${item.index}].img`)}
+                                                    type="text"
+                                                    placeholder="Nhập URL hình ảnh"
+                                                    className={styles.inputGroup_title}
+                                                    autoComplete="off"
+                                                    onChange={handleImageChange(item.index)}
+                                                    aria-describedby={`mainContent-${item.index}-img-error`}
+                                                />
+                                                {errors.mainContents?.[item.index]?.img && (
+                                                    <span id={`mainContent-${item.index}-img-error`} className={styles.error}>
+                                                        {errors.mainContents[item.index].img.message}
+                                                    </span>
+                                                )}
+                                            </label>
+                                            <label htmlFor={`mainContents[${item.index}].caption`} className={styles.labelGroup}>
+                                                <span className={styles.titleGroup}>Chú thích Hình ảnh</span>
+                                                <input
+                                                    id={`mainContents[${item.index}].caption`}
+                                                    {...register(`mainContents[${item.index}].caption`)}
+                                                    type="text"
+                                                    placeholder="Nhập chú thích cho hình ảnh"
+                                                    className={styles.inputGroup_title}
+                                                    autoComplete="off"
+                                                    aria-describedby={`mainContent-${item.index}-caption-error`}
+                                                />
+                                                {errors.mainContents?.[item.index]?.caption && (
+                                                    <span id={`mainContent-${item.index}-caption-error`} className={styles.error}>
+                                                        {errors.mainContents[item.index].caption.message}
+                                                    </span>
+                                                )}
+                                            </label>
+                                            {previewUrls[`mainContent-${item.index}`] ? (
+                                                <img
+                                                    id={`imagePreview-main-${item.index}`}
+                                                    src={previewUrls[`mainContent-${item.index}`]}
+                                                    alt={`Xem trước hình ảnh chính ${item.index + 1}`}
+                                                    className={styles.labelGroupIMG}
+                                                    loading="lazy"
+                                                />
+                                            ) : (
+                                                <p className={styles.noImageText}>Không có hình ảnh</p>
+                                            )}
+                                        </div>
+                                        <div className={styles.positionToggle}>
+                                            <button
+                                                type="button"
+                                                className={`${styles.toggleButton} ${getValues(`mainContents[${item.index}].isImageFirst`)
+                                                    ? styles.toggleButtonActive
+                                                    : ""
+                                                    }`}
+                                                onClick={() => toggleImagePosition(item.index)}
+                                                aria-label="Đổi vị trí hình ảnh"
+                                            >
+                                                {getValues(`mainContents[${item.index}].isImageFirst`) ? "Hình trên" : "Hình dưới"}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-
+                        ))}
                         <div className={styles.Group}>
-                            <h3 className={styles.subTitle}>Hình ảnh 2 (Tùy chọn)</h3>
-                            <div className={styles.imageGroup}>
-                                <label htmlFor="imageInput2" className={styles.labelGroup}>
-                                    <span className={styles.titleGroup}>URL Hình ảnh 2</span>
-                                    <input
-                                        id="imageInput2"
-                                        {...register("img2")}
-                                        type="text"
-                                        placeholder="Nhập URL hình ảnh 2"
-                                        className={styles.inputGroup_title}
-                                        autoComplete="off"
-                                        onChange={(e) => handleImageChange(e, true)}
-                                        aria-describedby="img2-error"
-                                    />
-                                    {errors.img2 && (
-                                        <span id="img2-error" className={styles.error}>{errors.img2.message}</span>
-                                    )}
-                                </label>
-                                <label htmlFor="caption2" className={styles.labelGroup}>
-                                    <span className={styles.titleGroup}>Chú thích Hình ảnh 2</span>
-                                    <input
-                                        id="caption2"
-                                        {...register("caption2")}
-                                        type="text"
-                                        placeholder="Nhập chú thích cho hình ảnh 2"
-                                        className={styles.inputGroup_title}
-                                        autoComplete="off"
-                                        aria-describedby="caption2-error"
-                                    />
-                                    {errors.caption2 && (
-                                        <span id="caption2-error" className={styles.error}>{errors.caption2.message}</span>
-                                    )}
-                                </label>
-                                {previewUrl2 && (
-                                    <img
-                                        id="imagePreview2"
-                                        src={previewUrl2}
-                                        alt="Xem trước hình ảnh bài viết 2"
-                                        className={styles.labelGroupIMG}
-                                        loading="lazy"
-                                        onError={(e) => { e.target.src = "/placeholder.png"; }}
-                                    />
-                                )}
-                            </div>
+                            <button
+                                type="button"
+                                className={styles.addButton}
+                                onClick={addMainContent}
+                                aria-label="Thêm nhóm nội dung chính"
+                            >
+                                + Nhóm nội dung chính
+                            </button>
                         </div>
-
                         <div className={styles.Group}>
                             <h3 className={styles.subTitle}>Chọn chủ đề *</h3>
                             <div className={styles.checkboxGroup}>
@@ -356,7 +460,6 @@ const CreatePost = () => {
                                 )}
                             </div>
                         </div>
-
                         <div className={styles.buttonGroup}>
                             <button className={styles.submitForm} type="submit" disabled={isSubmitting}>
                                 {isSubmitting ? "Đang đăng..." : "Hoàn Thành"}

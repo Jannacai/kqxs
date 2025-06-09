@@ -1,4 +1,4 @@
-import { getSession } from "next-auth/react";
+const { getSession } = require("next-auth/react");
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
 
@@ -74,12 +74,9 @@ export const createPost = async (postData) => {
             },
             body: JSON.stringify({
                 title: postData.title,
-                description: postData.description,
-                img: postData.img || "",
-                caption: postData.caption || "",
-                img2: postData.img2 || "",
-                caption2: postData.caption2 || "",
+                mainContents: postData.mainContents || [],
                 category: postData.category,
+                contentOrder: postData.contentOrder || [],
             }),
         });
         if (!response.ok) {

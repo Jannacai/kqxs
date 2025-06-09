@@ -13,11 +13,10 @@ const getCategoryColor = (category) => {
         'Đời sống': '#e11d48', // Hồng
         'Giải trí': '#f59e0b', // Vàng
         'Tin hot': '#ef4444', // Đỏ
-        // Thêm màu cho danh mục mới tại đây
         'Công nghệ': '#3b82f6', // Xanh dương
         'Sức khỏe': '#8b5cf6', // Tím
     };
-    return categoryColors[category] || '#6b7280'; // Màu xám mặc định nếu danh mục không có trong danh sách
+    return categoryColors[category] || '#6b7280'; // Màu xám mặc định
 };
 
 const getStartOfDay = (date) => {
@@ -91,6 +90,23 @@ const ListPost = (props) => {
         handleManualChange(newIndex);
     };
 
+    // Hàm lấy ảnh đầu tiên hợp lệ từ mainContents
+    const getPostImage = (post) => {
+        if (!post.mainContents || !Array.isArray(post.mainContents)) {
+            return imgItem.src;
+        }
+        const validImage = post.mainContents.find(content => content.img && content.img.startsWith('http'));
+        return validImage ? validImage.img : imgItem.src;
+    };
+
+    // Hàm lấy mô tả từ mainContents
+    const getPostDescription = (post) => {
+        if (!post.mainContents || !Array.isArray(post.mainContents) || !post.mainContents[0]?.description) {
+            return "";
+        }
+        return post.mainContents[0].description.slice(0, 100) + "...";
+    };
+
     if (totalPosts === 0) {
         return (
             <div className={styles.postContainer}>
@@ -104,7 +120,7 @@ const ListPost = (props) => {
     }
 
     return (
-        <div className={styles.postContainer} onMouseEnter={() => { setIsPaused(true); resetTimer(); }} onMouseLeave={() => { setIsPaused(false); }}>
+        <div className={styles.postContainer} onMouseEnter={() => { setIsPaused(true); resetTimer(); }} onMouseLeave={() => { setIsPaused(false); startTimer(); }}>
             <Head>
                 <meta name="description" content="Cập nhật tin tức mới nhất trong 24h qua" />
                 <meta property="og:title" content="Tin Tức 24h" />
@@ -120,8 +136,8 @@ const ListPost = (props) => {
                             item: {
                                 "@type": "NewsArticle",
                                 headline: post.title,
-                                description: post.description?.slice(0, 100),
-                                image: post.img || imgItem.src,
+                                description: getPostDescription(post),
+                                image: getPostImage(post),
                                 datePublished: post.createdAt,
                                 url: `https://xsmb.win/tin-tuc/${post.slug}-${post._id}`,
                             },
@@ -134,7 +150,7 @@ const ListPost = (props) => {
                 <div className={styles.listPost}>
                     {postsCurrentlyOnDisplay.map((post, index) => {
                         const itemClassName = `${styles.itemPost} ${index === 1 ? styles.active : ''}`;
-                        const uniqueKey = `${post?._id || `tin-tuc-${index}`}-${index}`;
+                        const uniqueKey = `${post?._id || `post-${index}`}-${index}`;
                         let formattedDate = 'Ngày đăng';
                         if (post.createdAt) {
                             try {
@@ -150,14 +166,20 @@ const ListPost = (props) => {
                         if (!post) {
                             return <div key={uniqueKey} className={styles.itemPlaceholder}></div>;
                         }
+                        const postImage = getPostImage(post);
+                        const postDescription = getPostDescription(post);
                         return (
                             <div key={uniqueKey} className={itemClassName} role="article">
                                 <Link href={`/tin-tuc/${post.slug}-${post._id}`} aria-label={`Xem bài viết ${post.title}`}>
-                                    <img
+                                    <Image
                                         className={styles.imgPost}
-                                        src={post.img && post.img.startsWith('http') ? post.img : imgItem.src}
+                                        src={postImage}
                                         alt={`Hình ảnh bài viết: ${post.title}`}
-                                        onError={(e) => { e.target.onerror = null; e.target.src = imgItem.src }}
+                                        width={400}
+                                        height={250}
+                                        onError={(e) => { e.target.src = imgItem.src; }}
+                                        placeholder="blur"
+                                        blurDataURL={imgItem.src}
                                     />
                                 </Link>
                                 <div className={styles.postMeta}>
@@ -172,11 +194,14 @@ const ListPost = (props) => {
                                         </span>
                                     ))}
                                 </div>
-                                <h3 className={styles.title} onClick={() => router.push(`/tin-tuc/${post.slug}-${post._id}`)}>
+                                <h3
+                                    className={styles.title}
+                                    onClick={() => router.push(`/tin-tuc/${post.slug}-${post._id}`)}
+                                >
                                     {post.title}
                                 </h3>
                                 <p className={styles.desc}>
-                                    {post.description?.slice(0, 100)}...
+                                    {postDescription}
                                 </p>
                             </div>
                         );
