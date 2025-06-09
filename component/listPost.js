@@ -1,4 +1,3 @@
-
 import Image from "next/image";
 import Link from "next/link";
 import Head from "next/head";
@@ -30,14 +29,15 @@ const getStartOfDay = (date) => {
 const cleanImageUrl = (url) => {
     if (!url || typeof url !== 'string') return imgItem.src;
     try {
+        // Kiểm tra URL có hợp lệ không
         const urlObj = new URL(url);
-        // Loại bỏ các tham số không cần thiết
-        urlObj.searchParams.delete('w');
-        urlObj.searchParams.delete('h');
-        urlObj.searchParams.delete('q');
-        urlObj.searchParams.delete('dpr');
-        urlObj.searchParams.delete('fit');
-        urlObj.searchParams.delete('s');
+        // Kiểm tra phần mở rộng hợp lệ
+        const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+        const hasValidExtension = validExtensions.some(ext => url.toLowerCase().includes(ext));
+        if (!hasValidExtension) {
+            return imgItem.src;
+        }
+        // Giữ nguyên URL gốc, không loại bỏ tham số
         return urlObj.toString();
     } catch {
         return imgItem.src;
