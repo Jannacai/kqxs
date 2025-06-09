@@ -186,7 +186,7 @@ const PostDetail = () => {
         : defaultDescription;
 
     const canonicalUrl = `https://xsmb.win/tin-tuc/${post.slug}-${post._id}`;
-    const imageUrl = post.img && post.img.startsWith('http') ? post.img : defaultImage;
+    const imageUrl = post.img && post.img.startsWith('https') ? post.img : defaultImage;
 
     const structuredData = {
         "@context": "https://schema.org",
