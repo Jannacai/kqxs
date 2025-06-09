@@ -11,7 +11,7 @@ module.exports = {
         remotePatterns: [
             {
                 protocol: 'https',
-                hostname: ['i1-vnexpress.vnecdn.net', 'i1-thethao.vnecdn.net'],
+                hostname: 'i1-thethao.vnecdn.net',
                 port: '',
                 pathname: '/**',
             },
