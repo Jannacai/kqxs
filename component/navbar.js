@@ -114,10 +114,10 @@ const NavBar = () => {
                         </Link>
                     </li>
                     <li
-                        className={`${styles.nav_itemNgang} ${router.pathname.startsWith('/news') ? styles.active : ''
+                        className={`${styles.nav_itemNgang} ${router.pathname.startsWith('/tin-tuc') ? styles.active : ''
                             }`}
                     >
-                        <Link href="#" className={styles.nav_itemLinkNgang}>
+                        <Link href="/tin-tuc" className={styles.nav_itemLinkNgang}>
                             Tin Tức
                         </Link>
                     </li>
@@ -671,12 +671,12 @@ const NavBar = () => {
                                     </ul>
                                 </li>
                                 <li
-                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith('/news') ? styles.active : ''
+                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith('/tin-tuc') ? styles.active : ''
                                         }`}
                                 >
                                     <div className={styles.grouplinkMobile}>
                                         <Link
-                                            href="#"
+                                            href="/tin-tuc"
                                             className={styles.nav_itemLinkMobile}
                                             onClick={toggleMenu}
                                         >
@@ -685,15 +685,15 @@ const NavBar = () => {
                                             </span>{' '}
                                             Tin Tức
                                         </Link>
-                                        <span onClick={() => toggleMenuList('news')} className={styles.icon}>
+                                        <span onClick={() => toggleMenuList('tin-tuc')} className={styles.icon}>
                                             <i
-                                                className={`fa-solid ${isMenuOpenList === 'news' ? 'fa-chevron-up' : 'fa-chevron-down'
+                                                className={`fa-solid ${isMenuOpenList === 'tin-tuc' ? 'fa-chevron-up' : 'fa-chevron-down'
                                                     }`}
                                             ></i>
                                         </span>
                                     </div>
                                     <ul
-                                        className={`${styles.nav__menuMobile} ${isMenuOpenList === 'news' ? styles.menuList : ''
+                                        className={`${styles.nav__menuMobile} ${isMenuOpenList === 'tin-tuc' ? styles.menuList : ''
                                             }`}
                                     >
                                         <li>
@@ -1168,11 +1168,11 @@ const NavBar = () => {
                                 </ul>
                             </li>
                             <li
-                                className={`${styles.nav_item} ${router.pathname.startsWith('/news') ? styles.active : ''
+                                className={`${styles.nav_item} ${router.pathname.startsWith('/tin-tuc') ? styles.active : ''
                                     }`}
                             >
                                 <div className={styles.grouplink}>
-                                    <Link href="#" className={styles.nav_itemLink}>
+                                    <Link href="/tin-tuc" className={styles.nav_itemLink}>
                                         Tin Tức
                                     </Link>
                                     <span className={styles.icon}>
