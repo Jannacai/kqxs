@@ -1,3 +1,4 @@
+
 import Image from "next/image";
 import Link from "next/link";
 import Head from "next/head";
@@ -23,6 +24,24 @@ const getStartOfDay = (date) => {
     const start = new Date(date);
     start.setHours(0, 0, 0, 0);
     return start.getTime();
+};
+
+// Hàm làm sạch URL hình ảnh
+const cleanImageUrl = (url) => {
+    if (!url || typeof url !== 'string') return imgItem.src;
+    try {
+        const urlObj = new URL(url);
+        // Loại bỏ các tham số không cần thiết
+        urlObj.searchParams.delete('w');
+        urlObj.searchParams.delete('h');
+        urlObj.searchParams.delete('q');
+        urlObj.searchParams.delete('dpr');
+        urlObj.searchParams.delete('fit');
+        urlObj.searchParams.delete('s');
+        return urlObj.toString();
+    } catch {
+        return imgItem.src;
+    }
 };
 
 const ListPost = (props) => {
@@ -96,7 +115,7 @@ const ListPost = (props) => {
             return imgItem.src;
         }
         const validImage = post.mainContents.find(content => content.img && content.img.startsWith('http'));
-        return validImage ? validImage.img : imgItem.src;
+        return validImage ? cleanImageUrl(validImage.img) : imgItem.src;
     };
 
     // Hàm lấy mô tả từ mainContents
@@ -143,8 +162,8 @@ const ListPost = (props) => {
                             },
                         })),
                     })}
-                </script>
-            </Head>
+                </script >
+            </Head >
             <h2 className={styles.postTitle}>Tin Tức Mới Nhất 24h</h2>
             <div className={styles.listPostWrapper}>
                 <div className={styles.listPost}>
@@ -238,7 +257,7 @@ const ListPost = (props) => {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 };
 
