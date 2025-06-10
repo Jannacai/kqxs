@@ -7,7 +7,34 @@
     padding: 16px;
     background-color: #ffffff;
 }
+/* css ---------Banner */
 
+.banner1 {
+    margin-top: 20px;
+    width: 300px;
+    height: 300px;
+    object-fit: cover;
+}
+
+.videobanner {
+    object-fit: cover;
+    width: 400px;
+    height: 100%;
+    max-width: 100%;
+}
+
+.groupbanner3 {
+    display: flex;
+    justify-content: center;
+    height: 150px;
+    width: 100%;
+}
+
+.banner3 {
+    height: 140px;
+    width: 100%;
+    object-fit: cover;
+}
 /* Nút Điều hướng */
 .actionBtn {
     display: flex;

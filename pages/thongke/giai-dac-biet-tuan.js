@@ -404,6 +404,20 @@ const GiaiDacBietTheoTuan = ({ initialStats, initialMetadata, initialMonth, init
 
                     </div>
                 </div>
+                <div className={styles.groupbanner3}>
+                    <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
+                        <video
+                            className={styles.banner3}
+                            src='/banner3.mp4'
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            alt='xổ số bắc trung nam'
+                            suppressHydrationWarning
+                        />
+                    </a>
+                </div>
 
                 <div className={styles.content}>
                     <div className="metadata">
@@ -562,6 +576,20 @@ const GiaiDacBietTheoTuan = ({ initialStats, initialMetadata, initialMonth, init
             <div>
                 <ThongKe region={region} tinh={tinh} />
                 <CongCuHot />
+                <div className={styles.banner1}>
+                    <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
+                        <video
+                            className={styles.videobanner}
+                            src='/banner2.mp4'
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            alt='xổ số bắc trung nam'
+                            suppressHydrationWarning
+                        />
+                    </a>
+                </div>
             </div>
             <button
                 id="scrollToTopBtn"

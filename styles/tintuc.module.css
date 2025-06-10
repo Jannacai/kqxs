@@ -1,6 +1,7 @@
 .pageWrapper {
     background-color: #f5f5f5;
     padding: 30px 0;
+    margin-left: 30px;
 }
 
 .container {
@@ -8,27 +9,79 @@
     margin: 0 auto;
     padding: 0 20px;
     box-sizing: border-box;
+    font-family: "Merriweather", serif;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.contentWrapper {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+}
+
+.postsWrapper {
+    flex: 0 0 65%;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.bannerContainer {
+    flex: 0 0 35%;
+    position: relative;
+    padding: 0 20px;
+    height: auto;
+    gap: 10px
+}
+
+.bannerContainer::before {
+    content: "";
+    display: block;
+    position: absolute;
+    width: 0.5px;
+    height: 100%;
+    top: 0;
+    background-color: #ccc;
+    left: 0px;
+}
+
+.bannerContainer img {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+}
+
+.bannervideo {
+    object-fit: cover;
+    width: 100%;
 }
 
 .categoryMenu {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 10px;
     margin-bottom: 20px;
     border-bottom: 2px solid #e5e5e5;
     padding-bottom: 10px;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
 }
 
 .categoryButton {
-    font-family: "Roboto", sans-serif;
+    font-family: "Merriweather", serif;
     font-size: 1rem;
     font-weight: 500;
     color: #333;
     background-color: #fff;
     border: 1px solid #ddd;
-    border-radius: 6px;
+    border-radius: 20px;
     padding: 8px 16px;
     cursor: pointer;
+    transition: all 0.2s ease;
 }
 
 .categoryButton:hover {
@@ -44,24 +97,51 @@
 
 .mainContent {
     display: flex;
+    position: relative;
     gap: 20px;
     margin-bottom: 30px;
+    width: 100%;
+}
+
+.mainContent::after {
+    content: "";
+    position: absolute;
+    display: block;
+    width: 100%;
+    height: 0.5px;
+    background-color: #ccc;
+    bottom: -20px;
 }
 
 .heroSection {
     flex: 3;
+    position: relative;
+}
+
+.heroSection::after {
+    content: "";
+    position: absolute;
+    display: block;
+    width: 0.5px;
+    right: -10px;
+    top: 10px;
+    height: 100%;
+    background-color: #ccc;
+    bottom: -20px;
 }
 
 .heroPost {
     display: flex;
+    position: relative;
     text-decoration: none;
     color: inherit;
     background: #fff;
     border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     margin-bottom: 20px;
     overflow: hidden;
 }
+
+.heroPost::after {}
 
 .heroImage {
     width: 50%;
@@ -100,9 +180,33 @@
     line-height: 1.5;
 }
 
+.subHeroSection {
+    margin-top: 20px;
+    position: relative;
+}
+
+.subHeroSection::before {
+    content: "";
+    position: absolute;
+    display: block;
+    width: 100%;
+    top: -6px;
+    height: 0.5px;
+    background-color: #ccc;
+    bottom: -20px;
+}
+
+.subHeroTitle {
+    font-family: "Merriweather", serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 15px;
+}
+
 .subHeroGrid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 15px;
 }
 
@@ -113,23 +217,26 @@
     color: inherit;
     background: #fff;
     border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     overflow: hidden;
 }
 
 .subHeroImage {
     width: 100%;
-    height: 150px;
+    height: 180px;
     object-fit: cover;
 }
 
 .subHeroTitle {
-    font-family: "Roboto", sans-serif;
+    font-family: "Merriweather", serif;
     font-size: 1rem;
     font-weight: 600;
     color: #1a1a1a;
     margin: 10px;
     line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: var(--line-clamp, 3);
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 .footballSidebar {
@@ -137,7 +244,6 @@
     background: #fff;
     border-radius: 8px;
     padding: 15px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .sidebarTitle {
@@ -154,35 +260,35 @@
     text-decoration: none;
     color: inherit;
     margin-bottom: 15px;
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
 }
 
 .footballImage {
     width: 100%;
-    height: 100px;
+    height: 150px;
     object-fit: cover;
-    border-radius: 6px;
+    border-radius: 6px 6px 0 0;
 }
 
 .footballTitle {
-    font-family: "Roboto", sans-serif;
+    font-family: "Merriweather", serif;
     font-size: 0.95rem;
-    font-weight: 600;
+    font-weight: 500;
     color: #1a1a1a;
-    margin: 10px 0 0;
+    display: -webkit-box;
+    -webkit-line-clamp: var(--line-clamp, 2);
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin: 10px;
     line-height: 1.4;
-}
-
-.postsWrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 30px;
 }
 
 .categorySection {
     background: #fff;
     border-radius: 8px;
     padding: 20px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .categoryTitle {
@@ -211,7 +317,6 @@
     width: 200px;
     height: 120px;
     object-fit: cover;
-    border-radius: 6px;
     flex-shrink: 0;
 }
 
@@ -230,7 +335,6 @@
 }
 
 .postDate {
-    font-family: "Roboto", sans-serif;
     font-size: 0.9rem;
     color: #fff;
     background: linear-gradient(135deg, #ff6b6b 10%, #e63946 100%);
@@ -239,7 +343,6 @@
 }
 
 .postCategory {
-    font-family: "Roboto", sans-serif;
     font-size: 0.9rem;
     color: #fff;
     background: var(--category-color, #6b7280);
@@ -248,7 +351,6 @@
 }
 
 .postTitle {
-    font-family: "Roboto", sans-serif;
     font-size: 1.2rem;
     font-weight: 600;
     color: #1a1a1a;
@@ -265,7 +367,6 @@
 }
 
 .noPosts {
-    font-family: "Roboto", sans-serif;
     font-size: 1rem;
     color: #666;
     font-style: italic;
@@ -275,7 +376,6 @@
 
 .loading,
 .error {
-    font-family: "Roboto", sans-serif;
     font-size: 1.2rem;
     color: #333;
     text-align: center;
@@ -299,7 +399,7 @@
     height: 400px;
     background: #e0e0e0;
     border-radius: 8px;
-    margin-bottom: 20px;
+    margin-bottom: 20px minute;
 }
 
 .skeletonSubHero {
@@ -320,6 +420,22 @@
 
 /* Responsive */
 @media (max-width: 1024px) {
+    .container {
+        display: block;
+    }
+
+    .contentWrapper {
+        display: block;
+    }
+
+    .postsWrapper {
+        width: 100%;
+    }
+
+    .bannerContainer {
+        display: none;
+    }
+
     .mainContent {
         flex-direction: column;
     }
@@ -355,7 +471,7 @@
     }
 
     .subHeroImage {
-        height: 120px;
+        height: 150px;
     }
 
     .subHeroTitle {
@@ -367,7 +483,7 @@
     }
 
     .footballImage {
-        height: 80px;
+        height: 120px;
     }
 
     .footballTitle {
@@ -397,11 +513,50 @@
         padding: 0 10px;
     }
 
+    .pageWrapper {
+        padding: 0;
+        margin-left: 0;
+    }
+
+    .categoryMenu {
+        gap: 8px;
+        padding: 10px 0;
+        margin-bottom: 15px;
+        border-bottom: none;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .categoryButton {
+        font-size: 0.95rem;
+        padding: 10px 20px;
+        border-radius: 20px;
+        min-width: 100px;
+        text-align: center;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        touch-action: manipulation;
+    }
+
+    .categoryButton:hover {
+        background-color: var(--category-color, #6b7280);
+        color: #fff;
+        transform: scale(1.05);
+    }
+
+    .categoryButton.active {
+        background-color: var(--category-color, #6b7280);
+        color: #fff;
+        border-color: var(--category-color, #6b7280);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+
     .heroPost {
         margin-bottom: 15px;
     }
 
     .heroImage {
+        width: 100%;
         height: 250px;
     }
 
@@ -413,25 +568,12 @@
         font-size: 0.95rem;
     }
 
-    .subHeroGrid {
-        grid-template-columns: 1fr;
+    .subHeroSection {
+        display: none;
     }
 
-    .subHeroImage {
-        height: 150px;
-    }
-
-    .subHeroTitle {
-        font-size: 1rem;
-    }
-
-    .categoryMenu {
-        gap: 8px;
-    }
-
-    .categoryButton {
-        font-size: 0.95rem;
-        padding: 6px 12px;
+    .footballSidebar {
+        display: none;
     }
 
     .categorySection {
@@ -487,6 +629,18 @@
         padding: 0 5px;
     }
 
+    .categoryMenu {
+        gap: 6px;
+        padding: 8px 0;
+        margin-bottom: 10px;
+    }
+
+    .categoryButton {
+        font-size: 0.9rem;
+        padding: 8px 16px;
+        min-width: 90px;
+    }
+
     .heroImage {
         height: 200px;
     }
@@ -497,34 +651,6 @@
 
     .heroExcerpt {
         font-size: 0.9rem;
-    }
-
-    .subHeroImage {
-        height: 120px;
-    }
-
-    .subHeroTitle {
-        font-size: 0.95rem;
-    }
-
-    .footballImage {
-        height: 70px;
-    }
-
-    .footballTitle {
-        font-size: 0.85rem;
-    }
-
-    .categoryMenu {
-        flex-direction: column;
-        gap: 5px;
-    }
-
-    .categoryButton {
-        width: 100%;
-        text-align: center;
-        font-size: 0.9rem;
-        padding: 8px;
     }
 
     .categorySection {

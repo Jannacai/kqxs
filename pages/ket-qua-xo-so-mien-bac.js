@@ -151,6 +151,20 @@ const XSMB = ({ initialData }) => {
                     </div>
                     <div>
                         <TableDate />
+                        <div className='groupbanner3'>
+                            <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
+                                <video
+                                    className='banner3'
+                                    src='/banner3.mp4'
+                                    autoPlay
+                                    loop
+                                    muted
+                                    playsInline
+                                    alt='xổ số bắc trung nam'
+                                    suppressHydrationWarning
+                                />
+                            </a>
+                        </div>
                         {initialData ? (
                             <KQXS data={initialData} station="xsmb">Miền Bắc</KQXS>
                         ) : (
@@ -168,6 +182,20 @@ const XSMB = ({ initialData }) => {
                     <div>
                         <ThongKe />
                         <CongCuHot />
+                        <div className='banner1'>
+                            <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
+                                <video
+                                    className='header__logo--img'
+                                    src='/banner2.mp4'
+                                    autoPlay
+                                    loop
+                                    muted
+                                    playsInline
+                                    alt='xổ số bắc trung nam'
+                                    suppressHydrationWarning
+                                />
+                            </a>
+                        </div>
                     </div>
                 </div>
                 <div className="container">

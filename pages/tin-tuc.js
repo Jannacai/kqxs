@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import Head from "next/head";
@@ -8,19 +7,17 @@ import styles from "../styles/tintuc.module.css";
 const EnhancedNewsFeed = () => {
     const [categories, setCategories] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState(null);
-    const [heroPostsPool, setHeroPostsPool] = useState([]);
-    const [subHeroPostsPool, setSubHeroPostsPool] = useState([]);
-    const [footballPostsPool, setFootballPostsPool] = useState([]);
+    const [postsByCategory, setPostsByCategory] = useState({});
+    const [displayedPostsByCategory, setDisplayedPostsByCategory] = useState({});
     const [heroPost, setHeroPost] = useState(null);
     const [subHeroPosts, setSubHeroPosts] = useState([]);
     const [footballPosts, setFootballPosts] = useState([]);
-    const [heroIndex, setHeroIndex] = useState(0);
-    const [subHeroIndex, setSubHeroIndex] = useState(0);
-    const [footballIndex, setFootballIndex] = useState(0);
+    const [rotationIndices, setRotationIndices] = useState({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const postsPerCategory = 15;
-    const defaultImage = "/facebook.png"; // Thay bằng hình ảnh cục bộ hoặc URL công khai
+    const displayPerCategory = 3;
+    const defaultImage = "/facebook.png";
 
     // Loại bỏ bài viết trùng lặp
     const deduplicatePosts = useCallback((posts) => {
@@ -52,43 +49,46 @@ const EnhancedNewsFeed = () => {
         try {
             if (selectedCategory) {
                 const data = await getPosts(null, 1, postsPerCategory, selectedCategory);
-                const fetchedPosts = Array.isArray(data.posts) ? deduplicatePosts(data.posts).slice(0, postsPerCategory) : [];
-                console.log("Fetched posts for", selectedCategory, fetchedPosts);
-                setHeroPostsPool(fetchedPosts);
-                setSubHeroPostsPool(fetchedPosts);
-                setFootballPostsPool(fetchedPosts.filter((post) => post.category.includes("Thể thao")));
+                const fetchedPosts = Array.isArray(data.posts)
+                    ? deduplicatePosts(data.posts).slice(0, postsPerCategory)
+                    : [];
+                setPostsByCategory({ [selectedCategory]: fetchedPosts });
+                setDisplayedPostsByCategory({ [selectedCategory]: fetchedPosts.slice(0, displayPerCategory) });
+                setRotationIndices({ [selectedCategory]: displayPerCategory });
                 setHeroPost(fetchedPosts[0] || null);
-                setSubHeroPosts(fetchedPosts.slice(0, 4));
+                setSubHeroPosts(fetchedPosts.slice(0, 3));
                 setFootballPosts(fetchedPosts.filter((post) => post.category.includes("Thể thao")).slice(0, 3));
-                setHeroIndex(1);
-                setSubHeroIndex(4);
-                setFootballIndex(3);
             } else {
+                const newPostsByCategory = {};
+                const newDisplayedPosts = {};
+                const newIndices = {};
                 const allPosts = [];
+
                 for (const category of categories) {
                     const data = await getPosts(null, 1, postsPerCategory, category);
-                    const categoryPosts = Array.isArray(data.posts) ? deduplicatePosts(data.posts).slice(0, postsPerCategory) : [];
-                    allPosts.push({ category, posts: categoryPosts });
-                    console.log("Fetched posts for", category, categoryPosts);
+                    const categoryPosts = Array.isArray(data.posts)
+                        ? deduplicatePosts(data.posts).slice(0, postsPerCategory)
+                        : [];
+                    newPostsByCategory[category] = categoryPosts;
+                    newDisplayedPosts[category] = categoryPosts.slice(0, displayPerCategory);
+                    newIndices[category] = displayPerCategory;
+                    allPosts.push(...categoryPosts);
                 }
-                const combinedPosts = deduplicatePosts(allPosts.flatMap((group) => group.posts));
-                setHeroPostsPool(combinedPosts);
-                setSubHeroPostsPool(combinedPosts);
-                setFootballPostsPool(combinedPosts.filter((post) => post.category.includes("Thể thao")));
+
+                setPostsByCategory(newPostsByCategory);
+                setDisplayedPostsByCategory(newDisplayedPosts);
+                setRotationIndices(newIndices);
+                const combinedPosts = deduplicatePosts(allPosts);
                 setHeroPost(combinedPosts[0] || null);
-                setSubHeroPosts(combinedPosts.slice(0, 4));
+                setSubHeroPosts(combinedPosts.slice(0, 3));
                 setFootballPosts(combinedPosts.filter((post) => post.category.includes("Thể thao")).slice(0, 3));
-                setHeroIndex(1);
-                setSubHeroIndex(4);
-                setFootballIndex(3);
             }
             setLoading(false);
         } catch (err) {
             console.error("Error fetching posts:", err);
             setError("Không thể tải bài viết");
-            setHeroPostsPool([]);
-            setSubHeroPostsPool([]);
-            setFootballPostsPool([]);
+            setPostsByCategory({});
+            setDisplayedPostsByCategory({});
             setLoading(false);
         }
     }, [selectedCategory, categories, deduplicatePosts]);
@@ -97,146 +97,84 @@ const EnhancedNewsFeed = () => {
     const handleNewPost = useCallback(
         (event) => {
             const newPost = event.detail;
-            console.log("New post received:", newPost);
             if (!newPost || !newPost._id || !newPost.title || !newPost.slug || !Array.isArray(newPost.category)) {
                 console.warn("Invalid new post:", newPost);
                 return;
             }
 
-            setHeroPostsPool((prev) => {
-                if (selectedCategory && !newPost.category.includes(selectedCategory)) return prev;
-                let newPool = [...prev];
-                if (newPool.length >= postsPerCategory) {
-                    const oldestIndex = newPool.reduce(
-                        (maxIndex, item, index, arr) =>
-                            new Date(item.createdAt) < new Date(arr[maxIndex].createdAt) ? index : maxIndex,
-                        0
-                    );
-                    newPool[oldestIndex] = newPost;
-                } else {
-                    newPool.push(newPost);
-                }
-                return deduplicatePosts(newPool).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            setPostsByCategory((prev) => {
+                const updated = { ...prev };
+                newPost.category.forEach((category) => {
+                    if (selectedCategory && category !== selectedCategory) return;
+                    if (!updated[category]) updated[category] = [];
+                    let newPool = [...updated[category]];
+                    if (newPool.length >= postsPerCategory) {
+                        const oldestIndex = newPool.reduce(
+                            (maxIndex, item, index, arr) =>
+                                new Date(item.createdAt) < new Date(arr[maxIndex].createdAt) ? index : maxIndex,
+                            0
+                        );
+                        newPool[oldestIndex] = newPost;
+                    } else {
+                        newPool.push(newPost);
+                    }
+                    updated[category] = deduplicatePosts(newPool)
+                        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                        .slice(0, postsPerCategory);
+                });
+                return updated;
             });
 
-            setSubHeroPostsPool((prev) => {
-                if (selectedCategory && !newPost.category.includes(selectedCategory)) return prev;
-                let newPool = [...prev];
-                if (newPool.length >= postsPerCategory) {
-                    const oldestIndex = newPool.reduce(
-                        (maxIndex, item, index, arr) =>
-                            new Date(item.createdAt) < new Date(arr[maxIndex].createdAt) ? index : maxIndex,
-                        0
-                    );
-                    newPool[oldestIndex] = newPost;
-                } else {
-                    newPool.push(newPost);
-                }
-                return deduplicatePosts(newPool).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            setDisplayedPostsByCategory((prev) => {
+                const updated = { ...prev };
+                newPost.category.forEach((category) => {
+                    if (selectedCategory && category !== selectedCategory) return;
+                    updated[category] = postsByCategory[category]?.slice(0, displayPerCategory) || [];
+                });
+                return updated;
             });
 
-            setFootballPostsPool((prev) => {
-                if (!newPost.category.includes("Thể thao")) return prev;
-                let newPool = [...prev];
-                if (newPool.length >= postsPerCategory) {
-                    const oldestIndex = newPool.reduce(
-                        (maxIndex, item, index, arr) =>
-                            new Date(item.createdAt) < new Date(arr[maxIndex].createdAt) ? index : maxIndex,
-                        0
-                    );
-                    newPool[oldestIndex] = newPost;
-                } else {
-                    newPool.push(newPost);
-                }
-                return deduplicatePosts(newPool).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            setRotationIndices((prev) => {
+                const updated = { ...prev };
+                newPost.category.forEach((category) => {
+                    if (selectedCategory && category !== selectedCategory) return;
+                    updated[category] = displayPerCategory;
+                });
+                return updated;
             });
         },
-        [selectedCategory, deduplicatePosts]
+        [selectedCategory, deduplicatePosts, postsByCategory]
     );
 
-    // Xoay vòng hero post
+    // Xoay vòng bài viết
     useEffect(() => {
-        const rotateHeroPost = () => {
-            if (heroPostsPool.length <= 1) return;
-            setHeroPost((prev) => {
-                const currentId = prev?._id;
-                let nextIndex = heroIndex;
-                let nextPost = heroPostsPool[nextIndex];
-                let attempts = 0;
-                const maxAttempts = heroPostsPool.length;
+        const rotateCategoryPosts = () => {
+            setDisplayedPostsByCategory((prev) => {
+                const updated = { ...prev };
+                Object.keys(prev).forEach((category) => {
+                    const postsPool = postsByCategory[category] || [];
+                    if (postsPool.length <= displayPerCategory) return;
+                    const currentIndex = rotationIndices[category] || displayPerCategory;
+                    const nextIndex = (currentIndex % postsPool.length) || displayPerCategory;
+                    const newPost = postsPool[nextIndex];
 
-                while (nextPost && nextPost._id === currentId && attempts < maxAttempts) {
-                    nextIndex = (nextIndex + 1) % heroPostsPool.length;
-                    nextPost = heroPostsPool[nextIndex];
-                    attempts++;
-                }
+                    if (newPost) {
+                        updated[category] = [newPost, ...prev[category].slice(0, displayPerCategory - 1)];
+                        updated[category] = deduplicatePosts(updated[category]);
+                    }
 
-                setHeroIndex((nextIndex + 1) % heroPostsPool.length);
-                return nextPost || prev;
+                    setRotationIndices((indices) => ({
+                        ...indices,
+                        [category]: nextIndex + 1,
+                    }));
+                });
+                return updated;
             });
         };
 
-        const interval = setInterval(rotateHeroPost, 15000);
+        const interval = setInterval(rotateCategoryPosts, 25000);
         return () => clearInterval(interval);
-    }, [heroIndex, heroPostsPool]);
-
-    // Xoay vòng sub-hero posts
-    useEffect(() => {
-        const rotateSubHeroPosts = () => {
-            if (subHeroPostsPool.length <= 4) return;
-            setSubHeroPosts((prev) => {
-                if (prev.length < 4) return prev;
-                const currentIds = new Set(prev.map((p) => p._id));
-                let nextIndex = subHeroIndex;
-                let nextPost = subHeroPostsPool[nextIndex];
-                let attempts = 0;
-                const maxAttempts = subHeroPostsPool.length;
-
-                while (nextPost && (currentIds.has(nextPost._id) || !nextPost) && attempts < maxAttempts) {
-                    nextIndex = (nextIndex + 1) % subHeroPostsPool.length;
-                    nextPost = subHeroPostsPool[nextIndex];
-                    attempts++;
-                }
-
-                const newPosts = [...prev.slice(0, 3), nextPost || prev[3]];
-                const uniqueNewPosts = deduplicatePosts(newPosts);
-                setSubHeroIndex((nextIndex + 1) % subHeroPostsPool.length);
-                return uniqueNewPosts.length >= 4 ? uniqueNewPosts : prev;
-            });
-        };
-
-        const interval = setInterval(rotateSubHeroPosts, 25000);
-        return () => clearInterval(interval);
-    }, [subHeroIndex, subHeroPostsPool, deduplicatePosts]);
-
-    // Xoay vòng football posts
-    useEffect(() => {
-        const rotateFootballPosts = () => {
-            if (footballPostsPool.length <= 3) return;
-            setFootballPosts((prev) => {
-                if (prev.length < 3) return prev;
-                const currentIds = new Set(prev.map((p) => p._id));
-                let nextIndex = footballIndex;
-                let nextPost = footballPostsPool[nextIndex];
-                let attempts = 0;
-                const maxAttempts = footballPostsPool.length;
-
-                while (nextPost && (currentIds.has(nextPost._id) || !nextPost) && attempts < maxAttempts) {
-                    nextIndex = (nextIndex + 1) % footballPostsPool.length;
-                    nextPost = footballPostsPool[nextIndex];
-                    attempts++;
-                }
-
-                const newPosts = [...prev.slice(0, 2), nextPost || prev[2]];
-                const uniqueNewPosts = deduplicatePosts(newPosts);
-                setFootballIndex((nextIndex + 1) % footballPostsPool.length);
-                return uniqueNewPosts.length >= 3 ? uniqueNewPosts : prev;
-            });
-        };
-
-        const interval = setInterval(rotateFootballPosts, 20000);
-        return () => clearInterval(interval);
-    }, [footballIndex, footballPostsPool, deduplicatePosts]);
+    }, [postsByCategory, rotationIndices, deduplicatePosts]);
 
     useEffect(() => {
         fetchCategories();
@@ -261,22 +199,22 @@ const EnhancedNewsFeed = () => {
             const day = String(date.getDate()).padStart(2, "0");
             const month = String(date.getMonth() + 1).padStart(2, "0");
             const year = date.getFullYear();
-            return `${ day } /${month}/${ year } `;
+            return `${day}/${month}/${year}`;
         } catch {
             return "Ngày đăng";
         }
     }, []);
 
-    // Lấy hình ảnh hợp lệ từ mainContents
+    // Lấy hình ảnh hợp lệ
     const getValidImage = useCallback((post) => {
         if (!post.mainContents || !Array.isArray(post.mainContents)) {
             return defaultImage;
         }
-        const validImage = post.mainContents.find(content => content.img && content.img.startsWith('http'));
+        const validImage = post.mainContents.find((content) => content.img && content.img.startsWith("http"));
         return validImage ? validImage.img : defaultImage;
     }, []);
 
-    // Lấy mô tả từ mainContents
+    // Lấy mô tả
     const getPostDescription = useCallback((post) => {
         if (!post.mainContents || !Array.isArray(post.mainContents) || !post.mainContents[0]?.description) {
             return "";
@@ -299,20 +237,15 @@ const EnhancedNewsFeed = () => {
 
     // Component HeroPost
     const HeroPost = React.memo(({ post }) => (
-        <Link href={`/tin-tuc/${post.slug}-${post._id} `} className={styles.heroPost}>
-            <img
-                src={getValidImage(post)}
-                alt={post.title}
-                className={styles.heroImage}
-                loading="eager"
-            />
+        <Link href={`/tin-tuc/${post.slug}-${post._id}`} className={styles.heroPost}>
+            <img src={getValidImage(post)} alt={post.title} className={styles.heroImage} loading="eager" />
             <div className={styles.heroContent}>
                 <div className={styles.heroMeta}>
                     <span className={styles.postDate}>{formatDate(post.createdAt)}</span>
                     {Array.isArray(post.category) &&
                         post.category.map((cat, idx) => (
                             <span
-                                key={`${ cat } -${ idx } `}
+                                key={`${cat}-${idx}`}
                                 className={styles.postCategory}
                                 style={{ "--category-color": getCategoryColor(cat) }}
                             >
@@ -321,35 +254,23 @@ const EnhancedNewsFeed = () => {
                         ))}
                 </div>
                 <h2 className={styles.heroTitle}>{post.title}</h2>
-                <p className={styles.heroExcerpt}>
-                    {getPostDescription(post) || "Không có mô tả"}...
-                </p>
+                <p className={styles.heroExcerpt}>{getPostDescription(post) || "Không có mô tả"}...</p>
             </div>
         </Link>
     ));
 
     // Component SubHeroPost
     const SubHeroPost = React.memo(({ post }) => (
-        <Link href={`/tin-tuc/${post.slug}-${post._id} `} className={styles.subHeroPost}>
-            <img
-                src={getValidImage(post)}
-                alt={post.title}
-                className={styles.subHeroImage}
-                loading="eager"
-            />
+        <Link href={`/tin-tuc/${post.slug}-${post._id}`} className={styles.subHeroPost}>
+            <img src={getValidImage(post)} alt={post.title} className={styles.subHeroImage} loading="eager" />
             <h3 className={styles.subHeroTitle}>{post.title}</h3>
         </Link>
     ));
 
     // Component FootballPost
     const FootballPost = React.memo(({ post }) => (
-        <Link href={`tin-tuc/${post.slug}-${post._id } `} className={styles.footballPost}>
-            <img
-                src={getValidImage(post)}
-                alt={post.title}
-                className={styles.footballImage}
-                loading="lazy"
-            />
+        <Link href={`/tin-tuc/${post.slug}-${post._id}`} className={styles.footballPost}>
+            <img src={getValidImage(post)} alt={post.title} className={styles.footballImage} loading="lazy" />
             <h3 className={styles.footballTitle}>{post.title}</h3>
         </Link>
     ));
@@ -357,19 +278,14 @@ const EnhancedNewsFeed = () => {
     // Component PostItem
     const PostItem = React.memo(({ post }) => (
         <Link href={`/tin-tuc/${post.slug}-${post._id}`} className={styles.postItem}>
-            <img
-                src={getValidImage(post)}
-                alt={post.title}
-                className={styles.postImage}
-                loading="lazy"
-            />
+            <img src={getValidImage(post)} alt={post.title} className={styles.postImage} loading="lazy" />
             <div className={styles.postContent}>
                 <div className={styles.postMeta}>
                     <span className={styles.postDate}>{formatDate(post.createdAt)}</span>
                     {Array.isArray(post.category) &&
                         post.category.map((cat, idx) => (
                             <span
-                                key={`${ cat } -${ idx } `}
+                                key={`${cat}-${idx}`}
                                 className={styles.postCategory}
                                 style={{ "--category-color": getCategoryColor(cat) }}
                             >
@@ -378,35 +294,10 @@ const EnhancedNewsFeed = () => {
                         ))}
                 </div>
                 <h3 className={styles.postTitle}>{post.title}</h3>
-                <p className={styles.postExcerpt}>
-                    {getPostDescription(post) || "Không có mô tả"}...
-                </p>
+                <p className={styles.postExcerpt}>{getPostDescription(post) || "Không có mô tả"}...</p>
             </div>
         </Link>
     ));
-
-    // Danh sách bài viết hiển thị
-    const displayedPosts = useMemo(() => {
-        if (selectedCategory) {
-            return deduplicatePosts(heroPostsPool).filter(
-                (post) =>
-                    post._id !== heroPost?._id &&
-                    !subHeroPosts.some((shp) => shp._id === post._id) &&
-                    !footballPosts.some((fp) => fp._id === post._id)
-            );
-        }
-        return categories.map((category) => ({
-            category,
-            posts: deduplicatePosts(
-                heroPostsPool.filter((post) => post.category.includes(category))
-            ).filter(
-                (post) =>
-                    post._id !== heroPost?._id &&
-                    !subHeroPosts.some((shp) => shp._id === post._id) &&
-                    !footballPosts.some((fp) => fp._id === post._id)
-            ),
-        }));
-    }, [selectedCategory, heroPostsPool, heroPost, subHeroPosts, footballPosts, categories, deduplicatePosts]);
 
     // SEO metadata
     const metaDescription = "Tin tức tổng hợp mới nhất từ XSMB.WIN - Cập nhật tin tức nóng hổi về thể thao, đời sống, giải trí, công nghệ và hơn thế nữa!";
@@ -466,7 +357,7 @@ const EnhancedNewsFeed = () => {
                 <div className={styles.container}>
                     <nav className={styles.categoryMenu}>
                         <button
-                            className={`${ styles.categoryButton } ${ !selectedCategory ? styles.active : "" } `}
+                            className={`${styles.categoryButton} ${!selectedCategory ? styles.active : ""}`}
                             onClick={() => setSelectedCategory(null)}
                         >
                             Tất cả
@@ -474,7 +365,7 @@ const EnhancedNewsFeed = () => {
                         {categories.map((category) => (
                             <button
                                 key={category}
-                                className={`${ styles.categoryButton } ${ selectedCategory === category ? styles.active : "" } `}
+                                className={`${styles.categoryButton} ${selectedCategory === category ? styles.active : ""}`}
                                 onClick={() => setSelectedCategory(category)}
                                 style={{ "--category-color": getCategoryColor(category) }}
                             >
@@ -485,12 +376,15 @@ const EnhancedNewsFeed = () => {
                     <div className={styles.mainContent}>
                         <div className={styles.heroSection}>
                             {heroPost && <HeroPost post={heroPost} />}
-                            <div className={styles.subHeroGrid}>
-                                {subHeroPosts.length > 0 ? (
-                                    subHeroPosts.map((post) => <SubHeroPost key={post._id} post={post} />)
-                                ) : (
-                                    <p className={styles.noPosts}>Không có bài viết nổi bật.</p>
-                                )}
+                            <div className={styles.subHeroSection}>
+                                <h2 className={styles.subHeroTitle}>Tin tức tổng hợp</h2>
+                                <div className={styles.subHeroGrid}>
+                                    {subHeroPosts.length > 0 ? (
+                                        subHeroPosts.map((post) => <SubHeroPost key={post._id} post={post} />)
+                                    ) : (
+                                        <p className={styles.noPosts}>Không có bài viết nổi bật.</p>
+                                    )}
+                                </div>
                             </div>
                         </div>
                         <aside className={styles.footballSidebar}>
@@ -502,32 +396,55 @@ const EnhancedNewsFeed = () => {
                             )}
                         </aside>
                     </div>
-                    <div className={styles.postsWrapper}>
-                        {selectedCategory ? (
-                            <section className={styles.categorySection}>
-                                <h2 className={styles.categoryTitle}>{selectedCategory}</h2>
-                                <div className={styles.postsList}>
-                                    {displayedPosts.length > 0 ? (
-                                        displayedPosts.map((post) => <PostItem key={post._id} post={post} />)
-                                    ) : (
-                                        <p className={styles.noPosts}>Không có bài viết nào trong danh mục này.</p>
-                                    )}
-                                </div>
-                            </section>
-                        ) : (
-                            displayedPosts.map(({ category, posts }) => (
-                                <section key={category} className={styles.categorySection}>
-                                    <h2 className={styles.categoryTitle}>{category}</h2>
+                    <div className={styles.contentWrapper}>
+                        <div className={styles.postsWrapper}>
+                            {selectedCategory ? (
+                                <section className={styles.categorySection}>
+                                    <h2 className={styles.categoryTitle}>{selectedCategory}</h2>
                                     <div className={styles.postsList}>
-                                        {posts.length > 0 ? (
-                                            posts.map((post) => <PostItem key={post._id} post={post} />)
+                                        {displayedPostsByCategory[selectedCategory]?.length > 0 ? (
+                                            displayedPostsByCategory[selectedCategory].map((post) => (
+                                                <PostItem key={post._id} post={post} />
+                                            ))
                                         ) : (
                                             <p className={styles.noPosts}>Không có bài viết nào trong danh mục này.</p>
                                         )}
                                     </div>
                                 </section>
-                            ))
-                        )}
+                            ) : (
+                                categories.map((category) => (
+                                    <section key={category} className={styles.categorySection}>
+                                        <h2 className={styles.categoryTitle}>{category}</h2>
+                                        <div className={styles.postsList}>
+                                            {displayedPostsByCategory[category]?.length > 0 ? (
+                                                displayedPostsByCategory[category].map((post) => (
+                                                    <PostItem key={post._id} post={post} />
+                                                ))
+                                            ) : (
+                                                <p className={styles.noPosts}>Không có bài viết nào trong danh mục này.</p>
+                                            )}
+                                        </div>
+                                    </section>
+                                ))
+                            )}
+                        </div>
+                        <div className={styles.bannerContainer}>
+                            {/* Add your banner image here, e.g., <img src="/path/to/your-banner.jpg" alt="Banner" /> */}
+                            {/* <img src="https://xsmb.win/backgrond.png" alt="Banner" />
+                            <img src="https://xsmb.win/backgrond.png" alt="Banner" /> */}
+                            <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
+                                <video
+                                    className={styles.bannervideo}
+                                    src='/banner2.mp4'
+                                    autoPlay
+                                    loop
+                                    muted
+                                    playsInline
+                                    alt='xổ số bắc trung nam'
+                                    suppressHydrationWarning
+                                />
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>

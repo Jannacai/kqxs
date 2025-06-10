@@ -75,7 +75,7 @@ export const getPosts = async (context = null, page = 1, limit = 15, category = 
         });
         if (!response.ok) {
             const errorText = await response.text();
-            throw new Error(` personally, I think there's an error fetching posts: ${response.status} - ${errorText}`);
+            throw new Error(`Có lỗi khi lấy bài viết: ${response.status} - ${errorText}`);
         }
         const data = await response.json();
         setCachedPosts(cacheKey, data);

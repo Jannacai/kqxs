@@ -232,6 +232,20 @@ const TanSuatLoto = ({ initialStats, initialMetadata, initialDays, initialRegion
                         </Link>
                     </div>
                 </div>
+                <div className={styles.groupbanner3}>
+                    <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
+                        <video
+                            className={styles.banner3}
+                            src='/banner3.mp4'
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            alt='xổ số bắc trung nam'
+                            suppressHydrationWarning
+                        />
+                    </a>
+                </div>
 
                 <div className={styles.content}>
                     <div>
@@ -408,6 +422,20 @@ const TanSuatLoto = ({ initialStats, initialMetadata, initialDays, initialRegion
             <div>
                 <ThongKe />
                 <CongCuHot />
+                <div className={styles.banner1}>
+                    <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
+                        <video
+                            className={styles.videobanner}
+                            src='/banner2.mp4'
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            alt='xổ số bắc trung nam'
+                            suppressHydrationWarning
+                        />
+                    </a>
+                </div>
             </div>
             <button
                 id="scrollToTopBtn"

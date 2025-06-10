@@ -24,6 +24,7 @@
 
 .relatedPosts {
     flex: 0 0 20%;
+    position: relative;
     max-width: 20%;
 }
 
@@ -43,6 +44,43 @@
     text-decoration: none;
     color: inherit;
     transition: transform 0.2s ease;
+}
+
+/* css ---------Banner */
+.groupbanner4 {
+    display: none;
+}
+
+.banner1 {
+    display: flex;
+    justify-content: center;
+    position: absolute;
+    left: -20px;
+    margin-top: 20px;
+    width: 300px;
+    height: 300px;
+    object-fit: cover;
+}
+
+.videobanner {
+    object-fit: cover;
+    width: 300px;
+    height: 100%;
+    /* max-width: 100%; */
+}
+
+.groupbanner3 {
+    margin-top: 10px;
+    display: flex;
+    justify-content: center;
+    height: 150px;
+    width: 100%;
+}
+
+.banner3 {
+    height: 130px;
+    width: 100%;
+    object-fit: cover;
 }
 
 .relatedItem:hover {
@@ -65,7 +103,7 @@
 }
 
 .relatedItemTitle {
-    font-family: "Roboto", sans-serif;
+    font-family: "Merriweather", serif;
     font-size: 0.95rem;
     font-weight: 500;
     color: #333;
@@ -127,7 +165,7 @@
 }
 
 .footballItemTitle {
-    font-family: "Roboto", sans-serif;
+    font-family: "Merriweather", serif;
     font-size: 1.1rem;
     font-weight: 600;
     color: #333;
@@ -238,7 +276,7 @@
 
 .subSectionTitle {
     font-family: "Merriweather", serif;
-    font-size: 1.8rem;
+    font-size: 1.3rem;
     font-weight: 700;
     color: #1a1a1a;
     margin: 0 0 10px;
@@ -339,6 +377,15 @@
         margin: 0 10px;
         padding: 0 10px;
         gap: 30px;
+    }
+
+    .banner1 {
+        display: none;
+    }
+
+    .groupbanner4 {
+        display: block;
+        margin-bottom: 10px;
     }
 
     .contentWrapper {

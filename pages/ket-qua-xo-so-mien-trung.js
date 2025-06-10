@@ -124,6 +124,20 @@ const XSMT = ({ initialData }) => {
                     </div>
                     <div>
                         <TableDate />
+                        <div className='groupbanner3'>
+                            <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
+                                <video
+                                    className='banner3'
+                                    src='/banner3.mp4'
+                                    autoPlay
+                                    loop
+                                    muted
+                                    playsInline
+                                    alt='xổ số bắc trung nam'
+                                    suppressHydrationWarning
+                                />
+                            </a>
+                        </div>
                         <KQXS data={initialData} station="xsmt">Miền Trung</KQXS>
                         <div className="desc1">
                             <h1 className='heading'>XSMB.WIN | Trang Kết Quả Xổ Số Miền Bắc Nhanh Nhất - Chính Xác Nhất - XSMB</h1>
@@ -137,6 +151,20 @@ const XSMT = ({ initialData }) => {
                     <div>
                         <ThongKe />
                         <CongCuHot />
+                        <div className='banner1'>
+                            <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
+                                <video
+                                    className='header__logo--img'
+                                    src='/banner2.mp4'
+                                    autoPlay
+                                    loop
+                                    muted
+                                    playsInline
+                                    alt='xổ số bắc trung nam'
+                                    suppressHydrationWarning
+                                />
+                            </a>
+                        </div>
                     </div>
                 </div>
                 <div className='container'>

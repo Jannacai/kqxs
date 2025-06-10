@@ -555,6 +555,20 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
                         <Link className={`${styles.actionTK} ${router.pathname.startsWith('/thongke/giai-dac-biet-tuan') ? styles.active : ''}`} href="/thongke/giai-dac-biet-tuan">Thống Kê Giải Đặc Biệt Tuần</Link>
                     </div>
                 </div>
+                <div className={styles.groupbanner3}>
+                    <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
+                        <video
+                            className={styles.banner3}
+                            src='/banner3.mp4'
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            alt='xổ số bắc trung nam'
+                            suppressHydrationWarning
+                        />
+                    </a>
+                </div>
 
                 <div className={styles.content}>
                     {/* Bảng 1: Thống kê Đầu/Đuôi Loto (tất cả các giải) */}
@@ -1021,6 +1035,20 @@ const DauDuoi = ({ initialDauStats, initialDuoiStats, initialSpecialDauDuoiStats
             <div>
                 <ThongKe />
                 <CongCuHot />
+                <div className={styles.banner1}>
+                    <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
+                        <video
+                            className={styles.videobanner}
+                            src='/banner2.mp4'
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            alt='xổ số bắc trung nam'
+                            suppressHydrationWarning
+                        />
+                    </a>
+                </div>
             </div>
         </div>
     );
