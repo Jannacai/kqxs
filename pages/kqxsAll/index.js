@@ -28,8 +28,8 @@ const KQXS = (props) => {
     const [isLiveWindow, setIsLiveWindow] = useState(false);
     const [hasTriggeredScraper, setHasTriggeredScraper] = useState(false);
     const hour = 18;
-    const minute1 = 13;
-    const minute2 = 14;
+    const minute1 = 8;
+    const minute2 = 8;
 
     const router = useRouter();
     const dayof = props.data4;
@@ -111,59 +111,72 @@ const KQXS = (props) => {
     const fetchData = useCallback(async () => {
         try {
             const now = new Date();
+            const isUpdateWindow = now.getHours() === 18 && now.getMinutes() >= 14 && now.getMinutes() <= 35;
+            const isAfterUpdateWindow = now.getHours() > 18 || (now.getHours() === 18 && now.getMinutes() > 35);
+
+            // Kiểm tra cache
             const cachedData = localStorage.getItem(CACHE_KEY);
             const cachedTime = localStorage.getItem(`${CACHE_KEY}_time`);
             const cacheAge = cachedTime ? now.getTime() - parseInt(cachedTime) : Infinity;
 
-            // Ưu tiên liveData nếu có
-            const liveCache = localStorage.getItem(`liveData:${station}:${today}`);
-            if (liveCache) {
-                const liveDataParsed = JSON.parse(liveCache);
-                const isComplete = Object.values(liveDataParsed).every(
-                    val => typeof val === 'string' && val !== '...' && val !== '***'
-                );
-                if (isComplete) {
-                    const formattedLiveData = {
-                        ...liveDataParsed,
-                        drawDate: new Date(liveDataParsed.drawDate).toLocaleDateString('vi-VN', {
+            // Không gọi API nếu là ngày hiện tại và chưa đến khung giờ trực tiếp (tránh lỗi 404)
+            if (date === today && !isUpdateWindow && !isAfterUpdateWindow) {
+                if (cachedData) {
+                    setData(JSON.parse(cachedData));
+                    setLoading(false);
+                } else {
+                    setData([]);
+                    setLoading(false);
+                }
+                return;
+            }
+
+            // Làm mới cache nếu sau 18h35 hoặc không có cache
+            if (isAfterUpdateWindow || !cachedData || cacheAge >= CACHE_DURATION) {
+                // Gọi API nếu không phải trong khung giờ trực tiếp hoặc sau 18h35
+                if (!isUpdateWindow || isAfterUpdateWindow) {
+                    const result = await apiMB.getLottery(station, date, dayof);
+                    const dataArray = Array.isArray(result) ? result : [result];
+
+                    const formattedData = dataArray.map(item => ({
+                        ...item,
+                        drawDate: new Date(item.drawDate).toLocaleDateString('vi-VN', {
                             day: '2-digit',
                             month: '2-digit',
                             year: 'numeric',
                         }),
-                        specialPrize: [liveDataParsed.specialPrize_0],
-                        firstPrize: [liveDataParsed.firstPrize_0],
-                        secondPrize: [liveDataParsed.secondPrize_0, liveDataParsed.secondPrize_1],
-                        threePrizes: [
-                            liveDataParsed.threePrizes_0, liveDataParsed.threePrizes_1, liveDataParsed.threePrizes_2,
-                            liveDataParsed.threePrizes_3, liveDataParsed.threePrizes_4, liveDataParsed.threePrizes_5,
-                        ],
-                        fourPrizes: [
-                            liveDataParsed.fourPrizes_0, liveDataParsed.fourPrizes_1, liveDataParsed.fourPrizes_2, liveDataParsed.fourPrizes_3,
-                        ],
-                        fivePrizes: [
-                            liveDataParsed.fivePrizes_0, liveDataParsed.fivePrizes_1, liveDataParsed.fivePrizes_2,
-                            liveDataParsed.fivePrizes_3, liveDataParsed.fivePrizes_4, liveDataParsed.fivePrizes_5,
-                        ],
-                        sixPrizes: [liveDataParsed.sixPrizes_0, liveDataParsed.sixPrizes_1, liveDataParsed.sixPrizes_2],
-                        sevenPrizes: [
-                            liveDataParsed.sevenPrizes_0, liveDataParsed.sevenPrizes_1, liveDataParsed.sevenPrizes_2, liveDataParsed.sevenPrizes_3,
-                        ],
-                    };
-                    const newData = [formattedLiveData];
-                    setData(newData);
-                    localStorage.setItem(CACHE_KEY, JSON.stringify(newData));
-                    localStorage.setItem(`${CACHE_KEY}_time`, now.getTime().toString());
+                    }));
+
+                    // So sánh với dữ liệu cache để kiểm tra bản ghi mới
+                    const cachedDataParsed = cachedData ? JSON.parse(cachedData) : [];
+                    const hasNewData = JSON.stringify(formattedData) !== JSON.stringify(cachedDataParsed);
+
+                    if (hasNewData) {
+                        setData(formattedData);
+                        localStorage.setItem(CACHE_KEY, JSON.stringify(formattedData));
+                        localStorage.setItem(`${CACHE_KEY}_time`, now.getTime().toString());
+                    } else if (cachedData) {
+                        setData(cachedDataParsed);
+                    }
+
+                    setFilterTypes(prevFilters => {
+                        const newFilters = formattedData.reduce((acc, item) => {
+                            acc[item.drawDate + item.station] = prevFilters[item.drawDate + item.station] || 'all';
+                            return acc;
+                        }, {});
+                        if (JSON.stringify(prevFilters) !== JSON.stringify(newFilters)) {
+                            return newFilters;
+                        }
+                        return prevFilters;
+                    });
+
                     setLoading(false);
+                    setError(null);
                     return;
                 }
             }
 
-            if (cachedData && cacheAge < CACHE_DURATION) {
-                setData(JSON.parse(cachedData));
-                setLoading(false);
-                return;
-            }
-
+            // Kiểm tra props.data
             if (props.data && Array.isArray(props.data) && props.data.length > 0) {
                 const dayMap = {
                     'thu-2': 'Thứ Hai',
@@ -203,39 +216,12 @@ const KQXS = (props) => {
                 }
             }
 
-            const result = await apiMB.getLottery(station, date, dayof);
-            const dataArray = Array.isArray(result) ? result : [result];
-
-            const formattedData = dataArray.map(item => ({
-                ...item,
-                drawDate: new Date(item.drawDate).toLocaleDateString('vi-VN', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                }),
-            }));
-
-            setData(prevData => {
-                const newDataStr = JSON.stringify(formattedData);
-                if (JSON.stringify(prevData) !== newDataStr) {
-                    return [...formattedData];
-                }
-                return prevData;
-            });
-
-            localStorage.setItem(CACHE_KEY, JSON.stringify(formattedData));
-            localStorage.setItem(`${CACHE_KEY}_time`, now.getTime().toString());
-
-            setFilterTypes(prevFilters => {
-                const newFilters = formattedData.reduce((acc, item) => {
-                    acc[item.drawDate + item.station] = prevFilters[item.drawDate + item.station] || 'all';
-                    return acc;
-                }, {});
-                if (JSON.stringify(prevFilters) !== JSON.stringify(newFilters)) {
-                    return newFilters;
-                }
-                return prevFilters;
-            });
+            // Sử dụng cache nếu có và không cần làm mới
+            if (cachedData && cacheAge < CACHE_DURATION && !isAfterUpdateWindow) {
+                setData(JSON.parse(cachedData));
+                setLoading(false);
+                return;
+            }
 
             setLoading(false);
             setError(null);
@@ -244,57 +230,57 @@ const KQXS = (props) => {
             setError('Không thể tải dữ liệu, vui lòng thử lại sau');
             setLoading(false);
         }
-    }, [station, date, dayof, props.data]);
+    }, [station, date, dayof, props.data, today]);
 
     useEffect(() => {
         fetchData();
     }, [fetchData]);
 
+    // Cập nhật cache khi liveData đầy đủ
     useEffect(() => {
-        const updateFromLiveData = () => {
-            if (liveData && liveData.drawDate === today && isLiveDataComplete) {
-                setData(prevData => {
-                    const filteredData = prevData.filter(item => item.drawDate !== today);
-                    const formattedLiveData = {
-                        ...liveData,
-                        drawDate: new Date(liveData.drawDate).toLocaleDateString('vi-VN', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric',
-                        }),
-                        specialPrize: [liveData.specialPrize_0],
-                        firstPrize: [liveData.firstPrize_0],
-                        secondPrize: [liveData.secondPrize_0, liveData.secondPrize_1],
-                        threePrizes: [
-                            liveData.threePrizes_0, liveData.threePrizes_1, liveData.threePrizes_2,
-                            liveData.threePrizes_3, liveData.threePrizes_4, liveData.threePrizes_5,
-                        ],
-                        fourPrizes: [
-                            liveData.fourPrizes_0, liveData.fourPrizes_1, liveData.fourPrizes_2, liveData.fourPrizes_3,
-                        ],
-                        fivePrizes: [
-                            liveData.fivePrizes_0, liveData.fivePrizes_1, liveData.fivePrizes_2,
-                            liveData.fivePrizes_3, liveData.fivePrizes_4, liveData.fivePrizes_5,
-                        ],
-                        sixPrizes: [liveData.sixPrizes_0, liveData.sixPrizes_1, liveData.sixPrizes_2],
-                        sevenPrizes: [
-                            liveData.sevenPrizes_0, liveData.sevenPrizes_1, liveData.sevenPrizes_2, liveData.sevenPrizes_3,
-                        ],
-                    };
-                    const newData = [formattedLiveData, ...filteredData].sort((a, b) =>
-                        new Date(b.drawDate.split('/').reverse().join('-')) - new Date(a.drawDate.split('/').reverse().join('-'))
-                    );
-                    localStorage.setItem(CACHE_KEY, JSON.stringify(newData));
-                    localStorage.setItem(`${CACHE_KEY}_time`, new Date().getTime().toString());
-                    return newData;
-                });
-            }
-        };
-
-        updateFromLiveData();
-        const intervalId = setInterval(updateFromLiveData, 60000);
-        return () => clearInterval(intervalId);
-    }, [liveData, isLiveDataComplete, today, CACHE_KEY]);
+        if (isLiveDataComplete && liveData && liveData.drawDate === today) {
+            setData(prevData => {
+                // Loại bỏ dữ liệu cũ của ngày hôm nay và thêm liveData
+                const filteredData = prevData.filter(item => item.drawDate !== today);
+                const formattedLiveData = {
+                    ...liveData,
+                    drawDate: new Date(liveData.drawDate).toLocaleDateString('vi-VN', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                    }),
+                    specialPrize: [liveData.specialPrize_0],
+                    firstPrize: [liveData.firstPrize_0],
+                    secondPrize: [liveData.secondPrize_0, liveData.secondPrize_1],
+                    threePrizes: [
+                        liveData.threePrizes_0, liveData.threePrizes_1, liveData.threePrizes_2,
+                        liveData.threePrizes_3, liveData.threePrizes_4, liveData.threePrizes_5,
+                    ],
+                    fourPrizes: [
+                        liveData.fourPrizes_0, liveData.fourPrizes_1, liveData.fourPrizes_2, liveData.fourPrizes_3,
+                    ],
+                    fivePrizes: [
+                        liveData.fivePrizes_0, liveData.fivePrizes_1, liveData.fivePrizes_2,
+                        liveData.fivePrizes_3, liveData.fivePrizes_4, liveData.fivePrizes_5,
+                    ],
+                    sixPrizes: [liveData.sixPrizes_0, liveData.sixPrizes_1, liveData.sixPrizes_2],
+                    sevenPrizes: [
+                        liveData.sevenPrizes_0, liveData.sevenPrizes_1, liveData.sevenPrizes_2, liveData.sevenPrizes_3,
+                    ],
+                };
+                const newData = [formattedLiveData, ...filteredData].sort((a, b) =>
+                    new Date(b.drawDate.split('/').reverse().join('-')) - new Date(a.drawDate.split('/').reverse().join('-'))
+                );
+                localStorage.setItem(CACHE_KEY, JSON.stringify(newData));
+                localStorage.setItem(`${CACHE_KEY}_time`, new Date().getTime().toString());
+                return newData;
+            });
+            setFilterTypes(prev => ({
+                ...prev,
+                [`${liveData.drawDate}${liveData.station}`]: prev[`${liveData.drawDate}${liveData.station}`] || 'all',
+            }));
+        }
+    }, [isLiveDataComplete, liveData, today, CACHE_KEY]);
 
     const handleFilterChange = useCallback((pageKey, value) => {
         setFilterTypes(prev => ({ ...prev, [pageKey]: value }));
