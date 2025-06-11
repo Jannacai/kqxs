@@ -133,7 +133,7 @@ const KQXS = (props) => {
             if (date && !isValidDate(date)) {
                 setData([]);
                 setLoading(false);
-                setError('Ngày không hợp lệ hoặc trong tương lai.');
+                setError('DỮ LIỆU CHƯA CÓ. VUI LÒNG THỬ LẠI SAU.');
                 return;
             }
 
