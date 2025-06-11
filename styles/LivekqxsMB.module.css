@@ -11,7 +11,7 @@
 .desc1 {
     margin-top: 20px;
     padding: 20px;
-    border: 1px Dashed #ccc;
+    border: 1px dashed #ccc;
     background-color: #ffeca099;
     line-height: 1.5;
     font-size: 1.1rem;
@@ -20,6 +20,282 @@
 
 .note {
     color: red;
+}
+
+/* Hiệu ứng chạy số ngẫu nhiên */
+.running_number {
+    display: inline-block;
+    min-width: 20px;
+    text-align: center;
+    font-weight: 800;
+    font-size: 24px;
+    line-height: 1.6;
+    padding: 4px;
+    position: relative;
+    overflow: hidden;
+    color: transparent;
+    transition: color 0.3s ease;
+}
+
+.running_number::before {
+    content: attr(data-value);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    color: #e80000;
+    animation: runNumbers 0.1s infinite linear;
+}
+
+.running_number[data-status="complete"]::before {
+    animation: none;
+    content: attr(data-value);
+    color: #e80000;
+}
+
+.output {
+    display: inline-block;
+    min-width: 20px;
+    text-align: center;
+    font-size: 24px;
+    line-height: 1.6;
+    padding: 4px;
+}
+
+/* Keyframes chung cho hiệu ứng chạy số ngẫu nhiên */
+@keyframes runNumbers {
+    0% {
+        content: attr(data-value);
+    }
+
+    25% {
+        content: attr(data-value);
+    }
+
+    50% {
+        content: attr(data-value);
+    }
+
+    75% {
+        content: attr(data-value);
+    }
+
+    100% {
+        content: attr(data-value);
+    }
+}
+
+/* Điều chỉnh số chữ số theo từng giải */
+.running_5::before {
+    animation: runNumbers5 0.1s infinite linear;
+}
+
+.running_4::before {
+    animation: runNumbers4 0.1s infinite linear;
+}
+
+.running_3::before {
+    animation: runNumbers3 0.1s infinite linear;
+}
+
+.running_2::before {
+    animation: runNumbers2 0.1s infinite linear;
+}
+
+@keyframes runNumbers5 {
+    0% {
+        content: "92741";
+    }
+
+    10% {
+        content: "13582";
+    }
+
+    20% {
+        content: "64893";
+    }
+
+    30% {
+        content: "27014";
+    }
+
+    40% {
+        content: "58329";
+    }
+
+    50% {
+        content: "79640";
+    }
+
+    60% {
+        content: "41258";
+    }
+
+    70% {
+        content: "30597";
+    }
+
+    80% {
+        content: "87123";
+    }
+
+    90% {
+        content: "64932";
+    }
+
+    100% {
+        content: "92741";
+    }
+}
+
+@keyframes runNumbers4 {
+    0% {
+        content: "5247";
+    }
+
+    10% {
+        content: "8136";
+    }
+
+    20% {
+        content: "3924";
+    }
+
+    30% {
+        content: "6701";
+    }
+
+    40% {
+        content: "2583";
+    }
+
+    50% {
+        content: "9460";
+    }
+
+    60% {
+        content: "1375";
+    }
+
+    70% {
+        content: "8042";
+    }
+
+    80% {
+        content: "5619";
+    }
+
+    90% {
+        content: "7438";
+    }
+
+    100% {
+        content: "5247";
+    }
+}
+
+@keyframes runNumbers3 {
+    0% {
+        content: "128";
+    }
+
+    10% {
+        content: "493";
+    }
+
+    20% {
+        content: "756";
+    }
+
+    30% {
+        content: "321";
+    }
+
+    40% {
+        content: "687";
+    }
+
+    50% {
+        content: "942";
+    }
+
+    60% {
+        content: "510";
+    }
+
+    70% {
+        content: "874";
+    }
+
+    80% {
+        content: "236";
+    }
+
+    90% {
+        content: "605";
+    }
+
+    100% {
+        content: "128";
+    }
+}
+
+@keyframes runNumbers2 {
+    0% {
+        content: "47";
+    }
+
+    10% {
+        content: "82";
+    }
+
+    20% {
+        content: "15";
+    }
+
+    30% {
+        content: "96";
+    }
+
+    40% {
+        content: "31";
+    }
+
+    50% {
+        content: "64";
+    }
+
+    60% {
+        content: "28";
+    }
+
+    70% {
+        content: "53";
+    }
+
+    80% {
+        content: "79";
+    }
+
+    90% {
+        content: "40";
+    }
+
+    100% {
+        content: "47";
+    }
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 767px) {
+
+    .running_number,
+    .output {
+        min-width: 15px;
+        font-size: 14px;
+        padding: 2px;
+    }
 }
 
 .heading {
@@ -35,7 +311,6 @@
     border-radius: 8px;
     text-align: center;
     margin-bottom: 20px;
-    /* Giảm margin để tiết kiệm không gian */
     font-weight: 700;
     font-size: 26px;
 }
@@ -61,9 +336,7 @@
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
-    /* Hỗ trợ wrap trên mobile */
     gap: 10px;
-    /* Thay margin bằng gap */
 }
 
 .kqxs__actionLink {
@@ -108,7 +381,6 @@
 .tableXS tr:nth-child(9) {
     background-color: white;
     border-bottom: none;
-    /* Gộp border-bottom: none cho G3, G5 */
 }
 
 .tableXS td {
@@ -214,7 +486,6 @@
     justify-content: center;
     align-items: center;
     gap: 20px;
-    /* Giảm gap để tránh chen lấn trên mobile */
     width: 100%;
     max-width: 500px;
     height: 50px;
@@ -236,7 +507,6 @@
     color: var(--primary-color);
     cursor: pointer;
     padding-left: 30px;
-    /* Dịch label để căn chỉnh radio */
 }
 
 .optionInput label:hover {
@@ -280,14 +550,11 @@
 .ellipsis::after {
     content: "";
     width: 24px;
-
-    /* Giảm kích thước để nhẹ hơn */
     height: 24px;
     border: 2px solid rgba(104, 93, 216, 0.3);
     border-top: 2px solid var(--primary-color);
     border-radius: 50%;
     animation: spin 1.5s linear infinite;
-    /* Tăng thời gian animation */
     position: absolute;
     top: 50%;
     left: 50%;
@@ -312,7 +579,6 @@
     border: 1px solid #ccc;
     border-right: 4px solid #ccc;
     margin: 0 auto 20px;
-    /* Giảm margin-bottom */
     border-radius: 6px;
 }
 
@@ -354,7 +620,6 @@
     text-align: center;
     font-weight: 600;
     padding: 10px 6px;
-    /* Giảm padding để nhẹ hơn */
 }
 
 .tableKey th {
@@ -398,7 +663,6 @@
     align-items: center;
     justify-content: center;
     font-size: 16px;
-    /* Giữ font-size để nhất quán */
     color: #888;
     background-color: #f9f9f9;
     border: 1px solid #ccc;
@@ -483,7 +747,6 @@
 
     .TKe_content {
         max-width: 100%;
-        /* Linh hoạt trên mobile */
         margin: 0 auto 20px;
         border-radius: 6px;
     }
@@ -533,7 +796,6 @@
 @media screen and (max-width: 767px) {
     .containerKQ {
         padding: 10px;
-        /* Giữ padding nhẹ */
     }
 
     .kqxs {
@@ -555,7 +817,6 @@
     .kqxs__actionLink {
         font-size: 16px;
         margin: 0 5px;
-        /* Giảm margin để tiết kiệm không gian */
     }
 
     .tableXS {
@@ -565,7 +826,6 @@
     .tableXS td {
         border-bottom: none;
         padding: 4px;
-        /* Giảm padding */
     }
 
     .tableXS td.tdTitle {
@@ -581,7 +841,6 @@
 
     .tableXS td.rowXS {
         gap: 6px;
-        /* Giảm gap để gọn hơn */
     }
 
     .prizeNumber {
@@ -600,9 +859,7 @@
 
     .filter__options {
         gap: 10px;
-        /* Giảm gap để tránh chen lấn */
         max-width: 100%;
-        /* Linh hoạt trên mobile */
         height: auto;
         padding: 8px;
     }
@@ -610,7 +867,6 @@
     .optionInput label {
         font-size: 14px;
         padding-left: 25px;
-        /* Giảm padding để căn chỉnh */
     }
 
     .optionInput label::before {
@@ -656,7 +912,6 @@
 
     .paginationButton {
         padding: 6px 12px;
-        /* Giảm padding */
         width: auto;
         font-size: 0.875rem;
     }

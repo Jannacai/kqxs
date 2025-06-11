@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
-import styles from '../../styles/LivekqxsMB.module.css';
+import styles from '../../public/css/kqxsMB.module.css';
 import { getFilteredNumber } from "../../library/utils/filterUtils";
+import { apiMB } from "../api/kqxs/kqxsMB";
 import React from 'react';
 import { useLottery } from '../../contexts/LotteryContext';
 
@@ -150,7 +151,10 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                                 const updatedData = {
                                     ...prev,
                                     [prizeType]: data[prizeType],
-                                    [`${prizeType}_status`]: data.status || "..." // Lưu trạng thái cho từng giải
+                                    tentinh: data.tentinh || prev.tentinh,
+                                    tinh: data.tinh || prev.tinh,
+                                    year: data.year || prev.year,
+                                    month: data.month || prev.month,
                                 };
                                 localStorage.setItem(`liveData:${station}:${today}`, JSON.stringify(updatedData));
                                 const isComplete = Object.values(updatedData).every(
@@ -249,35 +253,6 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     ].filter(num => num && num !== '...' && num !== '***');
     const specialPrize = getFilteredNumber(liveData.specialPrize_0 || '...', 'last2');
 
-    const generateRandomDigit = () => Math.floor(Math.random() * 10).toString();
-
-    const renderPrizeDigits = (prize, prizeType, index, digitCount, prizeCount) => {
-        if (prize === '...' || !prize) {
-            return <span className={styles.ellipsis}></span>;
-        }
-        if (liveData[`${prizeType}_${index}_status`] === 'animating') {
-            const digits = Array(digitCount).fill().map((_, idx) => (
-                <div
-                    key={idx}
-                    className={`${styles.output} ${styles.running_number} ${styles[`running_${digitCount}`]}`}
-                    data-value={generateRandomDigit()}
-                >
-                    {generateRandomDigit()}
-                </div>
-            ));
-            return (
-                <span className={`${styles[`span${prizeCount}`]} ${prizeType === 'specialPrize' ? styles.gdb : ''} ${prizeType.includes('threePrizes') ? styles.g3 : ''}`}>
-                    {digits}
-                </span>
-            );
-        }
-        return (
-            <span className={`${styles[`span${prizeCount}`]} ${prizeType === 'specialPrize' ? styles.highlight : ''} ${prizeType === 'specialPrize' ? styles.gdb : ''} ${prizeType.includes('threePrizes') ? styles.g3 : ''}`}>
-                {getFilteredNumber(prize, currentFilter)}
-            </span>
-        );
-    };
-
     return (
         <div className={styles.live}>
             {error && <div className={styles.error}>{error}</div>}
@@ -299,67 +274,145 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                     <tbody>
                         <tr>
                             <td className={`${styles.code} ${styles.rowXS}`}>
-                                {renderPrizeDigits(liveData.maDB, 'maDB', 0, 5, 1)}
+                                <span className={styles.span0}>
+                                    {liveData.maDB === '...' ? <span className={styles.ellipsis}></span> : liveData.maDB}
+                                </span>
                             </td>
                         </tr>
                         <tr>
                             <td className={`${styles.tdTitle} ${styles.highlight}`}>ĐB</td>
                             <td className={styles.rowXS}>
-                                {renderPrizeDigits(liveData.specialPrize_0, 'specialPrize', 0, 5, 1)}
+                                <span className={`${styles.span1} ${styles.highlight} ${styles.gdb}`}>
+                                    {liveData.specialPrize_0 === '...' ? (
+                                        <span className={styles.ellipsis}></span>
+                                    ) : (
+                                        getFilteredNumber(liveData.specialPrize_0, currentFilter)
+                                    )}
+                                </span>
                             </td>
                         </tr>
                         <tr>
                             <td className={styles.tdTitle}>G1</td>
                             <td className={styles.rowXS}>
-                                {renderPrizeDigits(liveData.firstPrize_0, 'firstPrize', 0, 5, 1)}
+                                <span className={styles.span1}>
+                                    {liveData.firstPrize_0 === '...' ? (
+                                        <span className={styles.ellipsis}></span>
+                                    ) : (
+                                        getFilteredNumber(liveData.firstPrize_0, currentFilter)
+                                    )}
+                                </span>
                             </td>
                         </tr>
                         <tr>
                             <td className={styles.tdTitle}>G2</td>
                             <td className={styles.rowXS}>
-                                {[0, 1].map(i => renderPrizeDigits(liveData[`secondPrize_${i}`], 'secondPrize', i, 5, 2))}
+                                {[0, 1].map(i => (
+                                    <span key={i} className={styles.span2}>
+                                        {liveData[`secondPrize_${i}`] === '...' ? (
+                                            <span className={styles.ellipsis}></span>
+                                        ) : (
+                                            getFilteredNumber(liveData[`secondPrize_${i}`], currentFilter)
+                                        )}
+                                    </span>
+                                ))}
                             </td>
                         </tr>
                         <tr>
                             <td className={`${styles.tdTitle} ${styles.g3}`}>G3</td>
                             <td className={styles.rowXS}>
-                                {[0, 1, 2].map(i => renderPrizeDigits(liveData[`threePrizes_${i}`], 'threePrizes', i, 5, 3))}
+                                {[0, 1, 2].map(i => (
+                                    <span key={i} className={`${styles.span3} ${styles.g3}`}>
+                                        {liveData[`threePrizes_${i}`] === '...' ? (
+                                            <span className={styles.ellipsis}></span>
+                                        ) : (
+                                            getFilteredNumber(liveData[`threePrizes_${i}`], currentFilter)
+                                        )}
+                                    </span>
+                                ))}
                             </td>
                         </tr>
                         <tr>
                             <td className={styles.tdTitle}></td>
                             <td className={styles.rowXS}>
-                                {[3, 4, 5].map(i => renderPrizeDigits(liveData[`threePrizes_${i}`], 'threePrizes', i, 5, 3))}
+                                {[3, 4, 5].map(i => (
+                                    <span key={i} className={styles.span3}>
+                                        {liveData[`threePrizes_${i}`] === '...' ? (
+                                            <span className={styles.ellipsis}></span>
+                                        ) : (
+                                            getFilteredNumber(liveData[`threePrizes_${i}`], currentFilter)
+                                        )}
+                                    </span>
+                                ))}
                             </td>
                         </tr>
                         <tr>
                             <td className={styles.tdTitle}>G4</td>
                             <td className={styles.rowXS}>
-                                {[0, 1, 2, 3].map(i => renderPrizeDigits(liveData[`fourPrizes_${i}`], 'fourPrizes', i, 4, 4))}
+                                {[0, 1, 2, 3].map(i => (
+                                    <span key={i} className={styles.span4}>
+                                        {liveData[`fourPrizes_${i}`] === '...' ? (
+                                            <span className={styles.ellipsis}></span>
+                                        ) : (
+                                            getFilteredNumber(liveData[`fourPrizes_${i}`], currentFilter)
+                                        )}
+                                    </span>
+                                ))}
                             </td>
                         </tr>
                         <tr>
                             <td className={`${styles.tdTitle} ${styles.g3}`}>G5</td>
                             <td className={styles.rowXS}>
-                                {[0, 1, 2].map(i => renderPrizeDigits(liveData[`fivePrizes_${i}`], 'fivePrizes', i, 4, 3))}
+                                {[0, 1, 2].map(i => (
+                                    <span key={i} className={`${styles.span3} ${styles.g3}`}>
+                                        {liveData[`fivePrizes_${i}`] === '...' ? (
+                                            <span className={styles.ellipsis}></span>
+                                        ) : (
+                                            getFilteredNumber(liveData[`fivePrizes_${i}`], currentFilter)
+                                        )}
+                                    </span>
+                                ))}
                             </td>
                         </tr>
                         <tr>
                             <td className={styles.tdTitle}></td>
                             <td className={styles.rowXS}>
-                                {[3, 4, 5].map(i => renderPrizeDigits(liveData[`fivePrizes_${i}`], 'fivePrizes', i, 4, 3))}
+                                {[3, 4, 5].map(i => (
+                                    <span key={i} className={styles.span3}>
+                                        {liveData[`fivePrizes_${i}`] === '...' ? (
+                                            <span className={styles.ellipsis}></span>
+                                        ) : (
+                                            getFilteredNumber(liveData[`fivePrizes_${i}`], currentFilter)
+                                        )}
+                                    </span>
+                                ))}
                             </td>
                         </tr>
                         <tr>
                             <td className={styles.tdTitle}>G6</td>
                             <td className={styles.rowXS}>
-                                {[0, 1, 2].map(i => renderPrizeDigits(liveData[`sixPrizes_${i}`], 'sixPrizes', i, 3, 3))}
+                                {[0, 1, 2].map(i => (
+                                    <span key={i} className={styles.span3}>
+                                        {liveData[`sixPrizes_${i}`] === '...' ? (
+                                            <span className={styles.ellipsis}></span>
+                                        ) : (
+                                            getFilteredNumber(liveData[`sixPrizes_${i}`], currentFilter)
+                                        )}
+                                    </span>
+                                ))}
                             </td>
                         </tr>
                         <tr>
                             <td className={styles.tdTitle}>G7</td>
                             <td className={styles.rowXS}>
-                                {[0, 1, 2, 3].map(i => renderPrizeDigits(liveData[`sevenPrizes_${i}`], 'sevenPrizes', i, 2, 4))}
+                                {[0, 1, 2, 3].map(i => (
+                                    <span key={i} className={`${styles.span4} ${styles.highlight}`}>
+                                        {liveData[`sevenPrizes_${i}`] === '...' ? (
+                                            <span className={styles.ellipsis}></span>
+                                        ) : (
+                                            getFilteredNumber(liveData[`sevenPrizes_${i}`], currentFilter)
+                                        )}
+                                    </span>
+                                ))}
                             </td>
                         </tr>
                     </tbody>
@@ -462,6 +515,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     );
 };
 
+// Sử dụng getServerSideProps để truyền props và bật SSR
 export async function getServerSideProps(context) {
     const today = new Date().toLocaleDateString('vi-VN', {
         day: '2-digit',
@@ -472,14 +526,15 @@ export async function getServerSideProps(context) {
         props: {
             station: 'xsmb',
             today,
-            isLiveWindow: isWithinLiveWindow(),
-            filterTypes: {},
-            getHeadAndTailNumbers: null,
-            handleFilterChange: null,
+            isLiveWindow: isWithinLiveWindow(), // Hàm kiểm tra khung giờ trực tiếp
+            filterTypes: {}, // Có thể lấy từ context hoặc database nếu cần
+            getHeadAndTailNumbers: null, // Placeholder, cần triển khai nếu dùng
+            handleFilterChange: null, // Placeholder, cần triển khai nếu dùng
         },
     };
 }
 
+// Hàm kiểm tra khung giờ trực tiếp (18:14–18:36)
 function isWithinLiveWindow() {
     const now = new Date();
     const hours = now.getHours();
