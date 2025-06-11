@@ -14,6 +14,11 @@
     flex-direction: column;
 }
 
+.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .calendarHeader {
     display: flex;
     justify-content: space-between;

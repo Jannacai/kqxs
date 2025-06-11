@@ -28,8 +28,8 @@ const KQXS = (props) => {
     const [isLiveWindow, setIsLiveWindow] = useState(false);
     const [hasTriggeredScraper, setHasTriggeredScraper] = useState(false);
     const hour = 18;
-    const minute1 = 8;
-    const minute2 = 8;
+    const minute1 = 14; // Bắt đầu khung giờ trực tiếp
+    const minute2 = 14; // Thời điểm kích hoạt scraper
 
     const router = useRouter();
     const dayof = props.data4;
@@ -46,9 +46,19 @@ const KQXS = (props) => {
 
     const startHour = hour;
     const startMinute = minute1;
-    const duration = 22 * 60 * 1000;
+    const duration = 22 * 60 * 1000; // 22 phút cho khung giờ trực tiếp
 
     const CACHE_KEY = `xsmb_data_${station}_${date || 'null'}_${dayof || 'null'}`;
+
+    // Hàm kiểm tra ngày hợp lệ
+    const isValidDate = (dateStr) => {
+        if (!dateStr || !/^\d{2}-\d{2}-\d{4}$/.test(dateStr)) return false;
+        const [day, month, year] = dateStr.split('-').map(Number);
+        const parsedDate = new Date(year, month - 1, day);
+        if (isNaN(parsedDate.getTime())) return false;
+        // Không cho phép ngày trong tương lai
+        return parsedDate <= new Date();
+    };
 
     useEffect(() => {
         const checkTime = () => {
@@ -119,7 +129,15 @@ const KQXS = (props) => {
             const cachedTime = localStorage.getItem(`${CACHE_KEY}_time`);
             const cacheAge = cachedTime ? now.getTime() - parseInt(cachedTime) : Infinity;
 
-            // Không gọi API nếu là ngày hiện tại và chưa đến khung giờ trực tiếp (tránh lỗi 404)
+            // Kiểm tra ngày hợp lệ
+            if (date && !isValidDate(date)) {
+                setData([]);
+                setLoading(false);
+                setError('Ngày không hợp lệ hoặc trong tương lai.');
+                return;
+            }
+
+            // Không gọi API nếu là ngày hiện tại và chưa đến khung giờ trực tiếp
             if (date === today && !isUpdateWindow && !isAfterUpdateWindow) {
                 if (cachedData) {
                     setData(JSON.parse(cachedData));
@@ -127,6 +145,7 @@ const KQXS = (props) => {
                 } else {
                     setData([]);
                     setLoading(false);
+                    setError('Chưa có kết quả xổ số cho ngày hiện tại.');
                 }
                 return;
             }
@@ -135,44 +154,56 @@ const KQXS = (props) => {
             if (isAfterUpdateWindow || !cachedData || cacheAge >= CACHE_DURATION) {
                 // Gọi API nếu không phải trong khung giờ trực tiếp hoặc sau 18h35
                 if (!isUpdateWindow || isAfterUpdateWindow) {
-                    const result = await apiMB.getLottery(station, date, dayof);
-                    const dataArray = Array.isArray(result) ? result : [result];
+                    try {
+                        const result = await apiMB.getLottery(station, date, dayof);
+                        const dataArray = Array.isArray(result) ? result : [result];
 
-                    const formattedData = dataArray.map(item => ({
-                        ...item,
-                        drawDate: new Date(item.drawDate).toLocaleDateString('vi-VN', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric',
-                        }),
-                    }));
+                        const formattedData = dataArray.map(item => ({
+                            ...item,
+                            drawDate: new Date(item.drawDate).toLocaleDateString('vi-VN', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                            }),
+                        }));
 
-                    // So sánh với dữ liệu cache để kiểm tra bản ghi mới
-                    const cachedDataParsed = cachedData ? JSON.parse(cachedData) : [];
-                    const hasNewData = JSON.stringify(formattedData) !== JSON.stringify(cachedDataParsed);
+                        // So sánh với dữ liệu cache để kiểm tra bản ghi mới
+                        const cachedDataParsed = cachedData ? JSON.parse(cachedData) : [];
+                        const hasNewData = JSON.stringify(formattedData) !== JSON.stringify(cachedDataParsed);
 
-                    if (hasNewData) {
-                        setData(formattedData);
-                        localStorage.setItem(CACHE_KEY, JSON.stringify(formattedData));
-                        localStorage.setItem(`${CACHE_KEY}_time`, now.getTime().toString());
-                    } else if (cachedData) {
-                        setData(cachedDataParsed);
-                    }
-
-                    setFilterTypes(prevFilters => {
-                        const newFilters = formattedData.reduce((acc, item) => {
-                            acc[item.drawDate + item.station] = prevFilters[item.drawDate + item.station] || 'all';
-                            return acc;
-                        }, {});
-                        if (JSON.stringify(prevFilters) !== JSON.stringify(newFilters)) {
-                            return newFilters;
+                        if (hasNewData) {
+                            setData(formattedData);
+                            localStorage.setItem(CACHE_KEY, JSON.stringify(formattedData));
+                            localStorage.setItem(`${CACHE_KEY}_time`, now.getTime().toString());
+                        } else if (cachedData) {
+                            setData(cachedDataParsed);
                         }
-                        return prevFilters;
-                    });
 
-                    setLoading(false);
-                    setError(null);
-                    return;
+                        setFilterTypes(prevFilters => {
+                            const newFilters = formattedData.reduce((acc, item) => {
+                                acc[item.drawDate + item.station] = prevFilters[item.drawDate + item.station] || 'all';
+                                return acc;
+                            }, {});
+                            if (JSON.stringify(prevFilters) !== JSON.stringify(newFilters)) {
+                                return newFilters;
+                            }
+                            return prevFilters;
+                        });
+
+                        setLoading(false);
+                        setError(null);
+                        return;
+                    } catch (apiError) {
+                        if (apiError.response?.status === 404) {
+                            setData([]);
+                            setLoading(false);
+                            setError('Không tìm thấy kết quả xổ số cho ngày này.');
+                            localStorage.setItem(CACHE_KEY, JSON.stringify([]));
+                            localStorage.setItem(`${CACHE_KEY}_time`, now.getTime().toString());
+                            return;
+                        }
+                        throw apiError;
+                    }
                 }
             }
 
@@ -217,7 +248,7 @@ const KQXS = (props) => {
             }
 
             // Sử dụng cache nếu có và không cần làm mới
-            if (cachedData && cacheAge < CACHE_DURATION && !isAfterUpdateWindow) {
+            if (cachedData && cacheAge < CACHE_DURATION) {
                 setData(JSON.parse(cachedData));
                 setLoading(false);
                 return;
@@ -227,7 +258,7 @@ const KQXS = (props) => {
             setError(null);
         } catch (error) {
             console.error('Lỗi khi lấy dữ liệu xổ số:', error);
-            setError('Không thể tải dữ liệu, vui lòng thử lại sau');
+            setError('Không thể tải dữ liệu, vui lòng thử lại sau.');
             setLoading(false);
         }
     }, [station, date, dayof, props.data, today]);
@@ -610,7 +641,7 @@ const KQXS = (props) => {
                     </div>
                 );
             })}
-            {data.length > 1 && (
+            {data.length > itemsPerPage && (
                 <div className={styles.pagination}>
                     <a
                         href={`/ket-qua-xo-so-mien-bac?page=${currentPage - 1}`}

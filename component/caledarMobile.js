@@ -18,16 +18,16 @@ const CalendarMobile = ({ onDateChange }) => {
     ];
     const daysOfWeek = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
     const minYear = 2020;
-    const maxYear = 2030;
+    const maxYear = new Date().getFullYear(); // Giới hạn năm tối đa là năm hiện tại
 
     const today = new Date();
     const [currentYear, setCurrentYear] = useState(today.getFullYear());
     const [currentMonth, setCurrentMonth] = useState(today.getMonth());
     const [selectedDate, setSelectedDate] = useState(new Date(today));
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const calendarRef = useRef(null); // Tham chiếu để kiểm tra click ngoài modal
+    const calendarRef = useRef(null);
 
-    // Đồng bộ selectedDate với slug từ URL khi component mount hoặc URL thay đổi
+    // Đồng bộ selectedDate với slug từ URL
     useEffect(() => {
         if (!router.isReady) return;
 
@@ -35,21 +35,20 @@ const CalendarMobile = ({ onDateChange }) => {
         if (slug && typeof slug === 'string' && slug.includes('-')) {
             const [day, month, year] = slug.split('-').map(Number);
             const dateFromSlug = new Date(year, month - 1, day);
-            if (!isNaN(dateFromSlug.getTime())) {
+            if (!isNaN(dateFromSlug.getTime()) && dateFromSlug <= today) {
                 setSelectedDate(dateFromSlug);
                 setCurrentMonth(dateFromSlug.getMonth());
                 setCurrentYear(dateFromSlug.getFullYear());
             } else {
-                console.error('Invalid date from slug:', slug);
-                setSelectedDate(new Date(today));
-                setCurrentMonth(today.getMonth());
-                setCurrentYear(today.getFullYear());
+                console.warn('Invalid or future date from slug:', slug);
+                // Chuyển hướng về ngày hiện tại
+                const dayFormatted = formatNumber(today.getDate());
+                const monthFormatted = formatNumber(today.getMonth() + 1);
+                const defaultSlug = `${dayFormatted}-${monthFormatted}-${today.getFullYear()}`;
+                router.replace(`/xsmb/${defaultSlug}`);
             }
         } else {
             console.warn('No valid slug found, using default date (today)');
-            setSelectedDate(new Date(today));
-            setCurrentMonth(today.getMonth());
-            setCurrentYear(today.getFullYear());
             const dayFormatted = formatNumber(today.getDate());
             const monthFormatted = formatNumber(today.getMonth() + 1);
             const defaultSlug = `${dayFormatted}-${monthFormatted}-${today.getFullYear()}`;
@@ -106,19 +105,21 @@ const CalendarMobile = ({ onDateChange }) => {
             newMonth = 0;
             newYear++;
         }
-        if (newYear > maxYear) return;
+        // Không cho phép chọn tháng trong tương lai
+        if (newYear > maxYear || (newYear === maxYear && newMonth > today.getMonth())) return;
         setCurrentMonth(newMonth);
         setCurrentYear(newYear);
     };
 
     const handleDateClick = (day) => {
         const newDate = new Date(currentYear, currentMonth, day);
+        if (newDate > today) return; // Không cho phép chọn ngày trong tương lai
         setSelectedDate(newDate);
         const dayFormatted = formatNumber(day);
         const monthFormatted = formatNumber(currentMonth + 1);
         const slug = `${dayFormatted}-${monthFormatted}-${currentYear}`;
         router.push(`/xsmb/${slug}`);
-        setIsMenuOpen(false); // Đóng modal sau khi chọn ngày
+        setIsMenuOpen(false);
     };
 
     const renderCalendar = () => {
@@ -134,12 +135,13 @@ const CalendarMobile = ({ onDateChange }) => {
             const currentDate = new Date(currentYear, currentMonth, day);
             const isToday = currentDate.toDateString() === today.toDateString();
             const isSelected = selectedDate && currentDate.toDateString() === selectedDate.toDateString();
+            const isFuture = currentDate > today;
 
             days.push(
                 <div
                     key={day}
-                    className={`${styles.day} ${isToday ? styles.today : ''} ${isSelected ? styles.selected : ''}`}
-                    onClick={() => handleDateClick(day)}
+                    className={`${styles.day} ${isToday ? styles.today : ''} ${isSelected ? styles.selected : ''} ${isFuture ? styles.disabled : ''}`}
+                    onClick={() => !isFuture && handleDateClick(day)}
                 >
                     {day}
                 </div>
@@ -194,7 +196,7 @@ const CalendarMobile = ({ onDateChange }) => {
                     </div>
                     <button
                         onClick={handleNextMonth}
-                        disabled={currentYear === maxYear && currentMonth === 11}
+                        disabled={currentYear === maxYear && currentMonth === today.getMonth()}
                         className={styles.navButton}
                     >
                         <i className="iconRight fa-solid fa-circle-chevron-right"></i>
