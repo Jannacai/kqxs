@@ -9,32 +9,30 @@
 .avatar {
     width: 36px;
     height: 36px;
-    border-radius: 50%;
+    border-radius: 6px;
     background-color: #1E40AF;
-    /* Nền xanh dương đậm */
     border: 2px solid #FFFFFF;
-    /* Viền trắng */
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 700;
     cursor: pointer;
     transition: transform 0.2s ease;
 }
 
 .avatar:hover {
-    transform: scale(1.03);
+    transform: scale(1.05);
 }
 
 .admin {
-    color: #f6b000;
-    /* Vàng cho admin */
+    background-color: #f6b0b0;
+    /* Vàng đỏ cho admin */
+    color: #ffffff;
 }
 
 .user {
     color: #FFFFFF;
-    /* Trắng cho user */
 }
 
 .info {
@@ -46,8 +44,8 @@
 .username {
     font-size: 14px;
     font-weight: 700;
-    color: #FFFF;
-    /* Xanh dương đậm cho tên */
+    color: #FFFFF0;
+    /* Màu vàng nhạt */
     line-height: 1.2;
     cursor: pointer;
 }
@@ -62,29 +60,165 @@
     align-items: center;
     font-size: 12px;
     font-weight: 400;
-    padding: 2px 0;
+    padding: 2px 8px;
     border: 1px solid #fff;
     border-radius: 12px;
-    font-weight: 700;
+    font-weight: 500;
+}
+
+.notificationWrapper {
+    position: relative;
+}
+
+.notificationIcon {
+    font-size: 24px;
+    cursor: pointer;
+    color: #333;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.notificationBadge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: #ff4444;
+    color: white;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 600;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.notificationMenu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background-color: #fff;
+    border: 8px solid #E5E7EB;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 10px;
+    min-width: 300px;
+    max-width: 90vw;
+    max-height: 400px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.notificationHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    border-bottom: 1px solid #E5E7EB;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.markAllReadButton {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.markAllReadButton:hover {
+    background-color: #0056b3;
+}
+
+.notificationItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.notificationItem.unread {
+    background-color: #f0f8ff;
+}
+
+.notificationItem.read {
+    background-color: #fff;
+}
+
+.notificationItem:hover {
+    background-color: #f5f5e5;
+}
+
+.notificationContent {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.notificationContent span:first-child {
+    font-size: 14px;
+    color: #333;
+}
+
+.notificationTime {
+    font-size: 12px;
+    color: #777;
+}
+
+.markReadButton {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.markReadButton:hover {
+    background-color: #218838;
+}
+
+.deleteNotificationButton {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-left: 4px;
+}
+
+.deleteNotificationButton:hover {
+    background-color: #c82333;
 }
 
 .submenu {
     position: absolute;
-    top: calc(100% + 4px);
-    /* Khoảng cách nhỏ dưới avatar */
-    left: 18px;
-    /* Căn theo giữa avatar (36px / 2) */
-    transform: translateX(-50%);
-    /* Căn giữa submenu dưới avatar */
-    background-color: red;
+    top: calc(100% + 8px);
+    right: 0;
+    background-color: #fff;
     border: 1px solid #E5E7EB;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    padding: 6px;
+    padding: 8px;
     min-width: 140px;
     max-width: 90vw;
-    /* Giới hạn chiều rộng tối đa */
-    z-index: 10;
+    z-index: 1000;
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -98,7 +232,6 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    /* Cắt ngắn tên dài */
 }
 
 .logoutButton {
@@ -119,44 +252,41 @@
     transform: translateY(-1px);
 }
 
-/* Responsive cho mobile */
 @media (max-width: 640px) {
     .avatar {
         width: 32px;
         height: 32px;
         font-size: 14px;
-        /* Giảm font size cho avatar */
     }
 
     .username {
         font-size: 13px;
-        /* Giảm font size cho tên */
     }
 
     .role {
         font-size: 11px;
-        /* Giảm font size cho vai trò */
+        padding: 2px 6px;
+    }
+
+    .notificationMenu {
+        width: 100%;
+        right: 0;
+        min-width: 200px;
     }
 
     .submenu {
-        left: 16px;
-        /* Căn giữa avatar (32px / 2) */
-        transform: translateX(0%);
-        min-width: 200px;
-        /* Giảm min-width */
+        right: 0;
+        min-width: 120px;
         padding: 4px;
-        /* Giảm padding */
     }
 
     .fullname {
         font-size: 13px;
-        /* Giảm font size cho tên đầy đủ */
         padding: 2px 4px;
     }
 
     .logoutButton {
         padding: 4px 8px;
         font-size: 12px;
-        /* Giảm font size cho nút đăng xuất */
     }
 }

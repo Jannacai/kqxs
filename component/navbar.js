@@ -452,7 +452,6 @@ const NavBar = () => {
                                                 onClick={toggleMenu}
                                             >
                                                 Thứ 5
-                                                ecologically-friendly
                                             </Link>
                                         </li>
                                         <li>
@@ -1256,7 +1255,7 @@ const NavBar = () => {
                                 className={`${styles.nav_item} ${router.pathname === '/diendan' ? styles.active : ''
                                     }`}
                             >
-                                <Link href="#" className={styles.nav_itemLink}>
+                                <Link href="/chat/chat" className={styles.nav_itemLink}>
                                     Diễn Đàn
                                 </Link>
                             </li>

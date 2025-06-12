@@ -130,7 +130,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                 console.warn('Cannot connect SSE: Invalid station or today');
                 return;
             }
-            eventSource = new EventSource(`https://backendkqxs.onrender.com/api/kqxs/xsmb/sse?station=${station}&date=${today}`);
+            eventSource = new EventSource(`https://backendkqxs.onrender.com/sse?station=${station}&date=${today}`);
 
             const prizeTypes = [
                 'maDB', 'specialPrize_0', 'firstPrize_0', 'secondPrize_0', 'secondPrize_1',
@@ -484,7 +484,7 @@ function isWithinLiveWindow() {
     const now = new Date();
     const hours = now.getHours();
     const minutes = now.getMinutes();
-    return (hours === 18 && minutes >= 14 && minutes <= 31);
+    return (hours === 18 && minutes >= 14 && minutes <= 32);
 }
 
 export default React.memo(LiveResult);

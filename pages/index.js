@@ -7,6 +7,7 @@ import ListXSMB from '../component/listXSMB';
 import ListXSMN from '../component/listXSMN';
 import CongCuHot from '../component/CongCuHot';
 import TableDate from '../component/tableDateKQXS';
+import Chat from './chat/chat';
 
 const KQXS = dynamic(() => import('./kqxsAll/index'), { ssr: false });
 const PostList = dynamic(() => import('./tin-tuc/list'), { ssr: false });
@@ -159,6 +160,7 @@ export default function Home({ drawDate }) {
                 </div>
                 <div>
                     <ThongKe />
+                    <Chat />
                     <CongCuHot />
                     <div className='banner1'>
                         <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
