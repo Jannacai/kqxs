@@ -1,6 +1,7 @@
 const { getSession } = require("next-auth/react");
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+console.log("API_BASE_URL:", API_BASE_URL); // Log để kiểm tra giá trị
 
 const getCachedPosts = (key) => {
     const cached = localStorage.getItem(key);
@@ -38,17 +39,18 @@ export const uploadToDrive = async (formData) => {
                 ...(session?.accessToken && { Authorization: `Bearer ${session.accessToken}` }),
                 "Cache-Control": "no-cache",
             },
+            credentials: "include", // Thêm để đồng bộ với CORS credentials: true
             body: formData,
         });
         if (!response.ok) {
             const errorText = await response.text();
-            console.error("API error:", errorText);
+            console.error("API error:", response.status, errorText);
             throw new Error(`Có lỗi khi tải ảnh lên: ${response.status} - ${errorText}`);
         }
         const data = await response.json();
         return data;
     } catch (error) {
-        console.error("uploadToDrive error:", error);
+        console.error("uploadToDrive error:", error.message, error.stack);
         throw error;
     }
 };
@@ -72,16 +74,18 @@ export const getPosts = async (context = null, page = 1, limit = 15, category = 
             headers: {
                 "Cache-Control": "no-cache",
             },
+            credentials: "include", // Thêm để đồng bộ với CORS credentials: true
         });
         if (!response.ok) {
             const errorText = await response.text();
+            console.error("API error:", response.status, errorText);
             throw new Error(`Có lỗi khi lấy bài viết: ${response.status} - ${errorText}`);
         }
         const data = await response.json();
         setCachedPosts(cacheKey, data);
         return data;
     } catch (error) {
-        console.error("getPosts error:", error);
+        console.error("getPosts error:", error.message, error.stack);
         throw error;
     }
 };
@@ -97,6 +101,7 @@ export const createPost = async (postData) => {
                 ...(session?.accessToken && { Authorization: `Bearer ${session.accessToken}` }),
                 "Cache-Control": "no-cache",
             },
+            credentials: "include", // Thêm để đồng bộ với CORS credentials: true
             body: JSON.stringify({
                 title: postData.title,
                 mainContents: postData.mainContents || [],
@@ -106,7 +111,7 @@ export const createPost = async (postData) => {
         });
         if (!response.ok) {
             const errorText = await response.text();
-            console.error("API error:", errorText);
+            console.error("API error:", response.status, errorText);
             throw new Error(`Có lỗi khi đăng bài: ${response.status} - ${errorText}`);
         }
         const data = await response.json();
@@ -117,7 +122,7 @@ export const createPost = async (postData) => {
         window.dispatchEvent(new CustomEvent('newPostCreated', { detail: data }));
         return data;
     } catch (error) {
-        console.error("createPost error:", error);
+        console.error("createPost error:", error.message, error.stack);
         throw error;
     }
 };
@@ -138,17 +143,18 @@ export const getPostById = async (id, refresh = false) => {
             headers: {
                 "Cache-Control": "no-cache",
             },
+            credentials: "include", // Thêm để đồng bộ với CORS credentials: true
         });
         if (!response.ok) {
             const errorText = await response.text();
-            console.error("API error:", errorText);
+            console.error("API error:", response.status, errorText);
             throw new Error(`Có lỗi khi lấy bài viết: ${response.status} - ${errorText}`);
         }
         const data = await response.json();
         setCachedPosts(cacheKey, data);
         return data;
     } catch (error) {
-        console.error("getPostById error:", error);
+        console.error("getPostById error:", error.message, error.stack);
         throw error;
     }
 };
@@ -170,17 +176,18 @@ export const getCombinedPostData = async (id, refresh = false) => {
             headers: {
                 "Cache-Control": "no-cache",
             },
+            credentials: "include", // Thêm để đồng bộ với CORS credentials: true
         });
         if (!response.ok) {
             const errorText = await response.text();
-            console.error("API error:", errorText);
+            console.error("API error:", response.status, errorText);
             throw new Error(`Có lỗi khi lấy dữ liệu bài viết: ${response.status} - ${errorText}`);
         }
         const data = await response.json();
         setCachedPosts(cacheKey, data);
         return data;
     } catch (error) {
-        console.error("getCombinedPostData error:", error);
+        console.error("getCombinedPostData error:", error.message, error.stack);
         throw error;
     }
 };
@@ -193,15 +200,17 @@ export const getCategories = async () => {
             headers: {
                 "Cache-Control": "no-cache",
             },
+            credentials: "include", // Thêm để đồng bộ với CORS credentials: true
         });
         if (!response.ok) {
             const errorText = await response.text();
+            console.error("API error:", response.status, errorText);
             throw new Error(`Có lỗi khi lấy danh sách danh mục: ${response.status} - ${errorText}`);
         }
         const data = await response.json();
         return data.categories;
     } catch (error) {
-        console.error("getCategories error:", error);
+        console.error("getCategories error:", error.message, error.stack);
         throw error;
     }
 };
