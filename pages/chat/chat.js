@@ -1,10 +1,9 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { formatDistanceToNow } from "date-fns";
 import vi from "date-fns/locale/vi";
 import EmojiPicker from "emoji-picker-react";
 import { useRouter } from "next/router";
-import io from "socket.io-client";
 import styles from "../../styles/chat.module.css";
 import Link from "next/link";
 
@@ -23,7 +22,6 @@ export default function Chat() {
     const [isAtBottom, setIsAtBottom] = useState(true);
     const [expandedComments, setExpandedComments] = useState({});
     const [showLoginModal, setShowLoginModal] = useState(false);
-    const [socketConnected, setSocketConnected] = useState(false);
     const { data: session, status } = useSession();
     const router = useRouter();
     const { commentId } = router.query;
@@ -35,207 +33,13 @@ export default function Chat() {
     const commentRefs = useRef({});
     const suggestionRef = useRef(null);
     const commentListRef = useRef(null);
-    const socketRef = useRef(null);
-
-    const debounce = (func, wait) => {
-        let timeout;
-        return (...args) => {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => func(...args), wait);
-        };
-    };
-
-    useEffect(() => {
-        socketRef.current = io(API_BASE_URL, {
-            withCredentials: true,
-            transports: ['websocket', 'polling'],
-            query: { userId: session?.user?.id },
-            extraHeaders: {
-                Authorization: session?.accessToken ? `Bearer ${session.accessToken}` : '',
-            },
-        });
-
-        socketRef.current.on('connect', () => {
-            setSocketConnected(true);
-        });
-
-        socketRef.current.on('connect_error', (err) => {
-            setSocketConnected(false);
-            setError('Không thể kết nối thời gian thực.');
-        });
-
-        socketRef.current.on('disconnect', () => {
-            setSocketConnected(false);
-        });
-
-        socketRef.current.on('newComment', (newComment) => {
-            setComments((prev) => {
-                const existsInParent = prev.some(c => c._id === newComment._id);
-                const existsInChild = prev.some(c =>
-                    c.childComments?.some(child => child._id === newComment._id)
-                );
-                if (existsInParent || existsInChild) {
-                    return prev;
-                }
-
-                if (newComment.parentComment) {
-                    const updateComments = (comments) => {
-                        return comments.map((c) => {
-                            if (c._id === newComment.parentComment) {
-                                return {
-                                    ...c,
-                                    childComments: [
-                                        ...(c.childComments || []),
-                                        newComment,
-                                    ].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)),
-                                };
-                            }
-                            return {
-                                ...c,
-                                childComments: updateComments(c.childComments || []),
-                            };
-                        });
-                    };
-                    return sortComments(updateComments(prev));
-                } else {
-                    return sortComments([...prev, newComment]);
-                }
-            });
-            setIsAtBottom(true);
-        });
-
-        socketRef.current.on('updateComment', (updatedComment) => {
-            setComments((prev) => {
-                const updateCommentTree = (comments) => {
-                    return comments.map((c) =>
-                        c._id === updatedComment._id
-                            ? { ...c, ...updatedComment }
-                            : { ...c, childComments: updateCommentTree(c.childComments || []) }
-                    );
-                };
-                return sortComments(updateCommentTree(prev));
-            });
-        });
-
-        socketRef.current.on('deleteComment', ({ commentId: deletedId }) => {
-            setComments((prev) => {
-                const removeComment = (comments) => {
-                    return comments
-                        .filter((c) => c._id !== deletedId)
-                        .map((c) => ({
-                            ...c,
-                            childComments: removeComment(c.childComments || []),
-                        }));
-                };
-                return sortComments(removeComment(prev));
-            });
-            if (commentId === deletedId) {
-                router.replace('/chat/chat', undefined, { shallow: true });
-            }
-        });
-
-        return () => {
-            socketRef.current.disconnect();
-        };
-    }, [session?.accessToken, commentId, router]);
-
-    const fetchComments = useCallback(async () => {
-        try {
-            const res = await fetch(`${API_BASE_URL}/api/comments`, {
-                headers: {
-                    "Content-Type": "application/json",
-                    ...(session?.accessToken && { "Authorization": `Bearer ${session.accessToken}` }),
-                },
-            });
-            if (res.status === 401 && session) {
-                setError("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.");
-                signOut({ redirect: false });
-                router.push('/login?error=SessionExpired');
-                return;
-            }
-            if (!res.ok) {
-                throw new Error("Không thể tải bình luận");
-            }
-            const data = await res.json();
-            setComments(sortComments(data));
-        } catch (err) {
-            setError(err.message);
-        }
-    }, [session, router]);
 
     useEffect(() => {
         fetchComments();
-    }, [fetchComments]);
-
-    useEffect(() => {
-        const handleScroll = () => {
-            if (commentListRef.current) {
-                const { scrollTop, scrollHeight, clientHeight } = commentListRef.current;
-                setIsAtBottom(scrollHeight - scrollTop - clientHeight < 50);
-            }
-        };
-
-        const commentList = commentListRef.current;
-        commentList?.addEventListener("scroll", handleScroll);
-        return () => commentList?.removeEventListener("scroll", handleScroll);
+        // Polling every 5 seconds to fetch new comments
+        const intervalId = setInterval(fetchComments, 5000);
+        return () => clearInterval(intervalId); // Cleanup on unmount
     }, []);
-
-    useEffect(() => {
-        if (comments.length > 0 && commentListRef.current && isAtBottom) {
-            commentListRef.current.scrollTop = commentListRef.current.scrollHeight;
-        }
-    }, [comments, isAtBottom]);
-
-    useEffect(() => {
-        if (!commentId || typeof commentId !== 'string' || comments.length === 0) return;
-
-        let retryCount = 0;
-        const maxRetries = 5;
-
-        const scrollToComment = (id) => {
-            const ref = commentRefs.current[id];
-            if (ref) {
-                ref.scrollIntoView({ behavior: "smooth", block: "center" });
-                ref.classList.add(styles.highlighted);
-                setTimeout(() => {
-                    ref.classList.remove(styles.highlighted);
-                    router.replace('/chat/chat', undefined, { shallow: true });
-                }, 3000);
-            } else if (retryCount < maxRetries) {
-                retryCount++;
-                setTimeout(() => scrollToComment(id), 1000);
-            } else {
-                setError('Bình luận không tồn tại hoặc đã bị xóa.');
-            }
-        };
-
-        const findComment = (comments, id) => {
-            for (const c of comments) {
-                if (c._id === id) {
-                    return { comment: c, parentIds: [] };
-                }
-                if (c.childComments) {
-                    const found = findComment(c.childComments, id);
-                    if (found) {
-                        return { comment: found.comment, parentIds: [c._id, ...found.parentIds] };
-                    }
-                }
-            }
-            return null;
-        };
-
-        const targetComment = findComment(comments, commentId);
-        if (targetComment) {
-            setExpandedComments(prev => ({
-                ...prev,
-                ...targetComment.parentIds.reduce((acc, id) => ({ ...acc, [id]: true }), {}),
-            }));
-            setTimeout(() => scrollToComment(commentId), 1000);
-        } else {
-            setError('Bình luận không tồn tại hoặc đã bị xóa.');
-            fetchComments();
-        }
-    }, [commentId, comments, router, fetchComments]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -262,53 +66,120 @@ export default function Chat() {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [replyTo]);
 
+    // Track scroll position to check if user is near the bottom
     useEffect(() => {
-        if (replyTo && replyInputRefs.current[replyTo]) {
-            replyInputRefs.current[replyTo].focus();
-        }
-    }, [replyTo]);
+        const handleScroll = () => {
+            if (commentListRef.current) {
+                const { scrollTop, scrollHeight, clientHeight } = commentListRef.current;
+                // Check if user is near the bottom (within 50px)
+                setIsAtBottom(scrollHeight - scrollTop - clientHeight < 50);
+            }
+        };
 
-    const sortComments = useCallback((comments) => {
+        const commentList = commentListRef.current;
+        commentList?.addEventListener("scroll", handleScroll);
+        return () => commentList?.removeEventListener("scroll", handleScroll);
+    }, []);
+
+    useEffect(() => {
+        if (commentId && comments.length > 0) {
+            const scrollToComment = (id) => {
+                if (commentRefs.current[id]) {
+                    commentRefs.current[id].scrollIntoView({ behavior: "smooth", block: "center" });
+                    commentRefs.current[id].classList.add(styles.highlighted);
+                    setTimeout(() => {
+                        commentRefs.current[id]?.classList.remove(styles.highlighted);
+                        router.replace('/chat/chat', undefined, { shallow: true });
+                    }, 3000);
+                }
+            };
+
+            const findComment = (comments, id) => {
+                for (const c of comments) {
+                    if (c._id === id) return c;
+                    if (c.childComments) {
+                        const found = findComment(c.childComments, id);
+                        if (found) {
+                            setExpandedComments(prev => ({ ...prev, [c._id]: true }));
+                            return found;
+                        }
+                    }
+                }
+                return null;
+            };
+
+            const targetComment = findComment(comments, commentId);
+            if (targetComment) {
+                scrollToComment(commentId);
+            } else {
+                console.error('Comment not found:', commentId);
+            }
+        } else if (comments.length > 0 && commentListRef.current && isAtBottom) {
+            // Scroll to bottom if user is near the bottom
+            commentListRef.current.scrollTop = commentListRef.current.scrollHeight;
+        }
+    }, [commentId, comments, router, isAtBottom]);
+
+    const sortComments = (comments) => {
         return comments
-            .map((comment) => ({
+            .map(comment => ({
                 ...comment,
                 childComments: comment.childComments ? sortComments(comment.childComments) : [],
             }))
             .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-    }, []);
+    };
 
-    const debouncedFetchTagSuggestions = useCallback(
-        debounce((query) => {
-            if (!session?.accessToken) return;
-            fetch(`${API_BASE_URL}/api/users/search?query=${encodeURIComponent(query)}`, {
+    const fetchComments = async () => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/comments`, {
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(session?.accessToken && { "Authorization": `Bearer ${session.accessToken}` }),
+                },
+            });
+            if (res.status === 401 && session) {
+                setError("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.");
+                signOut({ redirect: false });
+                router.push('/login?error=SessionExpired');
+                return;
+            }
+            if (!res.ok) {
+                throw new Error("Không thể tải bình luận");
+            }
+            const data = await res.json();
+            setComments(sortComments(data));
+        } catch (err) {
+            console.error("Fetch comments error:", err.message);
+            setError(err.message);
+        }
+    };
+
+    const fetchTagSuggestions = async (query) => {
+        if (!session?.accessToken) return;
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/users/search?query=${encodeURIComponent(query)}`, {
                 headers: {
                     Authorization: `Bearer ${session.accessToken}`,
                     "Content-Type": "application/json",
                 },
-            })
-                .then((res) => {
-                    if (res.status === 401) {
-                        signOut({ redirect: false });
-                        router.push('/login?error=SessionExpired');
-                        return null;
-                    }
-                    if (!res.ok) {
-                        throw new Error("Không thể tải gợi ý");
-                    }
-                    return res.json();
-                })
-                .then((data) => {
-                    if (data) {
-                        setTagSuggestions(data);
-                        setShowSuggestions(data.length > 0);
-                    }
-                })
-                .catch((error) => { });
-        }, 300),
-        [session, router]
-    );
+            });
+            if (res.status === 401) {
+                signOut({ redirect: false });
+                router.push('/login?error=SessionExpired');
+                return;
+            }
+            if (!res.ok) {
+                throw new Error("Không thể tải gợi ý");
+            }
+            const data = await res.json();
+            setTagSuggestions(data);
+            setShowSuggestions(data.length > 0);
+        } catch (error) {
+            console.error("Error fetching tag suggestions:", error);
+        }
+    };
 
-    const handleInputChange = useCallback((e, isReply = false) => {
+    const handleInputChange = (e, isReply = false) => {
         if (status !== "authenticated") {
             setShowLoginModal(true);
             return;
@@ -326,7 +197,7 @@ export default function Chat() {
         if (lastAtIndex !== -1) {
             const query = textBeforeCursor.slice(lastAtIndex + 1);
             if (query && !query.includes(' ')) {
-                debouncedFetchTagSuggestions(query);
+                fetchTagSuggestions(query);
                 const inputRect = e.target.getBoundingClientRect();
                 setSuggestionPosition({
                     top: inputRect.bottom + window.scrollY,
@@ -338,34 +209,37 @@ export default function Chat() {
         } else {
             setShowSuggestions(false);
         }
-    }, [debouncedFetchTagSuggestions, status]);
+    };
 
-    const handleNewLine = useCallback(() => {
+    const handleNewLine = () => {
         if (status !== "authenticated") {
             setShowLoginModal(true);
             return;
         }
-        setComment((prev) => prev + '\n');
+        setComment(prev => prev + '\n');
         commentInputRef.current?.focus();
-    }, [status]);
+    };
 
-    const handleSelectSuggestion = useCallback((user, isReply = false) => {
+    const handleSelectSuggestion = (user, isReply = false) => {
         const tagText = `@${user.fullname} `;
         if (isReply) {
             const lastAtIndex = replyContent.lastIndexOf('@');
-            setReplyContent((prev) => prev.slice(0, lastAtIndex) + tagText);
-            setTaggedUsers((prev) => [...new Set([...prev, user._id])]);
-            replyInputRefs.current[replyTo]?.focus();
+            setReplyContent(prev => prev.slice(0, lastAtIndex) + tagText + prev.slice(replyContent.length));
+            setTaggedUsers(prev => [...new Set([...prev, user._id])]);
         } else {
             const lastAtIndex = comment.lastIndexOf('@');
-            setComment((prev) => prev.slice(0, lastAtIndex) + tagText);
-            setTaggedUsers((prev) => [...new Set([...prev, user._id])]);
-            commentInputRef.current?.focus();
+            setComment(prev => prev.slice(0, lastAtIndex) + tagText + prev.slice(comment.length));
+            setTaggedUsers(prev => [...new Set([...prev, user._id])]);
         }
         setShowSuggestions(false);
-    }, [comment, replyContent, replyTo]);
+        if (isReply) {
+            replyInputRefs.current[replyTo]?.focus();
+        } else {
+            commentInputRef.current?.focus();
+        }
+    };
 
-    const handleSubmit = useCallback(async (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (status !== "authenticated") {
             setShowLoginModal(true);
@@ -382,7 +256,7 @@ export default function Chat() {
             const res = await fetch(`${API_BASE_URL}/api/comments`, {
                 method: "POST",
                 headers: {
-                    Authorization: `Bearer ${session?.accessToken}`,
+                    "Authorization": `Bearer ${session?.accessToken}`,
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({ content: comment, taggedUsers }),
@@ -395,21 +269,23 @@ export default function Chat() {
                 return;
             }
             if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.error || "Không thể gửi bình luận");
+                const error = await res.json();
+                throw new Error(error.error || "Không thể gửi bình luận");
             }
 
             setComment("");
             setTaggedUsers([]);
             setShowEmojiPicker({});
+            setIsAtBottom(true); // Ensure scroll to bottom after posting
+            fetchComments();
         } catch (err) {
             setError(err.message);
         } finally {
             setIsLoading(false);
         }
-    }, [comment, session, router, taggedUsers]);
+    };
 
-    const handleReplySubmit = useCallback(async (e, parentId) => {
+    const handleReplySubmit = async (e, parentId) => {
         e.preventDefault();
         if (status !== "authenticated") {
             setShowLoginModal(true);
@@ -426,7 +302,7 @@ export default function Chat() {
             const res = await fetch(`${API_BASE_URL}/api/comments`, {
                 method: "POST",
                 headers: {
-                    Authorization: `Bearer ${session.accessToken}`,
+                    "Authorization": `Bearer ${session?.accessToken}`,
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({ content: replyContent, parentComment: parentId, taggedUsers }),
@@ -439,23 +315,25 @@ export default function Chat() {
                 return;
             }
             if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.error || "Không thể gửi bình luận trả lời");
+                const error = await res.json();
+                throw new Error(error.error || "Không thể gửi bình luận trả lời");
             }
 
             setReplyContent("");
             setReplyTo(null);
             setTaggedUsers([]);
             setShowEmojiPicker({});
-            setExpandedComments((prev) => ({ ...prev, [parentId]: true }));
+            setExpandedComments(prev => ({ ...prev, [parentId]: true }));
+            setIsAtBottom(true); // Ensure scroll to bottom after replying
+            fetchComments();
         } catch (err) {
             setError(err.message);
         } finally {
             setIsLoading(false);
         }
-    }, [replyContent, replyTo, session, router, taggedUsers]);
+    };
 
-    const handleLike = useCallback(async (commentId) => {
+    const handleLike = async (commentId) => {
         if (status !== "authenticated") {
             setShowLoginModal(true);
             return;
@@ -464,7 +342,7 @@ export default function Chat() {
             const res = await fetch(`${API_BASE_URL}/api/comments/${commentId}/like`, {
                 method: "POST",
                 headers: {
-                    Authorization: `Bearer ${session.accessToken}`,
+                    "Authorization": `Bearer ${session?.accessToken}`,
                     "Content-Type": "application/json",
                 },
             });
@@ -476,15 +354,17 @@ export default function Chat() {
                 return;
             }
             if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.error || "Không thể thích bình luận");
+                const error = await res.json();
+                throw new Error(error.error || "Không thể thích bình luận");
             }
+
+            fetchComments();
         } catch (err) {
             setError(err.message);
         }
-    }, [session, router, status]);
+    };
 
-    const handleDelete = useCallback(async (commentId) => {
+    const handleDelete = async (commentId) => {
         if (status !== "authenticated") {
             setShowLoginModal(true);
             return;
@@ -498,7 +378,7 @@ export default function Chat() {
             const res = await fetch(`${API_BASE_URL}/api/comments/${commentId}`, {
                 method: "DELETE",
                 headers: {
-                    Authorization: `Bearer ${session.accessToken}`,
+                    "Authorization": `Bearer ${session?.accessToken}`,
                     "Content-Type": "application/json",
                 },
             });
@@ -514,17 +394,19 @@ export default function Chat() {
                 return;
             }
             if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.error || "Không thể xóa bình luận");
+                const error = await res.json();
+                throw new Error(error.error || "Không thể xóa bình luận");
             }
+
+            fetchComments();
         } catch (err) {
             setError(err.message);
         } finally {
             setIsLoading(false);
         }
-    }, [session, router, status]);
+    };
 
-    const handleTagUser = useCallback((user) => {
+    const handleTagUser = (user) => {
         if (status !== "authenticated") {
             setShowLoginModal(true);
             return;
@@ -532,20 +414,20 @@ export default function Chat() {
         const tagText = `@${user.fullname} `;
         if (replyTo) {
             if (!replyContent.includes(tagText)) {
-                setReplyContent((prev) => prev + tagText);
-                setTaggedUsers((prev) => [...new Set([...prev, user._id])]);
+                setReplyContent(prev => prev + tagText);
+                setTaggedUsers(prev => [...new Set([...prev, user._id])]);
             }
             replyInputRefs.current[replyTo]?.focus();
         } else {
             if (!comment.includes(tagText)) {
-                setComment((prev) => prev + tagText);
-                setTaggedUsers((prev) => [...new Set([...prev, user._id])]);
+                setComment(prev => prev + tagText);
+                setTaggedUsers(prev => [...new Set([...prev, user._id])]);
             }
             commentInputRef.current?.focus();
         }
-    }, [comment, replyContent, replyTo, status]);
+    };
 
-    const handleKeyDown = useCallback((e, isReply = false) => {
+    const handleKeyDown = (e, isReply = false) => {
         if (status !== "authenticated") {
             setShowLoginModal(true);
             return;
@@ -558,49 +440,50 @@ export default function Chat() {
                 handleSubmit(e);
             }
         }
-    }, [handleSubmit, handleReplySubmit, replyTo, status]);
+    };
 
-    const handleEmojiClick = useCallback((emojiObject, commentId = null) => {
+    const handleEmojiClick = (emojiObject, commentId = null) => {
         if (status !== "authenticated") {
             setShowLoginModal(true);
             return;
         }
         if (commentId) {
-            setReplyContent((prev) => prev + emojiObject.emoji);
+            setReplyContent(prev => prev + emojiObject.emoji);
             replyInputRefs.current[commentId]?.focus();
         } else {
-            setComment((prev) => prev + emojiObject.emoji);
+            setComment(prev => prev + emojiObject.emoji);
             commentInputRef.current?.focus();
         }
-    }, [status]);
+    };
 
-    const toggleEmojiPicker = useCallback((id) => {
+    const toggleEmojiPicker = (id) => {
         if (status !== "authenticated") {
             setShowLoginModal(true);
             return;
         }
-        setShowEmojiPicker((prev) => ({ ...prev, [id]: !prev[id] }));
-    }, [status]);
+        setShowEmojiPicker(prev => ({ ...prev, [id]: !prev[id] }));
+    };
 
-    const countAllChildComments = useCallback((comment) => {
-        if (!comment.childComments) return 0;
-        let count = comment.childComments.length;
-        for (const child of comment.childComments) {
-            count += countAllChildComments(child);
-        }
-        return count;
-    }, []);
-
-    const toggleExpandComments = useCallback((commentId) => {
+    const toggleExpandComments = (commentId) => {
         setExpandedComments(prev => ({
             ...prev,
             [commentId]: !prev[commentId],
         }));
-    }, []);
+    };
 
-    const renderCommentContent = useCallback((content, taggedUsers) => {
+    const countAllChildComments = (comment) => {
+        let count = comment.childComments?.length || 0;
+        if (comment.childComments) {
+            for (const child of comment.childComments) {
+                count += countAllChildComments(child);
+            }
+        }
+        return count;
+    };
+
+    const renderCommentContent = (content, taggedUsers) => {
         let renderedContent = content;
-        taggedUsers?.forEach((user) => {
+        taggedUsers.forEach(user => {
             const tagRegex = new RegExp(`@${user.fullname}\\b`, 'g');
             renderedContent = renderedContent.replace(
                 tagRegex,
@@ -608,9 +491,9 @@ export default function Chat() {
             );
         });
         return <span dangerouslySetInnerHTML={{ __html: renderedContent }} />;
-    }, []);
+    };
 
-    const getAvatarClass = useCallback((fullname) => {
+    const getAvatarClass = (fullname) => {
         const firstChar = fullname[0]?.toLowerCase() || 'a';
         const avatarColors = {
             a: styles.avatarA, b: styles.avatarB, c: styles.avatarC, d: styles.avatarD,
@@ -622,187 +505,156 @@ export default function Chat() {
             y: styles.avatarY, z: styles.avatarZ,
         };
         return avatarColors[firstChar] || styles.avatarA;
-    }, []);
+    };
 
-    const renderComment = useCallback(
-        (c, depth = 0) => {
-            if (!c || !c._id) return null;
-            return (
-                <div
-                    key={c._id}
-                    ref={(el) => (commentRefs.current[c._id] = el)}
-                    className={`${styles.commentItem} ${styles[`depth-${depth}`]}`}
+    const renderComment = (c, depth = 0) => (
+        <div
+            key={c._id}
+            ref={el => (commentRefs.current[c._id] = el)}
+            className={`${styles.commentItem} ${styles[`depth-${depth}`]}`}
+        >
+            <div className={styles.commentHeader}>
+                <div className={`${styles.avatar} ${getAvatarClass(c.createdBy.fullname)}`}>
+                    {c.createdBy.fullname[0].toUpperCase()}
+                </div>
+                <div className={styles.commentInfo}>
+                    <span
+                        className={`${styles.commentUsername} ${c.createdBy.role === 'ADMIN' ? styles.adminUsername : ''}`}
+                        onClick={() => handleTagUser(c.createdBy)}
+                    >
+                        {c.createdBy.fullname} {c.createdBy.role === "ADMIN" && "(Admin)"}
+                    </span>
+                    <span className={styles.date}>
+                        {formatDistanceToNow(new Date(c.createdAt), { addSuffix: true, locale: vi })}
+                    </span>
+                </div>
+            </div>
+            <p className={styles.commentContent}>
+                {renderCommentContent(c.content, c.taggedUsers)}
+            </p>
+            <div className={styles.commentActions}>
+                <button
+                    className={`${styles.actionLike} ${c.likedBy.includes(session?.user?.id) ? styles.liked : ''}`}
+                    onClick={() => handleLike(c._id)}
                 >
-                    <div className={styles.commentHeader}>
-                        <div className={`${styles.avatar} ${getAvatarClass(c.createdBy.fullname)}`}>
-                            {c.createdBy.fullname[0].toUpperCase()}
-                        </div>
-                        <div className={styles.commentInfo}>
-                            <span
-                                className={`${styles.commentUsername} ${c.createdBy.role === 'ADMIN' ? styles.adminUsername : ''}`}
-                                onClick={() => handleTagUser(c.createdBy)}
-                            >
-                                {c.createdBy.fullname} {c.createdBy.role === "ADMIN" && "(Admin)"}
-                            </span>
-                            <span className={styles.date}>
-                                {formatDistanceToNow(new Date(c.createdAt), { addSuffix: true, locale: vi })}
-                            </span>
-                        </div>
-                    </div>
-                    <p className={styles.commentContent}>
-                        {renderCommentContent(c.content, c.taggedUsers)}
-                    </p>
-                    <div className={styles.commentActions}>
+                    Thích ({c.likedBy.length})
+                </button>
+                {depth < 10 && (
+                    <button
+                        className={styles.actionReply}
+                        onClick={() => {
+                            if (status !== "authenticated") {
+                                setShowLoginModal(true);
+                                return;
+                            }
+                            setReplyTo(c._id);
+                        }}
+                    >
+                        Trả lời
+                    </button>
+                )}
+                {session?.user?.role === "ADMIN" && (
+                    <button
+                        className={styles.actionDelete}
+                        onClick={() => handleDelete(c._id)}
+                        disabled={isLoading}
+                    >
+                        Xóa
+                    </button>
+                )}
+            </div>
+            {replyTo === c._id && status === "authenticated" && (
+                <form
+                    ref={replyFormRef}
+                    className={styles.replyForm}
+                    onSubmit={(e) => handleReplySubmit(e, c._id)}
+                >
+                    <div className={styles.inputWrapper}>
+                        <textarea
+                            className={styles.inputReply}
+                            value={replyContent}
+                            onChange={(e) => handleInputChange(e, true)}
+                            onKeyDown={(e) => handleKeyDown(e, true)}
+                            placeholder="Nhập trả lời của bạn..."
+                            required
+                            autoComplete="off"
+                            ref={el => (replyInputRefs.current[c._id] = el)}
+                        />
                         <button
-                            className={`${styles.actionLike} ${c.likedBy.includes(session?.user?.id) ? styles.liked : ''}`}
-                            onClick={() => handleLike(c._id)}
+                            type="button"
+                            className={styles.emojiButton}
+                            onClick={() => toggleEmojiPicker(c._id)}
                         >
-                            Thích ({c.likedBy.length})
+                            😊
                         </button>
-                        {depth < 10 && (
-                            <button
-                                className={styles.actionReply}
-                                onClick={() => {
-                                    if (status !== "authenticated") {
-                                        setShowLoginModal(true);
-                                        return;
-                                    }
-                                    setReplyTo(c._id);
-                                }}
-                            >
-                                Trả lời
-                            </button>
+                        {showEmojiPicker[c._id] && (
+                            <div className={styles.emojiPicker} ref={el => (emojiPickerRefs.current[c._id] = el)}>
+                                <EmojiPicker onEmojiClick={(emoji) => handleEmojiClick(emoji, c._id)} />
+                            </div>
                         )}
-                        {session?.user?.role === "ADMIN" && (
-                            <button
-                                className={styles.actionDelete}
-                                onClick={() => handleDelete(c._id)}
-                                disabled={isLoading}
+                        {showSuggestions && (
+                            <div
+                                className={styles.suggestionList}
+                                style={{ top: suggestionPosition.top, left: suggestionPosition.left }}
+                                ref={suggestionRef}
                             >
-                                Xóa
-                            </button>
+                                {tagSuggestions.map(user => (
+                                    <div
+                                        key={user._id}
+                                        className={styles.suggestionItem}
+                                        onClick={() => handleSelectSuggestion(user, true)}
+                                    >
+                                        {user.fullname} ({user.username})
+                                    </div>
+                                ))}
+                            </div>
                         )}
                     </div>
-                    {replyTo === c._id && status === "authenticated" && (
-                        <form
-                            ref={replyFormRef}
-                            className={styles.replyForm}
-                            onSubmit={(e) => handleReplySubmit(e, c._id)}
+                    <div className={styles.buttonActions}>
+                        <button
+                            className={styles.actionSubmit}
+                            type="submit"
+                            disabled={isLoading}
                         >
-                            <div className={styles.inputWrapper}>
-                                <textarea
-                                    className={styles.inputReply}
-                                    value={replyContent}
-                                    onChange={(e) => handleInputChange(e, true)}
-                                    onKeyDown={(e) => handleKeyDown(e, true)}
-                                    placeholder="Nhập trả lời của bạn..."
-                                    required
-                                    autoComplete="off"
-                                    ref={(el) => (replyInputRefs.current[c._id] = el)}
-                                />
-                                <button
-                                    type="button"
-                                    className={styles.emojiButton}
-                                    onClick={() => toggleEmojiPicker(c._id)}
-                                >
-                                    😊
-                                </button>
-                                {showEmojiPicker[c._id] && (
-                                    <div className={styles.emojiPicker} ref={(el) => (emojiPickerRefs.current[c._id] = el)}>
-                                        <EmojiPicker onEmojiClick={(emoji) => handleEmojiClick(emoji, c._id)} />
-                                    </div>
-                                )}
-                                {showSuggestions && (
-                                    <div
-                                        className={styles.suggestionList}
-                                        style={{ top: suggestionPosition.top, left: suggestionPosition.left }}
-                                        ref={suggestionRef}
-                                    >
-                                        {tagSuggestions.map((user) => (
-                                            <div
-                                                key={user._id}
-                                                className={styles.suggestionItem}
-                                                onClick={() => handleSelectSuggestion(user, true)}
-                                            >
-                                                {user.fullname} ({user.username})
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                            <div className={styles.buttonActions}>
-                                <button
-                                    className={styles.actionSubmit}
-                                    type="submit"
-                                    disabled={isLoading}
-                                >
-                                    Gửi
-                                </button>
-                                <button
-                                    className={styles.actionCancel}
-                                    type="button"
-                                    onClick={() => {
-                                        setReplyTo(null);
-                                        setReplyContent("");
-                                        setTaggedUsers([]);
-                                        setShowEmojiPicker({});
-                                        setShowSuggestions(false);
-                                    }}
-                                >
-                                    Hủy
-                                </button>
-                            </div>
-                        </form>
+                            Gửi
+                        </button>
+                        <button
+                            className={styles.actionCancel}
+                            type="button"
+                            onClick={() => {
+                                setReplyTo(null);
+                                setReplyContent("");
+                                setTaggedUsers([]);
+                                setShowEmojiPicker({});
+                                setShowSuggestions(false);
+                            }}
+                        >
+                            Hủy
+                        </button>
+                    </div>
+                </form>
+            )}
+            {c.childComments && c.childComments.length > 0 && (
+                <div className={styles.childComments}>
+                    {countAllChildComments(c) >= 2 && (
+                        <button
+                            className={styles.actionToggleComments}
+                            onClick={() => toggleExpandComments(c._id)}
+                        >
+                            {expandedComments[c._id]
+                                ? "Thu gọn"
+                                : `Xem thêm ${countAllChildComments(c)} phản hồi`}
+                        </button>
                     )}
-                    {c.childComments && c.childComments.length > 0 && (
-                        <div className={styles.childComments}>
-                            <button
-                                className={styles.actionToggleComments}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleExpandComments(c._id);
-                                }}
-                            >
-                                {expandedComments[c._id]
-                                    ? "Thu gọn"
-                                    : `Xem ${countAllChildComments(c)} phản hồi`}
-                            </button>
-                            {expandedComments[c._id] && (
-                                <div className={styles.childCommentsList}>
-                                    {c.childComments.map((child) => renderComment(child, depth + 1))}
-                                </div>
-                            )}
+                    {(expandedComments[c._id] || countAllChildComments(c) < 2) && (
+                        <div className={styles.childCommentsList}>
+                            {c.childComments.map((child) => renderComment(child, depth + 1))}
                         </div>
                     )}
                 </div>
-            );
-        },
-        [
-            session,
-            status,
-            isLoading,
-            replyTo,
-            replyContent,
-            handleLike,
-            handleDelete,
-            handleReplySubmit,
-            handleTagUser,
-            handleInputChange,
-            handleKeyDown,
-            handleEmojiClick,
-            toggleEmojiPicker,
-            toggleExpandComments,
-            countAllChildComments,
-            renderCommentContent,
-            getAvatarClass,
-            tagSuggestions,
-            showSuggestions,
-            suggestionPosition,
-            expandedComments,
-        ]
+            )}
+        </div>
     );
-
-    const memoizedComments = useMemo(() => comments.map((c) => renderComment(c, 0)), [comments, renderComment]);
 
     if (status === "loading") {
         return <p className={styles.loading}>Đang tải...</p>;
@@ -811,12 +663,11 @@ export default function Chat() {
     return (
         <div className={styles.chatContainer}>
             <h1 className={styles.title}>Cuộc trò chuyện</h1>
-            {!socketConnected && <p className={styles.warning}>Mất kết nối thời gian thực. Dữ liệu có thể không cập nhật.</p>}
             <div className={styles.commentList} ref={commentListRef}>
                 {comments.length === 0 ? (
                     <p className={styles.noComments}>Chưa có bình luận nào.</p>
                 ) : (
-                    memoizedComments
+                    comments.map((c) => renderComment(c, 0))
                 )}
             </div>
             <form className={styles.formContainer} onSubmit={handleSubmit}>
@@ -826,10 +677,16 @@ export default function Chat() {
                         value={comment}
                         onChange={handleInputChange}
                         onKeyDown={handleKeyDown}
+                        onClick={() => {
+                            if (status !== "authenticated") {
+                                setShowLoginModal(true);
+                            }
+                        }}
                         placeholder="Nhập bình luận của bạn..."
                         required
                         autoComplete="off"
                         ref={commentInputRef}
+                        readOnly={status !== "authenticated"}
                     />
                     {status === "authenticated" && (
                         <>
@@ -848,7 +705,7 @@ export default function Chat() {
                                 ⏎
                             </button>
                             {showEmojiPicker.main && (
-                                <div className={styles.emojiPicker} ref={(el) => (emojiPickerRefs.current.main = el)}>
+                                <div className={styles.emojiPicker} ref={el => (emojiPickerRefs.current.main = el)}>
                                     <EmojiPicker onEmojiClick={(emoji) => handleEmojiClick(emoji)} />
                                 </div>
                             )}
@@ -858,7 +715,7 @@ export default function Chat() {
                                     style={{ top: suggestionPosition.top, left: suggestionPosition.left }}
                                     ref={suggestionRef}
                                 >
-                                    {tagSuggestions.map((user) => (
+                                    {tagSuggestions.map(user => (
                                         <div
                                             key={user._id}
                                             className={styles.suggestionItem}

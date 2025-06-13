@@ -4,7 +4,6 @@ import { useEffect, useState, useRef } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import vi from 'date-fns/locale/vi';
 import styles from '../styles/userAvatar.module.css';
-import io from 'socket.io-client';
 
 const UserAvatar = () => {
     const { data: session, status } = useSession();
@@ -16,32 +15,9 @@ const UserAvatar = () => {
     const [notifications, setNotifications] = useState([]);
     const submenuRef = useRef(null);
     const notificationRef = useRef(null);
-    const socketRef = useRef(null);
     const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
     useEffect(() => {
-        socketRef.current = io(API_BASE_URL, {
-            withCredentials: true,
-            transports: ['websocket', 'polling'],
-            query: { userId: session?.user?.id },
-            extraHeaders: {
-                Authorization: session?.accessToken ? `Bearer ${session.accessToken}` : '',
-            },
-        });
-
-        socketRef.current.on('connect', () => {
-            console.log('Socket.IO connected in UserAvatar');
-        });
-
-        socketRef.current.on('connect_error', (err) => {
-            console.error('Socket.IO connection error in UserAvatar:', err.message);
-        });
-
-        socketRef.current.on('newNotification', (notification) => {
-            console.log('New notification received:', notification);
-            setNotifications((prev) => [notification, ...prev]);
-        });
-
         const fetchUserInfo = async () => {
             if (!session?.accessToken) {
                 setFetchError('Không có access token');
@@ -103,11 +79,10 @@ const UserAvatar = () => {
         if (status === "authenticated") {
             fetchUserInfo();
             fetchNotifications();
+            // Poll notifications every 10 seconds
+            const interval = setInterval(fetchNotifications, 10000);
+            return () => clearInterval(interval);
         }
-
-        return () => {
-            socketRef.current.disconnect();
-        };
     }, [status, session, router]);
 
     useEffect(() => {
@@ -161,20 +136,34 @@ const UserAvatar = () => {
         try {
             const res = await fetch(`${API_BASE_URL}/api/notifications/${notification._id}/read`, {
                 method: "POST",
-                headers: { Authorization: `Bearer ${session.accessToken}`, "Content-Type": "application/json" },
+                headers: {
+                    Authorization: `Bearer ${session.accessToken}`,
+                    "Content-Type": "application/json",
+                },
             });
+
             if (res.status === 401) {
                 signOut({ redirect: false });
                 router.push('/login?error=SessionExpired');
                 return;
             }
-            if (!res.ok) throw new Error("Không thể đánh dấu đã đọc");
-            setNotifications(notifications.map(n => n._id === notification._id ? { ...n, isRead: true } : n));
+            if (!res.ok) {
+                throw new Error("Không thể đánh dấu đã đọc");
+            }
+
+            setNotifications(notifications.map(n =>
+                n._id === notification._id ? { ...n, isRead: true } : n
+            ));
+
             const commentId = notification.commentId?._id || notification.commentId;
-            if (!commentId) throw new Error('Invalid commentId');
+            if (!commentId) {
+                console.error('Invalid commentId in notification:', notification);
+                return;
+            }
+
             router.push(`/chat/chat?commentId=${commentId}`);
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Error marking notification as read:', error);
         }
         setIsNotificationOpen(false);
     };
