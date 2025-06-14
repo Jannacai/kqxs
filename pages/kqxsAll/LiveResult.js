@@ -484,7 +484,7 @@ function isWithinLiveWindow() {
     const now = new Date();
     const hours = now.getHours();
     const minutes = now.getMinutes();
-    return (hours === 18 && minutes >= 14 && minutes <= 32);
+    return (hours === 18 && minutes >= 12 && minutes <= 32);
 }
 
 export default React.memo(LiveResult);
