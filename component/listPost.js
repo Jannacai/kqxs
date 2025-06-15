@@ -22,18 +22,18 @@ const getCategoryColor = (category) => {
 // Hàm làm sạch URL hình ảnh, đồng bộ với DetailPost
 const cleanImageUrl = (url) => {
     if (!url || typeof url !== 'string') {
-        console.warn(`Invalid image URL: ${url}, using fallback image`);
+        // console.warn(`Invalid image URL: ${url}, using fallback image`);
         return imgItem.src;
     }
     try {
         const urlObj = new URL(url);
         if (!urlObj.protocol.startsWith('https')) {
-            console.warn(`Non-HTTPS image URL: ${url}, using fallback image`);
+            // console.warn(`Non-HTTPS image URL: ${url}, using fallback image`);
             return imgItem.src;
         }
         return urlObj.toString();
     } catch {
-        console.warn(`Failed to parse image URL: ${url}, using fallback image`);
+        // console.warn(`Failed to parse image URL: ${url}, using fallback image`);
         return imgItem.src;
     }
 };
@@ -44,12 +44,12 @@ const ListPost = (props) => {
 
     // Log để debug dữ liệu đầu vào
     useEffect(() => {
-        console.log('ListPost props.appa:', JSON.stringify(allPosts, null, 2));
+        // console.log('ListPost props.appa:', JSON.stringify(allPosts, null, 2));
         allPosts?.forEach((post, index) => {
-            console.log(`Post ${index} (ID: ${post?._id}) mainContents:`, JSON.stringify(post?.mainContents, null, 2));
+            // console.log(`Post ${index} (ID: ${post?._id}) mainContents:`, JSON.stringify(post?.mainContents, null, 2));
             post?.mainContents?.forEach((content, contentIndex) => {
                 if (content?.img) {
-                    console.log(`Post ${post._id} content ${contentIndex} image URL: ${content.img}`);
+                    // console.log(`Post ${post._id} content ${contentIndex} image URL: ${content.img}`);
                 }
             });
         });
@@ -60,7 +60,7 @@ const ListPost = (props) => {
 
     const allRecentSortedPosts = useMemo(() => {
         if (!Array.isArray(allPosts) || allPosts.length === 0) {
-            console.warn('No posts available in props.appa');
+            // console.warn('No posts available in props.appa');
             return [];
         }
         return allPosts;
@@ -128,11 +128,11 @@ const ListPost = (props) => {
         }
         const validImage = post.mainContents.find(content => content?.img?.startsWith('https'));
         if (!validImage) {
-            console.warn(`Post ${post?._id || 'unknown'} has no valid HTTPS image in mainContents, using fallback image`);
+            // console.warn(`Post ${post?._id || 'unknown'} has no valid HTTPS image in mainContents, using fallback image`);
             return imgItem.src;
         }
         const cleanedUrl = cleanImageUrl(validImage.img);
-        console.log(`Post ${post._id} selected image URL: ${cleanedUrl}`);
+        // console.log(`Post ${post._id} selected image URL: ${cleanedUrl}`);
         return cleanedUrl;
     };
 
@@ -217,7 +217,7 @@ const ListPost = (props) => {
                                         width={400}
                                         height={250}
                                         onError={(e) => {
-                                            console.warn(`Failed to load image for post ${post._id}: ${postImage}`);
+                                            // console.warn(`Failed to load image for post ${post._id}: ${postImage}`);
                                             e.target.src = imgItem.src;
                                         }}
                                         placeholder="blur"

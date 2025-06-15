@@ -98,7 +98,7 @@ const EnhancedNewsFeed = () => {
         (event) => {
             const newPost = event.detail;
             if (!newPost || !newPost._id || !newPost.title || !newPost.slug || !Array.isArray(newPost.category)) {
-                console.warn("Invalid new post:", newPost);
+                // console.warn("Invalid new post:", newPost);
                 return;
             }
 

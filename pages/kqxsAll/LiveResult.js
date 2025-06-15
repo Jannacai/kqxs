@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import styles from '../../styles/LivekqxsMB.module.css';
 import { getFilteredNumber } from "../../library/utils/filterUtils";
+import { apiMB } from "../api/kqxs/kqxsMB";
 import React from 'react';
 import { useLottery } from '../../contexts/LotteryContext';
 
@@ -9,6 +10,9 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     const [isTodayLoading, setIsTodayLoading] = useState(true);
     const [error, setError] = useState(null);
     const [retryCount, setRetryCount] = useState(0);
+    const [animatingPrize, setAnimatingPrize] = useState(null); // Theo dõi prizeType đang animating
+    const [animatingNumbers, setAnimatingNumbers] = useState({}); // Lưu số animating
+
     const maxRetries = 50;
     const retryInterval = 10000;
     const fetchMaxRetries = 3;
@@ -85,6 +89,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
 
     useEffect(() => {
         let eventSource;
+        let updateInterval = null;
 
         const fetchInitialData = async (retry = 0) => {
             if (!station || !today || !/^\d{2}-\d{2}-\d{4}$/.test(today)) {
@@ -127,10 +132,24 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
 
         const connectSSE = () => {
             if (!station || !today) {
-                console.warn('Cannot connect SSE: Invalid station or today');
+                console.warn('Không thể kết nối connect SSE: Invalid station or today');
                 return;
             }
             eventSource = new EventSource(`https://backendkqxs.onrender.com/api/kqxs/xsmb/sse?station=${station}&date=${today}`);
+
+            // Định nghĩa thứ tự animating
+            const animationQueue = [
+                'firstPrize_0', // Giải 1
+                'secondPrize_0', 'secondPrize_1', // Giải 2
+                'threePrizes_0', 'threePrizes_1', 'threePrizes_2', 'threePrizes_3', 'threePrizes_4', 'threePrizes_5', // Giải 3
+                'fourPrizes_0', 'fourPrizes_1', 'fourPrizes_2', 'fourPrizes_3', // Giải 4
+                'fivePrizes_0', 'fivePrizes_1', 'fivePrizes_2', 'fivePrizes_3', 'fivePrizes_4', 'fivePrizes_5', // Giải 5
+                'sixPrizes_0', 'sixPrizes_1', 'sixPrizes_2', // Giải 6
+                'sevenPrizes_0', 'sevenPrizes_1', 'sevenPrizes_2', 'sevenPrizes_3', // Giải 7
+                'specialPrize_0' // Giải đặc biệt
+            ];
+
+            let currentIndex = 0; // Theo dõi vị trí trong animationQueue
 
             const prizeTypes = [
                 'maDB', 'specialPrize_0', 'firstPrize_0', 'secondPrize_0', 'secondPrize_1',
@@ -145,18 +164,55 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                 eventSource.addEventListener(prizeType, (event) => {
                     try {
                         const data = JSON.parse(event.data);
+                        console.log("data từ redis", data);
                         if (data && data[prizeType]) {
+                            // Bắt đầu animating cho prizeType đầu tiên khi nhận dữ liệu rỗng
+                            if (data[prizeType] === '...' && prizeType !== 'maDB' && currentIndex < animationQueue.length) {
+                                const nextPrize = animationQueue[currentIndex];
+                                if (nextPrize === prizeType && !animatingPrize) {
+                                    setAnimatingPrize(nextPrize);
+                                    updateInterval = setInterval(() => {
+                                        setAnimatingNumbers(prev => ({
+                                            ...prev,
+                                            [nextPrize]: Math.floor(Math.random() * 100000).toString().padStart(5, '0')
+                                        }));
+                                    }, 100);
+                                }
+                            }
+
                             setLiveData(prev => {
                                 const updatedData = {
                                     ...prev,
                                     [prizeType]: data[prizeType],
-                                    [`${prizeType}_status`]: data.status || "..." // Lưu trạng thái cho từng giải
+                                    tentinh: data.tentinh || prev.tentinh,
+                                    tinh: data.tinh || prev.tinh,
+                                    year: data.year || prev.year,
+                                    month: data.month || prev.month,
                                 };
                                 localStorage.setItem(`liveData:${station}:${today}`, JSON.stringify(updatedData));
                                 const isComplete = Object.values(updatedData).every(
                                     val => typeof val === 'string' && val !== '...' && val !== '***'
                                 );
                                 setIsLiveDataComplete(isComplete);
+                                // Dừng animating và chuyển sang prizeType tiếp theo khi có kết quả
+                                if (data[prizeType] !== '...' && animatingPrize === prizeType && updateInterval) {
+                                    clearInterval(updateInterval);
+                                    setAnimatingNumbers(prev => ({ ...prev, [prizeType]: null }));
+                                    setAnimatingPrize(null);
+                                    currentIndex++; // Chuyển sang phần tử tiếp theo
+                                    if (currentIndex < animationQueue.length) {
+                                        const nextPrize = animationQueue[currentIndex];
+                                        if (liveData[nextPrize] === '...' && nextPrize !== 'maDB') {
+                                            setAnimatingPrize(nextPrize);
+                                            updateInterval = setInterval(() => {
+                                                setAnimatingNumbers(prev => ({
+                                                    ...prev,
+                                                    [nextPrize]: Math.floor(Math.random() * 100000).toString().padStart(5, '0')
+                                                }));
+                                            }, 150);
+                                        }
+                                    }
+                                }
                                 return updatedData;
                             });
                             setIsTodayLoading(false);
@@ -194,6 +250,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                 console.log('Đóng kết nối SSE...');
                 eventSource.close();
             }
+            if (updateInterval) clearInterval(updateInterval);
         };
     }, [isLiveWindow, station, retryCount, maxRetries, retryInterval, today, setLiveData, setIsLiveDataComplete]);
 
@@ -249,31 +306,27 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     ].filter(num => num && num !== '...' && num !== '***');
     const specialPrize = getFilteredNumber(liveData.specialPrize_0 || '...', 'last2');
 
-    const generateRandomDigit = () => Math.floor(Math.random() * 10).toString();
+    // Hàm render giá trị với hiệu ứng animating
+    const renderPrizeValue = (prizeType, digits = 5) => {
+        const isAnimating = animatingPrize === prizeType && liveData[prizeType] === '...';
+        const value = isAnimating ? animatingNumbers[prizeType] || '0'.repeat(digits) : liveData[prizeType];
+        const className = `${styles.running_number} ${styles[`running_${digits}`]} ${isAnimating ? styles[`running_number[data-status="animating"]`] : ''}`;
 
-    const renderPrizeDigits = (prize, prizeType, index, digitCount, prizeCount) => {
-        if (prize === '...' || !prize) {
-            return <span className={styles.ellipsis}></span>;
-        }
-        if (liveData[`${prizeType}_${index}_status`] === 'animating') {
-            const digits = Array(digitCount).fill().map((_, idx) => (
-                <div
-                    key={idx}
-                    className={`${styles.output} ${styles.running_number} ${styles[`running_${digitCount}`]}`}
-                    data-value={generateRandomDigit()}
-                >
-                    {generateRandomDigit()}
-                </div>
-            ));
-            return (
-                <span className={`${styles[`span${prizeCount}`]} ${prizeType === 'specialPrize' ? styles.gdb : ''} ${prizeType.includes('threePrizes') ? styles.g3 : ''}`}>
-                    {digits}
-                </span>
-            );
-        }
         return (
-            <span className={`${styles[`span${prizeCount}`]} ${prizeType === 'specialPrize' ? styles.highlight : ''} ${prizeType === 'specialPrize' ? styles.gdb : ''} ${prizeType.includes('threePrizes') ? styles.g3 : ''}`}>
-                {getFilteredNumber(prize, currentFilter)}
+            <span className={className} data-status={isAnimating ? 'animating' : 'static'}>
+                {isAnimating ? (
+                    <span className={styles.digit_container}>
+                        {Array.from({ length: 5 }, (_, i) => (
+                            <span key={i} className={styles.digit}>
+                                {Math.floor(Math.random() * 10)}
+                            </span>
+                        ))}
+                    </span>
+                ) : liveData[prizeType] === '...' ? (
+                    <span className={styles.ellipsis}></span>
+                ) : (
+                    getFilteredNumber(liveData[prizeType], currentFilter)
+                )}
             </span>
         );
     };
@@ -299,67 +352,105 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                     <tbody>
                         <tr>
                             <td className={`${styles.code} ${styles.rowXS}`}>
-                                {renderPrizeDigits(liveData.maDB, 'maDB', 0, 5, 1)}
+                                <span className={styles.span0}>
+                                    {liveData.maDB === '...' ? <span className={styles.ellipsis}></span> : liveData.maDB}
+                                </span>
                             </td>
                         </tr>
                         <tr>
                             <td className={`${styles.tdTitle} ${styles.highlight}`}>ĐB</td>
                             <td className={styles.rowXS}>
-                                {renderPrizeDigits(liveData.specialPrize_0, 'specialPrize', 0, 5, 1)}
+                                <span className={`${styles.span1} ${styles.highlight} ${styles.gdb}`}>
+                                    {renderPrizeValue('specialPrize_0', 5)}
+                                </span>
                             </td>
                         </tr>
                         <tr>
                             <td className={styles.tdTitle}>G1</td>
                             <td className={styles.rowXS}>
-                                {renderPrizeDigits(liveData.firstPrize_0, 'firstPrize', 0, 5, 1)}
+                                <span className={styles.span1}>
+                                    {renderPrizeValue('firstPrize_0', 5)}
+                                </span>
                             </td>
                         </tr>
                         <tr>
                             <td className={styles.tdTitle}>G2</td>
                             <td className={styles.rowXS}>
-                                {[0, 1].map(i => renderPrizeDigits(liveData[`secondPrize_${i}`], 'secondPrize', i, 5, 2))}
+                                {[0, 1].map(i => (
+                                    <span key={i} className={styles.span2}>
+                                        {renderPrizeValue(`secondPrize_${i}`, 5)}
+                                    </span>
+                                ))}
                             </td>
                         </tr>
                         <tr>
                             <td className={`${styles.tdTitle} ${styles.g3}`}>G3</td>
                             <td className={styles.rowXS}>
-                                {[0, 1, 2].map(i => renderPrizeDigits(liveData[`threePrizes_${i}`], 'threePrizes', i, 5, 3))}
+                                {[0, 1, 2].map(i => (
+                                    <span key={i} className={`${styles.span3} ${styles.g3}`}>
+                                        {renderPrizeValue(`threePrizes_${i}`, 5)}
+                                    </span>
+                                ))}
                             </td>
                         </tr>
                         <tr>
                             <td className={styles.tdTitle}></td>
                             <td className={styles.rowXS}>
-                                {[3, 4, 5].map(i => renderPrizeDigits(liveData[`threePrizes_${i}`], 'threePrizes', i, 5, 3))}
+                                {[3, 4, 5].map(i => (
+                                    <span key={i} className={styles.span3}>
+                                        {renderPrizeValue(`threePrizes_${i}`, 5)}
+                                    </span>
+                                ))}
                             </td>
                         </tr>
                         <tr>
                             <td className={styles.tdTitle}>G4</td>
                             <td className={styles.rowXS}>
-                                {[0, 1, 2, 3].map(i => renderPrizeDigits(liveData[`fourPrizes_${i}`], 'fourPrizes', i, 4, 4))}
+                                {[0, 1, 2, 3].map(i => (
+                                    <span key={i} className={styles.span4}>
+                                        {renderPrizeValue(`fourPrizes_${i}`, 5)}
+                                    </span>
+                                ))}
                             </td>
                         </tr>
                         <tr>
                             <td className={`${styles.tdTitle} ${styles.g3}`}>G5</td>
                             <td className={styles.rowXS}>
-                                {[0, 1, 2].map(i => renderPrizeDigits(liveData[`fivePrizes_${i}`], 'fivePrizes', i, 4, 3))}
+                                {[0, 1, 2].map(i => (
+                                    <span key={i} className={`${styles.span3} ${styles.g3}`}>
+                                        {renderPrizeValue(`fivePrizes_${i}`, 5)}
+                                    </span>
+                                ))}
                             </td>
                         </tr>
                         <tr>
                             <td className={styles.tdTitle}></td>
                             <td className={styles.rowXS}>
-                                {[3, 4, 5].map(i => renderPrizeDigits(liveData[`fivePrizes_${i}`], 'fivePrizes', i, 4, 3))}
+                                {[3, 4, 5].map(i => (
+                                    <span key={i} className={styles.span3}>
+                                        {renderPrizeValue(`fivePrizes_${i}`, 5)}
+                                    </span>
+                                ))}
                             </td>
                         </tr>
                         <tr>
                             <td className={styles.tdTitle}>G6</td>
                             <td className={styles.rowXS}>
-                                {[0, 1, 2].map(i => renderPrizeDigits(liveData[`sixPrizes_${i}`], 'sixPrizes', i, 3, 3))}
+                                {[0, 1, 2].map(i => (
+                                    <span key={i} className={styles.span3}>
+                                        {renderPrizeValue(`sixPrizes_${i}`, 5)}
+                                    </span>
+                                ))}
                             </td>
                         </tr>
                         <tr>
                             <td className={styles.tdTitle}>G7</td>
                             <td className={styles.rowXS}>
-                                {[0, 1, 2, 3].map(i => renderPrizeDigits(liveData[`sevenPrizes_${i}`], 'sevenPrizes', i, 2, 4))}
+                                {[0, 1, 2, 3].map(i => (
+                                    <span key={i} className={`${styles.span4} ${styles.highlight}`}>
+                                        {renderPrizeValue(`sevenPrizes_${i}`, 5)}
+                                    </span>
+                                ))}
                             </td>
                         </tr>
                     </tbody>
@@ -462,6 +553,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     );
 };
 
+// Sử dụng getServerSideProps để truyền props và bật SSR
 export async function getServerSideProps(context) {
     const today = new Date().toLocaleDateString('vi-VN', {
         day: '2-digit',
@@ -472,14 +564,15 @@ export async function getServerSideProps(context) {
         props: {
             station: 'xsmb',
             today,
-            isLiveWindow: isWithinLiveWindow(),
-            filterTypes: {},
-            getHeadAndTailNumbers: null,
-            handleFilterChange: null,
+            isLiveWindow: isWithinLiveWindow(), // Hàm kiểm tra khung giờ trực tiếp
+            filterTypes: {}, // Có thể lấy từ context hoặc database nếu cần
+            getHeadAndTailNumbers: null, // Placeholder, cần triển khai nếu dùng
+            handleFilterChange: null, // Placeholder, cần triển khai nếu dùng
         },
     };
 }
 
+// Hàm kiểm tra khung giờ trực tiếp (18:14–18:36)
 function isWithinLiveWindow() {
     const now = new Date();
     const hours = now.getHours();

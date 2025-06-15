@@ -27,6 +27,7 @@ const KQXS = (props) => {
     const [currentPage, setCurrentPage] = useState(1);
     const [isLiveWindow, setIsLiveWindow] = useState(false);
     const [hasTriggeredScraper, setHasTriggeredScraper] = useState(false);
+
     const hour = 18;
     const minute1 = 12; // Bắt đầu khung giờ trực tiếp
     const minute2 = 12; // Thời điểm kích hoạt scraper
