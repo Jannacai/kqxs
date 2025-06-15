@@ -28,9 +28,9 @@ const KQXS = (props) => {
     const [isLiveWindow, setIsLiveWindow] = useState(false);
     const [hasTriggeredScraper, setHasTriggeredScraper] = useState(false);
 
-    const hour = 0;
-    const minute1 = 19; // Bắt đầu khung giờ trực tiếp
-    const minute2 = 20; // Thời điểm kích hoạt scraper
+    const hour = 18;
+    const minute1 = 10; // Bắt đầu khung giờ trực tiếp
+    const minute2 = 12; // Thời điểm kích hoạt scraper
 
     const router = useRouter();
     const dayof = props.data4;
@@ -122,7 +122,7 @@ const KQXS = (props) => {
     const fetchData = useCallback(async () => {
         try {
             const now = new Date();
-            const isUpdateWindow = now.getHours() === 18 && now.getMinutes() >= 12 && now.getMinutes() <= 32;
+            const isUpdateWindow = now.getHours() === 18 && now.getMinutes() >= 10 && now.getMinutes() <= 32;
             const isAfterUpdateWindow = now.getHours() > 18 || (now.getHours() === 18 && now.getMinutes() > 32);
 
             // Kiểm tra cache
