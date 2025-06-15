@@ -29,8 +29,8 @@ const KQXS = (props) => {
     const [hasTriggeredScraper, setHasTriggeredScraper] = useState(false);
 
     const hour = 0;
-    const minute1 = 12; // Bắt đầu khung giờ trực tiếp
-    const minute2 = 13; // Thời điểm kích hoạt scraper
+    const minute1 = 14; // Bắt đầu khung giờ trực tiếp
+    const minute2 = 15; // Thời điểm kích hoạt scraper
 
     const router = useRouter();
     const dayof = props.data4;
