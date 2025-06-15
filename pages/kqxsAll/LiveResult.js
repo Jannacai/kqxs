@@ -135,7 +135,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                 console.warn('Không thể kết nối connect SSE: Invalid station or today');
                 return;
             }
-            eventSource = new EventSource(`https://backendkqxs.onrender.com/api/kqxs/xsmb/sse?station=${station}&date=${today}`);
+            eventSource = new EventSource(`http://localhost:5000/api/kqxs/xsmb/sse?station=${station}&date=${today}`);
 
             // Định nghĩa thứ tự animating
             const animationQueue = [
