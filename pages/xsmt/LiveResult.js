@@ -18,7 +18,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     const provincesByDay = useMemo(() => ({
         1: [
             { tinh: 'phu-yen', tentinh: 'Phú Yên' },
-            { tinh: 'thua-thien-hue', tentinh: 'Thừa Thiên Huế' },
+            { tinh: 'hue', tentinh: 'Thừa Thiên Huế' },
         ],
         2: [
             { tinh: 'dak-lak', tentinh: 'Đắk Lắk' },
@@ -45,7 +45,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
         0: [
             { tinh: 'kon-tum', tentinh: 'Kon Tum' },
             { tinh: 'khanh-hoa', tentinh: 'Khánh Hòa' },
-            { tinh: 'thua-thien-hue', tentinh: 'Thừa Thiên Huế' },
+            { tinh: 'hue', tentinh: 'Thừa Thiên Huế' },
         ]
     }), []);
 
@@ -135,11 +135,25 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     };
 
     useEffect(() => {
-        let eventSource;
+        if (!isLiveWindow) {
+            setLiveData([]);
+            setIsTodayLoading(true);
+            setRetryCount(0);
+            setError(null);
+            setIsDataReady(false);
+            return;
+        }
 
-        const connectSSE = () => {
-            console.log(`Kết nối SSE... (Thử lần ${retryCount + 1}/${maxRetries + 1})`);
-            eventSource = new EventSource(`http://localhost:5000/api/ketquaxs/xsmt/sse?station=${station}`);
+        const dayOfWeekIndex = new Date().getDay();
+        const provinces = provincesByDay[dayOfWeekIndex] || provincesByDay[6];
+        const eventSources = [];
+
+        const connectSSE = (tinh) => {
+            console.log(`Kết nối SSE cho tỉnh ${tinh}... (Thử lần ${retryCount + 1}/${maxRetries + 1})`);
+            const eventSource = new EventSource(
+                `https://backendkqxs.onrender.com/api/ketquaxs/xsmt/sse?station=${station}&tinh=${tinh}&date=${today.replace(/\//g, '-')}`
+            );
+            eventSources.push(eventSource);
 
             const prizeTypes = [
                 'specialPrize', 'firstPrize', 'secondPrize', 'threePrizes',
@@ -148,43 +162,47 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
 
             prizeTypes.forEach(prizeType => {
                 eventSource.addEventListener(prizeType, (event) => {
-                    console.log(`Nhận sự kiện SSE cho ${prizeType}:`, event.data);
-                    const data = JSON.parse(event.data);
-                    if (data && data[prizeType] && data.tinh) {
-                        setLiveData(prev => {
-                            const updatedData = prev.map(item => {
-                                if (item.tinh === data.tinh) {
-                                    return {
-                                        ...item,
-                                        [prizeType]: data[prizeType],
-                                        tentinh: data.tentinh || item.tentinh,
-                                        year: data.year || item.year,
-                                        month: data.month || item.month,
-                                    };
+                    console.log(`Nhận sự kiện SSE cho ${prizeType} (tỉnh ${tinh}):`, event.data);
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data && data[prizeType] && data.tinh) {
+                            setLiveData(prev => {
+                                const updatedData = prev.map(item => {
+                                    if (item.tinh === data.tinh) {
+                                        return {
+                                            ...item,
+                                            [prizeType]: data[prizeType],
+                                            tentinh: data.tentinh || item.tentinh,
+                                            year: data.year || item.year,
+                                            month: data.month || item.month,
+                                        };
+                                    }
+                                    return item;
+                                });
+                                console.log('Cập nhật liveData:', updatedData);
+
+                                const hasRealData = updatedData.some(item =>
+                                    item.specialPrize?.some(num => num !== '...') ||
+                                    item.firstPrize?.some(num => num !== '...')
+                                );
+                                if (hasRealData) {
+                                    setIsDataReady(true);
                                 }
-                                return item;
+
+                                return updatedData;
                             });
-                            console.log('Cập nhật liveData:', updatedData);
-
-                            const hasRealData = updatedData.some(item =>
-                                item.specialPrize?.some(num => num !== '...') ||
-                                item.firstPrize?.some(num => num !== '...')
-                            );
-                            if (hasRealData) {
-                                setIsDataReady(true);
-                            }
-
-                            return updatedData;
-                        });
-                        setIsTodayLoading(false);
-                        setRetryCount(0);
-                        setError(null);
+                            setIsTodayLoading(false);
+                            setRetryCount(0);
+                            setError(null);
+                        }
+                    } catch (error) {
+                        console.error(`Lỗi xử lý sự kiện SSE ${prizeType} (tỉnh ${tinh}):`, error);
                     }
                 });
             });
 
             eventSource.onerror = () => {
-                console.log('Lỗi SSE, đóng kết nối...');
+                console.log(`Lỗi SSE cho tỉnh ${tinh}, đóng kết nối...`);
                 eventSource.close();
                 if (retryCount < maxRetries) {
                     setTimeout(() => {
@@ -197,17 +215,13 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             };
         };
 
-        if (isLiveWindow && retryCount <= maxRetries) {
-            connectSSE();
-        }
+        provinces.forEach(province => connectSSE(province.tinh));
 
         return () => {
-            if (eventSource) {
-                console.log('Đóng kết nối SSE...');
-                eventSource.close();
-            }
+            console.log('Đóng tất cả kết nối SSE...');
+            eventSources.forEach(eventSource => eventSource.close());
         };
-    }, [isLiveWindow, station, retryCount, maxRetries, retryInterval]);
+    }, [isLiveWindow, station, today, retryCount, maxRetries, retryInterval, provincesByDay]);
 
     if (!liveData.length) return null;
 

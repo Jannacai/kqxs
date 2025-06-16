@@ -23,9 +23,9 @@ const KQXS = (props) => {
     const tableRef = useRef(null);
     const router = useRouter();
 
-    const hour = 14;
-    const minutes1 = 11;
-    const minutes2 = 15;
+    const hour = 17;
+    const minutes1 = 10;
+    const minutes2 = 10;
 
     const dayof = props.dayofMT;
     const station = props.station || "xsmt";
@@ -76,7 +76,7 @@ const KQXS = (props) => {
     const fetchData = useCallback(async (page = currentPage) => {
         try {
             const now = new Date();
-            const isUpdateWindow = now.getHours() === 14 && now.getMinutes() >= 11 && now.getMinutes() <= 34;
+            const isUpdateWindow = now.getHours() === 17 && now.getMinutes() >= 10 && now.getMinutes() <= 33;
 
             const cachedData = localStorage.getItem(CACHE_KEY);
             const cachedTime = localStorage.getItem(`${CACHE_KEY}_time`);
