@@ -3,6 +3,8 @@ import Head from 'next/head';
 import { apiMB } from '../api/kqxs/kqxsMB';
 import styles from '../../styles/soicau.module.css';
 import moment from 'moment';
+import Thongke from '../../component/thongKe'
+import CongCuHot from '../../component/CongCuHot'
 
 // Skeleton Loading Components
 const SkeletonRow = () => (
@@ -14,47 +16,51 @@ const SkeletonRow = () => (
 );
 
 const SkeletonTable = () => (
-    <table className={styles.tableSoiCau}>
-        <thead>
-            <tr>
-                <th>Phương pháp</th>
-                <th>Kết quả dự đoán</th>
-                <th>Gợi ý nuôi khung</th>
-            </tr>
-        </thead>
-        <tbody>
-            {Array(11).fill().map((_, index) => <SkeletonRow key={index} />)} {/* Increased to 11 methods */}
-        </tbody>
-    </table>
+    <div className={styles.tableWrapper}>
+        <table className={styles.tableSoiCau}>
+            <thead>
+                <tr>
+                    <th>Phương pháp</th>
+                    <th>Kết quả dự đoán</th>
+                    <th>Gợi ý nuôi khung</th>
+                </tr>
+            </thead>
+            <tbody>
+                {Array(11).fill().map((_, index) => <SkeletonRow key={index} />)}
+            </tbody>
+        </table>
+    </div>
 );
 
 const SkeletonLotteryTable = () => (
-    <table className={styles.lotteryTable}>
-        <thead>
-            <tr>
-                <th>ĐB</th>
-                <th>Giải 1</th>
-                <th>Giải 2</th>
-                <th>Giải 3</th>
-                <th>Giải 4</th>
-                <th>Giải 5</th>
-                <th>Giải 6</th>
-                <th>Giải 7</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td><div className={styles.skeleton}></div></td>
-                <td><div className={styles.skeleton}></div></td>
-                <td><div className={styles.skeleton}></div></td>
-                <td><div className={styles.skeleton}></div></td>
-                <td><div className={styles.skeleton}></div></td>
-                <td><div className={styles.skeleton}></div></td>
-                <td><div className={styles.skeleton}></div></td>
-                <td><div className={styles.skeleton}></div></td>
-            </tr>
-        </tbody>
-    </table>
+    <div className={styles.tableWrapper}>
+        <table className={styles.lotteryTable}>
+            <thead>
+                <tr>
+                    <th>ĐB</th>
+                    <th>Giải 1</th>
+                    <th>Giải 2</th>
+                    <th>Giải 3</th>
+                    <th>Giải 4</th>
+                    <th>Giải 5</th>
+                    <th>Giải 6</th>
+                    <th>Giải 7</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><div className={styles.skeleton}></div></td>
+                    <td><div className={styles.skeleton}></div></td>
+                    <td><div className={styles.skeleton}></div></td>
+                    <td><div className={styles.skeleton}></div></td>
+                    <td><div className={styles.skeleton}></div></td>
+                    <td><div className={styles.skeleton}></div></td>
+                    <td><div className={styles.skeleton}></div></td>
+                    <td><div className={styles.skeleton}></div></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 );
 
 const SoiCauBachThuMB = ({ initialLotteryData, initialSoiCauData, initialDate, initialHistory, initialFrequencies, initialRelatedNumbers }) => {
@@ -206,8 +212,45 @@ const SoiCauBachThuMB = ({ initialLotteryData, initialSoiCauData, initialDate, i
                     <h1 className={styles.title}>{pageTitle}</h1>
                 </div>
 
+                <div className={styles.groupSelect}>
+                    <div className={styles.selectGroup}>
+                        <span className={styles.options}>Ngày:</span>
+                        <select className={styles.select} value={selectedDate.day} onChange={handleDateChange('day')}>
+                            {days.map((day) => (
+                                <option key={day} value={day}>{day}</option>
+                            ))}
+                        </select>
+                        <span className={styles.options}>Tháng:</span>
+                        <select className={styles.select} value={selectedDate.month} onChange={handleDateChange('month')}>
+                            {months.map((month) => (
+                                <option key={month} value={month}>{month}</option>
+                            ))}
+                        </select>
+                        <span className={styles.options}>Năm:</span>
+                        <select className={styles.select} value={selectedDate.year} onChange={handleDateChange('year')}>
+                            {years.map((year) => (
+                                <option key={year} value={year}>{year}</option>
+                            ))}
+                        </select>
+                        <span className={styles.options}>Số ngày dữ liệu:</span>
+                        <select className={styles.select} value={selectedDays} onChange={handleDaysChange}>
+                            {dayOptions.map((day) => (
+                                <option key={day} value={day}>{day} ngày</option>
+                            ))}
+                        </select>
+                        {suggestedDate && (
+                            <button className={styles.suggestedDateBtn} onClick={handleSuggestedDate}>
+                                Dùng ngày gợi ý: {suggestedDate}
+                            </button>
+                        )}
+                    </div>
+                </div>
+
                 <div className={styles.content}>
+                    {error && <p className={styles.error}>{error}</p>}
+
                     <div className={styles.metadata}>
+                        <h2 className={styles.heading}>Thông tin dự đoán</h2>
                         <table className={styles.metadataTable}>
                             <tbody>
                                 <tr><td><strong>Dự đoán cho ngày:</strong></td><td>{metadata.predictionFor || ''}</td></tr>
@@ -219,12 +262,10 @@ const SoiCauBachThuMB = ({ initialLotteryData, initialSoiCauData, initialDate, i
                         </table>
                     </div>
 
-                    {error && <p className={styles.error}>{error}</p>}
-
                     {loadingLottery && <SkeletonLotteryTable />}
                     {!loadingLottery && !error && lotteryData.length > 0 && !isCurrentDate && (
-                        <>
-                            <h2 className={styles.heading}>Kết quả xổ số ngày {metadata.dataTo || ''} (dùng để soi cầu)</h2>
+                        <div className={styles.tableWrapper}>
+                            <h2 className={styles.heading}>Kết quả xổ số ngày {metadata.dataTo || ''}</h2>
                             <table className={styles.lotteryTable}>
                                 <thead>
                                     <tr>
@@ -253,7 +294,7 @@ const SoiCauBachThuMB = ({ initialLotteryData, initialSoiCauData, initialDate, i
                                     ))}
                                 </tbody>
                             </table>
-                        </>
+                        </div>
                     )}
                     {!loadingLottery && !error && lotteryData.length === 0 && !isCurrentDate && (
                         <p className={styles.noData}>Không có dữ liệu xổ số cho ngày này.</p>
@@ -262,51 +303,53 @@ const SoiCauBachThuMB = ({ initialLotteryData, initialSoiCauData, initialDate, i
                     <h2 className={styles.heading}>Dự đoán bạch thủ lô cho ngày {metadata.predictionFor || ''}</h2>
                     {loadingSoiCau && <SkeletonTable />}
                     {!loadingSoiCau && soiCauResults.length > 0 && (
-                        <table className={styles.tableSoiCau}>
-                            <thead>
-                                <tr>
-                                    <th>Phương pháp <span className={styles.tooltipIcon}>ℹ️</span></th>
-                                    <th>Kết quả dự đoán</th>
-                                    <th>Gợi ý nuôi khung</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {soiCauResults.map((result, index) => (
-                                    <tr key={index}>
-                                        <td className={styles.method}>
-                                            {result.method}
-                                            <span className={styles.tooltip}>
-                                                {result.method === 'Pascal'
-                                                    ? 'Ghép 2 số cuối của giải đặc biệt và giải nhất, cộng các số liền kề đến khi còn 2 số.'
-                                                    : result.method === 'Hình Quả Trám'
-                                                        ? 'Tìm mẫu A-B-A hoặc B-A-B trong các giải, số ở giữa là bạch thủ lô.'
-                                                        : result.method === 'Tần suất lô cặp'
-                                                            ? 'Chọn số từ cặp số có tần suất xuất hiện cao nhất.'
-                                                            : result.method === 'Lô gan kết hợp'
-                                                                ? 'Chọn số gần đạt ngưỡng gan nhưng có tần suất cao.'
-                                                                : result.method === 'Lô rơi'
-                                                                    ? 'Chọn số xuất hiện liên tục trong 2-3 ngày gần nhất ở cùng vị trí giải.'
-                                                                    : result.method === 'Lô kép theo chu kỳ'
-                                                                        ? 'Dự đoán lô kép dựa trên chu kỳ xuất hiện trong 30-100 ngày.'
-                                                                        : result.method === 'Biên độ tần suất'
-                                                                            ? 'Chọn số có tần suất trung bình trong 7-14 ngày.'
-                                                                            : result.method === 'Chu kỳ số'
-                                                                                ? 'Dự đoán số dựa trên chu kỳ xuất hiện trong 30 ngày.'
-                                                                                : result.method === 'Tổng các chữ số'
-                                                                                    ? 'Tính tổng các chữ số từ giải đặc biệt và giải nhất, rút gọn về 2 chữ số.'
-                                                                                    : result.method === 'Đảo ngược'
-                                                                                        ? 'Đảo ngược 2 số cuối của giải đặc biệt.'
-                                                                                        : 'Tính khoảng cách giữa 2 số cuối của giải đặc biệt liên tiếp.'}
-                                            </span>
-                                        </td>
-                                        <td className={result.number ? styles.highlight : styles.noData}>
-                                            {result.number || ''}
-                                        </td>
-                                        <td>{result.frame || ''}</td>
+                        <div className={styles.tableWrapper}>
+                            <table className={styles.tableSoiCau}>
+                                <thead>
+                                    <tr>
+                                        <th>Phương pháp <span className={styles.tooltipIcon}>ℹ️</span></th>
+                                        <th>Kết quả dự đoán</th>
+                                        <th>Gợi ý nuôi khung</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {soiCauResults.map((result, index) => (
+                                        <tr key={index}>
+                                            <td className={styles.method}>
+                                                {result.method}
+                                                <span className={styles.tooltip}>
+                                                    {result.method === 'Pascal'
+                                                        ? 'Ghép 2 số cuối của giải đặc biệt và giải nhất, cộng các số liền kề đến khi còn 2 số.'
+                                                        : result.method === 'Hình Quả Trám'
+                                                            ? 'Tìm mẫu A-B-A hoặc B-A-B trong các giải, số ở giữa là bạch thủ lô.'
+                                                            : result.method === 'Tần suất lô cặp'
+                                                                ? 'Chọn số từ cặp số có tần suất xuất hiện cao nhất.'
+                                                                : result.method === 'Lô gan kết hợp'
+                                                                    ? 'Chọn số gần đạt ngưỡng gan nhưng có tần suất cao.'
+                                                                    : result.method === 'Lô rơi'
+                                                                        ? 'Chọn số xuất hiện liên tục trong 2-3 ngày gần nhất ở cùng vị trí giải.'
+                                                                        : result.method === 'Lô kép theo chu kỳ'
+                                                                            ? 'Dự đoán lô kép dựa trên chu kỳ xuất hiện trong 30-100 ngày.'
+                                                                            : result.method === 'Biên độ tần suất'
+                                                                                ? 'Chọn số có tần suất trung bình trong 7-14 ngày.'
+                                                                                : result.method === 'Chu kỳ số'
+                                                                                    ? 'Dự đoán số dựa trên chu kỳ xuất hiện trong 30 ngày.'
+                                                                                    : result.method === 'Tổng các chữ số'
+                                                                                        ? 'Tính tổng các chữ số từ giải đặc biệt và giải nhất, rút gọn về 2 chữ số.'
+                                                                                        : result.method === 'Đảo ngược'
+                                                                                            ? 'Đảo ngược 2 số cuối của giải đặc biệt.'
+                                                                                            : 'Tính khoảng cách giữa 2 số cuối của giải đặc biệt liên tiếp.'}
+                                                </span>
+                                            </td>
+                                            <td className={result.number ? styles.highlight : styles.noData}>
+                                                {result.number || ''}
+                                            </td>
+                                            <td>{result.frame || ''}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     )}
                     {!loadingSoiCau && soiCauResults.length === 0 && (
                         <p className={styles.noData}>Không tìm thấy kết quả soi cầu.</p>
@@ -323,106 +366,115 @@ const SoiCauBachThuMB = ({ initialLotteryData, initialSoiCauData, initialDate, i
                     {loadingSoiCau ? (
                         <SkeletonTable />
                     ) : history.length > 0 ? (
-                        <table className={styles.historyTable}>
-                            <thead>
-                                <tr>
-                                    <th>Ngày</th>
-                                    <th>Dự đoán</th>
-                                    <th>Kết quả thực tế</th>
-                                    <th>Trạng thái</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {history.map((entry, index) => (
-                                    <tr key={index}>
-                                        <td>{entry.date}</td>
-                                        <td>{entry.predictions.filter(p => p.number).map(p => p.number).join(', ') || ''}</td>
-                                        <td>
-                                            {entry.actualNumbers.length > 0 ? (
-                                                entry.actualNumbers.map((num, idx) => (
-                                                    <span key={idx} className={styles.matchedNumber}>
-                                                        {num}{idx < entry.actualNumbers.length - 1 ? ', ' : ''}
-                                                    </span>
-                                                ))
-                                            ) : ''}
-                                        </td>
-                                        <td className={entry.isHit ? styles.hit : styles.miss}>
-                                            {entry.isHit ? 'Trúng' : 'Trượt'}
-                                        </td>
+                        <div className={styles.tableWrapper}>
+                            <table className={styles.historyTable}>
+                                <thead>
+                                    <tr>
+                                        <th>Ngày</th>
+                                        <th>Dự đoán</th>
+                                        <th>Kết quả thực tế</th>
+                                        <th>Trạng thái</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {history.map((entry, index) => (
+                                        <tr key={index}>
+                                            <td>{entry.date}</td>
+                                            <td>{entry.predictions.filter(p => p.number).map(p => p.number).join(', ') || ''}</td>
+                                            <td>
+                                                {entry.actualNumbers.length > 0 ? (
+                                                    entry.actualNumbers.map((num, idx) => (
+                                                        <span key={idx} className={styles.matchedNumber}>
+                                                            {num}{idx < entry.actualNumbers.length - 1 ? ', ' : ''}
+                                                        </span>
+                                                    ))
+                                                ) : ''}
+                                            </td>
+                                            <td className={entry.isHit ? styles.hit : styles.miss}>
+                                                {entry.isHit ? 'Trúng' : 'Trượt'}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     ) : (
                         <p className={styles.noData}>Không có dữ liệu lịch sử.</p>
                     )}
 
-                    <h2 className={styles.heading}>Top 10 số xuất hiện nhiều nhất (từ 3 lần trở lên, {selectedDays} ngày trước)</h2>
+                    <h2 className={styles.heading}>Top 10 số xuất hiện nhiều nhất ({selectedDays} ngày)</h2>
                     {frequencies.length > 0 ? (
-                        <table className={styles.frequencyTable}>
-                            <thead>
-                                <tr>
-                                    <th>Số</th>
-                                    <th>Số lần xuất hiện</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {frequencies.map((freq, index) => (
-                                    <tr key={index}>
-                                        <td className={styles.highlight}>{freq.number}</td>
-                                        <td>{freq.count}</td>
+                        <div className={styles.tableWrapper}>
+                            <table className={styles.frequencyTable}>
+                                <thead>
+                                    <tr>
+                                        <th>Số</th>
+                                        <th>Số lần xuất hiện</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {frequencies.map((freq, index) => (
+                                        <tr key={index}>
+                                            <td className={styles.highlight}>{freq.number}</td>
+                                            <td>{freq.count}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     ) : (
                         <p className={styles.noData}>Không có số nào xuất hiện từ 3 lần trở lên.</p>
                     )}
 
                     <h2 className={styles.heading}>Số liên quan</h2>
                     <div className={styles.relatedNumbers}>
-                        <div><strong>Lô kép:</strong> {relatedNumbers.loKep.length > 0 ? relatedNumbers.loKep.join(', ') : ''}</div>
-                        <div><strong>Lô gan ({selectedDays} ngày):</strong> {relatedNumbers.loGan.length > 0 ? relatedNumbers.loGan.slice(0, 5).join(', ') + (relatedNumbers.loGan.length > 5 ? '...' : '') : ''}</div>
+                        <div><strong>Lô kép:</strong> {relatedNumbers.loKep.length > 0 ? relatedNumbers.loKep.join(', ') : 'Không có'}</div>
+                        <div><strong>Lô gan ({selectedDays} ngày):</strong> {relatedNumbers.loGan.length > 0 ? relatedNumbers.loGan.slice(0, 5).join(', ') + (relatedNumbers.loGan.length > 5 ? '...' : '') : 'Không có'}</div>
+                    </div>
+
+                    <div className={styles.groupContent}>
+                        <h2 className={styles.heading}>Phương pháp soi cầu</h2>
+                        <div className={styles.contentWrapper}>
+                            <h3 className={styles.h3}>Phương pháp Pascal</h3>
+                            <p className={styles.desc}>Ghép 2 số cuối của giải đặc biệt và giải nhất, cộng các số liền kề đến khi còn 2 số.</p>
+                            <h3 className={styles.h3}>Phương pháp Hình Quả Trám</h3>
+                            <p className={styles.desc}>Tìm mẫu A-B-A hoặc B-A-B trong các giải, số ở giữa là bạch thủ lô.</p>
+                            <h3 className={styles.h3}>Phương pháp Tần suất lô cặp</h3>
+                            <p className={styles.desc}>Chọn số từ cặp số có tần suất xuất hiện cao nhất.</p>
+                            <h3 className={styles.h3}>Phương pháp Lô gan kết hợp</h3>
+                            <p className={styles.desc}>Chọn số gần đạt ngưỡng gan nhưng có tần suất cao.</p>
+                            <h3 className={styles.h3}>Phương pháp Lô rơi</h3>
+                            <p className={styles.desc}>Chọn số xuất hiện liên tục trong 2-3 ngày gần nhất ở cùng vị trí giải.</p>
+                            <h3 className={styles.h3}>Phương pháp Lô kép theo chu kỳ</h3>
+                            <p className={styles.desc}>Dự đoán lô kép dựa trên chu kỳ xuất hiện trong 30-100 ngày.</p>
+                            <h3 className={styles.h3}>Phương pháp Biên độ tần suất</h3>
+                            <p className={styles.desc}>Chọn số có tần suất trung bình trong 7-14 ngày.</p>
+                            <h3 className={styles.h3}>Phương pháp Chu kỳ số</h3>
+                            <p className={styles.desc}>Dự đoán số dựa trên chu kỳ xuất hiện trong 30 ngày.</p>
+                            <h3 className={styles.h3}>Phương pháp Tổng các chữ số</h3>
+                            <p className={styles.desc}>Tính tổng các chữ số từ giải đặc biệt và giải nhất, rút gọn về 2 chữ số.</p>
+                            <h3 className={styles.h3}>Phương pháp Đảo ngược</h3>
+                            <p className={styles.desc}>Đảo ngược 2 số cuối của giải đặc biệt.</p>
+                            <h3 className={styles.h3}>Phương pháp Khoảng cách</h3>
+                            <p className={styles.desc}>Tính khoảng cách giữa 2 số cuối của giải đặc biệt liên tiếp.</p>
+                            <h3 className={styles.h3}>Cách sử dụng:</h3>
+                            <p className={styles.desc}>
+                                - Chọn ngày và số ngày dữ liệu để phân tích.<br />
+                                - Xem kết quả từ các phương pháp và số gợi ý bổ sung.<br />
+                                - Kiểm tra lịch sử dự đoán để đánh giá độ chính xác.<br />
+                                - Nếu không có dữ liệu, thử ngày gợi ý từ hệ thống.
+                            </p>
+                        </div>
                     </div>
                 </div>
 
-                <div className={styles.groupContent}>
-                    <h2 className={styles.heading}>Soi Cầu Bạch Thủ Miền Bắc - Đa Dạng Phương Pháp</h2>
-                    <div className={styles.contentWrapper}>
-                        <h3 className={styles.h3}>Phương pháp Pascal</h3>
-                        <p className={styles.desc}>Ghép 2 số cuối của giải đặc biệt và giải nhất, cộng các số liền kề đến khi còn 2 số.</p>
-                        <h3 className={styles.h3}>Phương pháp Hình Quả Trám</h3>
-                        <p className={styles.desc}>Tìm mẫu A-B-A hoặc B-A-B trong các giải, số ở giữa là bạch thủ lô.</p>
-                        <h3 className={styles.h3}>Phương pháp Tần suất lô cặp</h3>
-                        <p className={styles.desc}>Chọn số từ cặp số có tần suất xuất hiện cao nhất.</p>
-                        <h3 className={styles.h3}>Phương pháp Lô gan kết hợp</h3>
-                        <p className={styles.desc}>Chọn số gần đạt ngưỡng gan nhưng có tần suất cao.</p>
-                        <h3 className={styles.h3}>Phương pháp Lô rơi</h3>
-                        <p className={styles.desc}>Chọn số xuất hiện liên tục trong 2-3 ngày gần nhất ở cùng vị trí giải.</p>
-                        <h3 className={styles.h3}>Phương pháp Lô kép theo chu kỳ</h3>
-                        <p className={styles.desc}>Dự đoán lô kép dựa trên chu kỳ xuất hiện trong 30-100 ngày.</p>
-                        <h3 className={styles.h3}>Phương pháp Biên độ tần suất</h3>
-                        <p className={styles.desc}>Chọn số có tần suất trung bình trong 7-14 ngày.</p>
-                        <h3 className={styles.h3}>Phương pháp Chu kỳ số</h3>
-                        <p className={styles.desc}>Dự đoán số dựa trên chu kỳ xuất hiện trong 30 ngày.</p>
-                        <h3 className={styles.h3}>Phương pháp Tổng các chữ số</h3>
-                        <p className={styles.desc}>Tính tổng các chữ số từ giải đặc biệt và giải nhất, rút gọn về 2 chữ số.</p>
-                        <h3 className={styles.h3}>Phương pháp Đảo ngược</h3>
-                        <p className={styles.desc}>Đảo ngược 2 số cuối của giải đặc biệt.</p>
-                        <h3 className={styles.h3}>Phương pháp Khoảng cách</h3>
-                        <p className={styles.desc}>Tính khoảng cách giữa 2 số cuối của giải đặc biệt liên tiếp.</p>
-                        <h3 className={styles.h3}>Cách sử dụng:</h3>
-                        <p className={styles.desc}>
-                            - Chọn ngày dự đoán và số ngày dữ liệu để hệ thống phân tích.<br />
-                            - Xem kết quả từ nhiều phương pháp và số gợi ý bổ sung để chọn số may mắn.<br />
-                            - Kiểm tra lịch sử dự đoán (10 ngày) để đánh giá độ chính xác.<br />
-                            - Nếu không có dữ liệu, thử ngày gợi ý từ hệ thống.
-                        </p>
-                    </div>
-                </div>
                 <button className={styles.scrollToTopBtn} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
                     ↑
                 </button>
+            </div>
+            <div>
+                <Thongke />
+                <CongCuHot />
             </div>
         </div>
     );
@@ -430,7 +482,7 @@ const SoiCauBachThuMB = ({ initialLotteryData, initialSoiCauData, initialDate, i
 
 export async function getServerSideProps() {
     try {
-        const currentTime = moment(); // 17/05/2025, 17:31
+        const currentTime = moment();
         const isAfterResultTime = currentTime.hour() >= 18 && currentTime.minute() >= 40;
         let defaultDate;
         if (isAfterResultTime) {
@@ -448,7 +500,6 @@ export async function getServerSideProps() {
         const soiCauData = await apiMB.getBachThuMB(defaultDate, defaultDays);
 
         const frequencies = (soiCauData.frequencies || []).slice(0, 10);
-
         const loKep = (soiCauData.numbers || []).filter(num => num[0] === num[1]);
         const loGan = Array.from({ length: 100 }, (_, i) => i.toString().padStart(2, '0'))
             .filter(num => !soiCauData.numbers?.includes(num));

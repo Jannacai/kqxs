@@ -1,38 +1,37 @@
 .container {
     width: 100%;
-    padding: 30px;
-    font-family: 'Inter', sans-serif;
-    background-color: #f9f9f9;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    position: relative;
-    margin-bottom: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 16px;
+    font-family: "Inter", sans-serif;
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .title {
-    text-align: center;
-    color: #1e40af;
-    font-size: 2rem;
-    margin-bottom: 30px;
+    font-size: 1.5rem;
     font-weight: 700;
-    text-transform: uppercase;
+    color: #c80505;
+    text-align: center;
+    margin-bottom: 24px;
 }
 
 .form {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-    padding: 20px;
-    background-color: white;
-    border-radius: 10px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    width: 100%;
+    gap: 16px;
+    padding: 16px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
 }
 
 .formGroup {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
 }
 
 .fullWidth {
@@ -40,54 +39,18 @@
 }
 
 .groupTitle {
-    font-size: 1.2rem;
-    color: #1e40af;
+    font-size: 1.1rem;
     font-weight: 600;
-    margin: 0;
-}
-
-.buttonGroup {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-
-.filterButton {
-    padding: 8px 12px;
-    border: 2px solid #1e40af;
-    border-radius: 6px;
-    background-color: #fff;
-    color: #374151;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    white-space: nowrap;
-}
-
-.filterButton:hover {
-    background-color: #e0e7ff;
-}
-
-.filterButton.active {
-    background-color: #1e40af;
-    color: white;
-    border-color: #2563eb;
-}
-
-.resetButton {
-    background-color: #EA5455;
-    color: #fff;
-}
-
-.resetButton:hover {
-    background-color: #28C76F;
+    color: #1f2937;
 }
 
 .input {
-    padding: 8px;
-    border: 1px solid #d1d5db;
+    padding: 8px 12px;
+    border: 1px solid #e5e7eb;
     border-radius: 6px;
-    font-size: 1rem;
+    font-size: 0.95rem;
+    background-color: #ffffff;
+    color: #1f2937;
 }
 
 .input:disabled {
@@ -97,58 +60,72 @@
 
 .input[type="select"],
 .input select {
-    padding: 8px;
-    border: 1px solid #d1d5db;
+    padding: 8px 12px;
+    border: 1px solid #e5e7eb;
     border-radius: 6px;
-    font-size: 1rem;
-    background-color: white;
+    font-size: 0.95rem;
+    background-color: #ffffff;
     cursor: pointer;
 }
 
-.loading {
-    text-align: center;
-    color: #1e40af;
-    font-size: 1.1rem;
-    margin-top: 20px;
+.buttonGroup {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.filterButton {
+    padding: 8px 12px;
+    border: 1px solid #c80505;
+    border-radius: 6px;
+    background-color: #ffffff;
+    color: #c80505;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.filterButton.active {
+    background-color: #c80505;
+    color: #ffffff;
+}
+
+.resetButton {
+    background-color: #ffffff;
+    color: #c80505;
+    border: 1px solid #c80505;
 }
 
 .result {
-    margin-top: 30px;
-    padding: 20px;
-    background-image: linear-gradient(135deg, #ABDCFF 10%, #0396ff38 100%);
-    border-radius: 10px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    width: 100%;
+    margin-top: 16px;
+    padding: 16px;
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
 }
 
 .resultHeader {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
+    margin-bottom: 12px;
 }
 
 .resultTitle {
-    color: #1e40af;
-    font-size: 1.5rem;
+    font-size: 1.3rem;
     font-weight: 600;
-    margin: 0;
+    color: #c80505;
 }
 
 .copyButton {
     padding: 8px 16px;
-    background-color: #10b981;
-    color: white;
+    background-color: #c80505;
+    color: #ffffff;
     border: none;
     border-radius: 6px;
-    font-size: 1rem;
+    font-size: 0.95rem;
+    font-weight: 500;
     cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.2s ease;
-}
-
-.copyButton:hover {
-    background-color: #059669;
-    transform: translateY(-2px);
 }
 
 .list {
@@ -156,151 +133,201 @@
     padding: 0;
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
-    justify-content: flex-start;
+    gap: 8px;
 }
 
 .listItem {
-    background-color: white;
-    padding: 10px;
+    background-color: #f3f4f6;
+    padding: 8px 12px;
     font-weight: 600;
+    color: #c80505;
     border-radius: 6px;
-    color: #1e40af;
-    transition: background-color 0.3s ease;
+    font-size: 1rem;
     min-width: 40px;
     text-align: center;
 }
 
-.listItem:hover {
-    background-color: #0396FF;
-    color: white;
-}
-
 .noResult {
     text-align: center;
-    color: #ef4444;
-    font-size: 1.1rem;
-    margin-top: 20px;
+    color: #c80505;
+    font-size: 1rem;
+    font-weight: 500;
+    margin-top: 16px;
 }
 
 .modal {
     position: fixed;
-    top: 20px;
-    right: 20px;
-    background-color: #10b981;
-    color: white;
-    padding: 10px 20px;
+    top: 16px;
+    right: 16px;
+    background-color: #c80505;
+    color: #ffffff;
+    padding: 8px 16px;
     border-radius: 6px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    animation: fadeInOut 2s ease-in-out;
-}
-
-@keyframes fadeInOut {
-    0% {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-
-    10% {
-        opacity: 1;
-        transform: translateY(0);
-    }
-
-    90% {
-        opacity: 1;
-        transform: translateY(0);
-    }
-
-    100% {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
+    font-size: 0.95rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 /* Responsive Design */
 @media (max-width: 1024px) {
     .container {
-        max-width: 100%;
-        padding: 20px;
+        padding: 12px;
     }
 
     .form {
         grid-template-columns: repeat(2, 1fr);
-        width: 100%;
+        gap: 12px;
+        padding: 12px;
     }
 
     .fullWidth {
         grid-column: span 2;
     }
 
-    .result {
-        width: 100%;
-    }
-
-    .listItem {
-        min-width: 35px;
-        padding: 8px;
-        font-size: 0.9rem;
-    }
-}
-
-@media (max-width: 768px) {
-    .container {
-        max-width: 100%;
-        padding: 15px;
-    }
-
     .title {
-        font-size: 2rem;
+        font-size: 1.4rem;
     }
 
-    .form {
-        grid-template-columns: 1fr;
-        width: 100%;
-        padding: 15px;
+    .groupTitle {
+        font-size: 1rem;
     }
 
-    .fullWidth {
-        grid-column: span 1;
+    .input {
+        font-size: 0.9rem;
+        padding: 6px 10px;
     }
 
-    .formGroup {
-        margin-bottom: 15px;
+    .filterButton {
+        font-size: 0.9rem;
+        padding: 6px 10px;
     }
 
-    .buttonGroup {
-        justify-content: center;
+    .copyButton {
+        font-size: 0.9rem;
+        padding: 6px 12px;
     }
 
     .result {
-        width: 100%;
-        padding: 15px;
+        padding: 12px;
     }
 
     .resultTitle {
         font-size: 1.2rem;
     }
 
-    .copyButton {
-        padding: 6px 12px;
-        font-size: 0.9rem;
-    }
-
     .listItem {
-        min-width: 30px;
-        padding: 6px;
-        font-size: 0.8rem;
+        font-size: 0.9rem;
+        padding: 6px 10px;
+        min-width: 35px;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
     }
 
-    .modal {
-        top: 10px;
-        right: 10px;
-        font-size: 0.8rem;
-        padding: 8px 15px;
+    .form {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 10px;
+    }
+
+    .fullWidth {
+        grid-column: span 1;
+    }
+
+    .title {
+        font-size: 1.3rem;
+    }
+
+    .groupTitle {
+        font-size: 0.95rem;
     }
 
     .input {
+        font-size: 0.85rem;
+        padding: 6px 8px;
+    }
+
+    .filterButton {
+        font-size: 0.85rem;
+        padding: 6px 8px;
+    }
+
+    .copyButton {
+        font-size: 0.85rem;
+        padding: 6px 10px;
+    }
+
+    .result {
+        padding: 10px;
+    }
+
+    .resultTitle {
+        font-size: 1.1rem;
+    }
+
+    .listItem {
+        font-size: 0.85rem;
+        padding: 6px 8px;
+        min-width: 30px;
+    }
+
+    .modal {
         font-size: 0.9rem;
-        padding: 6px;
+        padding: 6px 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 8px;
+    }
+
+    .form {
+        gap: 8px;
+        padding: 8px;
+    }
+
+    .title {
+        font-size: 1.2rem;
+    }
+
+    .groupTitle {
+        font-size: 0.9rem;
+    }
+
+    .input {
+        font-size: 0.8rem;
+        padding: 5px 6px;
+    }
+
+    .filterButton {
+        font-size: 0.8rem;
+        padding: 5px 6px;
+    }
+
+    .copyButton {
+        font-size: 0.8rem;
+        padding: 5px 8px;
+    }
+
+    .result {
+        padding: 8px;
+    }
+
+    .resultTitle {
+        font-size: 1rem;
+    }
+
+    .listItem {
+        font-size: 0.8rem;
+        padding: 5px 6px;
+        min-width: 28px;
+    }
+
+    .modal {
+        font-size: 0.85rem;
+        padding: 5px 10px;
     }
 }

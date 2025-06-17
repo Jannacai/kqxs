@@ -125,7 +125,7 @@ const NavBar = () => {
                         className={`${styles.nav_itemNgang} ${router.pathname === '/soicau/soi-cau-mien-bac' ? styles.active : ''
                             }`}
                     >
-                        <Link href="/soicau/soi-cau-mien-bac" className={styles.nav_itemLinkNgang}>
+                        <Link href="soicau/soi-cau-mien-bac" className={styles.nav_itemLinkNgang}>
                             Soi Cầu
                         </Link>
                     </li>
@@ -723,7 +723,7 @@ const NavBar = () => {
                                 >
                                     <div className={styles.grouplinkMobile}>
                                         <Link
-                                            href="/soicau/soi-cau-mien-bac"
+                                            href="soicau/soi-cau-mien-bac"
                                             className={styles.nav_itemLinkMobile}
                                             onClick={toggleMenu}
                                         >
@@ -747,7 +747,7 @@ const NavBar = () => {
                                             <Link
                                                 className={`${styles.nav_menuLinkMobile} ${router.pathname === '/soicau/soi-cau-mien-bac' ? styles.active : ''
                                                     }`}
-                                                href="/soicau/soi-cau-mien-bac"
+                                                href="soicau/soi-cau-mien-bac"
                                                 onClick={toggleMenu}
                                             >
                                                 Soi Cầu Miền Bắc
@@ -755,9 +755,9 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/soicau/soi-cau-mien-trung' ? styles.active : ''
+                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === 'soicau/soi-cau-mien-trung' ? styles.active : ''
                                                     }`}
-                                                href="/soicau/soi-cau-mien-trung"
+                                                href="soicau/soi-cau-mien-trung"
                                                 onClick={toggleMenu}
                                             >
                                                 Soi Cầu Miền Trung
@@ -1192,11 +1192,11 @@ const NavBar = () => {
                                 </ul>
                             </li>
                             <li
-                                className={`${styles.nav_item} ${router.pathname === '/soicau' ? styles.active : ''
+                                className={`${styles.nav_item} ${router.pathname === '/soicau/soi-cau-mien-bac' ? styles.active : ''
                                     }`}
                             >
                                 <div className={styles.grouplink}>
-                                    <Link href="/soicau/soi-cau-mien-bac" className={styles.nav_itemLink}>
+                                    <Link href="soicau/soi-cau-mien-bac" className={styles.nav_itemLink}>
                                         Soi Cầu
                                     </Link>
                                     <span className={styles.icon}>
@@ -1205,12 +1205,12 @@ const NavBar = () => {
                                 </div>
                                 <ul className={styles.nav__menu}>
                                     <li>
-                                        <Link className={styles.nav_menuLink} href="/soicau/soi-cau-mien-bac">
+                                        <Link className={styles.nav_menuLink} href="soicau/soi-cau-mien-bac">
                                             Soi Cầu Miền Bắc
                                         </Link>
                                     </li>
                                     <li>
-                                        <Link className={styles.nav_menuLink} href="/soicau/soi-cau-mien-trung">
+                                        <Link className={styles.nav_menuLink} href="soicau/soi-cau-mien-trung">
                                             Soi Cầu Miền Trung
                                         </Link>
                                     </li>

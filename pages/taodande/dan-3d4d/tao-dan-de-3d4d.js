@@ -62,7 +62,7 @@ const TaoDanDac3D4D = () => {
                     },
                     "mainEntityOfPage": {
                         "@type": "WebPage",
-                        "@id": "https://xsmb.win/tao-dan-3d-4d"
+                        "@id": "https://xsmb.win/taodande/dan-3d4d/tao-dan-de-3d-4d"
                     },
                     "datePublished": "2025-05-12",
                     "dateModified": "2025-05-12"
@@ -71,7 +71,7 @@ const TaoDanDac3D4D = () => {
             <article className={styles.container}>
                 <h1 className={styles.title}>{getTitle()}</h1>
                 <div className={styles.buttonGroup} style={{ marginBottom: '20px', justifyContent: 'center' }}>
-                    <Link href="/TaoDanD/2D/"
+                    <Link href="/taodande/dan-2d/tao-dan-de-2d"
                         className={`${styles.filterButton} ${selectedDan === '2D' ? styles.active : ''}`}
                     >
                         Tạo Dàn 2D

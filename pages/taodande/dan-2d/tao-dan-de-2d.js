@@ -128,7 +128,7 @@ const TaoDan2DPage = () => {
                     <meta name="twitter:site" content="@yourtwitterhandle" />
                 </Head>
                 <h1 className={styles.title}>Tạo Dàn Đề 2D - Nhanh Nhất</h1>
-                <Link className={styles.action} href="3D4D/">Tạo Dàn 3D/4D</Link>
+                <Link className={styles.action} href="/taodande/dan-3d4d/tao-dan-de-3d4d">Tạo Dàn 3D/4D</Link>
                 <TaoDan2DLogic />
                 <ShareButtons url={pageUrl} title={pageTitle} />
                 <TaoDan2DContent />
