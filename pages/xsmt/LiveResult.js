@@ -151,7 +151,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
         const connectSSE = (tinh) => {
             console.log(`Kết nối SSE cho tỉnh ${tinh}... (Thử lần ${retryCount + 1}/${maxRetries + 1})`);
             const eventSource = new EventSource(
-                `https://backendkqxs.onrender.com/api/ketquaxs/xsmt/sse?station=${station}&tinh=${tinh}&date=${today.replace(/\//g, '-')}`
+                `http://localhost:5000/api/ketquaxs/xsmt/sse?station=${station}&tinh=${tinh}&date=${today.replace(/\//g, '-')}`
             );
             eventSources.push(eventSource);
 

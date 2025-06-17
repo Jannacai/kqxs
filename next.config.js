@@ -38,6 +38,12 @@ module.exports = {
     },
     async redirects() {
         return [
+            {
+                source: '/:path*',
+                has: [{ type: 'host', value: 'www.xsmb.win' }],
+                destination: 'https://xsmb.win/:path*',
+                permanent: true,
+            },
             { source: '/xsmb/', destination: '/ket-qua-xo-so-mien-bac', permanent: true },
             { source: '/xosomn/', destination: '/ket-qua-xo-so-mien-nam', permanent: true },
             { source: '/xosomt/', destination: '/ket-qua-xo-so-mien-trung', permanent: true },
