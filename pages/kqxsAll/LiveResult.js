@@ -564,19 +564,20 @@ export async function getServerSideProps(context) {
         props: {
             station: 'xsmb',
             today,
-            isLiveWindow: isWithinLiveWindow(), // Hàm kiểm tra khung giờ trực tiếp
-            filterTypes: {}, // Có thể lấy từ context hoặc database nếu cần
-            getHeadAndTailNumbers: null, // Placeholder, cần triển khai nếu dùng
-            handleFilterChange: null, // Placeholder, cần triển khai nếu dùng
+            isLiveWindow: isWithinLiveWindow(),
+            filterTypes: {},
+            getHeadAndTailNumbers: null,
+            handleFilterChange: null,
         },
     };
 }
 
-// Hàm kiểm tra khung giờ trực tiếp (18:14–18:36)
+// Hàm kiểm tra khung giờ trực tiếp (18:10–18:32)
 function isWithinLiveWindow() {
-    const now = new Date();
-    const hours = now.getHours();
-    const minutes = now.getMinutes();
+    const now = new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' });
+    const vietTime = new Date(now);
+    const hours = vietTime.getHours();
+    const minutes = vietTime.getMinutes();
     return (hours === 18 && minutes >= 10 && minutes <= 32);
 }
 

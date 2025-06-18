@@ -45,8 +45,6 @@ const KQXS = (props) => {
         year: 'numeric',
     });
 
-    const startHour = hour;
-    const startMinute = minute1;
     const duration = 22 * 60 * 1000; // 22 phút cho khung giờ trực tiếp
 
     const CACHE_KEY = `xsmb_data_${station}_${date || 'null'}_${dayof || 'null'}`;
@@ -63,19 +61,28 @@ const KQXS = (props) => {
 
     useEffect(() => {
         const checkTime = () => {
+            // Lấy thời gian theo múi giờ Việt Nam (+07:00)
             const now = new Date();
-            const startTime = new Date();
-            startTime.setHours(startHour, startMinute, 0, 0);
-            const endTime = new Date(startTime.getTime() + duration);
+            const vietnamTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+            const vietnamHours = vietnamTime.getHours();
+            const vietnamMinutes = vietnamTime.getMinutes();
+            const vietnamSeconds = vietnamTime.getSeconds();
 
-            const isLive = now >= startTime && now <= endTime;
+            // Tạo thời gian bắt đầu và kết thúc theo giờ Việt Nam
+            const startTime = new Date(vietnamTime);
+            startTime.setHours(hour, minute1, 0, 0); // 18:10
+            const endTime = new Date(startTime.getTime() + duration); // 18:32
+
+            // Kiểm tra khung giờ trực tiếp
+            const isLive = vietnamTime >= startTime && vietnamTime <= endTime;
             setIsLiveWindow(prev => prev !== isLive ? isLive : prev);
 
+            // Kích hoạt scraper
             if (
                 isLive &&
-                now.getHours() === hour &&
-                now.getMinutes() === minute2 &&
-                now.getSeconds() <= 5 &&
+                vietnamHours === hour &&
+                vietnamMinutes === minute2 &&
+                vietnamSeconds <= 5 &&
                 !hasTriggeredScraper
             ) {
                 apiMB.triggerScraper(today, station)
@@ -92,7 +99,8 @@ const KQXS = (props) => {
                     });
             }
 
-            if (now.getHours() === 0 && now.getMinutes() === 0 && now.getSeconds() === 0) {
+            // Reset lúc 00:00 +07:00
+            if (vietnamHours === 0 && vietnamMinutes === 0 && vietnamSeconds === 0) {
                 setHasTriggeredScraper(false);
             }
         };
