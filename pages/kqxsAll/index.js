@@ -30,7 +30,7 @@ const KQXS = (props) => {
 
     const hour = 18;
     const minute1 = 10; // Bắt đầu khung giờ trực tiếp
-    const minute2 = 17; // Thời điểm kích hoạt scraper
+    const minute2 = 13; // Thời điểm kích hoạt scraper
 
     const router = useRouter();
     const dayof = props.data4;
