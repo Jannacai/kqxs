@@ -50,36 +50,25 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     }), []);
 
     const emptyResult = useMemo(() => {
-        const dateParts = today.split('/'); // today format: DD/MM/YYYY
-        const date = new Date(`${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`);
-        const dayOfWeekIndex = date.getDay();
+        const dayOfWeekIndex = new Date().getDay();
         const provinces = provincesByDay[dayOfWeekIndex] || provincesByDay[6];
         return provinces.map(province => ({
             drawDate: today,
             station: station,
-            dayOfWeek: date.toLocaleString('vi-VN', { weekday: 'long' }),
+            dayOfWeek: new Date().toLocaleString('vi-VN', { weekday: 'long' }),
             tentinh: province.tentinh,
             tinh: province.tinh,
-            year: date.getFullYear(),
-            month: date.getMonth() + 1,
-            specialPrize_0: "...",
-            firstPrize_0: "...",
-            secondPrize_0: "...",
-            threePrizes_0: "...",
-            threePrizes_1: "...",
-            fourPrizes_0: "...",
-            fourPrizes_1: "...",
-            fourPrizes_2: "...",
-            fourPrizes_3: "...",
-            fourPrizes_4: "...",
-            fourPrizes_5: "...",
-            fourPrizes_6: "...",
-            fivePrizes_0: "...",
-            sixPrizes_0: "...",
-            sixPrizes_1: "...",
-            sixPrizes_2: "...",
-            sevenPrizes_0: "...",
-            eightPrizes_0: "...",
+            year: new Date().getFullYear(),
+            month: new Date().getMonth() + 1,
+            specialPrize: ["..."],
+            firstPrize: ["..."],
+            secondPrize: ["..."],
+            threePrizes: ["...", "..."],
+            fourPrizes: ["...", "...", "...", "...", "...", "...", "..."],
+            fivePrizes: ["..."],
+            sixPrizes: ["...", "...", "..."],
+            sevenPrizes: ["..."],
+            eightPrizes: ["..."],
         }));
     }, [today, station]);
 
@@ -108,38 +97,27 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                 }) === today
             );
 
-            const dateParts = today.split('/');
-            const date = new Date(`${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`);
-            const dayOfWeekIndex = date.getDay();
+            const dayOfWeekIndex = new Date().getDay();
             const provinces = provincesByDay[dayOfWeekIndex] || provincesByDay[6];
             const formattedData = provinces.map(province => {
                 const matchedData = todayData.find(item => item.tinh === province.tinh) || {};
                 return {
                     drawDate: today,
                     station: station,
-                    dayOfWeek: date.toLocaleString('vi-VN', { weekday: 'long' }),
+                    dayOfWeek: new Date().toLocaleString('vi-VN', { weekday: 'long' }),
                     tentinh: province.tentinh,
                     tinh: province.tinh,
-                    year: date.getFullYear(),
-                    month: date.getMonth() + 1,
-                    specialPrize_0: matchedData.specialPrize?.[0] || "...",
-                    firstPrize_0: matchedData.firstPrize?.[0] || "...",
-                    secondPrize_0: matchedData.secondPrize?.[0] || "...",
-                    threePrizes_0: matchedData.threePrizes?.[0] || "...",
-                    threePrizes_1: matchedData.threePrizes?.[1] || "...",
-                    fourPrizes_0: matchedData.fourPrizes?.[0] || "...",
-                    fourPrizes_1: matchedData.fourPrizes?.[1] || "...",
-                    fourPrizes_2: matchedData.fourPrizes?.[2] || "...",
-                    fourPrizes_3: matchedData.fourPrizes?.[3] || "...",
-                    fourPrizes_4: matchedData.fourPrizes?.[4] || "...",
-                    fourPrizes_5: matchedData.fourPrizes?.[5] || "...",
-                    fourPrizes_6: matchedData.fourPrizes?.[6] || "...",
-                    fivePrizes_0: matchedData.fivePrizes?.[0] || "...",
-                    sixPrizes_0: matchedData.sixPrizes?.[0] || "...",
-                    sixPrizes_1: matchedData.sixPrizes?.[1] || "...",
-                    sixPrizes_2: matchedData.sixPrizes?.[2] || "...",
-                    sevenPrizes_0: matchedData.sevenPrizes?.[0] || "...",
-                    eightPrizes_0: matchedData.eightPrizes?.[0] || "...",
+                    year: new Date().getFullYear(),
+                    month: new Date().getMonth() + 1,
+                    specialPrize: matchedData.specialPrize || ["..."],
+                    firstPrize: matchedData.firstPrize || ["..."],
+                    secondPrize: matchedData.secondPrize || ["..."],
+                    threePrizes: matchedData.threePrizes || ["...", "..."],
+                    fourPrizes: matchedData.fourPrizes || ["...", "...", "...", "...", "...", "...", "..."],
+                    fivePrizes: matchedData.fivePrizes || ["..."],
+                    sixPrizes: matchedData.sixPrizes || ["...", "...", "..."],
+                    sevenPrizes: matchedData.sevenPrizes || ["..."],
+                    eightPrizes: matchedData.eightPrizes || ["..."],
                 };
             });
 
@@ -166,9 +144,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             return;
         }
 
-        const dateParts = today.split('/');
-        const date = new Date(`${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`);
-        const dayOfWeekIndex = date.getDay();
+        const dayOfWeekIndex = new Date().getDay();
         const provinces = provincesByDay[dayOfWeekIndex] || provincesByDay[6];
         const eventSources = [];
 
@@ -180,12 +156,8 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             eventSources.push(eventSource);
 
             const prizeTypes = [
-                'specialPrize_0', 'firstPrize_0', 'secondPrize_0',
-                'threePrizes_0', 'threePrizes_1',
-                'fourPrizes_0', 'fourPrizes_1', 'fourPrizes_2', 'fourPrizes_3', 'fourPrizes_4', 'fourPrizes_5', 'fourPrizes_6',
-                'fivePrizes_0',
-                'sixPrizes_0', 'sixPrizes_1', 'sixPrizes_2',
-                'sevenPrizes_0', 'eightPrizes_0'
+                'specialPrize', 'firstPrize', 'secondPrize', 'threePrizes',
+                'fourPrizes', 'fivePrizes', 'sixPrizes', 'sevenPrizes', 'eightPrizes'
             ];
 
             prizeTypes.forEach(prizeType => {
@@ -210,7 +182,8 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                                 console.log('Cập nhật liveData:', updatedData);
 
                                 const hasRealData = updatedData.some(item =>
-                                    item.specialPrize_0 !== '...' || item.firstPrize_0 !== '...'
+                                    item.specialPrize?.some(num => num !== '...') ||
+                                    item.firstPrize?.some(num => num !== '...')
                                 );
                                 if (hasRealData) {
                                     setIsDataReady(true);
