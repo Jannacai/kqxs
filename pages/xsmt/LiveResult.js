@@ -50,10 +50,6 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     }), []);
 
     const emptyResult = useMemo(() => {
-        if (!today || typeof today !== 'string') {
-            console.warn('today is invalid:', today);
-            return [];
-        }
         const dateParts = today.split('/'); // today format: DD/MM/YYYY
         const date = new Date(`${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`);
         const dayOfWeekIndex = date.getDay();
@@ -605,33 +601,5 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
         </div>
     );
 };
-
-// Sử dụng getServerSideProps để truyền props và bật SSR
-export async function getServerSideProps(context) {
-    const today = new Date().toLocaleDateString('vi-VN', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-    }); // Format: DD/MM/YYYY
-    return {
-        props: {
-            station: 'xsmt',
-            today,
-            isLiveWindow: isWithinLiveWindow(),
-            filterTypes: {},
-            getHeadAndTailNumbers: null,
-            handleFilterChange: null,
-        },
-    };
-}
-
-// Hàm kiểm tra khung giờ trực tiếp (17:00–17:30, giả định cho XSMT)
-function isWithinLiveWindow() {
-    const now = new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' });
-    const vietTime = new Date(now);
-    const hours = vietTime.getHours();
-    const minutes = vietTime.getMinutes();
-    return (hours === 17 && minutes >= 12 && minutes <= 33);
-}
 
 export default React.memo(LiveResult);

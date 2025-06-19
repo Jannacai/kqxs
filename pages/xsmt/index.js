@@ -25,7 +25,7 @@ const KQXS = (props) => {
 
     const hour = 17;
     const minutes1 = 12;
-    const minutes2 = 15;
+    const minutes2 = 20;
 
     const dayof = props.dayofMT;
     const station = props.station || "xsmt";
