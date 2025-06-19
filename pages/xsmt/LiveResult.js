@@ -246,7 +246,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
 
         return () => {
             console.log('Đóng tất cả kết nối SSE...');
-            eventSources.forEach(eventSource => eventSource.close());
+            eventSources.push(eventSource => eventSource.close());
         };
     }, [isLiveWindow, station, today, retryCount, maxRetries, retryInterval, provincesByDay]);
 
@@ -255,46 +255,26 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     const tableKey = today + station;
     const currentFilter = filterTypes[tableKey] || 'all';
 
-    const getPrizeNumbersMT = (stationData) => {
-        const lastTwoNumbers = [];
-        const addNumber = (num) => {
-            if (num && num !== '...' && /^\d+$/.test(num)) {
-                const last2 = num.slice(-2).padStart(2, '0');
-                lastTwoNumbers.push(last2);
-            }
-        };
-
-        addNumber(stationData.specialPrize_0);
-        addNumber(stationData.firstPrize_0);
-        addNumber(stationData.secondPrize_0);
-        for (let i = 0; i < 2; i++) addNumber(stationData[`threePrizes_${i}`]);
-        for (let i = 0; i < 7; i++) addNumber(stationData[`fourPrizes_${i}`]);
-        addNumber(stationData.fivePrizes_0);
-        for (let i = 0; i < 3; i++) addNumber(stationData[`sixPrizes_${i}`]);
-        addNumber(stationData.sevenPrizes_0);
-        addNumber(stationData.eightPrizes_0);
-
-        const heads = Array(10).fill().map(() => []);
-        const tails = Array(10).fill().map(() => []);
-
-        lastTwoNumbers.forEach((last2) => {
-            if (last2.length === 2) {
-                const head = parseInt(last2[0], 10);
-                const tail = parseInt(last2[1], 10);
-                if (!isNaN(head) && !isNaN(tail)) {
-                    heads[head].push(last2);
-                    tails[tail].push(last2);
-                }
-            }
-        });
-
-        return { heads, tails };
-    };
-
     const allHeads = Array(10).fill().map(() => []);
     const allTails = Array(10).fill().map(() => []);
     const stationsData = liveData.map(stationData => {
-        const { heads, tails } = getPrizeNumbersMT(stationData);
+        // Ánh xạ dữ liệu chi tiết sang mảng cho getHeadAndTailNumbers
+        const mappedData = {
+            ...stationData,
+            specialPrize: [stationData.specialPrize_0],
+            firstPrize: [stationData.firstPrize_0],
+            secondPrize: [stationData.secondPrize_0],
+            threePrizes: [stationData.threePrizes_0, stationData.threePrizes_1],
+            fourPrizes: [
+                stationData.fourPrizes_0, stationData.fourPrizes_1, stationData.fourPrizes_2,
+                stationData.fourPrizes_3, stationData.fourPrizes_4, stationData.fourPrizes_5, stationData.fourPrizes_6
+            ],
+            fivePrizes: [stationData.fivePrizes_0],
+            sixPrizes: [stationData.sixPrizes_0, stationData.sixPrizes_1, stationData.sixPrizes_2],
+            sevenPrizes: [stationData.sevenPrizes_0],
+            eightPrizes: [stationData.eightPrizes_0],
+        };
+        const { heads, tails } = getHeadAndTailNumbers(mappedData);
         for (let i = 0; i < 10; i++) {
             allHeads[i].push(heads[i]);
             allTails[i].push(tails[i]);
@@ -528,26 +508,19 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             {Array.from({ length: 10 }, (_, idx) => (
                                 <tr key={idx}>
                                     <td className={styles.t_h}>{idx}</td>
-                                    {allHeads[idx].map((headNumbers, stationIdx) => {
-                                        const stationData = liveData[stationIdx];
-                                        const specialPrize = getFilteredNumber(stationData.specialPrize_0 || '...', 'last2');
-                                        const eightPrize = getFilteredNumber(stationData.eightPrizes_0 || '...', 'last2');
-                                        return (
-                                            <td key={stationIdx}>
-                                                {headNumbers.length > 0 ? (
-                                                    headNumbers.map((num, numIdx) => (
-                                                        <span
-                                                            key={numIdx}
-                                                            className={num === specialPrize || num === eightPrize ? styles.highlightPrize : ''}
-                                                        >
-                                                            {num}
-                                                            {numIdx < headNumbers.length - 1 && ', '}
-                                                        </span>
-                                                    ))
-                                                ) : '-'}
-                                            </td>
-                                        );
-                                    })}
+                                    {allHeads[idx].map((headNumbers, stationIdx) => (
+                                        <td key={stationIdx}>
+                                            {headNumbers.map((item, numIdx) => (
+                                                <span
+                                                    key={numIdx}
+                                                    className={item.isEighth || item.isSpecial ? styles.highlightPrize : ''}
+                                                >
+                                                    {item.num}
+                                                    {numIdx < headNumbers.length - 1 && ', '}
+                                                </span>
+                                            ))}
+                                        </td>
+                                    ))}
                                 </tr>
                             ))}
                         </tbody>
@@ -572,26 +545,19 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             {Array.from({ length: 10 }, (_, idx) => (
                                 <tr key={idx}>
                                     <td className={styles.t_h}>{idx}</td>
-                                    {allTails[idx].map((tailNumbers, stationIdx) => {
-                                        const stationData = liveData[stationIdx];
-                                        const specialPrize = getFilteredNumber(stationData.specialPrize_0 || '...', 'last2');
-                                        const eightPrize = getFilteredNumber(stationData.eightPrizes_0 || '...', 'last2');
-                                        return (
-                                            <td key={stationIdx}>
-                                                {tailNumbers.length > 0 ? (
-                                                    tailNumbers.map((num, numIdx) => (
-                                                        <span
-                                                            key={numIdx}
-                                                            className={num === specialPrize || num === eightPrize ? styles.highlightPrize : ''}
-                                                        >
-                                                            {num}
-                                                            {numIdx < tailNumbers.length - 1 && ', '}
-                                                        </span>
-                                                    ))
-                                                ) : '-'}
-                                            </td>
-                                        );
-                                    })}
+                                    {allTails[idx].map((tailNumbers, stationIdx) => (
+                                        <td key={stationIdx}>
+                                            {tailNumbers.map((item, numIdx) => (
+                                                <span
+                                                    key={numIdx}
+                                                    className={item.isEighth || item.isSpecial ? styles.highlightPrize : ''}
+                                                >
+                                                    {item.num}
+                                                    {numIdx < tailNumbers.length - 1 && ', '}
+                                                </span>
+                                            ))}
+                                        </td>
+                                    ))}
                                 </tr>
                             ))}
                         </tbody>
