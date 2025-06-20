@@ -13,6 +13,13 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     const maxRetries = 50;
     const retryInterval = 10000;
 
+    // Đảm bảo today có giá trị mặc định nếu undefined
+    const todayValue = today || new Date().toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+    });
+
     const provincesByDay = useMemo(() => ({
         0: [
             { tinh: 'tien-giang', tentinh: 'Tiền Giang' },
@@ -53,12 +60,44 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     }), []);
 
     const emptyResult = useMemo(() => {
-        const dayOfWeekIndex = new Date(today.split('/').reverse().join('-')).getDay();
+        // Kiểm tra todayValue hợp lệ trước khi split
+        if (!todayValue || typeof todayValue !== 'string' || !/^\d{2}\/\d{2}\/\d{4}$/.test(todayValue)) {
+            console.warn('todayValue không hợp lệ, sử dụng ngày hiện tại:', todayValue);
+            return provincesByDay[0].map(province => ({
+                drawDate: new Date().toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+                station: station || 'xsmn',
+                dayOfWeek: new Date().toLocaleString('vi-VN', { weekday: 'long' }),
+                tentinh: province.tentinh,
+                tinh: province.tinh,
+                year: new Date().getFullYear(),
+                month: new Date().getMonth() + 1,
+                specialPrize_0: '...',
+                firstPrize_0: '...',
+                secondPrize_0: '...',
+                threePrizes_0: '...',
+                threePrizes_1: '...',
+                fourPrizes_0: '...',
+                fourPrizes_1: '...',
+                fourPrizes_2: '...',
+                fourPrizes_3: '...',
+                fourPrizes_4: '...',
+                fourPrizes_5: '...',
+                fourPrizes_6: '...',
+                fivePrizes_0: '...',
+                sixPrizes_0: '...',
+                sixPrizes_1: '...',
+                sixPrizes_2: '...',
+                sevenPrizes_0: '...',
+                eightPrizes_0: '...',
+            }));
+        }
+
+        const dayOfWeekIndex = new Date(todayValue.split('/').reverse().join('-')).getDay();
         const provinces = provincesByDay[dayOfWeekIndex] || provincesByDay[0];
         return provinces.map(province => ({
-            drawDate: today,
-            station: station,
-            dayOfWeek: new Date(today.split('/').reverse().join('-')).toLocaleString('vi-VN', { weekday: 'long' }),
+            drawDate: todayValue,
+            station: station || 'xsmn',
+            dayOfWeek: new Date(todayValue.split('/').reverse().join('-')).toLocaleString('vi-VN', { weekday: 'long' }),
             tentinh: province.tentinh,
             tinh: province.tinh,
             year: new Date().getFullYear(),
@@ -82,7 +121,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             sevenPrizes_0: '...',
             eightPrizes_0: '...',
         }));
-    }, [today, station]);
+    }, [todayValue, station]);
 
     useEffect(() => {
         if (isLiveWindow) {
@@ -99,24 +138,24 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
 
     const fetchFallbackData = async () => {
         try {
-            const result = await apiMN.getLottery(station, today, undefined);
+            const result = await apiMN.getLottery(station || 'xsmn', todayValue, undefined);
             const dataArray = Array.isArray(result) ? result : [result];
             const todayData = dataArray.filter(item =>
                 new Date(item.drawDate).toLocaleDateString('vi-VN', {
                     day: '2-digit',
                     month: '2-digit',
                     year: 'numeric',
-                }) === today
+                }) === todayValue
             );
 
-            const dayOfWeekIndex = new Date(today.split('/').reverse().join('-')).getDay();
+            const dayOfWeekIndex = new Date(todayValue.split('/').reverse().join('-')).getDay();
             const provinces = provincesByDay[dayOfWeekIndex] || provincesByDay[0];
             const formattedData = provinces.map(province => {
                 const matchedData = todayData.find(item => item.tinh === province.tinh) || {};
                 return {
-                    drawDate: today,
-                    station: station,
-                    dayOfWeek: new Date(today.split('/').reverse().join('-')).toLocaleString('vi-VN', { weekday: 'long' }),
+                    drawDate: todayValue,
+                    station: station || 'xsmn',
+                    dayOfWeek: new Date(todayValue.split('/').reverse().join('-')).toLocaleString('vi-VN', { weekday: 'long' }),
                     tentinh: province.tentinh,
                     tinh: province.tinh,
                     year: new Date().getFullYear(),
@@ -165,14 +204,14 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             return;
         }
 
-        const dayOfWeekIndex = new Date(today.split('/').reverse().join('-')).getDay();
+        const dayOfWeekIndex = new Date(todayValue.split('/').reverse().join('-')).getDay();
         const provinces = provincesByDay[dayOfWeekIndex] || provincesByDay[0];
         const eventSources = [];
 
         const connectSSE = (tinh) => {
             console.log(`Kết nối SSE cho tỉnh ${tinh}... (Thử lần ${retryCount + 1}/${maxRetries + 1})`);
             const eventSource = new EventSource(
-                `https://backendkqxs.onrender.com/api/ketqua/xsmn/sse?station=${station}&tinh=${tinh}&date=${today.replace(/\//g, '-')}`
+                `https://backendkqxs.onrender.com/api/ketqua/xsmn/sse?station=${station || 'xsmn'}&tinh=${tinh}&date=${todayValue.replace(/\//g, '-')}`
             );
             eventSources.push(eventSource);
 
@@ -246,11 +285,11 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             console.log('Đóng tất cả kết nối SSE...');
             eventSources.forEach(eventSource => eventSource.close());
         };
-    }, [isLiveWindow, station, today, retryCount, maxRetries, retryInterval, provincesByDay]);
+    }, [isLiveWindow, station, todayValue, retryCount, maxRetries, retryInterval, provincesByDay]);
 
     if (!liveData.length) return null;
 
-    const tableKey = today + station;
+    const tableKey = todayValue + (station || 'xsmn');
     const currentFilter = filterTypes[tableKey] || 'all';
 
     const allHeads = Array(10).fill().map(() => []);
@@ -302,15 +341,15 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             <div className={styles.statusContainer}>
                 {error && <div className={styles.error}>{error}</div>}
                 {isTodayLoading && (
-                    <div className={styles.loading}>Đang chờ kết quả ngày {today}</div>
+                    <div className={styles.loading}>Đang chờ kết quả ngày {todayValue}</div>
                 )}
             </div>
             <div className={styles.kqxs} style={{ '--num-columns': liveData.length }}>
-                <h2 className={styles.kqxs__title}>Kết Quả Xổ Số Miền Nam - {today}</h2>
+                <h2 className={styles.kqxs__title}>Kết Quả Xổ Số Miền Nam - {todayValue}</h2>
                 <div className={styles.kqxs__action}>
                     <a className={styles.kqxs__actionLink} href="#!">XSMN</a>
                     <a className={`${styles.kqxs__actionLink} ${styles.dayOfWeek}`} href="#!">{liveData[0]?.dayOfWeek}</a>
-                    <a className={styles.kqxs__actionLink} href="#!">{today}</a>
+                    <a className={styles.kqxs__actionLink} href="#!">{todayValue}</a>
                 </div>
                 <table className={styles.tableXS}>
                     <thead>
@@ -504,7 +543,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                     <div className={styles.TKe_contentTitle}>
                         <span className={styles.title}>Thống kê lô tô theo Đầu - </span>
                         <span className={styles.dayOfWeek}>{liveData[0]?.dayOfWeek} - </span>
-                        <span className={styles.desc}>{today}</span>
+                        <span className={styles.desc}>{todayValue}</span>
                     </div>
                     <table className={styles.tableKey} style={{ '--num-columns': liveData.length }}>
                         <thead>
@@ -541,7 +580,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                     <div className={styles.TKe_contentTitle}>
                         <span className={styles.title}>Thống kê lô tô theo Đuôi - </span>
                         <span className={styles.dayOfWeek}>{liveData[0]?.dayOfWeek} - </span>
-                        <span className={styles.desc}>{today}</span>
+                        <span className={styles.desc}>{todayValue}</span>
                     </div>
                     <table className={styles.tableKey} style={{ '--num-columns': liveData.length }}>
                         <thead>
