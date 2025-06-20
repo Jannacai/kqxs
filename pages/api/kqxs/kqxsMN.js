@@ -209,7 +209,7 @@ export const apiMN = {
             throw new Error('Provinces must be a non-empty array');
         }
 
-        const url = `${API_BASE_URL2}/api/scraperMN/scrape`;
+        const url = `${API_BASE_URL2}/api/scraperMN/scrapeMN`;
         try {
             const response = await fetch(url, {
                 method: 'POST',
