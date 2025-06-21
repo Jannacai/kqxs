@@ -13,7 +13,13 @@
     /* width: 100%; */
 }
 
+.groupHeader {
+    padding: 10px 0px;
+    background-color: #ffeca0;
+}
+
 .kqxs {
+
     background-color: #f9f9f9;
     width: 100%;
     border: 2px solid #e80000;
@@ -24,7 +30,7 @@
 }
 
 .kqxs__title {
-    margin-top: 20px;
+
     color: #e80000;
     font-size: 26px;
     font-weight: 600;
@@ -386,7 +392,7 @@
 @media (max-width: 768px) {
     .containerKQ {
         min-width: 320px;
-        padding: 13px;
+        padding: 0 10px;
         font-size: 12px;
     }
 

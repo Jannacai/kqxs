@@ -295,7 +295,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     });
 
     return (
-        <div className={styles.containerKQ}>
+        <div className={styles.containerKQs}>
             <div className={styles.statusContainer}>
                 {error && <div className={styles.error}>{error}</div>}
                 {isTodayLoading && (
@@ -303,11 +303,13 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                 )}
             </div>
             <div className={styles.kqxs} style={{ '--num-columns': liveData.length }}>
-                <h2 className={styles.kqxs__title}>Kết Quả Xổ Số Miền Trung - {today}</h2>
-                <div className={styles.kqxs__action}>
-                    <a className={styles.kqxs__actionLink} href="#!">XSMT</a>
-                    <a className={`${styles.kqxs__actionLink} ${styles.dayOfWeek}`} href="#!">{liveData[0]?.dayOfWeek}</a>
-                    <a className={styles.kqxs__actionLink} href="#!">{today}</a>
+                <div className={styles.groupHeader}>
+                    <h2 className={styles.kqxs__title}>Kết Quả Xổ Số Miền Trung - {today}</h2>
+                    <div className={styles.kqxs__action}>
+                        <a className={styles.kqxs__actionLink} href="#!">XSMT</a>
+                        <a className={`${styles.kqxs__actionLink} ${styles.dayOfWeek}`} href="#!">{liveData[0]?.dayOfWeek}</a>
+                        <a className={styles.kqxs__actionLink} href="#!">{today}</a>
+                    </div>
                 </div>
                 <table className={styles.tableXS}>
                     <thead>
