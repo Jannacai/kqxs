@@ -91,44 +91,45 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
         let eventSource;
         let updateInterval = null;
 
-        // const fetchInitialData = async (retry = 0) => {
-        //     if (!station || !today || !/^\d{2}-\d{2}-\d{4}$/.test(today)) {
-        //         console.warn('Invalid station or today value:', { station, today });
-        //         setError('');
-        //         setIsTodayLoading(false);
-        //         return;
-        //     }
+        const fetchInitialData = async (retry = 0) => {
+            if (!station || !today || !/^\d{2}-\d{2}-\d{4}$/.test(today)) {
+                console.warn('Invalid station or today value:', { station, today });
+                setError('');
+                setIsTodayLoading(false);
+                return;
+            }
 
-        //     try {
-        //         const response = await fetch(`https://backendkqxs.onrender.com/api/kqxs/xsmb/sse/initial?station=${station}&date=${today}`);
-        //         if (!response.ok) {
-        //             throw new Error(`HTTP error! Status: ${response.status}`);
-        //         }
-        //         const initialData = await response.json();
-        //         if (initialData) {
-        //             setLiveData(prev => {
-        //                 const updatedData = { ...prev, ...initialData };
-        //                 localStorage.setItem(`liveData:${station}:${today}`, JSON.stringify(updatedData));
-        //                 const isComplete = Object.values(updatedData).every(
-        //                     val => typeof val === 'string' && val !== '...' && val !== '***'
-        //                 );
-        //                 setIsLiveDataComplete(isComplete);
-        //                 setIsTodayLoading(false);
-        //                 return updatedData;
-        //             });
-        //             setRetryCount(0);
-        //             setError(null);
-        //         }
-        //     } catch (error) {
-        //         console.error(`Lỗi khi lấy dữ liệu khởi tạo từ Redis (lần ${retry + 1}):`, error.message);
-        //         if (retry < fetchMaxRetries) {
-        //             setTimeout(() => fetchInitialData(retry + 1), fetchRetryInterval);
-        //         } else {
-        //             setError('Không thể lấy dữ liệu ban đầu, đang dựa vào dữ liệu cục bộ...');
-        //             setIsTodayLoading(false);
-        //         }
-        //     }
-        // };
+            try {
+                const response = await fetch(`https://backendkqxs.onrender.com/api/kqxs/xsmb/sse/initial?station=${station}&date=${today}`);
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                const initialData = await response.json();
+                setLiveData(prev => {
+                    const updatedData = { ...prev };
+                    for (const key in initialData) {
+                        if (!updatedData[key] || updatedData[key] === '...' || updatedData[key] === '***') {
+                            updatedData[key] = initialData[key];
+                        }
+                    }
+                    localStorage.setItem(`liveData:${station}:${today}`, JSON.stringify(updatedData));
+                    const isComplete = Object.values(updatedData).every(
+                        val => typeof val === 'string' && val !== '...' && val !== '***'
+                    );
+                    setIsLiveDataComplete(isComplete);
+                    setIsTodayLoading(false);
+                    return updatedData;
+                });
+                setRetryCount(0);
+                setError(null);
+            } catch (error) {
+                console.error(`Lỗi khi lấy dữ liệu khởi tạo từ Redis (lần ${retry + 1}):`, error.message);
+                if (retry < fetchMaxRetries) {
+                    setTimeout(() => fetchInitialData(retry + 1), fetchRetryInterval);
+                } else {
+                    setError('Không thể lấy dữ liệu ban đầu, đang dựa vào dữ liệu cục bộ...');
+                    setIsTodayLoading(false);
+                }
+            }
+        };
 
         const connectSSE = () => {
             if (!station || !today) {
@@ -181,6 +182,10 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             }
 
                             setLiveData(prev => {
+                                if (data[prizeType] === '...' && prev[prizeType] !== '...' && prev[prizeType] !== '***') {
+                                    console.warn(`Bỏ qua ${prizeType} = "..." vì đã có giá trị: ${prev[prizeType]}`);
+                                    return prev;
+                                }
                                 const updatedData = {
                                     ...prev,
                                     [prizeType]: data[prizeType],
@@ -241,7 +246,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
         };
 
         if (isLiveWindow && retryCount <= maxRetries && setLiveData) {
-            // fetchInitialData();
+            fetchInitialData();
             connectSSE();
         }
 
@@ -582,3 +587,4 @@ function isWithinLiveWindow() {
 }
 
 export default React.memo(LiveResult);
+// cần test thử 21/06
