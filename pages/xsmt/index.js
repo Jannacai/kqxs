@@ -8,7 +8,6 @@ import { debounce } from 'lodash';
 import Skeleton from 'react-loading-skeleton';
 import React from 'react';
 
-
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // Cache 24 giờ
 const ITEMS_PER_PAGE = 3;
 
@@ -42,7 +41,7 @@ const KQXS = (props) => {
         year: 'numeric',
     });
 
-    const CACHE_KEY = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}`;
+    const CACHE_KEY = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'} `;
 
     const triggerScraperDebounced = useCallback(
         debounce((today, station, provinces) => {
@@ -79,7 +78,7 @@ const KQXS = (props) => {
             const isUpdateWindow = now.getHours() === 17 && now.getMinutes() >= 12 && now.getMinutes() <= 33;
 
             const cachedData = localStorage.getItem(CACHE_KEY);
-            const cachedTime = localStorage.getItem(`${CACHE_KEY}_time`);
+            const cachedTime = localStorage.getItem(`${CACHE_KEY} _time`);
             const cacheAge = cachedTime ? now.getTime() - parseInt(cachedTime) : Infinity;
 
             if (!isUpdateWindow && cachedData && cacheAge < CACHE_DURATION) {
@@ -99,7 +98,7 @@ const KQXS = (props) => {
                     year: 'numeric',
                 }),
                 drawDateRaw: new Date(item.drawDate),
-                tentinh: item.tentinh || `Tỉnh ${dataArray.indexOf(item) + 1}`,
+                tentinh: item.tentinh || `Tỉnh ${dataArray.indexOf(item) + 1} `,
                 tinh: item.tinh || item.station,
             }));
 
@@ -126,7 +125,7 @@ const KQXS = (props) => {
 
             setData(finalData);
             localStorage.setItem(CACHE_KEY, JSON.stringify(finalData));
-            localStorage.setItem(`${CACHE_KEY}_time`, now.getTime().toString());
+            localStorage.setItem(`${CACHE_KEY} _time`, now.getTime().toString());
 
             setFilterTypes(prevFilters => ({
                 ...prevFilters,
@@ -167,19 +166,28 @@ const KQXS = (props) => {
 
     useEffect(() => {
         const checkTime = () => {
+            // Lấy thời gian theo múi giờ Việt Nam (+07:00)
             const now = new Date();
-            const startTime = new Date();
-            startTime.setHours(startHour, startMinute, 0, 0);
-            const endTime = new Date(startTime.getTime() + duration);
+            const vietnamTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+            const vietnamHours = vietnamTime.getHours();
+            const vietnamMinutes = vietnamTime.getMinutes();
+            const vietnamSeconds = vietnamTime.getSeconds();
 
-            const isLive = now >= startTime && now <= endTime;
+            // Tạo thời gian bắt đầu và kết thúc theo giờ Việt Nam
+            const startTime = new Date(vietnamTime);
+            startTime.setHours(startHour, startMinute, 0, 0); // 17:12
+            const endTime = new Date(startTime.getTime() + duration); // 17:35
+
+            // Kiểm tra khung giờ trực tiếp
+            const isLive = vietnamTime >= startTime && vietnamTime <= endTime;
             setIsRunning(prev => prev !== isLive ? isLive : prev);
 
-            if (now.getHours() === 0 && now.getMinutes() === 0 && now.getSeconds() === 0) {
+            // Reset lúc 00:00 +07:00
+            if (vietnamHours === 0 && vietnamMinutes === 0 && vietnamSeconds === 0) {
                 setHasTriggeredScraper(false);
             }
 
-            const dayOfWeekIndex = now.getDay();
+            const dayOfWeekIndex = vietnamTime.getDay();
             const todayData = {
                 1: [
                     { tinh: 'hue', tentinh: 'Huế' },
@@ -218,9 +226,9 @@ const KQXS = (props) => {
 
             if (
                 isLive &&
-                now.getHours() === hour &&
-                now.getMinutes() === minutes2 &&
-                now.getSeconds() <= 5 &&
+                vietnamHours === hour &&
+                vietnamMinutes === minutes2 &&
+                vietnamSeconds <= 5 &&
                 !hasTriggeredScraper &&
                 provinces.length > 0
             ) {
@@ -353,8 +361,8 @@ const KQXS = (props) => {
                             <div className={styles.header}>
                                 <h2 className={styles.kqxs__title}>Kết Quả Xổ Số Miền Trung - {dayData.drawDate}</h2>
                                 <div className={styles.kqxs__action}>
-                                    <a className={`${styles.kqxs__actionLink}`} href="#!">XSMT</a>
-                                    <a className={`${styles.kqxs__actionLink} ${styles.dayOfWeek}`} href="#!">{dayData.dayOfWeek}</a>
+                                    <a className={`${styles.kqxs__actionLink} `} href="#!">XSMT</a>
+                                    <a className={`${styles.kqxs__actionLink} ${styles.dayOfWeek} `} href="#!">{dayData.dayOfWeek}</a>
                                     <a className={styles.kqxs__actionLink} href="#!">{dayData.drawDate}</a>
                                 </div>
                             </div>
@@ -364,17 +372,17 @@ const KQXS = (props) => {
                                         <th></th>
                                         {dayData.stations.map(stationData => (
                                             <th key={stationData.tinh || stationData.station} className={styles.stationName}>
-                                                {stationData.tentinh || `Tỉnh ${dayData.stations.indexOf(stationData) + 1}`}
+                                                {stationData.tentinh || `Tỉnh ${dayData.stations.indexOf(stationData) + 1} `}
                                             </th>
                                         ))}
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr>
-                                        <td className={`${styles.tdTitle} ${styles.highlight}`}>G8</td>
+                                        <td className={`${styles.tdTitle} ${styles.highlight} `}>G8</td>
                                         {dayData.stations.map(stationData => (
                                             <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
-                                                <span className={`${styles.prizeNumber} ${styles.highlight}`}>
+                                                <span className={`${styles.prizeNumber} ${styles.highlight} `}>
                                                     {(stationData.eightPrizes || [])[0] ? getFilteredNumber(stationData.eightPrizes[0], currentFilter) : '-'}
                                                 </span>
                                             </td>
@@ -404,11 +412,11 @@ const KQXS = (props) => {
                                         ))}
                                     </tr>
                                     <tr>
-                                        <td className={`${styles.tdTitle} ${styles.g3}`}>G5</td>
+                                        <td className={`${styles.tdTitle} ${styles.g3} `}>G5</td>
                                         {dayData.stations.map(stationData => (
                                             <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
                                                 {(stationData.fivePrizes || []).slice(0, 3).map((kq, idx) => (
-                                                    <span key={idx} className={`${styles.prizeNumber} ${styles.g3}`}>
+                                                    <span key={idx} className={`${styles.prizeNumber} ${styles.g3} `}>
                                                         {getFilteredNumber(kq, currentFilter)}
                                                         {idx < (stationData.fivePrizes || []).slice(0, 3).length - 1 && <br />}
                                                     </span>
@@ -430,11 +438,11 @@ const KQXS = (props) => {
                                         ))}
                                     </tr>
                                     <tr>
-                                        <td className={`${styles.tdTitle} ${styles.g3}`}>G3</td>
+                                        <td className={`${styles.tdTitle} ${styles.g3} `}>G3</td>
                                         {dayData.stations.map(stationData => (
                                             <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
                                                 {(stationData.threePrizes || []).slice(0, 2).map((kq, idx) => (
-                                                    <span key={idx} className={`${styles.prizeNumber} ${styles.g3}`}>
+                                                    <span key={idx} className={`${styles.prizeNumber} ${styles.g3} `}>
                                                         {getFilteredNumber(kq, currentFilter)}
                                                         {idx < (stationData.threePrizes || []).slice(0, 2).length - 1 && <br />}
                                                     </span>
@@ -463,10 +471,10 @@ const KQXS = (props) => {
                                         ))}
                                     </tr>
                                     <tr>
-                                        <td className={`${styles.tdTitle} ${styles.highlight}`}>ĐB</td>
+                                        <td className={`${styles.tdTitle} ${styles.highlight} `}>ĐB</td>
                                         {dayData.stations.map(stationData => (
                                             <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
-                                                <span className={`${styles.prizeNumber} ${styles.highlight} ${styles.gdb}`}>
+                                                <span className={`${styles.prizeNumber} ${styles.highlight} ${styles.gdb} `}>
                                                     {(stationData.specialPrize || [])[0] ? getFilteredNumber(stationData.specialPrize[0], currentFilter) : '-'}
                                                 </span>
                                             </td>
@@ -478,36 +486,36 @@ const KQXS = (props) => {
                                 <div aria-label="Tùy chọn lọc số" className={styles.filter__options} role="radiogroup">
                                     <div className={styles.optionInput}>
                                         <input
-                                            id={`filterAll-${tableKey}`}
+                                            id={`filterAll - ${tableKey} `}
                                             type="radio"
-                                            name={`filterOption-${tableKey}`}
+                                            name={`filterOption - ${tableKey} `}
                                             value="all"
                                             checked={currentFilter === 'all'}
                                             onChange={() => handleFilterChange(tableKey, 'all')}
                                         />
-                                        <label htmlFor={`filterAll-${tableKey}`}>Tất cả</label>
+                                        <label htmlFor={`filterAll - ${tableKey} `}>Tất cả</label>
                                     </div>
                                     <div className={styles.optionInput}>
                                         <input
-                                            id={`filterTwo-${tableKey}`}
+                                            id={`filterTwo - ${tableKey} `}
                                             type="radio"
-                                            name={`filterOption-${tableKey}`}
+                                            name={`filterOption - ${tableKey} `}
                                             value="last2"
                                             checked={currentFilter === 'last2'}
                                             onChange={() => handleFilterChange(tableKey, 'last2')}
                                         />
-                                        <label htmlFor={`filterTwo-${tableKey}`}>2 số cuối</label>
+                                        <label htmlFor={`filterTwo - ${tableKey} `}>2 số cuối</label>
                                     </div>
                                     <div className={styles.optionInput}>
                                         <input
-                                            id={`filterThree-${tableKey}`}
+                                            id={`filterThree - ${tableKey} `}
                                             type="radio"
-                                            name={`filterOption-${tableKey}`}
+                                            name={`filterOption - ${tableKey} `}
                                             value="last3"
                                             checked={currentFilter === 'last3'}
                                             onChange={() => handleFilterChange(tableKey, 'last3')}
                                         />
-                                        <label htmlFor={`filterThree-${tableKey}`}>3 số cuối</label>
+                                        <label htmlFor={`filterThree - ${tableKey} `}>3 số cuối</label>
                                     </div>
                                 </div>
                             </div>
@@ -526,7 +534,7 @@ const KQXS = (props) => {
                                             <th className={styles.t_h}>Đầu</th>
                                             {stationsData.map(station => (
                                                 <th key={station.station}>
-                                                    {station.tentinh || `Tỉnh ${stationsData.indexOf(station) + 1}`}
+                                                    {station.tentinh || `Tỉnh ${stationsData.indexOf(station) + 1} `}
                                                 </th>
                                             ))}
                                         </tr>
@@ -570,7 +578,7 @@ const KQXS = (props) => {
                                             <th className={styles.t_h}>Đuôi</th>
                                             {stationsData.map(station => (
                                                 <th key={station.station}>
-                                                    {station.tentinh || `Tỉnh ${stationsData.indexOf(station) + 1}`}
+                                                    {station.tentinh || `Tỉnh ${stationsData.indexOf(station) + 1} `}
                                                 </th>
                                             ))}
                                         </tr>

@@ -1,5 +1,5 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-const API_BASE_URL2 = process.env.NEXT_PUBLIC_BACKEND_URL2 || 'http://localhost:4000';
+const API_BASE_URL2 = process.env.NEXT_PUBLIC_BACKEND_URL2 || 'https://scraper-qtq0.onrender.com';
 
 const getUserId = () => {
     if (typeof window !== 'undefined') {
@@ -209,7 +209,7 @@ export const apiMN = {
             throw new Error('Provinces must be a non-empty array');
         }
 
-        const url = `${API_BASE_URL2}/api/scraperMN/scrapeMN`;
+        const url = `https://scraper-qtq0.onrender.com/api/scraperMN/scrapeMN`;
         try {
             const response = await fetch(url, {
                 method: 'POST',
