@@ -1,3 +1,4 @@
+// cần test thử để xem animating
 import { useState, useEffect, useMemo } from "react";
 import styles from '../../styles/LivekqxsMB.module.css';
 import { getFilteredNumber } from "../../library/utils/filterUtils";
@@ -89,7 +90,6 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
 
     useEffect(() => {
         let eventSource;
-        let updateInterval = null;
 
         const fetchInitialData = async (retry = 0) => {
             if (!station || !today || !/^\d{2}-\d{2}-\d{4}$/.test(today)) {
@@ -138,20 +138,6 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             }
             eventSource = new EventSource(`https://backendkqxs.onrender.com/api/kqxs/xsmb/sse?station=${station}&date=${today}`);
 
-            // Định nghĩa thứ tự animating
-            const animationQueue = [
-                'firstPrize_0', // Giải 1
-                'secondPrize_0', 'secondPrize_1', // Giải 2
-                'threePrizes_0', 'threePrizes_1', 'threePrizes_2', 'threePrizes_3', 'threePrizes_4', 'threePrizes_5', // Giải 3
-                'fourPrizes_0', 'fourPrizes_1', 'fourPrizes_2', 'fourPrizes_3', // Giải 4
-                'fivePrizes_0', 'fivePrizes_1', 'fivePrizes_2', 'fivePrizes_3', 'fivePrizes_4', 'fivePrizes_5', // Giải 5
-                'sixPrizes_0', 'sixPrizes_1', 'sixPrizes_2', // Giải 6
-                'sevenPrizes_0', 'sevenPrizes_1', 'sevenPrizes_2', 'sevenPrizes_3', // Giải 7
-                'specialPrize_0' // Giải đặc biệt
-            ];
-
-            let currentIndex = 0; // Theo dõi vị trí trong animationQueue
-
             const prizeTypes = [
                 'maDB', 'specialPrize_0', 'firstPrize_0', 'secondPrize_0', 'secondPrize_1',
                 'threePrizes_0', 'threePrizes_1', 'threePrizes_2', 'threePrizes_3', 'threePrizes_4', 'threePrizes_5',
@@ -167,20 +153,6 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                         const data = JSON.parse(event.data);
                         console.log("data từ redis", data);
                         if (data && data[prizeType]) {
-                            // Bắt đầu animating cho prizeType đầu tiên khi nhận dữ liệu rỗng
-                            if (data[prizeType] === '...' && prizeType !== 'maDB' && currentIndex < animationQueue.length) {
-                                const nextPrize = animationQueue[currentIndex];
-                                if (nextPrize === prizeType && !animatingPrize) {
-                                    setAnimatingPrize(nextPrize);
-                                    updateInterval = setInterval(() => {
-                                        setAnimatingNumbers(prev => ({
-                                            ...prev,
-                                            [nextPrize]: Math.floor(Math.random() * 100000).toString().padStart(5, '0')
-                                        }));
-                                    }, 100);
-                                }
-                            }
-
                             setLiveData(prev => {
                                 if (data[prizeType] === '...' && prev[prizeType] !== '...' && prev[prizeType] !== '***') {
                                     console.warn(`Bỏ qua ${prizeType} = "..." vì đã có giá trị: ${prev[prizeType]}`);
@@ -199,25 +171,6 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                                     val => typeof val === 'string' && val !== '...' && val !== '***'
                                 );
                                 setIsLiveDataComplete(isComplete);
-                                // Dừng animating và chuyển sang prizeType tiếp theo khi có kết quả
-                                if (data[prizeType] !== '...' && animatingPrize === prizeType && updateInterval) {
-                                    clearInterval(updateInterval);
-                                    setAnimatingNumbers(prev => ({ ...prev, [prizeType]: null }));
-                                    setAnimatingPrize(null);
-                                    currentIndex++; // Chuyển sang phần tử tiếp theo
-                                    if (currentIndex < animationQueue.length) {
-                                        const nextPrize = animationQueue[currentIndex];
-                                        if (liveData[nextPrize] === '...' && nextPrize !== 'maDB') {
-                                            setAnimatingPrize(nextPrize);
-                                            updateInterval = setInterval(() => {
-                                                setAnimatingNumbers(prev => ({
-                                                    ...prev,
-                                                    [nextPrize]: Math.floor(Math.random() * 100000).toString().padStart(5, '0')
-                                                }));
-                                            }, 150);
-                                        }
-                                    }
-                                }
                                 return updatedData;
                             });
                             setIsTodayLoading(false);
@@ -255,9 +208,60 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                 console.log('Đóng kết nối SSE...');
                 eventSource.close();
             }
-            if (updateInterval) clearInterval(updateInterval);
         };
     }, [isLiveWindow, station, retryCount, maxRetries, retryInterval, today, setLiveData, setIsLiveDataComplete]);
+
+    // Logic animating hoàn toàn tách biệt
+    useEffect(() => {
+        if (!isLiveWindow || !liveData) return;
+
+        const animationQueue = [
+            'firstPrize_0',
+            'secondPrize_0', 'secondPrize_1',
+            'threePrizes_0', 'threePrizes_1', 'threePrizes_2', 'threePrizes_3', 'threePrizes_4', 'threePrizes_5',
+            'fourPrizes_0', 'fourPrizes_1', 'fourPrizes_2', 'fourPrizes_3',
+            'fivePrizes_0', 'fivePrizes_1', 'fivePrizes_2', 'fivePrizes_3', 'fivePrizes_4', 'fivePrizes_5',
+            'sixPrizes_0', 'sixPrizes_1', 'sixPrizes_2',
+            'sevenPrizes_0', 'sevenPrizes_1', 'sevenPrizes_2', 'sevenPrizes_3',
+            'specialPrize_0'
+        ];
+
+        // Tìm giải cần animating
+        const findNextAnimatingPrize = () => {
+            for (const prize of animationQueue) {
+                if (liveData[prize] === '...') {
+                    return prize;
+                }
+            }
+            return null;
+        };
+
+        // Khởi tạo hoặc cập nhật animatingPrize
+        if (!animatingPrize || liveData[animatingPrize] !== '...') {
+            const nextPrize = findNextAnimatingPrize();
+            setAnimatingPrize(nextPrize);
+        }
+
+        // Tạo số ngẫu nhiên cho giải đang animating
+        if (animatingPrize) {
+            const interval = setInterval(() => {
+                setAnimatingNumbers(prev => ({
+                    ...prev,
+                    [animatingPrize]: Math.floor(Math.random() * 100000).toString().padStart(5, '0')
+                }));
+            }, 50);
+
+            // Khởi tạo số ngẫu nhiên ban đầu
+            setAnimatingNumbers(prev => ({
+                ...prev,
+                [animatingPrize]: Math.floor(Math.random() * 100000).toString().padStart(5, '0')
+            }));
+
+            return () => clearInterval(interval);
+        }
+
+        return () => { };
+    }, [isLiveWindow, liveData, animatingPrize]);
 
     if (!liveData) {
         return <div className={styles.error}>Đang tải dữ liệu...</div>;
@@ -311,7 +315,6 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     ].filter(num => num && num !== '...' && num !== '***');
     const specialPrize = getFilteredNumber(liveData.specialPrize_0 || '...', 'last2');
 
-    // Hàm render giá trị với hiệu ứng animating
     const renderPrizeValue = (prizeType, digits = 5) => {
         const isAnimating = animatingPrize === prizeType && liveData[prizeType] === '...';
         const value = isAnimating ? animatingNumbers[prizeType] || '0'.repeat(digits) : liveData[prizeType];
@@ -321,9 +324,9 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             <span className={className} data-status={isAnimating ? 'animating' : 'static'}>
                 {isAnimating ? (
                     <span className={styles.digit_container}>
-                        {Array.from({ length: 5 }, (_, i) => (
+                        {value.split('').map((digit, i) => (
                             <span key={i} className={styles.digit}>
-                                {Math.floor(Math.random() * 10)}
+                                {digit}
                             </span>
                         ))}
                     </span>
@@ -413,7 +416,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             <td className={styles.rowXS}>
                                 {[0, 1, 2, 3].map(i => (
                                     <span key={i} className={styles.span4}>
-                                        {renderPrizeValue(`fourPrizes_${i}`, 5)}
+                                        {renderPrizeValue(`fourPrizes_${i}`, 4)}
                                     </span>
                                 ))}
                             </td>
@@ -443,7 +446,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             <td className={styles.rowXS}>
                                 {[0, 1, 2].map(i => (
                                     <span key={i} className={styles.span3}>
-                                        {renderPrizeValue(`sixPrizes_${i}`, 5)}
+                                        {renderPrizeValue(`sixPrizes_${i}`, 3)}
                                     </span>
                                 ))}
                             </td>
@@ -453,7 +456,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             <td className={styles.rowXS}>
                                 {[0, 1, 2, 3].map(i => (
                                     <span key={i} className={`${styles.span4} ${styles.highlight}`}>
-                                        {renderPrizeValue(`sevenPrizes_${i}`, 5)}
+                                        {renderPrizeValue(`sevenPrizes_${i}`, 2)}
                                     </span>
                                 ))}
                             </td>
@@ -558,7 +561,6 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     );
 };
 
-// Sử dụng getServerSideProps để truyền props và bật SSR
 export async function getServerSideProps(context) {
     const today = new Date().toLocaleDateString('vi-VN', {
         day: '2-digit',
@@ -577,7 +579,6 @@ export async function getServerSideProps(context) {
     };
 }
 
-// Hàm kiểm tra khung giờ trực tiếp (18:10–18:32)
 function isWithinLiveWindow() {
     const now = new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' });
     const vietTime = new Date(now);
@@ -587,4 +588,3 @@ function isWithinLiveWindow() {
 }
 
 export default React.memo(LiveResult);
-// cần test thử 21/06
