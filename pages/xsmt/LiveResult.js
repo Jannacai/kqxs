@@ -4,14 +4,14 @@ import { getFilteredNumber } from "../../library/utils/filterUtils";
 import { apiMT } from "../api/kqxs/kqxsMT";
 import React from 'react';
 
+console.log('styles.spinner:', styles.spinner);
+
 const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange, filterTypes, isLiveWindow }) => {
     const [liveData, setLiveData] = useState([]);
     const [isTodayLoading, setIsTodayLoading] = useState(true);
     const [error, setError] = useState(null);
     const [retryCount, setRetryCount] = useState(0);
     const [isDataReady, setIsDataReady] = useState(false);
-    const [animatingPrizes, setAnimatingPrizes] = useState({}); // { tinh: prizeType }
-    const [animatingNumbers, setAnimatingNumbers] = useState({}); // { tinh_prizeType: number }
     const maxRetries = 50;
     const retryInterval = 10000;
 
@@ -245,71 +245,6 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
         };
     }, [isLiveWindow, station, today, retryCount, maxRetries, retryInterval, provincesByDay]);
 
-    useEffect(() => {
-        if (!isLiveWindow || !liveData.length) return;
-
-        const animationQueue = [
-            'eightPrizes_0', 'sevenPrizes_0',
-            'sixPrizes_0', 'sixPrizes_1', 'sixPrizes_2',
-            'fivePrizes_0',
-            'fourPrizes_0', 'fourPrizes_1', 'fourPrizes_2', 'fourPrizes_3', 'fourPrizes_4', 'fourPrizes_5', 'fourPrizes_6',
-            'threePrizes_0', 'threePrizes_1',
-            'secondPrize_0', 'firstPrize_0', 'specialPrize_0'
-        ];
-
-        const findNextPrize = (stationData) => {
-            return animationQueue.find(prize => stationData[prize] === '...') || null;
-        };
-
-        liveData.forEach(stationData => {
-            const currentPrize = animatingPrizes[stationData.tinh];
-            if (!currentPrize || stationData[currentPrize] !== '...') {
-                const nextPrize = findNextPrize(stationData);
-                setAnimatingPrizes(prev => ({
-                    ...prev,
-                    [stationData.tinh]: nextPrize
-                }));
-            }
-
-            if (animatingPrizes[stationData.tinh]) {
-                const prizeType = animatingPrizes[stationData.tinh];
-                const intervalId = setInterval(() => {
-                    setAnimatingNumbers(prev => ({
-                        ...prev,
-                        [`${stationData.tinh}_${prizeType}`]: Math.floor(Math.random() * 1000000).toString().padStart(6, '0')
-                    }));
-                }, 50);
-
-                return () => clearInterval(intervalId);
-            }
-        });
-
-    }, [isLiveWindow, liveData, animatingPrizes]);
-
-    const renderPrizeNumber = (tinh, prizeType, digits = 5) => {
-        const isAnimating = animatingPrizes[tinh] === prizeType && liveData.find(item => item.tinh === tinh)?.[prizeType] === '...';
-        const value = isAnimating ? animatingNumbers[`${tinh}_${prizeType}`] || '0'.repeat(digits) : liveData.find(item => item.tinh === tinh)?.[prizeType] || '...';
-        const className = `${styles.runningNumber} ${styles[`running_${digits}`]} ${isAnimating ? styles.animating : ''}`;
-
-        return (
-            <span className={className} data-state={isAnimating ? 'animating' : 'static'}>
-                {isAnimating ? (
-                    <span className={styles.digitContainer}>
-                        {value.split('').slice(-digits).map((digit, idx) => (
-                            <span key={idx} className={styles.digit}>
-                                {digit}
-                            </span>
-                        ))}
-                    </span>
-                ) : value === '...' ? (
-                    <span className={styles.spinner}></span>
-                ) : (
-                    getFilteredNumber(value, currentFilter) || '-'
-                )}
-            </span>
-        );
-    };
-
     if (!liveData.length) return null;
 
     const tableKey = today + station;
@@ -393,7 +328,11 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             {liveData.map(stationData => (
                                 <td key={stationData.tinh} className={styles.rowXS}>
                                     <span className={`${styles.prizeNumber} ${styles.highlight}`}>
-                                        {renderPrizeNumber(stationData.tinh, 'eightPrizes_0', 2)}
+                                        {stationData.eightPrizes_0 === '...' ? (
+                                            <span className={styles.spinner}></span>
+                                        ) : (
+                                            getFilteredNumber(stationData.eightPrizes_0, currentFilter) || '-'
+                                        )}
                                     </span>
                                 </td>
                             ))}
@@ -403,7 +342,11 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             {liveData.map(stationData => (
                                 <td key={stationData.tinh} className={styles.rowXS}>
                                     <span className={styles.prizeNumber}>
-                                        {renderPrizeNumber(stationData.tinh, 'sevenPrizes_0', 3)}
+                                        {stationData.sevenPrizes_0 === '...' ? (
+                                            <span className={styles.spinner}></span>
+                                        ) : (
+                                            getFilteredNumber(stationData.sevenPrizes_0, currentFilter) || '-'
+                                        )}
                                     </span>
                                 </td>
                             ))}
@@ -412,9 +355,13 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             <td className={styles.tdTitle}>G6</td>
                             {liveData.map(stationData => (
                                 <td key={stationData.tinh} className={styles.rowXS}>
-                                    {[0, 1, 2].map(idx => (
+                                    {[0, 1, 2].map((idx) => (
                                         <span key={idx} className={styles.prizeNumber}>
-                                            {renderPrizeNumber(stationData.tinh, `sixPrizes_${idx}`, 4)}
+                                            {stationData[`sixPrizes_${idx}`] === '...' ? (
+                                                <span className={styles.spinner}></span>
+                                            ) : (
+                                                getFilteredNumber(stationData[`sixPrizes_${idx}`], currentFilter) || '-'
+                                            )}
                                             {idx < 2 && <br />}
                                         </span>
                                     ))}
@@ -426,7 +373,11 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             {liveData.map(stationData => (
                                 <td key={stationData.tinh} className={styles.rowXS}>
                                     <span className={`${styles.prizeNumber} ${styles.g3}`}>
-                                        {renderPrizeNumber(stationData.tinh, 'fivePrizes_0', 4)}
+                                        {stationData.fivePrizes_0 === '...' ? (
+                                            <span className={styles.spinner}></span>
+                                        ) : (
+                                            getFilteredNumber(stationData.fivePrizes_0, currentFilter) || '-'
+                                        )}
                                     </span>
                                 </td>
                             ))}
@@ -435,9 +386,13 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             <td className={styles.tdTitle}>G4</td>
                             {liveData.map(stationData => (
                                 <td key={stationData.tinh} className={styles.rowXS}>
-                                    {[0, 1, 2, 3, 4, 5, 6].map(idx => (
+                                    {[0, 1, 2, 3, 4, 5, 6].map((idx) => (
                                         <span key={idx} className={styles.prizeNumber}>
-                                            {renderPrizeNumber(stationData.tinh, `fourPrizes_${idx}`, 5)}
+                                            {stationData[`fourPrizes_${idx}`] === '...' ? (
+                                                <span className={styles.spinner}></span>
+                                            ) : (
+                                                getFilteredNumber(stationData[`fourPrizes_${idx}`], currentFilter) || '-'
+                                            )}
                                             {idx < 6 && <br />}
                                         </span>
                                     ))}
@@ -448,9 +403,13 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             <td className={`${styles.tdTitle} ${styles.g3}`}>G3</td>
                             {liveData.map(stationData => (
                                 <td key={stationData.tinh} className={styles.rowXS}>
-                                    {[0, 1].map(idx => (
+                                    {[0, 1].map((idx) => (
                                         <span key={idx} className={`${styles.prizeNumber} ${styles.g3}`}>
-                                            {renderPrizeNumber(stationData.tinh, `threePrizes_${idx}`, 5)}
+                                            {stationData[`threePrizes_${idx}`] === '...' ? (
+                                                <span className={styles.spinner}></span>
+                                            ) : (
+                                                getFilteredNumber(stationData[`threePrizes_${idx}`], currentFilter) || '-'
+                                            )}
                                             {idx < 1 && <br />}
                                         </span>
                                     ))}
@@ -462,7 +421,11 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             {liveData.map(stationData => (
                                 <td key={stationData.tinh} className={styles.rowXS}>
                                     <span className={styles.prizeNumber}>
-                                        {renderPrizeNumber(stationData.tinh, 'secondPrize_0', 5)}
+                                        {stationData.secondPrize_0 === '...' ? (
+                                            <span className={styles.spinner}></span>
+                                        ) : (
+                                            getFilteredNumber(stationData.secondPrize_0, currentFilter) || '-'
+                                        )}
                                     </span>
                                 </td>
                             ))}
@@ -472,7 +435,11 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             {liveData.map(stationData => (
                                 <td key={stationData.tinh} className={styles.rowXS}>
                                     <span className={styles.prizeNumber}>
-                                        {renderPrizeNumber(stationData.tinh, 'firstPrize_0', 5)}
+                                        {stationData.firstPrize_0 === '...' ? (
+                                            <span className={styles.spinner}></span>
+                                        ) : (
+                                            getFilteredNumber(stationData.firstPrize_0, currentFilter) || '-'
+                                        )}
                                     </span>
                                 </td>
                             ))}
@@ -482,7 +449,11 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             {liveData.map(stationData => (
                                 <td key={stationData.tinh} className={styles.rowXS}>
                                     <span className={`${styles.prizeNumber} ${styles.highlight} ${styles.gdb}`}>
-                                        {renderPrizeNumber(stationData.tinh, 'specialPrize_0', 6)}
+                                        {stationData.specialPrize_0 === '...' ? (
+                                            <span className={styles.spinner}></span>
+                                        ) : (
+                                            getFilteredNumber(stationData.specialPrize_0, currentFilter) || '-'
+                                        )}
                                     </span>
                                 </td>
                             ))}
