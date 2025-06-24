@@ -5,14 +5,16 @@ import { getFilteredNumber } from "../../library/utils/filterUtils";
 import { useRouter } from 'next/router';
 import React from 'react';
 import LiveResult from './LiveResult';
-import Skeleton from 'react-loading-skeleton';
 import { debounce } from 'lodash';
+import Skeleton from 'react-loading-skeleton';
+import { useLottery } from '../../contexts/LotteryContext'; // THÊM: Import useLottery
 
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // Cache 24 giờ
 const ITEMS_PER_PAGE = 3;
 
 const KQXS = (props) => {
-    const [data, setData] = useState([]);
+    const { liveData, isLiveDataComplete } = useLottery(); // THÊM: Sử dụng useLottery
+    const [data, setData] = useState(props.data || []); // SỬA: Khởi tạo data từ props.data như XSMT
     const [loading, setLoading] = useState(true);
     const [filterTypes, setFilterTypes] = useState({});
     const [isRunning, setIsRunning] = useState(false);
@@ -24,10 +26,9 @@ const KQXS = (props) => {
 
     const hour = 16;
     const minutes1 = 10;
-    const minutes2 = 12;
+    const minutes2 = 15;
 
-    let dayof;
-
+    let dayof; // GIỮ NGUYÊN: Xử lý data3 như XSMN ban đầu
     const station = props.station || "xsmn";
     const date = props.data3 && /^\d{2}-\d{2}-\d{4}$/.test(props.data3)
         ? props.data3
@@ -44,7 +45,7 @@ const KQXS = (props) => {
         year: 'numeric',
     });
 
-    const CACHE_KEY = `xsmn_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'} `;
+    const CACHE_KEY = `xsmn_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}`; // SỬA: Loại bỏ khoảng trắng thừa
 
     const triggerScraperDebounced = useCallback(
         debounce((today, station, provinces) => {
@@ -81,7 +82,7 @@ const KQXS = (props) => {
             const isUpdateWindow = now.getHours() === 16 && now.getMinutes() >= 10 && now.getMinutes() <= 40;
 
             const cachedData = localStorage.getItem(CACHE_KEY);
-            const cachedTime = localStorage.getItem(`${CACHE_KEY} _time`);
+            const cachedTime = localStorage.getItem(`${CACHE_KEY}_time`);
             const cacheAge = cachedTime ? now.getTime() - parseInt(cachedTime) : Infinity;
 
             if (!isUpdateWindow && cachedData && cacheAge < CACHE_DURATION) {
@@ -126,9 +127,17 @@ const KQXS = (props) => {
                 dayOfWeek: groupedByDate[date][0].dayOfWeek,
             }));
 
-            setData(finalData);
-            localStorage.setItem(CACHE_KEY, JSON.stringify(finalData));
-            localStorage.setItem(`${CACHE_KEY} _time`, now.getTime().toString());
+            // THÊM: Kiểm tra hasNewData như XSMT
+            const cachedDataParsed = cachedData ? JSON.parse(cachedData) : [];
+            const hasNewData = JSON.stringify(finalData) !== JSON.stringify(cachedDataParsed);
+
+            if (hasNewData) {
+                setData(finalData);
+                localStorage.setItem(CACHE_KEY, JSON.stringify(finalData));
+                localStorage.setItem(`${CACHE_KEY}_time`, now.getTime().toString());
+            } else if (cachedData) {
+                setData(cachedDataParsed);
+            }
 
             setFilterTypes(prevFilters => ({
                 ...prevFilters,
@@ -166,6 +175,49 @@ const KQXS = (props) => {
         cleanOldCache();
         fetchData();
     }, [fetchData]);
+
+    // THÊM: Cập nhật cache khi liveData đầy đủ, giống XSMT
+    useEffect(() => {
+        if (isLiveDataComplete && liveData && Array.isArray(liveData) && liveData.some(item => item.drawDate === today)) {
+            setData(prevData => {
+                // Loại bỏ dữ liệu cũ của ngày hôm nay
+                const filteredData = prevData.filter(item => item.drawDate !== today);
+                const formattedLiveData = {
+                    drawDate: today,
+                    drawDateRaw: new Date(today.split('/').reverse().join('-')),
+                    dayOfWeek: new Date().toLocaleString('vi-VN', { weekday: 'long' }),
+                    stations: liveData.map(item => ({
+                        ...item,
+                        tentinh: item.tentinh || `Tỉnh ${liveData.indexOf(item) + 1}`,
+                        tinh: item.tinh || item.station || station,
+                        specialPrize: [item.specialPrize_0],
+                        firstPrize: [item.firstPrize_0],
+                        secondPrize: [item.secondPrize_0],
+                        threePrizes: [item.threePrizes_0, item.threePrizes_1],
+                        fourPrizes: [
+                            item.fourPrizes_0, item.fourPrizes_1, item.fourPrizes_2,
+                            item.fourPrizes_3, item.fourPrizes_4, item.fourPrizes_5,
+                            item.fourPrizes_6
+                        ],
+                        fivePrizes: [item.fivePrizes_0],
+                        sixPrizes: [item.sixPrizes_0, item.sixPrizes_1, item.sixPrizes_2],
+                        sevenPrizes: [item.sevenPrizes_0],
+                        eightPrizes: [item.eightPrizes_0],
+                    })),
+                };
+                const newData = [formattedLiveData, ...filteredData].sort((a, b) =>
+                    new Date(b.drawDate.split('/').reverse().join('-')) - new Date(a.drawDate.split('/').reverse().join('-'))
+                );
+                localStorage.setItem(CACHE_KEY, JSON.stringify(newData));
+                localStorage.setItem(`${CACHE_KEY}_time`, new Date().getTime().toString());
+                return newData;
+            });
+            setFilterTypes(prev => ({
+                ...prev,
+                [today]: prev[today] || 'all',
+            }));
+        }
+    }, [isLiveDataComplete, liveData, today, station]);
 
     useEffect(() => {
         const checkTime = () => {
@@ -259,19 +311,7 @@ const KQXS = (props) => {
         }));
     }, []);
 
-    const getHeadAndTailNumbers = useMemo(() => (data2) => {
-        console.debug('getHeadAndTailNumbers input:', {
-            eightPrizes: data2.eightPrizes,
-            specialPrize: data2.specialPrize,
-            firstPrize: data2.firstPrize,
-            secondPrize: data2.secondPrize,
-            threePrizes: data2.threePrizes,
-            fourPrizes: data2.fourPrizes,
-            fivePrizes: data2.fivePrizes,
-            sixPrizes: data2.sixPrizes,
-            sevenPrizes: data2.sevenPrizes,
-        });
-
+    const getHeadAndTailNumbers = useCallback((data2) => { // SỬA: Đồng bộ với XSMT, dùng useCallback, bỏ Map và debug
         const allNumbers = [
             ...(data2.eightPrizes || []).map(num => ({ num, isEighth: true })),
             ...(data2.specialPrize || []).map(num => ({ num, isSpecial: true })),
@@ -291,8 +331,8 @@ const KQXS = (props) => {
             }))
             .filter(item => item.num != null && item.num !== '' && !isNaN(item.num));
 
-        const heads = new Map(Array.from({ length: 10 }, (_, i) => [i, []]));
-        const tails = new Map(Array.from({ length: 10 }, (_, i) => [i, []]));
+        const heads = Array(10).fill().map(() => []);
+        const tails = Array(10).fill().map(() => []);
 
         allNumbers.forEach((item) => {
             if (item.num != null && item.num !== '') {
@@ -301,20 +341,18 @@ const KQXS = (props) => {
                 const tail = parseInt(numStr[numStr.length - 1]);
 
                 if (!isNaN(head) && head >= 0 && head <= 9 && !isNaN(tail) && tail >= 0 && tail <= 9) {
-                    heads.get(head).push({ num: numStr, isEighth: item.isEighth, isSpecial: item.isSpecial });
-                    tails.get(tail).push({ num: numStr, isEighth: item.isEighth, isSpecial: item.isSpecial });
+                    heads[head].push({ num: numStr, isEighth: item.isEighth, isSpecial: item.isSpecial });
+                    tails[tail].push({ num: numStr, isEighth: item.isEighth, isSpecial: item.isSpecial });
                 }
             }
         });
 
         for (let i = 0; i < 10; i++) {
-            heads.get(i).sort((a, b) => parseInt(a.num) - parseInt(b.num));
-            tails.get(i).sort((a, b) => parseInt(a.num) - parseInt(b.num));
+            heads[i].sort((a, b) => parseInt(a.num) - parseInt(b.num));
+            tails[i].sort((a, b) => parseInt(a.num) - parseInt(b.num));
         }
 
-        const result = { heads: Array.from(heads.values()), tails: Array.from(tails.values()) };
-        console.debug('getHeadAndTailNumbers output:', result);
-        return result;
+        return { heads, tails };
     }, []);
 
     const totalPages = Math.ceil(data.length / ITEMS_PER_PAGE);

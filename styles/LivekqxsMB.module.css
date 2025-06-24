@@ -8,6 +8,12 @@
     margin: 0 auto;
 }
 
+.digit_container {
+    display: inline-flex;
+    gap: 2px;
+    /* Khoảng cách giữa các chữ số */
+}
+
 .digit_container .digit {
     display: inline-block;
     background-color: var(--primary-color);
@@ -16,17 +22,59 @@
     width: 25px;
     height: 25px;
     border-radius: 50%;
+    text-align: center;
+    font-size: 22px;
     transition: transform 0.1s ease-out;
 }
 
 .digit_container .digit[data-status="changing"] {
     transform: translateY(-2px);
+    animation: spinDigit 0.1s ease-out;
 }
+
+@keyframes spinDigit {
+    0% {
+        transform: translateY(10px);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translateY(-2px);
+        opacity: 1;
+    }
+}
+
+.running_number {
+    display: inline-block;
+    min-height: 25px;
+    vertical-align: middle;
+}
+
+.running_2 {
+    min-width: 54px;
+}
+
+/* 2 chữ số: 2 * 25px + 2px gap */
+.running_3 {
+    min-width: 81px;
+}
+
+/* 3 chữ số: 3 * 25px + 2 * 2px gap */
+.running_4 {
+    min-width: 108px;
+}
+
+/* 4 chữ số: 4 * 25px + 3 * 2px gap */
+.running_5 {
+    min-width: 135px;
+}
+
+/* 5 chữ số: 5 * 25px + 4 * 2px gap */
 
 .desc1 {
     margin-top: 20px;
     padding: 20px;
-    border: 1px Dashed #ccc;
+    border: 1px dashed #ccc;
     background-color: #ffeca099;
     line-height: 1.5;
     font-size: 1.1rem;
@@ -50,7 +98,6 @@
     border-radius: 8px;
     text-align: center;
     margin-bottom: 20px;
-    /* Giảm margin để tiết kiệm không gian */
     font-weight: 700;
     font-size: 26px;
 }
@@ -76,9 +123,7 @@
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
-    /* Hỗ trợ wrap trên mobile */
     gap: 10px;
-    /* Thay margin bằng gap */
 }
 
 .kqxs__actionLink {
@@ -123,7 +168,6 @@
 .tableXS tr:nth-child(9) {
     background-color: white;
     border-bottom: none;
-    /* Gộp border-bottom: none cho G3, G5 */
 }
 
 .tableXS td {
@@ -229,7 +273,6 @@
     justify-content: center;
     align-items: center;
     gap: 20px;
-    /* Giảm gap để tránh chen lấn trên mobile */
     width: 100%;
     max-width: 500px;
     height: 50px;
@@ -251,7 +294,6 @@
     color: var(--primary-color);
     cursor: pointer;
     padding-left: 30px;
-    /* Dịch label để căn chỉnh radio */
 }
 
 .optionInput label:hover {
@@ -295,14 +337,11 @@
 .ellipsis::after {
     content: "";
     width: 24px;
-
-    /* Giảm kích thước để nhẹ hơn */
     height: 24px;
     border: 2px solid rgba(104, 93, 216, 0.3);
     border-top: 2px solid var(--primary-color);
     border-radius: 50%;
     animation: spin 1.5s linear infinite;
-    /* Tăng thời gian animation */
     position: absolute;
     top: 50%;
     left: 50%;
@@ -327,7 +366,6 @@
     border: 1px solid #ccc;
     border-right: 4px solid #ccc;
     margin: 0 auto 20px;
-    /* Giảm margin-bottom */
     border-radius: 6px;
 }
 
@@ -369,7 +407,6 @@
     text-align: center;
     font-weight: 600;
     padding: 10px 6px;
-    /* Giảm padding để nhẹ hơn */
 }
 
 .tableKey th {
@@ -413,7 +450,6 @@
     align-items: center;
     justify-content: center;
     font-size: 16px;
-    /* Giữ font-size để nhất quán */
     color: #888;
     background-color: #f9f9f9;
     border: 1px solid #ccc;
@@ -498,7 +534,6 @@
 
     .TKe_content {
         max-width: 100%;
-        /* Linh hoạt trên mobile */
         margin: 0 auto 20px;
         border-radius: 6px;
     }
@@ -542,13 +577,40 @@
     .tableXS tr:nth-child(9) td.tdTitle {
         border-right: none;
     }
+
+    .running_2 {
+        min-width: 44px;
+    }
+
+    /* 2 * 22px + 2px gap */
+    .running_3 {
+        min-width: 68px;
+    }
+
+    /* 3 * 22px + 2 * 2px gap */
+    .running_4 {
+        min-width: 92px;
+    }
+
+    /* 4 * 22px + 3 * 2px gap */
+    .running_5 {
+        min-width: 116px;
+    }
+
+    /* 5 * 22px + 4 * 2px gap */
+
+    .digit_container .digit {
+        width: 22px;
+        height: 22px;
+        line-height: 22px;
+        font-size: 14px;
+    }
 }
 
 /* Mobile */
 @media screen and (max-width: 767px) {
     .containerKQ {
         padding: 10px;
-        /* Giữ padding nhẹ */
     }
 
     .kqxs {
@@ -570,7 +632,6 @@
     .kqxs__actionLink {
         font-size: 16px;
         margin: 0 5px;
-        /* Giảm margin để tiết kiệm không gian */
     }
 
     .tableXS {
@@ -580,7 +641,6 @@
     .tableXS td {
         border-bottom: none;
         padding: 4px;
-        /* Giảm padding */
     }
 
     .tableXS td.tdTitle {
@@ -596,7 +656,6 @@
 
     .tableXS td.rowXS {
         gap: 6px;
-        /* Giảm gap để gọn hơn */
     }
 
     .prizeNumber {
@@ -615,9 +674,7 @@
 
     .filter__options {
         gap: 10px;
-        /* Giảm gap để tránh chen lấn */
         max-width: 100%;
-        /* Linh hoạt trên mobile */
         height: auto;
         padding: 8px;
     }
@@ -625,7 +682,6 @@
     .optionInput label {
         font-size: 14px;
         padding-left: 25px;
-        /* Giảm padding để căn chỉnh */
     }
 
     .optionInput label::before {
@@ -671,7 +727,6 @@
 
     .paginationButton {
         padding: 6px 12px;
-        /* Giảm padding */
         width: auto;
         font-size: 0.875rem;
     }
@@ -680,5 +735,33 @@
         width: 20px;
         height: 20px;
         border-width: 2px;
+    }
+
+    .running_2 {
+        min-width: 34px;
+    }
+
+    /* 2 * 16px + 2px gap */
+    .running_3 {
+        min-width: 52px;
+    }
+
+    /* 3 * 16px + 2 * 2px gap */
+    .running_4 {
+        min-width: 70px;
+    }
+
+    /* 4 * 16px + 3 * 2px gap */
+    .running_5 {
+        min-width: 88px;
+    }
+
+    /* 5 * 16px + 4 * 2px gap */
+
+    .digit_container .digit {
+        width: 16px;
+        height: 16px;
+        line-height: 16px;
+        font-size: 12px;
     }
 }

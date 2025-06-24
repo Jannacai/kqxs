@@ -7,10 +7,70 @@
     margin: 0 auto;
 }
 
+.digitContainer {
+    display: inline-flex;
+    gap: 2px;
+}
+
+.digitContainer .digit {
+    display: inline-block;
+    background-color: #2d3483;
+    color: white;
+    text-align: center;
+    width: 24px;
+    height: 24px;
+    line-height: 24px;
+    border-radius: 50%;
+    font-size: 22px;
+    transition: transform 0.1s ease-in-out;
+}
+
+.digitContainer .digit[data-state="animating"] {
+    animation: spinDigit 0.1s ease-out;
+}
+
+@keyframes spinDigit {
+    0% {
+        transform: translateY(10px);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.runningNumber {
+    display: inline-block;
+    min-height: 28px;
+    vertical-align: middle;
+}
+
+.running_2 {
+    width: 52px;
+}
+
+/* 2 số: 2 * 24px + 2px gap */
+.running_3 {
+    width: 78px;
+}
+
+/* 3 số: 3 * 24px + 2 * 2px gap */
+.running_4 {
+    width: 104px;
+}
+
+/* 4 số: 4 * 24px + 3 * 2px gap */
+.running_5 {
+    width: 130px;
+}
+
+/* 5 số: 5 * 24px + 4 * 2px gap */
+
 .header {
     padding: 15px 0 10px 0;
     background-color: #ffeca0;
-    /* width: 100%; */
 }
 
 .groupHeader {
@@ -19,7 +79,6 @@
 }
 
 .kqxs {
-
     background-color: #f9f9f9;
     width: 100%;
     border: 2px solid #e80000;
@@ -30,13 +89,10 @@
 }
 
 .kqxs__title {
-
     color: #e80000;
     font-size: 26px;
     font-weight: 600;
 }
-
-
 
 .kqxs__action {
     display: flex;
@@ -417,7 +473,6 @@
     .header {
         padding: 15px 0 10px 0;
         background-color: #ffeca0;
-        /* width: 100%; */
     }
 
     .action {
@@ -426,7 +481,6 @@
         justify-content: center;
         align-items: center;
         padding: 5px 0;
-        /* Giảm margin-top để tiết kiệm không gian trên mobile */
     }
 
     .kqxs__title {
@@ -462,11 +516,37 @@
         border-width: 2px;
     }
 
+    .running_2 {
+        width: 34px;
+    }
+
+    /* 2 * 16px + 2px gap */
+    .running_3 {
+        width: 52px;
+    }
+
+    /* 3 * 16px + 2 * 2px gap */
+    .running_4 {
+        width: 70px;
+    }
+
+    /* 4 * 16px + 3 * 2px gap */
+    .running_5 {
+        width: 88px;
+    }
+
+    /* 5 * 16px + 4 * 2px gap */
+
+    .digitContainer .digit {
+        width: 16px;
+        height: 16px;
+        line-height: 16px;
+        font-size: 12px;
+    }
+
     .filter__options {
         flex-direction: row;
-        /* Giữ bố cục ngang */
         flex-wrap: nowrap;
-        /* Không cho phép wrap, đảm bảo các nút trên cùng một hàng */
         width: 100%;
         max-width: 320px;
         height: auto;

@@ -426,7 +426,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             <td className={styles.rowXS}>
                                 {[0, 1, 2].map(i => (
                                     <span key={i} className={`${styles.span3} ${styles.g3}`}>
-                                        {renderPrizeValue(`fivePrizes_${i}`, 5)}
+                                        {renderPrizeValue(`fivePrizes_${i}`, 4)}
                                     </span>
                                 ))}
                             </td>
@@ -436,7 +436,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             <td className={styles.rowXS}>
                                 {[3, 4, 5].map(i => (
                                     <span key={i} className={styles.span3}>
-                                        {renderPrizeValue(`fivePrizes_${i}`, 5)}
+                                        {renderPrizeValue(`fivePrizes_${i}`, 4)}
                                     </span>
                                 ))}
                             </td>
