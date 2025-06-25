@@ -29,7 +29,6 @@
 }
 
 .kqxs {
-    background-color: #f9f9f9;
     width: 100%;
     border: 2px solid #e80000;
     border-radius: 8px;
@@ -373,7 +372,7 @@
 }
 
 .tableKey td:not(.t_h) {
-    font-size: 16px;
+    font-size: 20px;
 }
 
 .tableKey tr:nth-child(even) {

@@ -79,7 +79,6 @@
 }
 
 .kqxs {
-    background-color: #f9f9f9;
     width: 100%;
     border: 2px solid #e80000;
     border-radius: 8px;
@@ -582,7 +581,7 @@
     .tableKey th,
     .tableKey td {
         padding: 8px 4px;
-        font-size: 16px;
+        font-size: 20px;
         font-weight: 700;
     }
 
