@@ -538,10 +538,10 @@
     /* 5 * 16px + 4 * 2px gap */
 
     .digitContainer .digit {
-        width: 16px;
-        height: 16px;
-        line-height: 16px;
-        font-size: 12px;
+        width: 24px;
+        height: 24px;
+        line-height: 24px;
+        font-size: 20px;
     }
 
     .filter__options {

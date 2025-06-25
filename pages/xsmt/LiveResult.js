@@ -1,10 +1,8 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import styles from '../../styles/kqxsMT.module.css';
 import { getFilteredNumber } from "../../library/utils/filterUtils";
 import { apiMT } from "../api/kqxs/kqxsMT";
 import React from 'react';
-
-console.log('styles.spinner:', styles.spinner);
 
 const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange, filterTypes, isLiveWindow }) => {
     const [liveData, setLiveData] = useState([]);
@@ -12,6 +10,8 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     const [error, setError] = useState(null);
     const [retryCount, setRetryCount] = useState(0);
     const [isDataReady, setIsDataReady] = useState(false);
+    const [animatingPrizes, setAnimatingPrizes] = useState({}); // { tinh: prizeType }
+    const [animatingNumbers, setAnimatingNumbers] = useState({}); // { tinh_prizeType: number }
     const maxRetries = 50;
     const retryInterval = 10000;
 
@@ -81,10 +81,95 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
         }));
     }, [today, station]);
 
+    const fetchInitialData = async () => {
+        try {
+            const dayOfWeekIndex = new Date().getDay();
+            const provinces = provincesByDay[dayOfWeekIndex] || provincesByDay[6];
+            const results = await Promise.all(
+                provinces.map(async (province) => {
+                    try {
+                        const response = await fetch(
+                            `https://backendkqxs.onrender.com/api/ketquaxs/xsmt/sse/initial?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
+                        );
+                        const data = await response.json();
+                        if (response.status !== 200) {
+                            throw new Error(data.error || 'Lỗi khi lấy dữ liệu ban đầu');
+                        }
+                        return {
+                            drawDate: data.drawDate,
+                            station: data.station,
+                            dayOfWeek: data.dayOfWeek,
+                            tentinh: data.tentinh,
+                            tinh: data.tinh,
+                            year: data.year,
+                            month: data.month,
+                            specialPrize_0: data.specialPrize_0 || '...',
+                            firstPrize_0: data.firstPrize_0 || '...',
+                            secondPrize_0: data.secondPrize_0 || '...',
+                            threePrizes_0: data.threePrizes_0 || '...',
+                            threePrizes_1: data.threePrizes_1 || '...',
+                            fourPrizes_0: data.fourPrizes_0 || '...',
+                            fourPrizes_1: data.fourPrizes_1 || '...',
+                            fourPrizes_2: data.fourPrizes_2 || '...',
+                            fourPrizes_3: data.fourPrizes_3 || '...',
+                            fourPrizes_4: data.fourPrizes_4 || '...',
+                            fourPrizes_5: data.fourPrizes_5 || '...',
+                            fourPrizes_6: data.fourPrizes_6 || '...',
+                            fivePrizes_0: data.fivePrizes_0 || '...',
+                            sixPrizes_0: data.sixPrizes_0 || '...',
+                            sixPrizes_1: data.sixPrizes_1 || '...',
+                            sixPrizes_2: data.sixPrizes_2 || '...',
+                            sevenPrizes_0: data.sevenPrizes_0 || '...',
+                            eightPrizes_0: data.eightPrizes_0 || '...',
+                        };
+                    } catch (err) {
+                        console.error(`Lỗi khi lấy dữ liệu ban đầu cho tỉnh ${province.tinh}:`, err.message);
+                        return {
+                            drawDate: today,
+                            station: station,
+                            dayOfWeek: new Date().toLocaleString('vi-VN', { weekday: 'long' }),
+                            tentinh: province.tentinh,
+                            tinh: province.tinh,
+                            year: new Date().getFullYear(),
+                            month: new Date().getMonth() + 1,
+                            specialPrize_0: '...',
+                            firstPrize_0: '...',
+                            secondPrize_0: '...',
+                            threePrizes_0: '...',
+                            threePrizes_1: '...',
+                            fourPrizes_0: '...',
+                            fourPrizes_1: '...',
+                            fourPrizes_2: '...',
+                            fourPrizes_3: '...',
+                            fourPrizes_4: '...',
+                            fourPrizes_5: '...',
+                            fourPrizes_6: '...',
+                            fivePrizes_0: '...',
+                            sixPrizes_0: '...',
+                            sixPrizes_1: '...',
+                            sixPrizes_2: '...',
+                            sevenPrizes_0: '...',
+                            eightPrizes_0: '...',
+                        };
+                    }
+                })
+            );
+            setLiveData(results);
+            setIsTodayLoading(false);
+            setError(null);
+            setIsDataReady(results.some(item => item.specialPrize_0 !== '...' || item.firstPrize_0 !== '...'));
+        } catch (err) {
+            console.error('Lỗi khi lấy dữ liệu ban đầu:', err.message);
+            setLiveData(emptyResult);
+            setIsTodayLoading(false);
+            setError('Không có dữ liệu cho ngày hôm nay, đang chờ kết quả trực tiếp...');
+            setIsDataReady(false);
+        }
+    };
+
     useEffect(() => {
         if (isLiveWindow) {
-            setLiveData(emptyResult);
-            setIsDataReady(false);
+            fetchInitialData();
         } else {
             setLiveData([]);
             setIsTodayLoading(true);
@@ -92,65 +177,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             setError(null);
             setIsDataReady(false);
         }
-    }, [isLiveWindow, emptyResult]);
-
-    const fetchFallbackData = async () => {
-        try {
-            const result = await apiMT.getLottery(station, today, undefined);
-            const dataArray = Array.isArray(result) ? result : [result];
-            const todayData = dataArray.filter(item =>
-                new Date(item.drawDate).toLocaleDateString('vi-VN', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                }) === today
-            );
-
-            const dayOfWeekIndex = new Date().getDay();
-            const provinces = provincesByDay[dayOfWeekIndex] || provincesByDay[6];
-            const formattedData = provinces.map(province => {
-                const matchedData = todayData.find(item => item.tinh === province.tinh) || {};
-                return {
-                    drawDate: today,
-                    station: station,
-                    dayOfWeek: new Date().toLocaleString('vi-VN', { weekday: 'long' }),
-                    tentinh: province.tentinh,
-                    tinh: province.tinh,
-                    year: new Date().getFullYear(),
-                    month: new Date().getMonth() + 1,
-                    specialPrize_0: matchedData.specialPrize?.[0] || '...',
-                    firstPrize_0: matchedData.firstPrize?.[0] || '...',
-                    secondPrize_0: matchedData.secondPrize?.[0] || '...',
-                    threePrizes_0: matchedData.threePrizes?.[0] || '...',
-                    threePrizes_1: matchedData.threePrizes?.[1] || '...',
-                    fourPrizes_0: matchedData.fourPrizes?.[0] || '...',
-                    fourPrizes_1: matchedData.fourPrizes?.[1] || '...',
-                    fourPrizes_2: matchedData.fourPrizes?.[2] || '...',
-                    fourPrizes_3: matchedData.fourPrizes?.[3] || '...',
-                    fourPrizes_4: matchedData.fourPrizes?.[4] || '...',
-                    fourPrizes_5: matchedData.fourPrizes?.[5] || '...',
-                    fourPrizes_6: matchedData.fourPrizes?.[6] || '...',
-                    fivePrizes_0: matchedData.fivePrizes?.[0] || '...',
-                    sixPrizes_0: matchedData.sixPrizes?.[0] || '...',
-                    sixPrizes_1: matchedData.sixPrizes?.[1] || '...',
-                    sixPrizes_2: matchedData.sixPrizes?.[2] || '...',
-                    sevenPrizes_0: matchedData.sevenPrizes?.[0] || '...',
-                    eightPrizes_0: matchedData.eightPrizes?.[0] || '...',
-                };
-            });
-
-            setLiveData(formattedData);
-            setIsTodayLoading(false);
-            setError(null);
-            setIsDataReady(todayData.length > 0);
-        } catch (err) {
-            console.error('Lỗi khi gọi API fallback:', err.message);
-            setLiveData(emptyResult);
-            setIsTodayLoading(false);
-            setError('Không có dữ liệu cho ngày hôm nay, đang chờ kết quả trực tiếp...');
-            setIsDataReady(false);
-        }
-    };
+    }, [isLiveWindow, emptyResult, today, station]);
 
     useEffect(() => {
         if (!isLiveWindow) {
@@ -165,6 +192,26 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
         const dayOfWeekIndex = new Date().getDay();
         const provinces = provincesByDay[dayOfWeekIndex] || provincesByDay[6];
         const eventSources = [];
+        let pendingUpdates = {};
+        let debounceTimeout = null;
+
+        const updateLiveData = () => {
+            setLiveData(prev => {
+                const updatedData = prev.map(item => ({
+                    ...item,
+                    ...pendingUpdates[item.tinh],
+                }));
+                pendingUpdates = {};
+                const hasRealData = updatedData.some(
+                    item => item.specialPrize_0 !== '...' || item.firstPrize_0 !== '...'
+                );
+                if (hasRealData) setIsDataReady(true);
+                return updatedData;
+            });
+            setIsTodayLoading(false);
+            setRetryCount(0);
+            setError(null);
+        };
 
         const connectSSE = (tinh) => {
             console.log(`Kết nối SSE cho tỉnh ${tinh}... (Thử lần ${retryCount + 1}/${maxRetries + 1})`);
@@ -188,34 +235,19 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                     try {
                         const data = JSON.parse(event.data);
                         if (data && data[prizeType] && data.tinh) {
-                            setLiveData(prev => {
-                                const updatedData = prev.map(item => {
-                                    if (item.tinh === data.tinh) {
-                                        return {
-                                            ...item,
-                                            [prizeType]: data[prizeType],
-                                            tentinh: data.tentinh || item.tentinh,
-                                            year: data.year || item.year,
-                                            month: data.month || item.month,
-                                        };
-                                    }
-                                    return item;
-                                });
-                                console.log('Cập nhật liveData:', updatedData);
+                            pendingUpdates = {
+                                ...pendingUpdates,
+                                [data.tinh]: {
+                                    ...pendingUpdates[data.tinh],
+                                    [prizeType]: data[prizeType],
+                                    tentinh: data.tentinh || data.tentinh,
+                                    year: data.year || data.year,
+                                    month: data.month || data.month,
+                                },
+                            };
 
-                                const hasRealData = updatedData.some(item =>
-                                    item.specialPrize_0 !== '...' ||
-                                    item.firstPrize_0 !== '...'
-                                );
-                                if (hasRealData) {
-                                    setIsDataReady(true);
-                                }
-
-                                return updatedData;
-                            });
-                            setIsTodayLoading(false);
-                            setRetryCount(0);
-                            setError(null);
+                            clearTimeout(debounceTimeout);
+                            debounceTimeout = setTimeout(updateLiveData, 50); // Debounce 50ms
                         }
                     } catch (error) {
                         console.error(`Lỗi xử lý sự kiện SSE ${prizeType} (tỉnh ${tinh}):`, error);
@@ -232,7 +264,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                     }, retryInterval);
                 } else {
                     setError('Mất kết nối trực tiếp, đang tải dữ liệu thủ công...');
-                    fetchFallbackData();
+                    fetchInitialData();
                 }
             };
         };
@@ -242,13 +274,90 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
         return () => {
             console.log('Đóng tất cả kết nối SSE...');
             eventSources.forEach(eventSource => eventSource.close());
+            clearTimeout(debounceTimeout);
         };
     }, [isLiveWindow, station, today, retryCount, maxRetries, retryInterval, provincesByDay]);
 
-    if (!liveData.length) return null;
+    useEffect(() => {
+        if (!isLiveWindow || !liveData.length) return;
 
-    const tableKey = today + station;
-    const currentFilter = filterTypes[tableKey] || 'all';
+        const animationQueue = [
+            'eightPrizes_0', 'sevenPrizes_0',
+            'sixPrizes_0', 'sixPrizes_1', 'sixPrizes_2',
+            'fivePrizes_0',
+            'fourPrizes_0', 'fourPrizes_1', 'fourPrizes_2', 'fourPrizes_3', 'fourPrizes_4', 'fourPrizes_5', 'fourPrizes_6',
+            'threePrizes_0', 'threePrizes_1',
+            'secondPrize_0', 'firstPrize_0', 'specialPrize_0'
+        ];
+
+        const findNextPrize = (stationData) => {
+            return animationQueue.find(prize => stationData[prize] === '...') || null;
+        };
+
+        liveData.forEach(stationData => {
+            const currentPrize = animatingPrizes[stationData.tinh];
+            if (!currentPrize || stationData[currentPrize] !== '...') {
+                const nextPrize = findNextPrize(stationData);
+                setAnimatingPrizes(prev => ({
+                    ...prev,
+                    [stationData.tinh]: nextPrize
+                }));
+                if (currentPrize && stationData[currentPrize] !== '...') {
+                    setAnimatingNumbers(prev => {
+                        const newNumbers = { ...prev };
+                        delete newNumbers[`${stationData.tinh}_${currentPrize}`];
+                        return newNumbers;
+                    });
+                }
+            }
+        });
+
+        const intervalId = setInterval(() => {
+            setAnimatingNumbers(prev => {
+                const newNumbers = { ...prev };
+                liveData.forEach(stationData => {
+                    const prizeType = animatingPrizes[stationData.tinh];
+                    if (prizeType && stationData[prizeType] === '...') {
+                        const digits = prizeType === 'eightPrizes_0' ? 2 :
+                            prizeType === 'sevenPrizes_0' ? 3 :
+                                prizeType === 'specialPrize_0' ? 6 : 5;
+                        newNumbers[`${stationData.tinh}_${prizeType}`] = Math.floor(Math.random() * Math.pow(10, digits))
+                            .toString()
+                            .padStart(digits, '0');
+                    }
+                });
+                return newNumbers;
+            });
+        }, 100); // Tăng interval lên 100ms
+
+        return () => clearInterval(intervalId);
+    }, [isLiveWindow, liveData, animatingPrizes]);
+
+    const renderPrizeNumber = useCallback((tinh, prizeType, digits = 5) => {
+        const isAnimating = animatingPrizes[tinh] === prizeType && liveData.find(item => item.tinh === tinh)?.[prizeType] === '...';
+        const value = isAnimating ? animatingNumbers[`${tinh}_${prizeType}`] || '0'.repeat(digits) : liveData.find(item => item.tinh === tinh)?.[prizeType] || '...';
+        const className = `${styles.runningNumber} ${styles[`running_${digits}`]}`;
+
+        return (
+            <span className={className} data-state={isAnimating ? 'animating' : 'static'}>
+                {isAnimating ? (
+                    <span className={styles.digitContainer}>
+                        {value.split('').slice(-digits).map((digit, idx) => (
+                            <span key={idx} className={styles.digit} data-state="animating">
+                                {digit}
+                            </span>
+                        ))}
+                    </span>
+                ) : value === '...' ? (
+                    <span className={styles.spinner}></span>
+                ) : (
+                    getFilteredNumber(value, filterTypes[today + station] || 'all') || '-'
+                )}
+            </span>
+        );
+    }, [animatingPrizes, animatingNumbers, liveData, filterTypes, today, station]);
+
+    if (!liveData.length) return null;
 
     const allHeads = Array(10).fill().map(() => []);
     const allTails = Array(10).fill().map(() => []);
@@ -295,7 +404,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     });
 
     return (
-        <div className={styles.containerKQs}>
+        <div className={styles.containerKQ}>
             <div className={styles.statusContainer}>
                 {error && <div className={styles.error}>{error}</div>}
                 {isTodayLoading && (
@@ -325,43 +434,31 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                     <tbody>
                         <tr>
                             <td className={`${styles.tdTitle} ${styles.highlight}`}>G8</td>
-                            {liveData.map(stationData => (
-                                <td key={stationData.tinh} className={styles.rowXS}>
+                            {liveData.map(item => (
+                                <td key={item.tinh} className={styles.rowXS}>
                                     <span className={`${styles.prizeNumber} ${styles.highlight}`}>
-                                        {stationData.eightPrizes_0 === '...' ? (
-                                            <span className={styles.spinner}></span>
-                                        ) : (
-                                            getFilteredNumber(stationData.eightPrizes_0, currentFilter) || '-'
-                                        )}
+                                        {renderPrizeNumber(item.tinh, 'eightPrizes_0', 2)}
                                     </span>
                                 </td>
                             ))}
                         </tr>
                         <tr>
                             <td className={styles.tdTitle}>G7</td>
-                            {liveData.map(stationData => (
-                                <td key={stationData.tinh} className={styles.rowXS}>
+                            {liveData.map(item => (
+                                <td key={item.tinh} className={styles.rowXS}>
                                     <span className={styles.prizeNumber}>
-                                        {stationData.sevenPrizes_0 === '...' ? (
-                                            <span className={styles.spinner}></span>
-                                        ) : (
-                                            getFilteredNumber(stationData.sevenPrizes_0, currentFilter) || '-'
-                                        )}
+                                        {renderPrizeNumber(item.tinh, 'sevenPrizes_0', 3)}
                                     </span>
                                 </td>
                             ))}
                         </tr>
                         <tr>
                             <td className={styles.tdTitle}>G6</td>
-                            {liveData.map(stationData => (
-                                <td key={stationData.tinh} className={styles.rowXS}>
-                                    {[0, 1, 2].map((idx) => (
+                            {liveData.map(item => (
+                                <td key={item.tinh} className={styles.rowXS}>
+                                    {[0, 1, 2].map(idx => (
                                         <span key={idx} className={styles.prizeNumber}>
-                                            {stationData[`sixPrizes_${idx}`] === '...' ? (
-                                                <span className={styles.spinner}></span>
-                                            ) : (
-                                                getFilteredNumber(stationData[`sixPrizes_${idx}`], currentFilter) || '-'
-                                            )}
+                                            {renderPrizeNumber(item.tinh, `sixPrizes_${idx}`, 4)}
                                             {idx < 2 && <br />}
                                         </span>
                                     ))}
@@ -370,29 +467,21 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                         </tr>
                         <tr>
                             <td className={`${styles.tdTitle} ${styles.g3}`}>G5</td>
-                            {liveData.map(stationData => (
-                                <td key={stationData.tinh} className={styles.rowXS}>
+                            {liveData.map(item => (
+                                <td key={item.tinh} className={styles.rowXS}>
                                     <span className={`${styles.prizeNumber} ${styles.g3}`}>
-                                        {stationData.fivePrizes_0 === '...' ? (
-                                            <span className={styles.spinner}></span>
-                                        ) : (
-                                            getFilteredNumber(stationData.fivePrizes_0, currentFilter) || '-'
-                                        )}
+                                        {renderPrizeNumber(item.tinh, 'fivePrizes_0', 4)}
                                     </span>
                                 </td>
                             ))}
                         </tr>
                         <tr>
                             <td className={styles.tdTitle}>G4</td>
-                            {liveData.map(stationData => (
-                                <td key={stationData.tinh} className={styles.rowXS}>
-                                    {[0, 1, 2, 3, 4, 5, 6].map((idx) => (
+                            {liveData.map(item => (
+                                <td key={item.tinh} className={styles.rowXS}>
+                                    {[0, 1, 2, 3, 4, 5, 6].map(idx => (
                                         <span key={idx} className={styles.prizeNumber}>
-                                            {stationData[`fourPrizes_${idx}`] === '...' ? (
-                                                <span className={styles.spinner}></span>
-                                            ) : (
-                                                getFilteredNumber(stationData[`fourPrizes_${idx}`], currentFilter) || '-'
-                                            )}
+                                            {renderPrizeNumber(item.tinh, `fourPrizes_${idx}`, 5)}
                                             {idx < 6 && <br />}
                                         </span>
                                     ))}
@@ -401,15 +490,11 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                         </tr>
                         <tr>
                             <td className={`${styles.tdTitle} ${styles.g3}`}>G3</td>
-                            {liveData.map(stationData => (
-                                <td key={stationData.tinh} className={styles.rowXS}>
-                                    {[0, 1].map((idx) => (
+                            {liveData.map(item => (
+                                <td key={item.tinh} className={styles.rowXS}>
+                                    {[0, 1].map(idx => (
                                         <span key={idx} className={`${styles.prizeNumber} ${styles.g3}`}>
-                                            {stationData[`threePrizes_${idx}`] === '...' ? (
-                                                <span className={styles.spinner}></span>
-                                            ) : (
-                                                getFilteredNumber(stationData[`threePrizes_${idx}`], currentFilter) || '-'
-                                            )}
+                                            {renderPrizeNumber(item.tinh, `threePrizes_${idx}`, 5)}
                                             {idx < 1 && <br />}
                                         </span>
                                     ))}
@@ -418,42 +503,30 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                         </tr>
                         <tr>
                             <td className={styles.tdTitle}>G2</td>
-                            {liveData.map(stationData => (
-                                <td key={stationData.tinh} className={styles.rowXS}>
+                            {liveData.map(item => (
+                                <td key={item.tinh} className={styles.rowXS}>
                                     <span className={styles.prizeNumber}>
-                                        {stationData.secondPrize_0 === '...' ? (
-                                            <span className={styles.spinner}></span>
-                                        ) : (
-                                            getFilteredNumber(stationData.secondPrize_0, currentFilter) || '-'
-                                        )}
+                                        {renderPrizeNumber(item.tinh, 'secondPrize_0', 5)}
                                     </span>
                                 </td>
                             ))}
                         </tr>
                         <tr>
                             <td className={styles.tdTitle}>G1</td>
-                            {liveData.map(stationData => (
-                                <td key={stationData.tinh} className={styles.rowXS}>
+                            {liveData.map(item => (
+                                <td key={item.tinh} className={styles.rowXS}>
                                     <span className={styles.prizeNumber}>
-                                        {stationData.firstPrize_0 === '...' ? (
-                                            <span className={styles.spinner}></span>
-                                        ) : (
-                                            getFilteredNumber(stationData.firstPrize_0, currentFilter) || '-'
-                                        )}
+                                        {renderPrizeNumber(item.tinh, 'firstPrize_0', 5)}
                                     </span>
                                 </td>
                             ))}
                         </tr>
                         <tr>
                             <td className={`${styles.tdTitle} ${styles.highlight}`}>ĐB</td>
-                            {liveData.map(stationData => (
-                                <td key={stationData.tinh} className={styles.rowXS}>
+                            {liveData.map(item => (
+                                <td key={item.tinh} className={styles.rowXS}>
                                     <span className={`${styles.prizeNumber} ${styles.highlight} ${styles.gdb}`}>
-                                        {stationData.specialPrize_0 === '...' ? (
-                                            <span className={styles.spinner}></span>
-                                        ) : (
-                                            getFilteredNumber(stationData.specialPrize_0, currentFilter) || '-'
-                                        )}
+                                        {renderPrizeNumber(item.tinh, 'specialPrize_0', 6)}
                                     </span>
                                 </td>
                             ))}
@@ -461,39 +534,39 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                     </tbody>
                 </table>
                 <div className={styles.action}>
-                    <div aria-label="Tùy chọn lọc số" className={styles.filter__options} role="radiogroup">
+                    <div aria-label="default" className={styles.filter__options} role="radiogroup">
                         <div className={styles.optionInput}>
                             <input
-                                id={`filterAll-${tableKey}`}
+                                id={`filterAll-${today + station}`}
                                 type="radio"
-                                name={`filterOption-${tableKey}`}
+                                name={`filterOption-${today + station}`}
                                 value="all"
-                                checked={currentFilter === 'all'}
-                                onChange={() => handleFilterChange(tableKey, 'all')}
+                                checked={filterTypes[today + station] === 'all'}
+                                onChange={() => handleFilterChange(today + station, 'all')}
                             />
-                            <label htmlFor={`filterAll-${tableKey}`}>Tất cả</label>
+                            <label htmlFor={`filterAll-${today + station}`}>Đầy đủ</label>
                         </div>
                         <div className={styles.optionInput}>
                             <input
-                                id={`filterTwo-${tableKey}`}
+                                id={`filterTwo-${today + station}`}
                                 type="radio"
-                                name={`filterOption-${tableKey}`}
+                                name={`filterOption-${today + station}`}
                                 value="last2"
-                                checked={currentFilter === 'last2'}
-                                onChange={() => handleFilterChange(tableKey, 'last2')}
+                                checked={filterTypes[today + station] === 'last2'}
+                                onChange={() => handleFilterChange(today + station, 'last2')}
                             />
-                            <label htmlFor={`filterTwo-${tableKey}`}>2 số cuối</label>
+                            <label htmlFor={`filterTwo-${today + station}`}>2 số cuối</label>
                         </div>
                         <div className={styles.optionInput}>
                             <input
-                                id={`filterThree-${tableKey}`}
+                                id={`filterThree-${today + station}`}
                                 type="radio"
-                                name={`filterOption-${tableKey}`}
+                                name={`filterOption-${today + station}`}
                                 value="last3"
-                                checked={currentFilter === 'last3'}
-                                onChange={() => handleFilterChange(tableKey, 'last3')}
+                                checked={filterTypes[today + station] === 'last3'}
+                                onChange={() => handleFilterChange(today + station, 'last3')}
                             />
-                            <label htmlFor={`filterThree-${tableKey}`}>3 số cuối</label>
+                            <label htmlFor={`filterThree-${today + station}`}>3 số cuối</label>
                         </div>
                     </div>
                 </div>
@@ -518,8 +591,8 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             {Array.from({ length: 10 }, (_, idx) => (
                                 <tr key={idx}>
                                     <td className={styles.t_h}>{idx}</td>
-                                    {allHeads[idx].map((headNumbers, stationIdx) => (
-                                        <td key={stationIdx}>
+                                    {allHeads[idx].map((headNumbers, index) => (
+                                        <td key={index}>
                                             {headNumbers.map((item, numIdx) => (
                                                 <span
                                                     key={numIdx}
@@ -555,8 +628,8 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             {Array.from({ length: 10 }, (_, idx) => (
                                 <tr key={idx}>
                                     <td className={styles.t_h}>{idx}</td>
-                                    {allTails[idx].map((tailNumbers, stationIdx) => (
-                                        <td key={stationIdx}>
+                                    {allTails[idx].map((tailNumbers, index) => (
+                                        <td key={index}>
                                             {tailNumbers.map((item, numIdx) => (
                                                 <span
                                                     key={numIdx}
@@ -579,3 +652,4 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
 };
 
 export default React.memo(LiveResult);
+// CẦN TEST NGÀY 25/6
