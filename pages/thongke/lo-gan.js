@@ -411,8 +411,10 @@ const Logan = ({ initialStats, initialMetadata, initialDays, initialRegion, init
                 </button>
             </div>
             <div>
-                <ThongKe />
-                <CongCuHot />
+                <div className='congcuhot'>
+                    <ThongKe />
+                    <CongCuHot />
+                </div>
                 <div className={styles.banner1}>
                     <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
                         <video

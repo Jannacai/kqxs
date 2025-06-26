@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 import styles from "../styles/login.module.css";
 import Link from "next/link";
@@ -13,18 +13,16 @@ export default function ResetPassword() {
     const [isVerifying, setIsVerifying] = useState(true);
     const router = useRouter();
     const { token } = router.query;
+    const passwordInputRef = useRef(null);
 
     useEffect(() => {
         if (!router.isReady) return;
-
-        console.log("Token:", token); // Debug token
-        console.log("Query:", router.query); // Debug toàn bộ query
 
         if (!token) {
             setError("Token không hợp lệ hoặc không tồn tại");
             setIsModalOpen(false);
             setIsVerifying(false);
-            setTimeout(() => router.push("/login"), 2000); // Tăng delay để thấy lỗi
+            router.push("/login"); // Chuyển hướng ngay lập tức
             return;
         }
 
@@ -36,20 +34,20 @@ export default function ResetPassword() {
                         "Content-Type": "application/json",
                         "User-Agent": "ResetPassword-Client",
                     },
-                    body: JSON.stringify({ token }), // Không gửi dummy password
+                    body: JSON.stringify({ token }),
                 });
 
                 const data = await res.json();
-                console.log("Verify token response:", data); // Debug phản hồi backend
                 if (!res.ok) {
                     throw new Error(data.error || "Token không hợp lệ");
                 }
-                console.log("Token verified successfully");
+                passwordInputRef.current?.focus(); // Focus vào input password sau khi verify
             } catch (err) {
-                console.error("Token verification failed:", err.message);
-                setError(err.message || "Token không hợp lệ hoặc đã hết hạn");
+                setError(err.message === "Token has expired" ? "Token đã hết hạn" :
+                    err.message === "Invalid token" ? "Token không hợp lệ" :
+                        "Đã có lỗi xảy ra khi kiểm tra token");
                 setIsModalOpen(false);
-                setTimeout(() => router.push("/login"), 3000); // Tăng delay để thấy lỗi
+                router.push("/login"); // Chuyển hướng ngay lập tức
             } finally {
                 setIsVerifying(false);
             }
@@ -76,14 +74,11 @@ export default function ResetPassword() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!validateInputs()) return;
+
         setIsLoading(true);
         setError("");
         setMessage("");
-
-        if (!validateInputs()) {
-            setIsLoading(false);
-            return;
-        }
 
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/reset-password`, {
@@ -96,15 +91,16 @@ export default function ResetPassword() {
             });
 
             const data = await res.json();
-            console.log("Reset password response:", data); // Debug phản hồi
             if (!res.ok) {
                 throw new Error(data.error || "Đặt lại mật khẩu thất bại");
             }
 
-            setMessage(data.message);
-            setTimeout(() => router.push("/login"), 2000);
+            setMessage("Đặt lại1622 mật khẩu thành công! Đang chuyển hướng...");
+            router.push("/login");
         } catch (error) {
-            setError(error.message || "Đã có lỗi xảy ra");
+            setError(error.message === "Token has expired" ? "Token đã hết hạn" :
+                error.message === "Invalid token" ? "Token không hợp lệ" :
+                    "Đã có lỗi xảy ra khi đặt lại mật khẩu");
         } finally {
             setIsLoading(false);
         }
@@ -116,7 +112,13 @@ export default function ResetPassword() {
     };
 
     if (isVerifying) {
-        return <div className={styles.modalOverlay}><div className={styles.container}>Đang kiểm tra token...</div></div>;
+        return (
+            <div className={styles.modalOverlay}>
+                <div className={styles.container}>
+                    <div className={styles.loader}>Đang kiểm tra token...</div>
+                </div>
+            </div>
+        );
     }
 
     if (!isModalOpen) {
@@ -153,6 +155,7 @@ export default function ResetPassword() {
                             <label className={styles.labelPassword}>
                                 Mật khẩu mới:
                                 <input
+                                    ref={passwordInputRef}
                                     className={styles.inputPassword}
                                     type="password"
                                     value={password}
@@ -160,6 +163,7 @@ export default function ResetPassword() {
                                     required
                                     autoComplete="off"
                                     aria-describedby="password-error"
+                                    disabled={isLoading}
                                 />
                             </label>
                         </div>
@@ -174,6 +178,7 @@ export default function ResetPassword() {
                                     required
                                     autoComplete="off"
                                     aria-describedby="confirm-password-error"
+                                    disabled={isLoading}
                                 />
                             </label>
                         </div>
@@ -185,7 +190,11 @@ export default function ResetPassword() {
                                 type="submit"
                                 disabled={isLoading}
                             >
-                                {isLoading ? "Đang cập nhật..." : "Cập nhật mật khẩu"}
+                                {isLoading ? (
+                                    <span className={styles.loader}>Đang cập nhật...</span>
+                                ) : (
+                                    "Cập nhật mật khẩu"
+                                )}
                             </button>
                         </div>
                         <p className={styles.dangky}>

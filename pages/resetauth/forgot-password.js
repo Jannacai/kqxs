@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 import styles from "../../styles/login.module.css";
 import Link from "next/link";
@@ -10,18 +10,31 @@ export default function ForgotPassword() {
     const [isLoading, setIsLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(true);
     const router = useRouter();
+    const emailInputRef = useRef(null);
+
+    useEffect(() => {
+        emailInputRef.current?.focus();
+    }, []);
+
+    const validateEmail = () => {
+        if (!email.match(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)) {
+            setError("Email không hợp lệ");
+            return false;
+        }
+        if (email.length > 254) {
+            setError("Email quá dài");
+            return false;
+        }
+        return true;
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!validateEmail()) return;
+
         setIsLoading(true);
         setError("");
         setMessage("");
-
-        if (!email.match(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)) {
-            setError("Email không hợp lệ");
-            setIsLoading(false);
-            return;
-        }
 
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/forgot-password`, {
@@ -30,18 +43,19 @@ export default function ForgotPassword() {
                     "Content-Type": "application/json",
                     "User-Agent": "ForgotPassword-Client",
                 },
-                body: JSON.stringify({ email }),
+                body: JSON.stringify({ email: email.trim() }),
             });
 
             if (!res.ok) {
                 const errorData = await res.json();
-                throw new Error(errorData.error || "Gửi yêu cầu thất bại");
+                throw new Error(errorData.error === "Email not found" ? "Email không tồn tại" :
+                    "Gửi yêu cầu thất bại");
             }
 
             const data = await res.json();
-            setMessage(data.message);
+            setMessage("Link đặt lại mật khẩu đã được gửi tới email của bạn. Vui lòng kiểm tra hộp thư hoặc thư rác.");
         } catch (error) {
-            setError(error.message || "Đã có lỗi xảy ra");
+            setError(error.message || "Đã có lỗi xảy ra khi gửi yêu cầu");
         } finally {
             setIsLoading(false);
         }
@@ -76,13 +90,15 @@ export default function ForgotPassword() {
                             <label className={styles.labelName}>
                                 Email:
                                 <input
+                                    ref={emailInputRef}
                                     className={styles.inputName}
                                     type="email"
                                     value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
+                                    onChange={(e) => setEmail(e.target.value.trim())}
                                     required
                                     autoComplete="off"
                                     aria-describedby="email-error"
+                                    disabled={isLoading}
                                 />
                             </label>
                         </div>
@@ -94,7 +110,11 @@ export default function ForgotPassword() {
                                 type="submit"
                                 disabled={isLoading}
                             >
-                                {isLoading ? "Đang gửi..." : "Gửi yêu cầu"}
+                                {isLoading ? (
+                                    <span className={styles.loader}>Đang gửi...</span>
+                                ) : (
+                                    "Gửi yêu cầu"
+                                )}
                             </button>
                         </div>
                         <p className={styles.dangky}>

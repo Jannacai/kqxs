@@ -10,6 +10,7 @@ import CongCuHot from '../component/CongCuHot';
 import { apiMN } from './api/kqxs/kqxsMN';
 import styles from '../public/css/kqxsMB.module.css';
 import Skeleton from 'react-loading-skeleton';
+import Chat from './chat/chat';
 
 // Lazy load components
 const PostList = dynamic(() => import('./tin-tuc/list.js'), { ssr: false });
@@ -177,6 +178,7 @@ const XSMN = ({ initialData }) => {
                     </div>
                     <div>
                         <ThongKe />
+                        <Chat />
                         <DynamicCongCuHot />
                         <div className='banner1'>
                             <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>

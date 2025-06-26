@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { formatDistanceToNow } from "date-fns";
 import vi from "date-fns/locale/vi";
@@ -33,14 +33,178 @@ export default function Chat() {
     const commentRefs = useRef({});
     const suggestionRef = useRef(null);
     const commentListRef = useRef(null);
+    const wsRef = useRef(null);
 
-    useEffect(() => {
-        fetchComments();
-        // Polling every 5 seconds to fetch new comments
-        const intervalId = setInterval(fetchComments, 5000);
-        return () => clearInterval(intervalId); // Cleanup on unmount
+    // Hàm sắp xếp bình luận tối ưu
+    const sortComments = useCallback((comments) => {
+        return comments
+            .map(comment => ({
+                ...comment,
+                childComments: comment.childComments ? sortComments(comment.childComments) : [],
+            }))
+            .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
     }, []);
 
+    // Lấy danh sách bình luận ban đầu
+    const fetchComments = useCallback(async () => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/comments`, {
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(session?.accessToken && { "Authorization": `Bearer ${session.accessToken}` }),
+                },
+            });
+            if (res.status === 401 && session) {
+                setError("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.");
+                signOut({ redirect: false });
+                router.push('/login?error=SessionExpired');
+                return;
+            }
+            if (!res.ok) throw new Error("Không thể tải bình luận");
+            const data = await res.json();
+            setComments(sortComments(data));
+        } catch (err) {
+            console.error("Fetch comments error:", err.message);
+            setError(err.message);
+        }
+    }, [session, router, sortComments]);
+
+    // Thiết lập WebSocket
+    useEffect(() => {
+        if (status !== "authenticated" || !session?.accessToken) {
+            console.log("WebSocket not initialized: User not authenticated or no token");
+            return;
+        }
+
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 5;
+        const reconnectInterval = 5000;
+
+        const connectWebSocket = () => {
+            const wsUrl = `${API_BASE_URL.replace('http://', 'ws://').replace('https://', 'wss://')}/?token=${session.accessToken}`;
+            console.log("Attempting WebSocket connection to:", wsUrl);
+            const ws = new WebSocket(wsUrl);
+            wsRef.current = ws;
+
+            ws.onopen = () => {
+                console.log("WebSocket connected successfully");
+                reconnectAttempts = 0;
+                setError(""); // Xóa lỗi WebSocket nếu kết nối thành công
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    console.log("WebSocket message received:", event.data);
+                    const { type, data } = JSON.parse(event.data);
+                    setComments((prevComments) => {
+                        let updatedComments = [...prevComments];
+                        if (type === "NEW_COMMENT") {
+                            if (updatedComments.some(c => c._id === data._id)) {
+                                console.log("Comment already exists, updating:", data._id);
+                                return updatedComments.map(c =>
+                                    c._id === data._id ? { ...c, ...data } : c
+                                );
+                            }
+                            console.log("Adding new comment:", data._id);
+                            if (!data.parentComment) {
+                                updatedComments.push(data);
+                            } else {
+                                const updateChildComments = (comments) => {
+                                    return comments.map((comment) => {
+                                        if (comment._id === data.parentComment) {
+                                            return {
+                                                ...comment,
+                                                childComments: [...(comment.childComments || []), data],
+                                            };
+                                        }
+                                        if (comment.childComments) {
+                                            return {
+                                                ...comment,
+                                                childComments: updateChildComments(comment.childComments),
+                                            };
+                                        }
+                                        return comment;
+                                    });
+                                };
+                                updatedComments = updateChildComments(updatedComments);
+                            }
+                        } else if (type === "LIKE_UPDATE") {
+                            console.log("Updating like for comment:", data._id);
+                            updatedComments = updatedComments.map(c =>
+                                c._id === data._id ? { ...c, ...data } : c
+                            );
+                        } else if (type === "DELETE_COMMENT") {
+                            console.log("Deleting comment:", data._id);
+                            updatedComments = updatedComments.filter(c => c._id !== data._id);
+                            const removeChildComments = (comments) => {
+                                return comments
+                                    .filter(c => c._id !== data._id)
+                                    .map(c => ({
+                                        ...c,
+                                        childComments: c.childComments ? removeChildComments(c.childComments) : [],
+                                    }));
+                            };
+                            updatedComments = removeChildComments(updatedComments);
+                        }
+                        return sortComments(updatedComments);
+                    });
+                    if (isAtBottom && commentListRef.current) {
+                        console.log("Auto-scrolling to bottom");
+                        commentListRef.current.scrollTop = commentListRef.current.scrollHeight;
+                    }
+                } catch (err) {
+                    console.error("Error processing WebSocket message:", err);
+                }
+            };
+
+            ws.onclose = (event) => {
+                console.log("WebSocket disconnected. Code:", event.code, "Reason:", event.reason);
+                if (reconnectAttempts < maxReconnectAttempts) {
+                    setTimeout(() => {
+                        reconnectAttempts++;
+                        console.log(`Reconnecting WebSocket (attempt ${reconnectAttempts})`);
+                        connectWebSocket();
+                    }, reconnectInterval);
+                } else {
+                    console.error("Max reconnection attempts reached");
+                    setError("Mất kết nối WebSocket. Vui lòng làm mới trang.");
+                }
+            };
+
+            ws.onerror = (error) => {
+                console.error("WebSocket error:", error);
+                ws.close();
+            };
+        };
+
+        connectWebSocket();
+        return () => {
+            console.log("Cleaning up WebSocket connection");
+            wsRef.current?.close();
+        };
+    }, [status, session?.accessToken, isAtBottom, sortComments]);
+
+    // Polling làm fallback
+    useEffect(() => {
+        fetchComments();
+        const intervalId = setInterval(fetchComments, 30000); // Polling mỗi 30 giây
+        return () => clearInterval(intervalId);
+    }, [fetchComments]);
+
+    // Xử lý cuộn
+    useEffect(() => {
+        const handleScroll = () => {
+            if (commentListRef.current) {
+                const { scrollTop, scrollHeight, clientHeight } = commentListRef.current;
+                setIsAtBottom(scrollHeight - scrollTop - clientHeight < 50);
+            }
+        };
+        const commentList = commentListRef.current;
+        commentList?.addEventListener("scroll", handleScroll);
+        return () => commentList?.removeEventListener("scroll", handleScroll);
+    }, []);
+
+    // Xử lý click ngoài
     useEffect(() => {
         const handleClickOutside = (event) => {
             let isEmojiPickerClicked = false;
@@ -66,21 +230,7 @@ export default function Chat() {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [replyTo]);
 
-    // Track scroll position to check if user is near the bottom
-    useEffect(() => {
-        const handleScroll = () => {
-            if (commentListRef.current) {
-                const { scrollTop, scrollHeight, clientHeight } = commentListRef.current;
-                // Check if user is near the bottom (within 50px)
-                setIsAtBottom(scrollHeight - scrollTop - clientHeight < 50);
-            }
-        };
-
-        const commentList = commentListRef.current;
-        commentList?.addEventListener("scroll", handleScroll);
-        return () => commentList?.removeEventListener("scroll", handleScroll);
-    }, []);
-
+    // Highlight bình luận theo query
     useEffect(() => {
         if (commentId && comments.length > 0) {
             const scrollToComment = (id) => {
@@ -114,45 +264,10 @@ export default function Chat() {
             } else {
                 console.error('Comment not found:', commentId);
             }
-        } else if (comments.length > 0 && commentListRef.current && isAtBottom) {
-            // Scroll to bottom if user is near the bottom
+        } else if (comments.length > 0 && isAtBottom && commentListRef.current) {
             commentListRef.current.scrollTop = commentListRef.current.scrollHeight;
         }
     }, [commentId, comments, router, isAtBottom]);
-
-    const sortComments = (comments) => {
-        return comments
-            .map(comment => ({
-                ...comment,
-                childComments: comment.childComments ? sortComments(comment.childComments) : [],
-            }))
-            .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-    };
-
-    const fetchComments = async () => {
-        try {
-            const res = await fetch(`${API_BASE_URL}/api/comments`, {
-                headers: {
-                    "Content-Type": "application/json",
-                    ...(session?.accessToken && { "Authorization": `Bearer ${session.accessToken}` }),
-                },
-            });
-            if (res.status === 401 && session) {
-                setError("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.");
-                signOut({ redirect: false });
-                router.push('/login?error=SessionExpired');
-                return;
-            }
-            if (!res.ok) {
-                throw new Error("Không thể tải bình luận");
-            }
-            const data = await res.json();
-            setComments(sortComments(data));
-        } catch (err) {
-            console.error("Fetch comments error:", err.message);
-            setError(err.message);
-        }
-    };
 
     const fetchTagSuggestions = async (query) => {
         if (!session?.accessToken) return;
@@ -168,9 +283,7 @@ export default function Chat() {
                 router.push('/login?error=SessionExpired');
                 return;
             }
-            if (!res.ok) {
-                throw new Error("Không thể tải gợi ý");
-            }
+            if (!res.ok) throw new Error("Không thể tải gợi ý");
             const data = await res.json();
             setTagSuggestions(data);
             setShowSuggestions(data.length > 0);
@@ -185,11 +298,8 @@ export default function Chat() {
             return;
         }
         const value = e.target.value;
-        if (isReply) {
-            setReplyContent(value);
-        } else {
-            setComment(value);
-        }
+        if (isReply) setReplyContent(value);
+        else setComment(value);
 
         const cursorPosition = e.target.selectionStart;
         const textBeforeCursor = value.slice(0, cursorPosition);
@@ -232,11 +342,8 @@ export default function Chat() {
             setTaggedUsers(prev => [...new Set([...prev, user._id])]);
         }
         setShowSuggestions(false);
-        if (isReply) {
-            replyInputRefs.current[replyTo]?.focus();
-        } else {
-            commentInputRef.current?.focus();
-        }
+        if (isReply) replyInputRefs.current[replyTo]?.focus();
+        else commentInputRef.current?.focus();
     };
 
     const handleSubmit = async (e) => {
@@ -256,7 +363,7 @@ export default function Chat() {
             const res = await fetch(`${API_BASE_URL}/api/comments`, {
                 method: "POST",
                 headers: {
-                    "Authorization": `Bearer ${session?.accessToken}`,
+                    "Authorization": `Bearer ${session.accessToken}`,
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({ content: comment, taggedUsers }),
@@ -276,8 +383,7 @@ export default function Chat() {
             setComment("");
             setTaggedUsers([]);
             setShowEmojiPicker({});
-            setIsAtBottom(true); // Ensure scroll to bottom after posting
-            fetchComments();
+            setIsAtBottom(true);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -302,7 +408,7 @@ export default function Chat() {
             const res = await fetch(`${API_BASE_URL}/api/comments`, {
                 method: "POST",
                 headers: {
-                    "Authorization": `Bearer ${session?.accessToken}`,
+                    "Authorization": `Bearer ${session.accessToken}`,
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({ content: replyContent, parentComment: parentId, taggedUsers }),
@@ -324,8 +430,7 @@ export default function Chat() {
             setTaggedUsers([]);
             setShowEmojiPicker({});
             setExpandedComments(prev => ({ ...prev, [parentId]: true }));
-            setIsAtBottom(true); // Ensure scroll to bottom after replying
-            fetchComments();
+            setIsAtBottom(true);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -342,7 +447,7 @@ export default function Chat() {
             const res = await fetch(`${API_BASE_URL}/api/comments/${commentId}/like`, {
                 method: "POST",
                 headers: {
-                    "Authorization": `Bearer ${session?.accessToken}`,
+                    "Authorization": `Bearer ${session.accessToken}`,
                     "Content-Type": "application/json",
                 },
             });
@@ -357,8 +462,6 @@ export default function Chat() {
                 const error = await res.json();
                 throw new Error(error.error || "Không thể thích bình luận");
             }
-
-            fetchComments();
         } catch (err) {
             setError(err.message);
         }
@@ -378,7 +481,7 @@ export default function Chat() {
             const res = await fetch(`${API_BASE_URL}/api/comments/${commentId}`, {
                 method: "DELETE",
                 headers: {
-                    "Authorization": `Bearer ${session?.accessToken}`,
+                    "Authorization": `Bearer ${session.accessToken}`,
                     "Content-Type": "application/json",
                 },
             });
@@ -397,8 +500,6 @@ export default function Chat() {
                 const error = await res.json();
                 throw new Error(error.error || "Không thể xóa bình luận");
             }
-
-            fetchComments();
         } catch (err) {
             setError(err.message);
         } finally {

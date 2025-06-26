@@ -36,7 +36,7 @@
     margin-bottom: 20px;
     /* Giảm margin để tiết kiệm không gian */
     font-weight: 700;
-    font-size: 26px;
+    font-size: 30px;
 }
 
 .header {
@@ -128,7 +128,7 @@
 .highlight,
 .tableXS td.tdTitle.highlight {
     color: red;
-    font-size: 28px;
+    font-size: 30px;
 }
 
 .tableXS td.code {
@@ -539,7 +539,7 @@
 
     .kqxs {
         margin-bottom: 20px;
-        font-size: 24px;
+        font-size: 28px;
     }
 
     .kqxs__title {

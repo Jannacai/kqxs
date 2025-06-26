@@ -78,7 +78,7 @@ const KQXS = (props) => {
     const fetchData = useCallback(async (page = currentPage) => {
         try {
             const now = new Date();
-            const isUpdateWindow = now.getHours() === 17 && now.getMinutes() >= 10 && now.getMinutes() <= 32;
+            const isUpdateWindow = now.getHours() === 17 && now.getMinutes() >= 10 && now.getMinutes() <= 40;
 
             const cachedData = localStorage.getItem(CACHE_KEY);
             const cachedTime = localStorage.getItem(`${CACHE_KEY}_time`);

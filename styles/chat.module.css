@@ -620,11 +620,10 @@
 }
 
 /* Responsive adjustments */
-@media (max-width: 400px) {
+@media (max-width: 765px) {
     .chatContainer {
-        width: min(100%, 300px);
+        width: min(95%, 410px);
         height: 400px;
-        margin: 8px auto;
     }
 
     .title {

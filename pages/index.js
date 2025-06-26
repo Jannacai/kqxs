@@ -159,9 +159,11 @@ export default function Home({ drawDate }) {
                     </div>
                 </div>
                 <div>
-                    <ThongKe />
-                    <Chat />
-                    <CongCuHot />
+                    <div>
+                        <ThongKe />
+                        <Chat />
+                        <CongCuHot />
+                    </div>
                     <div className='banner1'>
                         <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
                             <video
@@ -179,7 +181,7 @@ export default function Home({ drawDate }) {
                 </div>
             </div>
             <div className='container'>
-                <PostList />
+                {/* <PostList /> */}
             </div>
         </div>
     );

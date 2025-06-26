@@ -9,6 +9,9 @@ import { SessionProvider, useSession } from "next-auth/react";
 import Footer from '../component/footer';
 import CalendarMobile from '../component/caledarMobile';
 import { LotteryProvider } from '../contexts/LotteryContext';
+import dynamic from 'next/dynamic';
+
+const PostList = dynamic(() => import('./tin-tuc/list'), { ssr: false });
 
 const App = ({ Component, pageProps: { session, ...pageProps } }) => {
     const [theme, setTheme] = useState('unauthenticated');
@@ -30,6 +33,7 @@ const App = ({ Component, pageProps: { session, ...pageProps } }) => {
                         <div className='container'>
                             <Component {...pageProps} />
                         </div>
+                        <PostList />
                         <Footer />
                     </div>
                 </AppWithTheme>

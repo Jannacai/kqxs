@@ -9,6 +9,7 @@ import PostList from './tin-tuc/list';
 import TableDate from '../component/tableDateKQXS';
 import CongCuHot from '../component/CongCuHot';
 import { apiMT } from './api/kqxs/kqxsMT';
+import Chat from './chat/chat';
 
 export async function getStaticProps() {
     const now = new Date();
@@ -150,6 +151,7 @@ const XSMT = ({ initialData }) => {
                     </div>
                     <div>
                         <ThongKe />
+                        <Chat />
                         <CongCuHot />
                         <div className='banner1'>
                             <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>

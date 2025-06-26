@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
-import styles from "../styles/login.module.css";
 import { signIn, useSession } from "next-auth/react";
+import styles from "../styles/login.module.css";
 import Link from "next/link";
 
 export default function Register() {
@@ -15,9 +15,14 @@ export default function Register() {
     const [isModalOpen, setIsModalOpen] = useState(true);
     const router = useRouter();
     const { data: session, status } = useSession();
+    const usernameInputRef = useRef(null);
+
+    useEffect(() => {
+        usernameInputRef.current?.focus();
+    }, []);
 
     if (status === "loading") {
-        return <p>Đang tải...</p>;
+        return <div className={styles.loading}>Đang tải...</div>;
     }
 
     if (status === "authenticated") {
@@ -55,13 +60,10 @@ export default function Register() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!validateInputs()) return;
+
         setIsLoading(true);
         setError("");
-
-        if (!validateInputs()) {
-            setIsLoading(false);
-            return;
-        }
 
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/register`, {
@@ -75,13 +77,12 @@ export default function Register() {
 
             if (!res.ok) {
                 const errorData = await res.json();
-                throw new Error(errorData.error || `Đăng ký thất bại: ${res.status}`);
+                throw new Error(errorData.error || "Đăng ký thất bại");
             }
 
             const { accessToken, refreshToken, user } = await res.json();
 
-            await new Promise((resolve) => setTimeout(resolve, 500));
-
+            // Đăng nhập ngay sau khi đăng ký
             const result = await signIn("credentials", {
                 redirect: false,
                 username,
@@ -89,7 +90,6 @@ export default function Register() {
             });
 
             if (result.error) {
-                console.error("SignIn error:", result.error);
                 throw new Error(result.error);
             }
 
@@ -97,8 +97,9 @@ export default function Register() {
             sessionStorage.setItem('userInfo', JSON.stringify(user));
             router.push("/dang-bai-viet");
         } catch (error) {
-            console.error("Register error:", error.message);
-            setError(error.message || "Đã có lỗi xảy ra khi đăng ký");
+            setError(error.message === "Username already exists" ? "Tên người dùng đã tồn tại" :
+                error.message === "Email already exists" ? "Email đã tồn tại" :
+                    "Đã có lỗi xảy ra khi đăng ký. Vui lòng thử lại.");
         } finally {
             setIsLoading(false);
         }
@@ -133,13 +134,15 @@ export default function Register() {
                             <label className={styles.labelName}>
                                 Tên đăng nhập:
                                 <input
+                                    ref={usernameInputRef}
                                     className={styles.inputName}
                                     type="text"
                                     value={username}
-                                    onChange={(e) => setUsername(e.target.value)}
+                                    onChange={(e) => setUsername(e.target.value.trim())}
                                     required
                                     autoComplete="off"
                                     aria-describedby="username-error"
+                                    disabled={isLoading}
                                 />
                             </label>
                         </div>
@@ -150,10 +153,11 @@ export default function Register() {
                                     className={styles.inputName}
                                     type="email"
                                     value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
+                                    onChange={(e) => setEmail(e.target.value.trim())}
                                     required
                                     autoComplete="off"
                                     aria-describedby="email-error"
+                                    disabled={isLoading}
                                 />
                             </label>
                         </div>
@@ -164,10 +168,11 @@ export default function Register() {
                                     className={styles.inputName}
                                     type="text"
                                     value={fullname}
-                                    onChange={(e) => setFullname(e.target.value)}
+                                    onChange={(e) => setFullname(e.target.value.trim())}
                                     required
                                     autoComplete="off"
                                     aria-describedby="fullname-error"
+                                    disabled={isLoading}
                                 />
                             </label>
                         </div>
@@ -182,6 +187,7 @@ export default function Register() {
                                     required
                                     autoComplete="off"
                                     aria-describedby="password-error"
+                                    disabled={isLoading}
                                 />
                             </label>
                         </div>
@@ -196,6 +202,7 @@ export default function Register() {
                                     required
                                     autoComplete="off"
                                     aria-describedby="confirm-password-error"
+                                    disabled={isLoading}
                                 />
                             </label>
                         </div>
@@ -206,7 +213,11 @@ export default function Register() {
                                 type="submit"
                                 disabled={isLoading}
                             >
-                                {isLoading ? "Đang đăng ký..." : "Đăng ký"}
+                                {isLoading ? (
+                                    <span className={styles.loader}>Đang đăng ký...</span>
+                                ) : (
+                                    "Đăng ký"
+                                )}
                             </button>
                         </div>
                     </form>

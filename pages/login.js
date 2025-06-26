@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { signIn, useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/router";
 import styles from "../styles/login.module.css";
@@ -12,8 +12,12 @@ export default function Login() {
     const [isModalOpen, setIsModalOpen] = useState(true);
     const router = useRouter();
     const { data: session, status } = useSession();
+    const usernameInputRef = useRef(null);
 
     useEffect(() => {
+        // Focus vào input username khi component mount
+        usernameInputRef.current?.focus();
+
         if (session?.error === "RefreshTokenError" || session?.error === "RefreshTokenExpired") {
             signOut({ redirect: false });
             setError("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
@@ -24,7 +28,7 @@ export default function Login() {
     }, [session, router.query]);
 
     if (status === "loading") {
-        return <p>Đang tải...</p>;
+        return <div className={styles.loading}>Đang tải...</div>;
     }
 
     if (status === "authenticated") {
@@ -32,18 +36,41 @@ export default function Login() {
         return null;
     }
 
+    const validateInputs = () => {
+        if (username.length < 3) {
+            setError("Tên đăng nhập phải có ít nhất 3 ký tự");
+            return false;
+        }
+        if (password.length < 6) {
+            setError("Mật khẩu phải có ít nhất 6 ký tự");
+            return false;
+        }
+        return true;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!validateInputs()) return;
+
         setIsLoading(true);
         setError("");
-        const result = await signIn("credentials", {
-            redirect: false,
-            username,
-            password,
-        });
-        setIsLoading(false);
-        if (result.error) {
-            setError(result.error);
+
+        try {
+            const result = await signIn("credentials", {
+                redirect: false,
+                username,
+                password,
+            });
+
+            if (result.error) {
+                setError(result.error === "Username not found" ? "Tên người dùng không tồn tại" :
+                    result.error === "Incorrect password" ? "Mật khẩu không đúng" :
+                        "Đăng nhập thất bại. Vui lòng thử lại.");
+            }
+        } catch (error) {
+            setError("Đã có lỗi xảy ra khi đăng nhập. Vui lòng thử lại.");
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -72,13 +99,15 @@ export default function Login() {
                             <label className={styles.labelName}>
                                 Tên người dùng:
                                 <input
+                                    ref={usernameInputRef}
                                     className={styles.inputName}
                                     type="text"
                                     value={username}
-                                    onChange={(e) => setUsername(e.target.value)}
+                                    onChange={(e) => setUsername(e.target.value.trim())}
                                     required
                                     autoComplete="off"
                                     aria-describedby="username-error"
+                                    disabled={isLoading}
                                 />
                             </label>
                         </div>
@@ -93,6 +122,7 @@ export default function Login() {
                                     required
                                     autoComplete="off"
                                     aria-describedby="password-error"
+                                    disabled={isLoading}
                                 />
                             </label>
                         </div>
@@ -103,7 +133,11 @@ export default function Login() {
                                 type="submit"
                                 disabled={isLoading}
                             >
-                                {isLoading ? "Đang đăng nhập..." : "Đăng nhập"}
+                                {isLoading ? (
+                                    <span className={styles.loader}>Đang đăng nhập...</span>
+                                ) : (
+                                    "Đăng nhập"
+                                )}
                             </button>
                         </div>
                         <p className={styles.dangky}>

@@ -9,6 +9,7 @@ import TableDate from '../component/tableDateKQXS';
 import CongCuHot from '../component/CongCuHot';
 import { apiMB } from './api/kqxs/kqxsMB';
 import styles from '../public/css/kqxsMB.module.css';
+import Chat from './chat/chat';
 
 
 // Lazy load components
@@ -181,6 +182,7 @@ const XSMB = ({ initialData }) => {
                     </div>
                     <div>
                         <ThongKe />
+                        <Chat />
                         <CongCuHot />
                         <div className='banner1'>
                             <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
