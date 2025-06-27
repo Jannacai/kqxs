@@ -249,7 +249,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                     ...prev,
                     [animatingPrize]: Math.floor(Math.random() * 100000).toString().padStart(5, '0')
                 }));
-            }, 50);
+            }, 100);
 
             // Khởi tạo số ngẫu nhiên ban đầu
             setAnimatingNumbers(prev => ({

@@ -1,4 +1,3 @@
-// mã cần test cho ngày 23/06(nếu ổn mới sửa cho xổ số miền Nam.)
 import { apiMT } from "../api/kqxs/kqxsMT";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import styles from '../../styles/kqxsMT.module.css';
@@ -27,7 +26,7 @@ const KQXS = (props) => {
 
     const hour = 17;
     const minutes1 = 10;
-    const minutes2 = 14;
+    const minutes2 = 13;
 
     const dayof = props.dayofMT;
     const station = props.station || "xsmt";
@@ -45,6 +44,7 @@ const KQXS = (props) => {
     });
 
     const CACHE_KEY = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}`;
+    const UPDATE_KEY = `xsmt_updated_${today}`; // Cờ để theo dõi cập nhật ngày hiện tại
 
     const triggerScraperDebounced = useCallback(
         debounce((today, station, provinces) => {
@@ -78,75 +78,88 @@ const KQXS = (props) => {
     const fetchData = useCallback(async (page = currentPage) => {
         try {
             const now = new Date();
-            const isUpdateWindow = now.getHours() === 17 && now.getMinutes() >= 10 && now.getMinutes() <= 40;
+            const vietnamTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+            const vietnamHours = vietnamTime.getHours();
+            const vietnamMinutes = vietnamTime.getMinutes();
+            const isUpdateWindow = vietnamHours === 17 && vietnamMinutes >= 10 && vietnamMinutes <= 35;
+            const isPostLiveWindow = vietnamHours > 17 || (vietnamHours === 17 && vietnamMinutes > 35);
+            const hasUpdatedToday = localStorage.getItem(UPDATE_KEY);
 
             const cachedData = localStorage.getItem(CACHE_KEY);
             const cachedTime = localStorage.getItem(`${CACHE_KEY}_time`);
             const cacheAge = cachedTime ? now.getTime() - parseInt(cachedTime) : Infinity;
 
-            if (!isUpdateWindow && cachedData && cacheAge < CACHE_DURATION) {
+            // Gọi API nếu:
+            // 1. Trong khung giờ trực tiếp (17h10-17h35)
+            // 2. Sau 17h35 và chưa cập nhật trong ngày
+            // 3. Không có cache hoặc cache đã hết hạn
+            if (isUpdateWindow || (isPostLiveWindow && !hasUpdatedToday) || (!cachedData || cacheAge >= CACHE_DURATION)) {
+                console.log('Fetching from API'); // Log để kiểm tra
+                const result = await apiMT.getLottery(station, date, tinh, dayof, { page, limit: ITEMS_PER_PAGE });
+                const dataArray = Array.isArray(result) ? result : [result];
+
+                const formattedData = dataArray.map(item => ({
+                    ...item,
+                    drawDate: new Date(item.drawDate).toLocaleDateString('vi-VN', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                    }),
+                    drawDateRaw: new Date(item.drawDate),
+                    tentinh: item.tentinh || `Tỉnh ${dataArray.indexOf(item) + 1} `,
+                    tinh: item.tinh || item.station,
+                }));
+
+                const groupedByDate = formattedData.reduce((acc, item) => {
+                    const dateKey = item.drawDate;
+                    if (!acc[dateKey]) {
+                        acc[dateKey] = [];
+                    }
+                    acc[dateKey].push(item);
+                    return acc;
+                }, {});
+
+                const sortedDates = Object.keys(groupedByDate).sort((a, b) => {
+                    const dateA = new Date(groupedByDate[a][0].drawDateRaw);
+                    const dateB = new Date(groupedByDate[b][0].drawDateRaw);
+                    return dateB - dateA;
+                });
+
+                const finalData = sortedDates.map(date => ({
+                    drawDate: date,
+                    stations: groupedByDate[date],
+                    dayOfWeek: groupedByDate[date][0].dayOfWeek,
+                }));
+
+                // Kiểm tra dữ liệu mới
+                const cachedDataParsed = cachedData ? JSON.parse(cachedData) : [];
+                const hasNewData = JSON.stringify(finalData) !== JSON.stringify(cachedDataParsed);
+
+                if (hasNewData || !cachedData) {
+                    setData(finalData);
+                    localStorage.setItem(CACHE_KEY, JSON.stringify(finalData));
+                    localStorage.setItem(`${CACHE_KEY}_time`, now.getTime().toString());
+                    if (isPostLiveWindow) {
+                        localStorage.setItem(UPDATE_KEY, now.getTime().toString()); // Đánh dấu đã cập nhật
+                    }
+                } else if (cachedData) {
+                    setData(cachedDataParsed);
+                }
+
+                setFilterTypes(prevFilters => ({
+                    ...prevFilters,
+                    ...finalData.reduce((acc, item) => {
+                        acc[item.drawDate] = prevFilters[item.drawDate] || 'all';
+                        return acc;
+                    }, {}),
+                }));
+
+                setLoading(false);
+            } else if (cachedData) {
+                console.log('Using cached data'); // Log để kiểm tra
                 setData(JSON.parse(cachedData));
                 setLoading(false);
-                return;
             }
-
-            const result = await apiMT.getLottery(station, date, tinh, dayof, { page, limit: ITEMS_PER_PAGE });
-            const dataArray = Array.isArray(result) ? result : [result];
-
-            const formattedData = dataArray.map(item => ({
-                ...item,
-                drawDate: new Date(item.drawDate).toLocaleDateString('vi-VN', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                }),
-                drawDateRaw: new Date(item.drawDate),
-                tentinh: item.tentinh || `Tỉnh ${dataArray.indexOf(item) + 1} `,
-                tinh: item.tinh || item.station,
-            }));
-
-            const groupedByDate = formattedData.reduce((acc, item) => {
-                const dateKey = item.drawDate;
-                if (!acc[dateKey]) {
-                    acc[dateKey] = [];
-                }
-                acc[dateKey].push(item);
-                return acc;
-            }, {});
-
-            const sortedDates = Object.keys(groupedByDate).sort((a, b) => {
-                const dateA = new Date(groupedByDate[a][0].drawDateRaw);
-                const dateB = new Date(groupedByDate[b][0].drawDateRaw);
-                return dateB - dateA;
-            });
-
-            const finalData = sortedDates.map(date => ({
-                drawDate: date,
-                stations: groupedByDate[date],
-                dayOfWeek: groupedByDate[date][0].dayOfWeek,
-            }));
-
-            // Kiểm tra dữ liệu mới
-            const cachedDataParsed = cachedData ? JSON.parse(cachedData) : [];
-            const hasNewData = JSON.stringify(finalData) !== JSON.stringify(cachedDataParsed);
-
-            if (hasNewData) {
-                setData(finalData);
-                localStorage.setItem(CACHE_KEY, JSON.stringify(finalData));
-                localStorage.setItem(`${CACHE_KEY}_time`, now.getTime().toString());
-            } else if (cachedData) {
-                setData(cachedDataParsed);
-            }
-
-            setFilterTypes(prevFilters => ({
-                ...prevFilters,
-                ...finalData.reduce((acc, item) => {
-                    acc[item.drawDate] = prevFilters[item.drawDate] || 'all';
-                    return acc;
-                }, {}),
-            }));
-
-            setLoading(false);
         } catch (error) {
             console.error('Error fetching lottery data:', error);
             setLoading(false);
@@ -209,6 +222,7 @@ const KQXS = (props) => {
                 );
                 localStorage.setItem(CACHE_KEY, JSON.stringify(newData));
                 localStorage.setItem(`${CACHE_KEY}_time`, new Date().getTime().toString());
+                localStorage.setItem(UPDATE_KEY, new Date().getTime().toString()); // Đánh dấu đã cập nhật từ liveData
                 return newData;
             });
             setFilterTypes(prev => ({
@@ -229,7 +243,7 @@ const KQXS = (props) => {
 
             // Tạo thời gian bắt đầu và kết thúc theo giờ Việt Nam
             const startTime = new Date(vietnamTime);
-            startTime.setHours(startHour, startMinute, 0, 0); // 17:12
+            startTime.setHours(startHour, startMinute, 0, 0); // 17:10
             const endTime = new Date(startTime.getTime() + duration); // 17:35
 
             // Kiểm tra khung giờ trực tiếp
@@ -239,6 +253,7 @@ const KQXS = (props) => {
             // Reset lúc 00:00 +07:00
             if (vietnamHours === 0 && vietnamMinutes === 0 && vietnamSeconds === 0) {
                 setHasTriggeredScraper(false);
+                localStorage.removeItem(UPDATE_KEY); // Xóa cờ cập nhật ngày cũ
             }
 
             const dayOfWeekIndex = vietnamTime.getDay();
@@ -692,3 +707,4 @@ const KQXS = (props) => {
 };
 
 export default React.memo(KQXS);
+// cần test 17/06 sửa để cập nhập cache

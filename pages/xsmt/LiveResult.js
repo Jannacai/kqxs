@@ -294,6 +294,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             return animationQueue.find(prize => stationData[prize] === '...') || null;
         };
 
+        // Cập nhật animatingPrizes cho các tỉnh
         liveData.forEach(stationData => {
             const currentPrize = animatingPrizes[stationData.tinh];
             if (!currentPrize || stationData[currentPrize] !== '...') {
@@ -312,11 +313,13 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             }
         });
 
+        // Chỉ chạy animation cho các tỉnh chưa hoàn thành
         const intervalId = setInterval(() => {
             setAnimatingNumbers(prev => {
                 const newNumbers = { ...prev };
                 liveData.forEach(stationData => {
                     const prizeType = animatingPrizes[stationData.tinh];
+                    // Chỉ random số nếu tỉnh còn giải cần animate
                     if (prizeType && stationData[prizeType] === '...') {
                         const digits = prizeType === 'eightPrizes_0' ? 2 :
                             prizeType === 'sevenPrizes_0' ? 3 :
@@ -328,7 +331,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                 });
                 return newNumbers;
             });
-        }, 100); // Tăng interval lên 100ms
+        }, 100);
 
         return () => clearInterval(intervalId);
     }, [isLiveWindow, liveData, animatingPrizes]);
@@ -404,7 +407,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     });
 
     return (
-        <div className={styles.containerKQ}>
+        <div className={styles.containerKQs}>
             <div className={styles.statusContainer}>
                 {error && <div className={styles.error}>{error}</div>}
                 {isTodayLoading && (
@@ -652,4 +655,4 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
 };
 
 export default React.memo(LiveResult);
-// CẦN TEST NGÀY 25/6
+// cần test 27/06 sửa animating dừng sớm khi 1 tỉnh hoàn thành sớm
