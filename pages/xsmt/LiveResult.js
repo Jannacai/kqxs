@@ -13,7 +13,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     const [animatingPrizes, setAnimatingPrizes] = useState({}); // { tinh: prizeType }
     const [animatingNumbers, setAnimatingNumbers] = useState({}); // { tinh_prizeType: number }
     const maxRetries = 50;
-    const retryInterval = 5000;
+    const retryInterval = 10000;
 
     const provincesByDay = useMemo(() => ({
         1: [
