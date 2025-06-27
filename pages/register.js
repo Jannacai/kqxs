@@ -148,7 +148,7 @@ export default function Register() {
                         </div>
                         <div className={styles.formGroup}>
                             <label className={styles.labelName}>
-                                Email:
+                                Email (Dùng đặt lại mật khẩu):
                                 <input
                                     className={styles.inputName}
                                     type="email"

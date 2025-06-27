@@ -128,7 +128,7 @@ export default function ResetPassword() {
                     <p className={styles.error}>{error}</p>
                     <p className={styles.dangky}>
                         Quay lại <Link href="/login">Đăng nhập</Link> hoặc{" "}
-                        <Link href="/forgot-password">Gửi lại link đặt lại mật khẩu</Link>
+                        <Link href="/resetauth/forgot-password">Gửi lại link đặt lại mật khẩu</Link>
                     </p>
                 </div>
             </div>
