@@ -588,3 +588,4 @@ function isWithinLiveWindow() {
 }
 
 export default React.memo(LiveResult);
+// chạy ổn rồi, animating chưa chạy đúng(tất cả animating hiện tại đều 5 số)

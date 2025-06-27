@@ -66,7 +66,7 @@ const Footer = () => {
                         <span className={styles.icon}><i class="fa-brands fa-youtube"></i></span>
                         <span className={styles.icon}><i class="fa-brands fa-linkedin"></i></span>
                     </div>
-                    <strong>Copyright © 2023 XSMB.WIN.Com</strong>
+                    <strong>Copyright © 2025 XSMB.WIN.Com</strong>
                 </div>
             </div>
         </div >
