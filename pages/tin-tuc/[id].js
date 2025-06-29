@@ -186,8 +186,8 @@ const PostDetail = () => {
         : defaultDescription;
 
     const canonicalUrl = `https://xsmb.win/tin-tuc/${post.slug}-${post._id}`;
-    // Lấy imageUrl từ ảnh đầu tiên trong mainContents, hoặc dùng logo mặc định
-    const imageUrl = post.mainContents?.find(content => content.img?.startsWith('https'))?.img || "https://xsmb.win/logo.png";
+    // Lấy imageUrl từ ảnh đầu tiên trong mainContents
+    const imageUrl = post.mainContents?.find(content => content.img?.startsWith('https'))?.img || null;
 
     const structuredData = {
         "@context": "https://schema.org",
@@ -199,7 +199,7 @@ const PostDetail = () => {
             "@type": "Person",
             "name": post.author?.username || "Admin"
         },
-        "image": [imageUrl],
+        "image": imageUrl ? [imageUrl] : [],
         "description": metaDescription,
         "mainEntityOfPage": {
             "@type": "WebPage",
@@ -280,32 +280,46 @@ const PostDetail = () => {
                 <meta name="description" content={metaDescription} />
                 <meta name="robots" content="index, follow" />
                 <meta name="author" content={post.author?.username || "Admin"} />
+
+                {imageUrl && (
+                    <>
+                        <meta property="og:image" content={imageUrl} />
+                        <meta property="og:image:secure_url" content={imageUrl} />
+                        <meta property="og:image:width" content="1200" />
+                        <meta property="og:image:height" content="630" />
+                        <meta property="og:image:type" content="image/jpeg" />
+                        <meta property="og:image:alt" content={post.title} />
+                        <meta name="twitter:image" content={imageUrl} />
+                        <meta name="twitter:image:alt" content={post.title} />
+                        <link rel="preload" href={imageUrl} as="image" />
+                    </>
+                )}
+
                 <meta property="og:title" content={post.title.slice(0, 60)} />
                 <meta property="og:description" content={metaDescription} />
-                <meta property="og:image" content={imageUrl} />
-                <meta property="og:image:secure_url" content={imageUrl} />
-                <meta property="og:image:width" content="1200" />
-                <meta property="og:image:height" content="630" />
-                <meta property="og:image:type" content="image/jpeg" />
-                <meta property="og:image:alt" content={post.title} />
                 <meta property="og:type" content="article" />
                 <meta property="og:url" content={canonicalUrl} />
                 <meta property="og:site_name" content="XSMB.WIN" />
                 <meta property="og:locale" content="vi_VN" />
-                <meta property="fb:app_id" content={process.env.FB_APP_ID || ""} />
-                <meta property="zalo:official_account_id" content={process.env.ZALO_OA_ID || ""} />
+                <meta property="fb:app_id" content={process.env.FB_APP_ID || ''} />
+
+                <meta property="zalo:official_account_id" content={process.env.ZALO_OA_ID || ''} />
                 <meta property="zalo:share_url" content={canonicalUrl} />
-                <meta property="zalo-img" content={imageUrl} />
-                <meta property="zalo-img:width" content="600" />
-                <meta property="zalo-img:height" content="600" />
+                {imageUrl && (
+                    <>
+                        <meta property="zalo-img" content={imageUrl} />
+                        <meta property="zalo-img:width" content="600" />
+                        <meta property="zalo-img:height" content="600" />
+                    </>
+                )}
+
                 <meta name="twitter:card" content="summary_large_image" />
                 <meta name="twitter:title" content={post.title.slice(0, 60)} />
                 <meta name="twitter:description" content={metaDescription} />
-                <meta name="twitter:image" content={imageUrl} />
-                <meta name="twitter:image:alt" content={post.title} />
+
                 <link rel="canonical" href={canonicalUrl} />
                 <link rel="alternate" hrefLang="vi" href={canonicalUrl} />
-                <link rel="preload" href={imageUrl} as="image" />
+
                 <script type="application/ld+json">
                     {JSON.stringify(structuredData)}
                 </script>
@@ -363,6 +377,7 @@ const PostDetail = () => {
                         )}
                     </div>
                     {displayedRelatedPosts.length > 0 && (
+
                         <div className={styles.relatedPosts}>
                             <div className={styles.groupbanner4}>
                                 <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
@@ -382,6 +397,7 @@ const PostDetail = () => {
                             {displayedRelatedPosts.map((relatedPost) => (
                                 <RelatedPostItem key={relatedPost._id} post={relatedPost} />
                             ))}
+
                             <div className={styles.banner1}>
                                 <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
                                     <video
@@ -397,7 +413,9 @@ const PostDetail = () => {
                                 </a>
                             </div>
                         </div>
+
                     )}
+
                 </div>
             </div>
         </>
