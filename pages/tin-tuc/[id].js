@@ -43,6 +43,7 @@ const PostDetail = ({ post, relatedPosts, footballPosts, error }) => {
     const [footballIndex, setFootballIndex] = useState(3);
 
     const defaultDescription = 'Đọc tin tức mới nhất tại XSMB.WIN - Cập nhật thông tin nhanh chóng, chính xác!';
+    const defaultImage = 'https://xsmb.win/facebook.png'; // Hình ảnh mặc định
 
     useEffect(() => {
         const socket = io(process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000', {
@@ -172,7 +173,14 @@ const PostDetail = ({ post, relatedPosts, footballPosts, error }) => {
         : defaultDescription;
 
     const canonicalUrl = `https://xsmb.win/tin-tuc/${post.slug}-${post._id}`;
-    const imageUrl = post.mainContents?.find(content => content.img?.startsWith('https://res.cloudinary.com'))?.img || 'https://xsmb.win/facebook.png';
+    const imageUrl = post.mainContents?.find(content => content.img && /\.(jpg|jpeg|png|gif)$/i.test(content.img))?.img || defaultImage;
+
+    // Kiểm tra hình ảnh hợp lệ
+    const isValidImage = (url) => {
+        return url && /\.(jpg|jpeg|png|gif)$/i.test(url) && url.startsWith('https://');
+    };
+
+    const finalImageUrl = isValidImage(imageUrl) ? imageUrl : defaultImage;
 
     const structuredData = {
         '@context': 'https://schema.org',
@@ -184,7 +192,7 @@ const PostDetail = ({ post, relatedPosts, footballPosts, error }) => {
             '@type': 'Person',
             'name': post.author?.username || 'Admin',
         },
-        'image': imageUrl ? [imageUrl] : [],
+        'image': finalImageUrl ? [finalImageUrl] : [],
         'description': metaDescription,
         'mainEntityOfPage': {
             '@type': 'WebPage',
@@ -201,7 +209,7 @@ const PostDetail = ({ post, relatedPosts, footballPosts, error }) => {
     };
 
     const RelatedPostItem = React.memo(({ post }) => {
-        const postImage = post.mainContents?.find(content => content.img?.startsWith('https://res.cloudinary.com'))?.img;
+        const postImage = post.mainContents?.find(content => content.img && /\.(jpg|jpeg|png|gif)$/i.test(content.img))?.img;
         return (
             <Link href={`/tin-tuc/${post.slug}-${post._id}`} className={styles.relatedItem} title={post.title} aria-label={`Xem bài viết ${post.title}`}>
                 {postImage && (
@@ -218,7 +226,7 @@ const PostDetail = ({ post, relatedPosts, footballPosts, error }) => {
     });
 
     const FootballPostItem = React.memo(({ post }) => {
-        const postImage = post.mainContents?.find(content => content.img?.startsWith('https://res.cloudinary.com'))?.img;
+        const postImage = post.mainContents?.find(content => content.img && /\.(jpg|jpeg|png|gif)$/i.test(content.img))?.img;
         const postDescription = post.mainContents && post.mainContents[0]?.description || '';
         return (
             <Link href={`/tin-tuc/${post.slug}-${post._id}`} className={styles.footballItem} title={post.title} aria-label={`Xem bài viết ${post.title}`}>
@@ -271,25 +279,25 @@ const PostDetail = ({ post, relatedPosts, footballPosts, error }) => {
                 <meta property="og:site_name" content="XSMB.WIN" />
                 <meta property="og:locale" content="vi_VN" />
                 <meta property="fb:app_id" content={process.env.FB_APP_ID || ''} />
-                {imageUrl && (
+                {finalImageUrl && (
                     <>
-                        <meta property="og:image" content={imageUrl} />
-                        <meta property="og:image:secure_url" content={imageUrl} />
+                        <meta property="og:image" content={finalImageUrl} />
+                        <meta property="og:image:secure_url" content={finalImageUrl} />
                         <meta property="og:image:width" content="1200" />
                         <meta property="og:image:height" content="630" />
-                        <meta property="og:image:type" content={imageUrl.endsWith('.png') ? 'image/png' : 'image/jpeg'} />
+                        <meta property="og:image:type" content={finalImageUrl.endsWith('.png') ? 'image/png' : 'image/jpeg'} />
                         <meta property="og:image:alt" content={post.title} />
-                        <meta name="twitter:image" content={imageUrl} />
+                        <meta name="twitter:image" content={finalImageUrl} />
                         <meta name="twitter:image:alt" content={post.title} />
-                        <link rel="preload" href={imageUrl} as="image" />
+                        <link rel="preload" href={finalImageUrl} as="image" />
                     </>
                 )}
 
                 <meta property="zalo:official_account_id" content={process.env.ZALO_OA_ID || ''} />
                 <meta property="zalo:share_url" content={canonicalUrl} />
-                {imageUrl && (
+                {finalImageUrl && (
                     <>
-                        <meta property="zalo-img" content={imageUrl} />
+                        <meta property="zalo-img" content={finalImageUrl} />
                         <meta property="zalo-img:width" content="600" />
                         <meta property="zalo-img:height" content="600" />
                     </>
@@ -376,7 +384,7 @@ const PostDetail = ({ post, relatedPosts, footballPosts, error }) => {
                             {displayedRelatedPosts.map((relatedPost) => (
                                 <RelatedPostItem key={relatedPost._id} post={relatedPost} />
                             ))}
-                            <div className={styles.banner1}>
+                            <div className={labels.banner1}>
                                 <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
                                     <video
                                         className={styles.videobanner}
@@ -415,7 +423,7 @@ const RenderContent = React.memo(({ contentOrder, mainContents, title }) => {
                             )}
                             {content.isImageFirst ? (
                                 <>
-                                    {content.img && (
+                                    {content.img && /\.(jpg|jpeg|png|gif)$/i.test(content.img) && (
                                         <figure className={styles.imageWrapper}>
                                             <img
                                                 src={content.img}
@@ -447,7 +455,7 @@ const RenderContent = React.memo(({ contentOrder, mainContents, title }) => {
                                             ))}
                                         </div>
                                     )}
-                                    {content.img && (
+                                    {content.img && /\.(jpg|jpeg|png|gif)$/i.test(content.img) && (
                                         <figure className={styles.imageWrapper}>
                                             <img
                                                 src={content.img}
