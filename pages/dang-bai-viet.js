@@ -37,6 +37,10 @@ const postSchema = z.object({
                 img: z
                     .string()
                     .url("Vui lòng nhập một URL hợp lệ")
+                    .refine(
+                        (url) => !url || /\.(jpg|jpeg|png|gif)$/i.test(url),
+                        "URL hình ảnh phải có định dạng jpg, jpeg, png hoặc gif"
+                    )
                     .optional()
                     .or(z.literal("")),
                 imgFile: z.any().optional(),
@@ -109,6 +113,13 @@ const CreatePost = () => {
                 ...prev,
                 [`mainContent-${index}`]: url || "",
             }));
+            // Kiểm tra URL có phải ảnh không
+            if (url && !/\.(jpg|jpeg|png|gif)$/i.test(url)) {
+                toast.warn("URL hình ảnh không hợp lệ. Vui lòng nhập URL có định dạng jpg, jpeg, png hoặc gif.", {
+                    position: "top-right",
+                    autoClose: 5000,
+                });
+            }
         },
         []
     );
@@ -214,11 +225,25 @@ const CreatePost = () => {
 
             const uploadPromises = data.mainContents.map(async (content, i) => {
                 let imgUrl = content.img;
+                // Ưu tiên ảnh từ file nếu URL không hợp lệ
                 if (content.imageSource === "upload" && content.imgFile) {
                     const formData = new FormData();
                     formData.append("file", content.imgFile);
-                    const uploadResponse = await uploadToDrive(formData);
-                    imgUrl = uploadResponse.url;
+                    try {
+                        const uploadResponse = await uploadToDrive(formData);
+                        if (!uploadResponse?.url || !/\.(jpg|jpeg|png|gif)$/i.test(uploadResponse.url)) {
+                            throw new Error("URL ảnh tải lên không hợp lệ");
+                        }
+                        imgUrl = uploadResponse.url;
+                    } catch (error) {
+                        throw new Error(`Lỗi khi tải ảnh lên: ${error.message}`);
+                    }
+                } else if (content.img && !/\.(jpg|jpeg|png|gif)$/i.test(content.img)) {
+                    imgUrl = ""; // Bỏ URL không hợp lệ
+                    toast.warn(`URL hình ảnh ở nhóm nội dung ${i + 1} không hợp lệ, đã bỏ qua.`, {
+                        position: "top-right",
+                        autoClose: 5000,
+                    });
                 }
                 return {
                     h2: content.h2 || "",
@@ -230,6 +255,15 @@ const CreatePost = () => {
             });
 
             postData.mainContents = await Promise.all(uploadPromises);
+
+            // Đảm bảo ít nhất một img hợp lệ trong mainContents
+            if (!postData.mainContents.some(content => content.img && /\.(jpg|jpeg|png|gif)$/i.test(content.img))) {
+                toast.warn("Bài viết không có hình ảnh hợp lệ. Vui lòng thêm ít nhất một ảnh (jpg, jpeg, png, gif).", {
+                    position: "top-right",
+                    autoClose: 5000,
+                });
+                return;
+            }
 
             const response = await createPost(postData);
             reset();
@@ -251,8 +285,8 @@ const CreatePost = () => {
                 errorMessage = "Dữ liệu không hợp lệ. Vui lòng kiểm tra tiêu đề, URL hình ảnh, và nội dung.";
             } else if (error.message.includes("Failed to save post")) {
                 errorMessage = "Lỗi hệ thống khi lưu bài viết. Vui lòng liên hệ quản trị viên.";
-            } else if (error.message.includes("Failed to upload to Cloudinary")) {
-                errorMessage = "Lỗi khi tải ảnh lên Cloudinary. Vui lòng kiểm tra file ảnh.";
+            } else if (error.message.includes("Lỗi khi tải ảnh lên")) {
+                errorMessage = error.message;
             }
             toast.error(errorMessage, {
                 position: "top-right",
@@ -441,7 +475,7 @@ const CreatePost = () => {
                                                         id={`mainContents[${item.index}].img`}
                                                         {...register(`mainContents[${item.index}].img`)}
                                                         type="text"
-                                                        placeholder="Nhập URL hình ảnh"
+                                                        placeholder="Nhập URL hình ảnh (jpg, jpeg, png, gif)"
                                                         className={styles.inputGroup_title}
                                                         autoComplete="off"
                                                         onChange={handleImageChange(item.index)}
@@ -461,7 +495,7 @@ const CreatePost = () => {
                                                         type="file"
                                                         accept="image/jpeg,image/png,image/gif,image/webp"
                                                         className={styles.inputGroup_title}
-                                                        onChange={handleFileChange(index)}
+                                                        onChange={handleFileChange(item.index)}
                                                         aria-describedby={`mainContent-${item.index}-imgFile-error`}
                                                     />
                                                     {errors.mainContents?.[item.index]?.imgFile && (
