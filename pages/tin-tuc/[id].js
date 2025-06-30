@@ -1,63 +1,59 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/router";
-import Head from "next/head";
-import { getCombinedPostData } from "../api/post/index";
-import Link from "next/link";
-import styles from "../../styles/postDetail.module.css";
+import React, { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/router';
+import Head from 'next/head';
+import { getCombinedPostData } from '../api/post/index';
+import Link from 'next/link';
+import io from 'socket.io-client';
+import styles from '../../styles/postDetail.module.css';
 
-const PostDetail = () => {
-    const router = useRouter();
-    const { id } = router.query;
-    const [post, setPost] = useState(null);
-    const [relatedPosts, setRelatedPosts] = useState([]);
-    const [footballPosts, setFootballPosts] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [relatedPostsPool, setRelatedPostsPool] = useState([]);
-    const [footballPostsPool, setFootballPostsPool] = useState([]);
-    const [relatedIndex, setRelatedIndex] = useState(0);
-    const [footballIndex, setFootballIndex] = useState(0);
+export async function getServerSideProps(context) {
+    const { id } = context.query;
+    let post = null;
+    let relatedPosts = [];
+    let footballPosts = [];
+    let error = null;
 
-    const defaultDescription = "Đọc tin tức mới nhất tại XSMB.WIN - Cập nhật thông tin nhanh chóng, chính xác!";
+    try {
+        const actualId = id.includes('-') ? id.split('-').pop() : id;
+        const data = await getCombinedPostData(actualId, true);
+        post = data.post;
+        relatedPosts = [...new Map(data.related.map(item => [item._id, item])).values()].slice(0, 15);
+        footballPosts = [...new Map(data.football.map(item => [item._id, item])).values()].slice(0, 15);
+    } catch (err) {
+        error = err.message || 'Đã có lỗi xảy ra khi lấy chi tiết bài viết';
+    }
 
-    const fetchWithRetry = async (fetchFn, maxRetries = 3, delay = 3000) => {
-        for (let i = 0; i < maxRetries; i++) {
-            try {
-                return await fetchFn();
-            } catch (err) {
-                if (err.message.includes("429") && i < maxRetries - 1) {
-                    await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
-                    continue;
-                }
-                throw err;
-            }
-        }
+    return {
+        props: {
+            post,
+            relatedPosts,
+            footballPosts,
+            error,
+        },
     };
+}
 
-    const fetchPostData = useCallback(async () => {
-        if (!id) return;
-        try {
-            const actualId = id.includes('-') ? id.split('-').pop() : id;
-            const data = await fetchWithRetry(() => getCombinedPostData(actualId, true));
-            setPost(data.post);
-            const uniqueRelated = [...new Map(data.related.map(item => [item._id, item])).values()];
-            const uniqueFootball = [...new Map(data.football.map(item => [item._id, item])).values()];
-            setRelatedPostsPool(uniqueRelated.slice(0, 15) || []);
-            setFootballPostsPool(uniqueFootball.slice(0, 15) || []);
-            setRelatedPosts(uniqueRelated.slice(0, 4) || []);
-            setFootballPosts(uniqueFootball.slice(0, 3) || []);
-            setRelatedIndex(4);
-            setFootballIndex(3);
-            setLoading(false);
-        } catch (err) {
-            setError(err.message || "Đã có lỗi xảy ra khi lấy chi tiết bài viết");
-            setLoading(false);
-        }
-    }, [id]);
+const PostDetail = ({ post, relatedPosts, footballPosts, error }) => {
+    const router = useRouter();
+    const [relatedPostsPool, setRelatedPostsPool] = useState(relatedPosts || []);
+    const [footballPostsPool, setFootballPostsPool] = useState(footballPosts || []);
+    const [relatedPostsState, setRelatedPosts] = useState(relatedPosts.slice(0, 4) || []);
+    const [footballPostsState, setFootballPosts] = useState(footballPosts.slice(0, 3) || []);
+    const [relatedIndex, setRelatedIndex] = useState(4);
+    const [footballIndex, setFootballIndex] = useState(3);
+
+    const defaultDescription = 'Đọc tin tức mới nhất tại XSMB.WIN - Cập nhật thông tin nhanh chóng, chính xác!';
 
     useEffect(() => {
-        const handleNewPost = (event) => {
-            const newPost = event.detail;
+        const socket = io(process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000', {
+            query: { token: localStorage?.getItem('token') || '' },
+        });
+
+        socket.on('connect', () => {
+            console.log('Connected to Socket.IO server');
+        });
+
+        socket.on('newPostCreated', (newPost) => {
             if (!newPost || !newPost._id || newPost._id === post?._id) return;
 
             setRelatedPostsPool(prev => {
@@ -74,7 +70,7 @@ const PostDetail = () => {
             });
 
             setFootballPostsPool(prev => {
-                if (!Array.isArray(newPost.category) || !newPost.category.includes("Thể thao")) return prev;
+                if (!Array.isArray(newPost.category) || !newPost.category.includes('Thể thao')) return prev;
                 let newPool = [...prev];
                 if (newPool.length >= 15) {
                     const oldestIndex = newPool.reduce((maxIndex, item, index, arr) =>
@@ -85,15 +81,16 @@ const PostDetail = () => {
                 }
                 return newPool.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
             });
+        });
+
+        socket.on('connect_error', (err) => {
+            console.error('Socket.IO connection error:', err.message);
+        });
+
+        return () => {
+            socket.disconnect();
         };
-
-        window.addEventListener('newPostCreated', handleNewPost);
-        return () => window.removeEventListener('newPostCreated', handleNewPost);
     }, [post?.category, post?._id]);
-
-    useEffect(() => {
-        fetchPostData();
-    }, [fetchPostData]);
 
     useEffect(() => {
         const rotatePosts = () => {
@@ -145,7 +142,7 @@ const PostDetail = () => {
     }, [relatedIndex, footballIndex, relatedPostsPool, footballPostsPool]);
 
     const formattedDate = useMemo(() => {
-        if (!post?.createdAt) return "Ngày đăng";
+        if (!post?.createdAt) return 'Ngày đăng';
         try {
             const date = new Date(post.createdAt);
             const day = String(date.getDate()).padStart(2, '0');
@@ -153,22 +150,12 @@ const PostDetail = () => {
             const year = date.getFullYear();
             return `${day}/${month}/${year}`;
         } catch (error) {
-            return "Ngày đăng";
+            return 'Ngày đăng';
         }
     }, [post?.createdAt]);
 
-    const displayedRelatedPosts = useMemo(() => relatedPosts.slice(0, 4), [relatedPosts]);
-    const displayedFootballPosts = useMemo(() => footballPosts.slice(0, 3), [footballPosts]);
-
-    if (loading) {
-        return (
-            <div className={styles.loading}>
-                <div className={styles.skeletonTitle}></div>
-                <div className={styles.skeletonImage}></div>
-                <div className={styles.skeletonText}></div>
-            </div>
-        );
-    }
+    const displayedRelatedPosts = useMemo(() => relatedPostsState.slice(0, 4), [relatedPostsState]);
+    const displayedFootballPosts = useMemo(() => footballPostsState.slice(0, 3), [footballPostsState]);
 
     if (error) {
         return <p className={styles.error}>{error}</p>;
@@ -178,7 +165,6 @@ const PostDetail = () => {
         return <p className={styles.error}>Bài viết không tồn tại.</p>;
     }
 
-    // Lấy metaDescription từ mainContents[0].description
     const metaDescription = post.mainContents && post.mainContents[0]?.description
         ? post.mainContents[0].description.length > 160
             ? `${post.mainContents[0].description.substring(0, 157)}...`
@@ -186,38 +172,36 @@ const PostDetail = () => {
         : defaultDescription;
 
     const canonicalUrl = `https://xsmb.win/tin-tuc/${post.slug}-${post._id}`;
-    // Lấy imageUrl từ ảnh đầu tiên trong mainContents
-    const imageUrl = post.mainContents?.find(content => content.img?.startsWith('https'))?.img || null;
+    const imageUrl = post.mainContents?.find(content => content.img?.startsWith('https://res.cloudinary.com'))?.img || 'https://xsmb.win/facebook.png';
 
     const structuredData = {
-        "@context": "https://schema.org",
-        "@type": "NewsArticle",
-        "headline": post.title,
-        "datePublished": post.createdAt,
-        "dateModified": post.createdAt,
-        "author": {
-            "@type": "Person",
-            "name": post.author?.username || "Admin"
+        '@context': 'https://schema.org',
+        '@type': 'NewsArticle',
+        'headline': post.title,
+        'datePublished': post.createdAt,
+        'dateModified': post.createdAt,
+        'author': {
+            '@type': 'Person',
+            'name': post.author?.username || 'Admin',
         },
-        "image": imageUrl ? [imageUrl] : [],
-        "description": metaDescription,
-        "mainEntityOfPage": {
-            "@type": "WebPage",
-            "@id": canonicalUrl
+        'image': imageUrl ? [imageUrl] : [],
+        'description': metaDescription,
+        'mainEntityOfPage': {
+            '@type': 'WebPage',
+            '@id': canonicalUrl,
         },
-        "publisher": {
-            "@type": "Organization",
-            "name": "XSMB.WIN",
-            "logo": {
-                "@type": "ImageObject",
-                "url": "https://xsmb.win/logo.png"
-            }
-        }
+        'publisher': {
+            '@type': 'Organization',
+            'name': 'XSMB.WIN',
+            'logo': {
+                '@type': 'ImageObject',
+                'url': 'https://xsmb.win/logo.png',
+            },
+        },
     };
 
     const RelatedPostItem = React.memo(({ post }) => {
-        // Lấy img và title từ mainContents cho related posts
-        const postImage = post.mainContents?.find(content => content.img?.startsWith('https'))?.img;
+        const postImage = post.mainContents?.find(content => content.img?.startsWith('https://res.cloudinary.com'))?.img;
         return (
             <Link href={`/tin-tuc/${post.slug}-${post._id}`} className={styles.relatedItem} title={post.title} aria-label={`Xem bài viết ${post.title}`}>
                 {postImage && (
@@ -234,9 +218,8 @@ const PostDetail = () => {
     });
 
     const FootballPostItem = React.memo(({ post }) => {
-        // Lấy img và description từ mainContents cho football posts
-        const postImage = post.mainContents?.find(content => content.img?.startsWith('https'))?.img;
-        const postDescription = post.mainContents && post.mainContents[0]?.description || "";
+        const postImage = post.mainContents?.find(content => content.img?.startsWith('https://res.cloudinary.com'))?.img;
+        const postDescription = post.mainContents && post.mainContents[0]?.description || '';
         return (
             <Link href={`/tin-tuc/${post.slug}-${post._id}`} className={styles.footballItem} title={post.title} aria-label={`Xem bài viết ${post.title}`}>
                 {postImage && (
@@ -279,21 +262,7 @@ const PostDetail = () => {
                 <title>{post.title.slice(0, 60)}</title>
                 <meta name="description" content={metaDescription} />
                 <meta name="robots" content="index, follow" />
-                <meta name="author" content={post.author?.username || "Admin"} />
-
-                {imageUrl && (
-                    <>
-                        <meta property="og:image" content={imageUrl} />
-                        <meta property="og:image:secure_url" content={imageUrl} />
-                        <meta property="og:image:width" content="1200" />
-                        <meta property="og:image:height" content="630" />
-                        <meta property="og:image:type" content="image/jpeg" />
-                        <meta property="og:image:alt" content={post.title} />
-                        <meta name="twitter:image" content={imageUrl} />
-                        <meta name="twitter:image:alt" content={post.title} />
-                        <link rel="preload" href={imageUrl} as="image" />
-                    </>
-                )}
+                <meta name="author" content={post.author?.username || 'Admin'} />
 
                 <meta property="og:title" content={post.title.slice(0, 60)} />
                 <meta property="og:description" content={metaDescription} />
@@ -302,6 +271,19 @@ const PostDetail = () => {
                 <meta property="og:site_name" content="XSMB.WIN" />
                 <meta property="og:locale" content="vi_VN" />
                 <meta property="fb:app_id" content={process.env.FB_APP_ID || ''} />
+                {imageUrl && (
+                    <>
+                        <meta property="og:image" content={imageUrl} />
+                        <meta property="og:image:secure_url" content={imageUrl} />
+                        <meta property="og:image:width" content="1200" />
+                        <meta property="og:image:height" content="630" />
+                        <meta property="og:image:type" content={imageUrl.endsWith('.png') ? 'image/png' : 'image/jpeg'} />
+                        <meta property="og:image:alt" content={post.title} />
+                        <meta name="twitter:image" content={imageUrl} />
+                        <meta name="twitter:image:alt" content={post.title} />
+                        <link rel="preload" href={imageUrl} as="image" />
+                    </>
+                )}
 
                 <meta property="zalo:official_account_id" content={process.env.ZALO_OA_ID || ''} />
                 <meta property="zalo:share_url" content={canonicalUrl} />
@@ -320,9 +302,7 @@ const PostDetail = () => {
                 <link rel="canonical" href={canonicalUrl} />
                 <link rel="alternate" hrefLang="vi" href={canonicalUrl} />
 
-                <script type="application/ld+json">
-                    {JSON.stringify(structuredData)}
-                </script>
+                <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
             </Head>
             <div className={styles.pageWrapper}>
                 <div className={styles.container}>
@@ -339,7 +319,7 @@ const PostDetail = () => {
                                     {cat}
                                 </span>
                             ))}
-                            <span className={styles.author}>Tác giả: {post.author?.username || "Admin"}</span>
+                            <span className={styles.author}>Tác giả: {post.author?.username || 'Admin'}</span>
                         </div>
                         <RenderContent
                             contentOrder={post.contentOrder}
@@ -348,7 +328,7 @@ const PostDetail = () => {
                         />
                         <button
                             className={styles.backButton}
-                            onClick={() => router.push("/tin-tuc")}
+                            onClick={() => router.push('/tin-tuc')}
                             aria-label="Quay lại trang tin tức"
                         >
                             Đến Trang Tin Tức
@@ -377,7 +357,6 @@ const PostDetail = () => {
                         )}
                     </div>
                     {displayedRelatedPosts.length > 0 && (
-
                         <div className={styles.relatedPosts}>
                             <div className={styles.groupbanner4}>
                                 <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
@@ -397,7 +376,6 @@ const PostDetail = () => {
                             {displayedRelatedPosts.map((relatedPost) => (
                                 <RelatedPostItem key={relatedPost._id} post={relatedPost} />
                             ))}
-
                             <div className={styles.banner1}>
                                 <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
                                     <video
@@ -413,16 +391,12 @@ const PostDetail = () => {
                                 </a>
                             </div>
                         </div>
-
                     )}
-
                 </div>
             </div>
         </>
     );
 };
-
-export default PostDetail;
 
 const RenderContent = React.memo(({ contentOrder, mainContents, title }) => {
     if (!contentOrder || contentOrder.length === 0 || !mainContents) {
@@ -432,7 +406,7 @@ const RenderContent = React.memo(({ contentOrder, mainContents, title }) => {
     return (
         <div className={styles.content}>
             {contentOrder.map((item, index) => {
-                if (item.type === "mainContent" && mainContents[item.index]) {
+                if (item.type === 'mainContent' && mainContents[item.index]) {
                     const content = mainContents[item.index];
                     return (
                         <div key={`mainContent-${index}`} className={`${styles.mainContent} ${content.isImageFirst ? styles.imageFirst : ''}`}>
@@ -445,7 +419,7 @@ const RenderContent = React.memo(({ contentOrder, mainContents, title }) => {
                                         <figure className={styles.imageWrapper}>
                                             <img
                                                 src={content.img}
-                                                srcSet={`${content.img} 1200w, ${content.img.replace('.jpg', '-medium.jpg')} 800w, ${content.img.replace('.jpg', '-small.jpg')} 400w`}
+                                                srcSet={`${content.img} 1200w, ${content.img.replace(/\/upload\//, '/upload/w_800/')} 800w, ${content.img.replace(/\/upload\//, '/upload/w_400/')} 400w`}
                                                 sizes="(max-width: 768px) 100vw, 800px"
                                                 alt={content.h2 || title}
                                                 className={styles.image}
@@ -477,7 +451,7 @@ const RenderContent = React.memo(({ contentOrder, mainContents, title }) => {
                                         <figure className={styles.imageWrapper}>
                                             <img
                                                 src={content.img}
-                                                srcSet={`${content.img} 1200w, ${content.img.replace('.jpg', '-medium.jpg')} 800w, ${content.img.replace('.jpg', '-small.jpg')} 400w`}
+                                                srcSet={`${content.img} 1200w, ${content.img.replace(/\/upload\//, '/upload/w_800/')} 800w, ${content.img.replace(/\/upload\//, '/upload/w_400/')} 400w`}
                                                 sizes="(max-width: 768px) 100vw, 800px"
                                                 alt={content.h2 || title}
                                                 className={styles.image}
@@ -498,3 +472,5 @@ const RenderContent = React.memo(({ contentOrder, mainContents, title }) => {
         </div>
     );
 });
+
+export default PostDetail;

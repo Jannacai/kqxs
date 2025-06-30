@@ -1,11 +1,12 @@
-const { getSession } = require("next-auth/react");
+import { getSession } from 'next-auth/react';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+const cache = new Map();
 
 const getCachedPosts = (key) => {
-    const cached = localStorage.getItem(key);
+    const cached = cache.get(key);
     if (cached) {
-        const { data, timestamp } = JSON.parse(cached);
+        const { data, timestamp } = cached;
         const age = Date.now() - timestamp;
         if (age < 15 * 60 * 1000) {
             return data;
@@ -19,13 +20,15 @@ const setCachedPosts = (key, data) => {
     const uniquePosts = data.posts
         ? { ...data, posts: data.posts.filter(post => !seenIds.has(post._id) && seenIds.add(post._id)) }
         : data;
-    localStorage.setItem(key, JSON.stringify({ data: uniquePosts, timestamp: Date.now() }));
+    cache.set(key, { data: uniquePosts, timestamp: Date.now() });
 };
 
 const clearCombinedCache = () => {
-    Object.keys(localStorage)
-        .filter((key) => key.startsWith("combined:"))
-        .forEach((key) => localStorage.removeItem(key));
+    for (const key of cache.keys()) {
+        if (key.startsWith('combined:')) {
+            cache.delete(key);
+        }
+    }
 };
 
 export const uploadToDrive = async (formData) => {
@@ -33,22 +36,22 @@ export const uploadToDrive = async (formData) => {
     const url = `${API_BASE_URL}/api/posts/upload-to-cloudinary`;
     try {
         const response = await fetch(url, {
-            method: "POST",
+            method: 'POST',
             headers: {
                 ...(session?.accessToken && { Authorization: `Bearer ${session.accessToken}` }),
-                "Cache-Control": "no-cache",
+                'Cache-Control': 'no-cache',
             },
             body: formData,
         });
         if (!response.ok) {
             const errorText = await response.text();
-            console.error("API error:", errorText);
+            console.error('API error:', errorText);
             throw new Error(`Có lỗi khi tải ảnh lên: ${response.status} - ${errorText}`);
         }
         const data = await response.json();
         return data;
     } catch (error) {
-        console.error("uploadToCloudinary error:", error);
+        console.error('uploadToCloudinary error:', error);
         throw error;
     }
 };
@@ -68,9 +71,9 @@ export const getPosts = async (context = null, page = 1, limit = 15, category = 
     }
     try {
         const response = await fetch(url, {
-            method: "GET",
+            method: 'GET',
             headers: {
-                "Cache-Control": "no-cache",
+                'Cache-Control': 'no-cache',
             },
         });
         if (!response.ok) {
@@ -81,7 +84,7 @@ export const getPosts = async (context = null, page = 1, limit = 15, category = 
         setCachedPosts(cacheKey, data);
         return data;
     } catch (error) {
-        console.error("getPosts error:", error);
+        console.error('getPosts error:', error);
         throw error;
     }
 };
@@ -91,11 +94,11 @@ export const createPost = async (postData) => {
     const url = `${API_BASE_URL}/api/posts`;
     try {
         const response = await fetch(url, {
-            method: "POST",
+            method: 'POST',
             headers: {
-                "Content-Type": "application/json",
+                'Content-Type': 'application/json',
                 ...(session?.accessToken && { Authorization: `Bearer ${session.accessToken}` }),
-                "Cache-Control": "no-cache",
+                'Cache-Control': 'no-cache',
             },
             body: JSON.stringify({
                 title: postData.title,
@@ -106,18 +109,22 @@ export const createPost = async (postData) => {
         });
         if (!response.ok) {
             const errorText = await response.text();
-            console.error("API error:", errorText);
+            console.error('API error:', errorText);
             throw new Error(`Có lỗi khi đăng bài: ${response.status} - ${errorText}`);
         }
         const data = await response.json();
-        Object.keys(localStorage)
-            .filter((key) => key.startsWith("posts:") || key.startsWith("post:"))
-            .forEach((key) => localStorage.removeItem(key));
+        for (const key of cache.keys()) {
+            if (key.startsWith('posts:') || key.startsWith('post:')) {
+                cache.delete(key);
+            }
+        }
         clearCombinedCache();
-        window.dispatchEvent(new CustomEvent('newPostCreated', { detail: data }));
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('newPostCreated', { detail: data }));
+        }
         return data;
     } catch (error) {
-        console.error("createPost error:", error);
+        console.error('createPost error:', error);
         throw error;
     }
 };
@@ -134,21 +141,21 @@ export const getPostById = async (id, refresh = false) => {
     const url = `${API_BASE_URL}/api/posts/${id}`;
     try {
         const response = await fetch(url, {
-            method: "GET",
+            method: 'GET',
             headers: {
-                "Cache-Control": "no-cache",
+                'Cache-Control': 'no-cache',
             },
         });
         if (!response.ok) {
             const errorText = await response.text();
-            console.error("API error:", errorText);
+            console.error('API error:', errorText);
             throw new Error(`Có lỗi khi lấy bài viết: ${response.status} - ${errorText}`);
         }
         const data = await response.json();
         setCachedPosts(cacheKey, data);
         return data;
     } catch (error) {
-        console.error("getPostById error:", error);
+        console.error('getPostById error:', error);
         throw error;
     }
 };
@@ -166,21 +173,21 @@ export const getCombinedPostData = async (id, refresh = false) => {
     const url = `${API_BASE_URL}/api/posts/combined/${actualId}`;
     try {
         const response = await fetch(url, {
-            method: "GET",
+            method: 'GET',
             headers: {
-                "Cache-Control": "no-cache",
+                'Cache-Control': 'no-cache',
             },
         });
         if (!response.ok) {
             const errorText = await response.text();
-            console.error("API error:", errorText);
+            console.error('API error:', errorText);
             throw new Error(`Có lỗi khi lấy dữ liệu bài viết: ${response.status} - ${errorText}`);
         }
         const data = await response.json();
         setCachedPosts(cacheKey, data);
         return data;
     } catch (error) {
-        console.error("getCombinedPostData error:", error);
+        console.error('getCombinedPostData error:', error);
         throw error;
     }
 };
@@ -189,9 +196,9 @@ export const getCategories = async () => {
     const url = `${API_BASE_URL}/api/posts/categories`;
     try {
         const response = await fetch(url, {
-            method: "GET",
+            method: 'GET',
             headers: {
-                "Cache-Control": "no-cache",
+                'Cache-Control': 'no-cache',
             },
         });
         if (!response.ok) {
@@ -201,7 +208,7 @@ export const getCategories = async () => {
         const data = await response.json();
         return data.categories;
     } catch (error) {
-        console.error("getCategories error:", error);
+        console.error('getCategories error:', error);
         throw error;
     }
 };

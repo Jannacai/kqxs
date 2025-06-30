@@ -4,6 +4,7 @@ import { formatDistanceToNow } from "date-fns";
 import vi from "date-fns/locale/vi";
 import EmojiPicker from "emoji-picker-react";
 import { useRouter } from "next/router";
+import io from "socket.io-client";
 import styles from "../../styles/chat.module.css";
 import Link from "next/link";
 
@@ -33,7 +34,7 @@ export default function Chat() {
     const commentRefs = useRef({});
     const suggestionRef = useRef(null);
     const commentListRef = useRef(null);
-    const wsRef = useRef(null);
+    const socketRef = useRef(null);
 
     // Hàm sắp xếp bình luận tối ưu
     const sortComments = useCallback((comments) => {
@@ -69,118 +70,105 @@ export default function Chat() {
         }
     }, [session, router, sortComments]);
 
-    // Thiết lập WebSocket
+    // Thiết lập Socket.IO
     useEffect(() => {
         if (status !== "authenticated" || !session?.accessToken) {
-            console.log("WebSocket not initialized: User not authenticated or no token");
+            console.log("Socket.IO not initialized: User not authenticated or no token");
             return;
         }
 
-        let reconnectAttempts = 0;
-        const maxReconnectAttempts = 5;
-        const reconnectInterval = 5000;
+        const socket = io(API_BASE_URL, {
+            query: { token: session.accessToken },
+            reconnectionAttempts: 5,
+            reconnectionDelay: 5000,
+        });
+        socketRef.current = socket;
 
-        const connectWebSocket = () => {
-            const wsUrl = `${API_BASE_URL.replace('http://', 'ws://').replace('https://', 'wss://')}/?token=${session.accessToken}`;
-            console.log("Attempting WebSocket connection to:", wsUrl);
-            const ws = new WebSocket(wsUrl);
-            wsRef.current = ws;
+        socket.on("connect", () => {
+            console.log("Socket.IO connected successfully");
+            socket.emit("joinChat"); // Join room "chat" cho bình luận chung
+            setError("");
+        });
 
-            ws.onopen = () => {
-                console.log("WebSocket connected successfully");
-                reconnectAttempts = 0;
-                setError(""); // Xóa lỗi WebSocket nếu kết nối thành công
-            };
-
-            ws.onmessage = (event) => {
-                try {
-                    console.log("WebSocket message received:", event.data);
-                    const { type, data } = JSON.parse(event.data);
-                    setComments((prevComments) => {
-                        let updatedComments = [...prevComments];
-                        if (type === "NEW_COMMENT") {
-                            if (updatedComments.some(c => c._id === data._id)) {
-                                console.log("Comment already exists, updating:", data._id);
-                                return updatedComments.map(c =>
-                                    c._id === data._id ? { ...c, ...data } : c
-                                );
-                            }
-                            console.log("Adding new comment:", data._id);
-                            if (!data.parentComment) {
-                                updatedComments.push(data);
-                            } else {
-                                const updateChildComments = (comments) => {
-                                    return comments.map((comment) => {
-                                        if (comment._id === data.parentComment) {
-                                            return {
-                                                ...comment,
-                                                childComments: [...(comment.childComments || []), data],
-                                            };
-                                        }
-                                        if (comment.childComments) {
-                                            return {
-                                                ...comment,
-                                                childComments: updateChildComments(comment.childComments),
-                                            };
-                                        }
-                                        return comment;
-                                    });
-                                };
-                                updatedComments = updateChildComments(updatedComments);
-                            }
-                        } else if (type === "LIKE_UPDATE") {
-                            console.log("Updating like for comment:", data._id);
-                            updatedComments = updatedComments.map(c =>
-                                c._id === data._id ? { ...c, ...data } : c
-                            );
-                        } else if (type === "DELETE_COMMENT") {
-                            console.log("Deleting comment:", data._id);
-                            updatedComments = updatedComments.filter(c => c._id !== data._id);
-                            const removeChildComments = (comments) => {
-                                return comments
-                                    .filter(c => c._id !== data._id)
-                                    .map(c => ({
-                                        ...c,
-                                        childComments: c.childComments ? removeChildComments(c.childComments) : [],
-                                    }));
-                            };
-                            updatedComments = removeChildComments(updatedComments);
-                        }
-                        return sortComments(updatedComments);
-                    });
-                    if (isAtBottom && commentListRef.current) {
-                        console.log("Auto-scrolling to bottom");
-                        commentListRef.current.scrollTop = commentListRef.current.scrollHeight;
-                    }
-                } catch (err) {
-                    console.error("Error processing WebSocket message:", err);
+        socket.on("NEW_COMMENT", (data) => {
+            console.log("Received NEW_COMMENT:", data);
+            setComments((prevComments) => {
+                let updatedComments = [...prevComments];
+                if (updatedComments.some(c => c._id === data._id)) {
+                    console.log("Comment already exists, updating:", data._id);
+                    return updatedComments.map(c =>
+                        c._id === data._id ? { ...c, ...data } : c
+                    );
                 }
-            };
-
-            ws.onclose = (event) => {
-                console.log("WebSocket disconnected. Code:", event.code, "Reason:", event.reason);
-                if (reconnectAttempts < maxReconnectAttempts) {
-                    setTimeout(() => {
-                        reconnectAttempts++;
-                        console.log(`Reconnecting WebSocket (attempt ${reconnectAttempts})`);
-                        connectWebSocket();
-                    }, reconnectInterval);
+                console.log("Adding new comment:", data._id);
+                if (!data.parentComment) {
+                    updatedComments.push(data);
                 } else {
-                    console.error("Max reconnection attempts reached");
-                    setError("Mất kết nối WebSocket. Vui lòng làm mới trang.");
+                    const updateChildComments = (comments) => {
+                        return comments.map((comment) => {
+                            if (comment._id === data.parentComment) {
+                                return {
+                                    ...comment,
+                                    childComments: [...(comment.childComments || []), data],
+                                };
+                            }
+                            if (comment.childComments) {
+                                return {
+                                    ...comment,
+                                    childComments: updateChildComments(comment.childComments),
+                                };
+                            }
+                            return comment;
+                        });
+                    };
+                    updatedComments = updateChildComments(updatedComments);
                 }
-            };
+                return sortComments(updatedComments);
+            });
+            if (isAtBottom && commentListRef.current) {
+                console.log("Auto-scrolling to bottom");
+                commentListRef.current.scrollTop = commentListRef.current.scrollHeight;
+            }
+        });
 
-            ws.onerror = (error) => {
-                console.error("WebSocket error:", error);
-                ws.close();
-            };
-        };
+        socket.on("LIKE_UPDATE", (data) => {
+            console.log("Received LIKE_UPDATE:", data);
+            setComments((prevComments) => {
+                const updatedComments = prevComments.map(c =>
+                    c._id === data._id ? { ...c, ...data } : c
+                );
+                return sortComments(updatedComments);
+            });
+        });
 
-        connectWebSocket();
+        socket.on("DELETE_COMMENT", (data) => {
+            console.log("Received DELETE_COMMENT:", data);
+            setComments((prevComments) => {
+                const updatedComments = prevComments.filter(c => c._id !== data._id);
+                const removeChildComments = (comments) => {
+                    return comments
+                        .filter(c => c._id !== data._id)
+                        .map(c => ({
+                            ...c,
+                            childComments: c.childComments ? removeChildComments(c.childComments) : [],
+                        }));
+                };
+                return sortComments(removeChildComments(updatedComments));
+            });
+        });
+
+        socket.on("connect_error", (error) => {
+            console.error("Socket.IO connection error:", error.message);
+            setError("Mất kết nối thời gian thực. Vui lòng làm mới trang.");
+        });
+
+        socket.on("disconnect", (reason) => {
+            console.log("Socket.IO disconnected:", reason);
+        });
+
         return () => {
-            console.log("Cleaning up WebSocket connection");
-            wsRef.current?.close();
+            console.log("Cleaning up Socket.IO connection");
+            socket.disconnect();
         };
     }, [status, session?.accessToken, isAtBottom, sortComments]);
 
@@ -366,7 +354,7 @@ export default function Chat() {
                     "Authorization": `Bearer ${session.accessToken}`,
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ content: comment, taggedUsers }),
+                body: JSON.stringify({ content: comment, taggedUsers, postId: null }),
             });
 
             if (res.status === 401) {
@@ -411,7 +399,7 @@ export default function Chat() {
                     "Authorization": `Bearer ${session.accessToken}`,
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ content: replyContent, parentComment: parentId, taggedUsers }),
+                body: JSON.stringify({ content: replyContent, parentComment: parentId, taggedUsers, postId: null }),
             });
 
             if (res.status === 401) {
