@@ -384,7 +384,7 @@ const PostDetail = ({ post, relatedPosts, footballPosts, error }) => {
                             {displayedRelatedPosts.map((relatedPost) => (
                                 <RelatedPostItem key={relatedPost._id} post={relatedPost} />
                             ))}
-                            <div className={labels.banner1}>
+                            <div className={styles.banner1}>
                                 <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
                                     <video
                                         className={styles.videobanner}
