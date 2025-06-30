@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import imageCompression from "browser-image-compression";
 
 const VALID_CATEGORIES = ["Tin hot", "Thể thao", "Đời sống", "Giải trí"];
 
@@ -65,6 +66,7 @@ const CreatePost = () => {
     const router = useRouter();
     const [previewUrls, setPreviewUrls] = useState({});
     const [mainContentFields, setMainContentFields] = useState({});
+    const [isUploading, setIsUploading] = useState(false);
 
     const {
         register,
@@ -112,15 +114,28 @@ const CreatePost = () => {
     );
 
     const handleFileChange = useCallback(
-        (index) => (event) => {
+        (index) => async (event) => {
             const file = event.target.files[0];
             if (file) {
-                setValue(`mainContents[${index}].imgFile`, file);
-                const fileUrl = URL.createObjectURL(file);
-                setPreviewUrls((prev) => ({
-                    ...prev,
-                    [`mainContent-${index}`]: fileUrl || "",
-                }));
+                try {
+                    const compressedFile = await imageCompression(file, {
+                        maxSizeMB: 1,
+                        maxWidthOrHeight: 1200,
+                        useWebWorker: true,
+                    });
+                    setValue(`mainContents[${index}].imgFile`, compressedFile);
+                    const fileUrl = URL.createObjectURL(compressedFile);
+                    setPreviewUrls((prev) => ({
+                        ...prev,
+                        [`mainContent-${index}`]: fileUrl || "",
+                    }));
+                } catch (error) {
+                    console.error("Lỗi khi nén ảnh:", error);
+                    toast.error("Lỗi khi nén ảnh. Vui lòng thử lại.", {
+                        position: "top-right",
+                        autoClose: 5000,
+                    });
+                }
             }
         },
         [setValue]
@@ -188,6 +203,7 @@ const CreatePost = () => {
     };
 
     const onSubmit = async (data) => {
+        setIsUploading(true);
         try {
             const postData = {
                 title: data.title,
@@ -196,25 +212,24 @@ const CreatePost = () => {
                 contentOrder: data.contentOrder,
             };
 
-            for (let i = 0; i < data.mainContents.length; i++) {
-                const content = data.mainContents[i];
+            const uploadPromises = data.mainContents.map(async (content, i) => {
                 let imgUrl = content.img;
-
                 if (content.imageSource === "upload" && content.imgFile) {
                     const formData = new FormData();
                     formData.append("file", content.imgFile);
                     const uploadResponse = await uploadToDrive(formData);
                     imgUrl = uploadResponse.url;
                 }
-
-                postData.mainContents.push({
+                return {
                     h2: content.h2 || "",
                     description: content.description || "",
                     img: imgUrl || "",
                     caption: content.caption || "",
                     isImageFirst: content.isImageFirst || false,
-                });
-            }
+                };
+            });
+
+            postData.mainContents = await Promise.all(uploadPromises);
 
             const response = await createPost(postData);
             reset();
@@ -231,18 +246,20 @@ const CreatePost = () => {
             if (error.message.includes("Invalid token")) {
                 await signOut({ redirect: false });
                 router.push("/ui");
-                return;
+                errorMessage = "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.";
             } else if (error.message.includes("Invalid data")) {
-                errorMessage = "Dữ liệu không hợp lệ. Vui lòng kiểm tra tiêu mật khẩu, URL hình ảnh, và nội dung.";
+                errorMessage = "Dữ liệu không hợp lệ. Vui lòng kiểm tra tiêu đề, URL hình ảnh, và nội dung.";
             } else if (error.message.includes("Failed to save post")) {
                 errorMessage = "Lỗi hệ thống khi lưu bài viết. Vui lòng liên hệ quản trị viên.";
-            } else if (error.message.includes("Failed to upload to Google Drive")) {
-                errorMessage = "Lỗi khi tải ảnh lên Google Drive. Vui lòng kiểm tra file ảnh.";
+            } else if (error.message.includes("Failed to upload to Cloudinary")) {
+                errorMessage = "Lỗi khi tải ảnh lên Cloudinary. Vui lòng kiểm tra file ảnh.";
             }
             toast.error(errorMessage, {
                 position: "top-right",
                 autoClose: 5000,
             });
+        } finally {
+            setIsUploading(false);
         }
     };
 
@@ -287,6 +304,11 @@ const CreatePost = () => {
         <div className={styles.modalOverlay}>
             <div className={styles.container}>
                 <div className={styles.formGroup}>
+                    {isUploading && (
+                        <div className={styles.loadingSpinner}>
+                            <p>Đang tải ảnh và đăng bài...</p>
+                        </div>
+                    )}
                     <button className={styles.closeButton} onClick={handleCloseModal} aria-label="Đóng modal">
                         ✕
                     </button>
@@ -439,7 +461,7 @@ const CreatePost = () => {
                                                         type="file"
                                                         accept="image/jpeg,image/png,image/gif,image/webp"
                                                         className={styles.inputGroup_title}
-                                                        onChange={handleFileChange(item.index)}
+                                                        onChange={handleFileChange(index)}
                                                         aria-describedby={`mainContent-${item.index}-imgFile-error`}
                                                     />
                                                     {errors.mainContents?.[item.index]?.imgFile && (
@@ -478,7 +500,6 @@ const CreatePost = () => {
                                                 <p className={styles.noImageText}>Không có hình ảnh</p>
                                             )}
                                         </div>
-                                        {/* Thay thế positionToggle bằng radio buttons */}
                                         <div className={styles.positionToggle}>
                                             <span className={styles.titleGroup}>Vị trí hình ảnh</span>
                                             <div className={styles.radioGroup}>
@@ -553,8 +574,8 @@ const CreatePost = () => {
                             </div>
                         </div>
                         <div className={styles.buttonGroup}>
-                            <button className={styles.submitForm} type="submit" disabled={isSubmitting}>
-                                {isSubmitting ? "Đang đăng..." : "Hoàn Thành"}
+                            <button className={styles.submitForm} type="submit" disabled={isSubmitting || isUploading}>
+                                {isSubmitting || isUploading ? "Đang đăng..." : "Hoàn Thành"}
                             </button>
                         </div>
                     </form>
