@@ -404,7 +404,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     });
 
     return (
-        <div className={styles.containerKQ}>
+        <div className={styles.containerKQs}>
             <div className={styles.statusContainer}>
                 {error && <div className={styles.error}>{error}</div>}
                 {isTodayLoading && (
