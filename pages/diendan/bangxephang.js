@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
+import { useRouter } from 'next/router';
 import axios from 'axios';
 import styles from '../../styles/Leaderboard.module.css';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backendkqxs.onrender.com';
 
 // Mảng ánh xạ danh hiệu từ users.models.js
 const TITLE_THRESHOLDS = [
@@ -17,21 +18,43 @@ const TITLE_THRESHOLDS = [
 ];
 
 const Leaderboard = () => {
-    const { data: session } = useSession();
+    const { data: session, status } = useSession();
+    const router = useRouter();
     const [players, setPlayers] = useState([]);
     const [error, setError] = useState('');
     const [selectedPlayer, setSelectedPlayer] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [expandedTitles, setExpandedTitles] = useState({});
     const modalRef = useRef(null);
-    const titleRefs = useRef({}); // Lưu ref cho mỗi expandedTitles
+    const titleRefs = useRef({});
+
+    // Hàm làm mới token
+    const refreshAccessToken = async (refreshToken) => {
+        try {
+            const res = await axios.post(`${API_BASE_URL}/api/auth/refresh-token`, {
+                refreshToken,
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+            return res.data.accessToken;
+        } catch (err) {
+            throw new Error(err.response?.data?.message || 'Không thể làm mới token');
+        }
+    };
 
     // Lấy danh sách người chơi
     const fetchLeaderboard = async () => {
+        if (status !== 'authenticated') {
+            setError('Vui lòng đăng nhập để xem bảng xếp hạng');
+            return;
+        }
+        console.log('Session:', session); // Debug
+        console.log('Access Token:', session?.accessToken); // Debug
         try {
             const headers = {
                 'Content-Type': 'application/json',
-                // 'User-Agent': 'Leaderboard-Client'
             };
             if (session?.accessToken) {
                 headers.Authorization = `Bearer ${session.accessToken}`;
@@ -39,7 +62,7 @@ const Leaderboard = () => {
 
             const res = await axios.get(`${API_BASE_URL}/api/users/leaderboard`, {
                 headers,
-                params: { limit: 50 }
+                params: { limit: 50 },
             });
 
             if (res.status !== 200) {
@@ -50,24 +73,43 @@ const Leaderboard = () => {
             setError('');
         } catch (err) {
             console.error('Error fetching leaderboard:', err.message);
-            setError(err.response?.data?.message || 'Đã có lỗi xảy ra');
+            if (err.response?.status === 401 && session?.refreshToken) {
+                try {
+                    const newAccessToken = await refreshAccessToken(session.refreshToken);
+                    // Lưu ý: Cần cập nhật session.accessToken qua next-auth
+                    const retryRes = await axios.get(`${API_BASE_URL}/api/users/leaderboard`, {
+                        headers: {
+                            Authorization: `Bearer ${newAccessToken}`,
+                            'Content-Type': 'application/json',
+                        },
+                        params: { limit: 50 },
+                    });
+                    setPlayers(retryRes.data.users);
+                    setError('');
+                } catch (refreshErr) {
+                    console.error('Refresh token error:', refreshErr.message);
+                    setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+                    signOut({ redirect: false });
+                    router.push('/login?error=SessionExpired');
+                }
+            } else {
+                setError(err.response?.data?.message || 'Đã có lỗi xảy ra');
+            }
         }
     };
 
     // Gọi API khi component mount
     useEffect(() => {
         fetchLeaderboard();
-    }, [session]);
+    }, [session, status, router]);
 
     // Xử lý click ngoài modal và expandedTitles
     useEffect(() => {
         const handleClickOutside = (event) => {
-            // Đóng modal
             if (modalRef.current && !modalRef.current.contains(event.target)) {
                 setShowModal(false);
                 setSelectedPlayer(null);
             }
-            // Đóng tất cả expandedTitles
             if (!Object.values(titleRefs.current).some(ref => ref && ref.contains(event.target))) {
                 setExpandedTitles({});
             }
@@ -80,14 +122,14 @@ const Leaderboard = () => {
     const handleShowDetails = (player) => {
         setShowModal(true);
         setSelectedPlayer(player);
-        setExpandedTitles({}); // Đóng tất cả danh hiệu khi mở modal
+        setExpandedTitles({});
     };
 
     // Xử lý toggle danh hiệu
     const handleToggleTitles = (playerId) => {
         setExpandedTitles((prev) => ({
             ...prev,
-            [playerId]: !prev[playerId]
+            [playerId]: !prev[playerId],
         }));
     };
 
@@ -109,7 +151,7 @@ const Leaderboard = () => {
             m: styles.avatarM, n: styles.avatarN, o: styles.avatarO, p: styles.avatarP,
             q: styles.avatarQ, r: styles.avatarR, s: styles.avatarS, t: styles.avatarT,
             u: styles.avatarU, v: styles.avatarV, w: styles.avatarW, x: styles.avatarX,
-            y: styles.avatarY, z: styles.avatarZ
+            y: styles.avatarY, z: styles.avatarZ,
         };
         return avatarColors[firstChar] || styles.avatarA;
     };
@@ -230,8 +272,7 @@ const Leaderboard = () => {
                                 return (
                                     <span
                                         key={index}
-                                        className={`${styles.titles} ${styles[titleClass]} ${title === getHighestTitle(selectedPlayer.points || 0, selectedPlayer.titles || []) ? styles.highestTitle : ''
-                                            }`}
+                                        className={`${styles.titles} ${styles[titleClass]} ${title === getHighestTitle(selectedPlayer.points || 0, selectedPlayer.titles || []) ? styles.highestTitle : ''}`}
                                     >
                                         {title}
                                     </span>

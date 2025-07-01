@@ -74,7 +74,7 @@ export default function LotteryRegistrationFeed() {
         console.log('Initializing Socket.IO with URL:', API_BASE_URL);
         console.log('Access Token:', session.accessToken); // Debug
         const socket = io(API_BASE_URL, {
-            query: { token: session.accessToken }, // Sử dụng query thay vì auth
+            query: { token: session.accessToken },
             reconnectionAttempts: 5,
             reconnectionDelay: 5000,
         });
@@ -156,7 +156,7 @@ export default function LotteryRegistrationFeed() {
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
+        return () => document.addEventListener('mousedown', handleClickOutside);
     }, []);
 
     // Xử lý click vào avatar
