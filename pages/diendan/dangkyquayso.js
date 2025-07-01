@@ -65,7 +65,7 @@ export default function LotteryRegistration() {
                 headers: {
                     Authorization: `Bearer ${session.accessToken}`,
                     'Content-Type': 'application/json',
-                    'User-Agent': 'LotteryRegistration-Client'
+                    // 'User-Agent': 'LotteryRegistration-Client'
                 },
                 params: {
                     userId: session.user.id,
@@ -163,7 +163,7 @@ export default function LotteryRegistration() {
                 headers: {
                     Authorization: `Bearer ${session?.accessToken}`,
                     'Content-Type': 'application/json',
-                    'User-Agent': 'LotteryRegistration-Client'
+                    // 'User-Agent': 'LotteryRegistration-Client'
                 }
             });
 

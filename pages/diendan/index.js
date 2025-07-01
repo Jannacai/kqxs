@@ -48,7 +48,7 @@ const DienDan = () => {
                 headers: {
                     Authorization: `Bearer ${session.accessToken}`,
                     'Content-Type': 'application/json',
-                    'User-Agent': 'DienDan-Client'
+                    // 'User-Agent': 'DienDan-Client'
                 },
                 params: {
                     userId: session.user.id,

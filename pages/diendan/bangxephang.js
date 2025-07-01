@@ -31,7 +31,7 @@ const Leaderboard = () => {
         try {
             const headers = {
                 'Content-Type': 'application/json',
-                'User-Agent': 'Leaderboard-Client'
+                // 'User-Agent': 'Leaderboard-Client'
             };
             if (session?.accessToken) {
                 headers.Authorization = `Bearer ${session.accessToken}`;
