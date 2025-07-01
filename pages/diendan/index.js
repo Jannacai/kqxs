@@ -9,7 +9,7 @@ import Thongbao from './thongbao';
 import Leaderboard from './bangxephang';
 import LotteryRegistration from './dangkyquayso';
 import styles from '../../styles/DienDan.module.css';
-
+// ấ
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 const DienDan = () => {
