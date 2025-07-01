@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import axios from 'axios';
 import moment from 'moment';
 import 'moment-timezone';
-import Thongbao from './Thongbao';
+import Thongbao from './thongbao';
 import Leaderboard from './bangxephang';
 import LotteryRegistration from './dangkyquayso';
 import styles from '../../styles/DienDan.module.css';
