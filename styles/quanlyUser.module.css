@@ -1,0 +1,210 @@
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 16px;
+}
+
+.title {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 16px;
+}
+
+.error {
+    color: #e53e3e;
+    margin-bottom: 16px;
+}
+
+.searchForm {
+    margin-bottom: 16px;
+}
+
+.searchInput {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-right: 8px;
+    width: 200px;
+}
+
+.searchButton {
+    padding: 8px 16px;
+    background-color: #3182ce;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.searchButton:hover {
+    background-color: #2b6cb0;
+}
+
+.statsContainer {
+    margin-bottom: 16px;
+}
+
+.statsTitle {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.statsGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.statsSubtitle {
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.th,
+.td {
+    padding: 8px;
+    text-align: left;
+    border: 1px solid #ddd;
+}
+
+.th {
+    background-color: #f4f4f4;
+}
+
+.td {
+    background-color: #fff;
+}
+
+.table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+}
+
+.editButton {
+    padding: 4px 8px;
+    background-color: #d69e2e;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 8px;
+}
+
+.editButton:hover {
+    background-color: #b7791f;
+}
+
+.deleteButton {
+    padding: 4px 8px;
+    background-color: #e53e3e;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.deleteButton:hover {
+    background-color: #c53030;
+}
+
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal {
+    background-color: white;
+    padding: 16px;
+    border-radius: 4px;
+    width: 400px;
+}
+
+.modalTitle {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.formGroup {
+    margin-bottom: 16px;
+}
+
+.formLabel {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.checkboxLabel {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 8px;
+}
+
+.checkboxText {
+    margin-left: 4px;
+}
+
+.input {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    width: 100%;
+}
+
+.buttonGroup {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.cancelButton {
+    padding: 8px 16px;
+    background-color: #718096;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 8px;
+}
+
+.cancelButton:hover {
+    background-color: #5a6470;
+}
+
+.saveButton {
+    padding: 8px 16px;
+    background-color: #3182ce;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.saveButton:hover {
+    background-color: #2b6cb0;
+}
+
+.loading {
+    font-size: 16px;
+    text-align: center;
+    padding: 16px;
+}

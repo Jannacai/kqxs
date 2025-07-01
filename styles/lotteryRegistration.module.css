@@ -1,0 +1,388 @@
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 15px;
+    background: #f5f7fa;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    color: #333;
+    font-family: 'Orbitron', 'Roboto', sans-serif;
+    min-height: 100vh;
+}
+
+.title {
+    font-size: 2.2rem;
+    text-align: center;
+    color: #4a90e2;
+    margin-bottom: 20px;
+}
+
+.error {
+    color: #d32f2f;
+    background: #ffebee;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(211, 47, 47, 0.2);
+    margin-bottom: 15px;
+    text-align: center;
+    font-weight: 500;
+}
+
+.warning {
+    color: #f57c00;
+    background: #fff3e0;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(245, 124, 0, 0.2);
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.formGroup {
+    margin-bottom: 15px;
+}
+
+.formLabel {
+    display: block;
+    font-size: 1rem;
+    color: #4a90e2;
+    margin-bottom: 6px;
+}
+
+.input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #4a90e2;
+    border-radius: 6px;
+    background: #fff;
+    color: #333;
+    font-size: 0.95rem;
+}
+
+.input:focus {
+    outline: none;
+    border-color: #357abd;
+    background: #f8fafd;
+}
+
+.commentList {
+    max-height: 500px;
+    overflow-y: auto;
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid rgba(74, 144, 226, 0.2);
+    padding: 10px;
+    scrollbar-width: thin;
+    scrollbar-color: #4a90e2 #fff;
+}
+
+.commentList::-webkit-scrollbar {
+    width: 6px;
+}
+
+.commentList::-webkit-scrollbar-track {
+    background: #fff;
+    border-radius: 6px;
+}
+
+.commentList::-webkit-scrollbar-thumb {
+    background: #4a90e2;
+    border-radius: 6px;
+}
+
+.commentItem {
+    display: flex;
+    padding: 10px;
+    margin-bottom: 10px;
+    background: #f8fafd;
+    border-radius: 6px;
+    border: 1px solid rgba(74, 144, 226, 0.2);
+}
+
+.commentHeader {
+    display: flex;
+    align-items: center;
+    flex: 1;
+}
+
+.avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #fff;
+    margin-right: 10px;
+    border: 1px solid #4a90e2;
+    cursor: pointer;
+}
+
+/* Avatar color classes */
+.avatarA {
+    background: #e57373;
+}
+
+.avatarB {
+    background: #64b5f6;
+}
+
+.avatarC {
+    background: #81c784;
+}
+
+.avatarD {
+    background: #ba68c8;
+}
+
+.avatarE {
+    background: #ffd54f;
+}
+
+.avatarF {
+    background: #4dd0e1;
+}
+
+.avatarG {
+    background: #ff8a65;
+}
+
+.avatarH {
+    background: #9575cd;
+}
+
+.avatarI {
+    background: #4db6ac;
+}
+
+.avatarJ {
+    background: #ef5350;
+}
+
+.avatarK {
+    background: #42a5f5;
+}
+
+.avatarL {
+    background: #dce775;
+}
+
+.avatarM {
+    background: #ab47bc;
+}
+
+.avatarN {
+    background: #4fc3f7;
+}
+
+.avatarO {
+    background: #ff8f00;
+}
+
+.avatarP {
+    background: #8e24aa;
+}
+
+.avatarQ {
+    background: #26a69a;
+}
+
+.avatarR {
+    background: #ef5350;
+}
+
+.avatarS {
+    background: #1e88e5;
+}
+
+.avatarT {
+    background: #d4e157;
+}
+
+.avatarU {
+    background: #9c27b0;
+}
+
+.avatarV {
+    background: #26c6da;
+}
+
+.avatarW {
+    background: #ffca28;
+}
+
+.avatarX {
+    background: #7b1fa2;
+}
+
+.avatarY {
+    background: #00acc1;
+}
+
+.avatarZ {
+    background: #f44336;
+}
+
+.commentInfo {
+    flex: 1;
+}
+
+.commentUsername {
+    font-size: 1rem;
+    color: #4a90e2;
+    font-weight: 600;
+}
+
+.date {
+    font-size: 0.85rem;
+    color: #666;
+    margin-left: 8px;
+}
+
+.commentContent {
+    margin: 8px 0 0 46px;
+    font-size: 0.95rem;
+    color: #333;
+}
+
+.commentContent strong {
+    color: #4a90e2;
+}
+
+.commentContent span.titles {
+    display: inline-block;
+    padding: 4px 8px;
+    margin: 4px 4px 0 0;
+    border-radius: 5px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+/* Danh hiệu theo cấp độ */
+.commentContent span.titles.bronze {
+    background: #f4a261;
+    color: #fff;
+    border: 1px solid #e69138;
+}
+
+.commentContent span.titles.silver {
+    background: #b0bec5;
+    color: #333;
+    border: 1px solid #90a4ae;
+}
+
+.commentContent span.titles.gold {
+    background: #00acc1;
+    color: #fff;
+    border: 1px solid #f4c107;
+}
+
+.commentContent span.titles.diamond {
+    background: #4dd0e1;
+    color: #fff;
+    border: 1px solid #26a69a;
+}
+
+.noComments {
+    text-align: center;
+    color: #666;
+    font-size: 1rem;
+    padding: 15px;
+}
+
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal {
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid #4a90e2;
+    max-width: 700px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 15px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.modalTitle {
+    font-size: 1.6rem;
+    color: #4a90e2;
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.modal p {
+    font-size: 1rem;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.modal p strong {
+    color: #4a90e2;
+}
+
+.cancelButton {
+    display: block;
+    width: 100%;
+    padding: 8px;
+    background: #d32f2f;
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 600;
+    border: 1px solid #b71c1c;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.cancelButton:hover {
+    background: #b71c1c;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .container {
+        padding: 10px;
+    }
+
+    .title {
+        font-size: 1.8rem;
+    }
+
+    .commentItem {
+        padding: 8px;
+    }
+
+    .avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 1rem;
+    }
+
+    .commentContent {
+        margin-left: 42px;
+        font-size: 0.9rem;
+    }
+
+    .modal {
+        width: 95%;
+        padding: 10px;
+    }
+
+    .modalTitle {
+        font-size: 1.4rem;
+    }
+}

@@ -17,6 +17,7 @@
     "lodash.debounce": "^4.0.8",
     "luxon": "^3.6.1",
     "moment": "^2.30.1",
+    "moment-timezone": "^0.6.0",
     "next": "^15.2.4",
     "next-auth": "^4.24.11",
     "next-sitemap": "^4.2.3",

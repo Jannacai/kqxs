@@ -1255,7 +1255,7 @@ const NavBar = () => {
                                 className={`${styles.nav_item} ${router.pathname === '/diendan' ? styles.active : ''
                                     }`}
                             >
-                                <Link href="/chat/chat" className={styles.nav_itemLink}>
+                                <Link href="/diendan/" className={styles.nav_itemLink}>
                                     Diễn Đàn
                                 </Link>
                             </li>

@@ -1,0 +1,464 @@
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 15px;
+    background: #f5f7fa;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    color: #333;
+    font-family: 'Orbitron', 'Roboto', sans-serif;
+    min-height: 100vh;
+}
+
+.title {
+    font-size: 2.2rem;
+    text-align: center;
+    color: #4a90e2;
+    margin-bottom: 20px;
+}
+
+.error {
+    color: #d32f2f;
+    background: #ffebee;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(211, 47, 47, 0.2);
+    margin-bottom: 15px;
+    text-align: center;
+    font-weight: 500;
+}
+
+.playerList {
+    max-height: 500px;
+    overflow-y: auto;
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid rgba(74, 144, 226, 0.2);
+    padding: 10px;
+    scrollbar-width: thin;
+    scrollbar-color: #4a90e2 #fff;
+}
+
+.playerList::-webkit-scrollbar {
+    width: 6px;
+}
+
+.playerList::-webkit-scrollbar-track {
+    background: #fff;
+    border-radius: 6px;
+}
+
+.playerList::-webkit-scrollbar-thumb {
+    background: #4a90e2;
+    border-radius: 6px;
+}
+
+.playerItem {
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    margin-bottom: 10px;
+    background: #f8fafd;
+    border-radius: 6px;
+    border: 1px solid rgba(74, 144, 226, 0.2);
+    min-height: 60px;
+    position: relative;
+    /* Để expandedTitles định vị tương đối */
+}
+
+.playerHeader {
+    display: flex;
+    align-items: center;
+    flex: 1;
+}
+
+.rank {
+    width: 30px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #4a90e2;
+    text-align: center;
+    margin-right: 10px;
+}
+
+.avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #fff;
+    margin-right: 10px;
+    border: 1px solid #4a90e2;
+    cursor: pointer;
+}
+
+.avatarImage {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid #4a90e2;
+    cursor: pointer;
+    object-fit: cover;
+}
+
+.avatarA {
+    background: #e57373;
+}
+
+.avatarB {
+    background: #64b5f6;
+}
+
+.avatarC {
+    background: #81c784;
+}
+
+.avatarD {
+    background: #ba68c8;
+}
+
+.avatarE {
+    background: #ffd54f;
+}
+
+.avatarF {
+    background: #4dd0e1;
+}
+
+.avatarG {
+    background: #ff8a65;
+}
+
+.avatarH {
+    background: #9575cd;
+}
+
+.avatarI {
+    background: #4db6ac;
+}
+
+.avatarJ {
+    background: #ef5350;
+}
+
+.avatarK {
+    background: #42a5f5;
+}
+
+.avatarL {
+    background: #dce775;
+}
+
+.avatarM {
+    background: #ab47bc;
+}
+
+.avatarN {
+    background: #4fc3f7;
+}
+
+.avatarO {
+    background: #ff8f00;
+}
+
+.avatarP {
+    background: #8e24aa;
+}
+
+.avatarQ {
+    background: #26a69a;
+}
+
+.avatarR {
+    background: #ef5350;
+}
+
+.avatarS {
+    background: #1e88e5;
+}
+
+.avatarT {
+    background: #d4e157;
+}
+
+.avatarU {
+    background: #9c27b0;
+}
+
+.avatarV {
+    background: #26c6da;
+}
+
+.avatarW {
+    background: #ffca28;
+}
+
+.avatarX {
+    background: #7b1fa2;
+}
+
+.avatarY {
+    background: #00acc1;
+}
+
+.avatarZ {
+    background: #f44336;
+}
+
+.playerInfo {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.playerName {
+    font-size: 1rem;
+    color: #4a90e2;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.titleWrapper {
+    display: flex;
+    align-items: center;
+    margin-top: 4px;
+    position: relative;
+}
+
+.titles {
+    display: inline-block;
+    padding: 4px 8px;
+    margin: 0 4px 0 0;
+    border-radius: 5px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    line-height: 1.2;
+}
+
+.tanthu {
+    background: #f4a261;
+    color: #fff;
+    border: 1px solid #e69138;
+}
+
+.hocgia {
+    background: #b0bec5;
+    color: #333;
+    border: 1px solid #90a4ae;
+}
+
+.chuyengia {
+    background: #f4c107;
+    color: #fff;
+    border: 1px solid #e6b800;
+}
+
+.thansohoc {
+    background: #4dd0e1;
+    color: #fff;
+    border: 1px solid #26a69a;
+}
+
+.thanchotso {
+    background: #d81b60;
+    color: #fff;
+    border: 1px solid #ad1457;
+}
+
+.toggleButton {
+    background: #4a90e2;
+    color: #fff;
+    border: 1px solid #357abd;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.toggleButton:hover {
+    background: #357abd;
+}
+
+.expandedTitles {
+    position: absolute;
+    top: 100%;
+    left: 56px;
+    right: 10px;
+    background: #f0f2f5;
+    border: 1px solid rgba(74, 144, 226, 0.2);
+    border-radius: 4px;
+    padding: 8px;
+    max-height: 120px;
+    overflow-y: auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.points {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #4a90e2;
+    text-align: right;
+    min-width: 80px;
+}
+
+.noPlayers {
+    text-align: center;
+    color: #666;
+    font-size: 1rem;
+    padding: 15px;
+}
+
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal {
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid #4a90e2;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 15px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.modalTitle {
+    font-size: 1.6rem;
+    color: #4a90e2;
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.modalAvatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 1px solid #4a90e2;
+    display: block;
+    margin: 0 auto 15px;
+    object-fit: cover;
+}
+
+.modal p {
+    font-size: 1rem;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.modal p strong {
+    color: #4a90e2;
+}
+
+.highestTitle {
+    font-weight: 700;
+    border-width: 2px;
+}
+
+.cancelButton {
+    display: block;
+    width: 100%;
+    padding: 8px;
+    background: #d32f2f;
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 600;
+    border: 1px solid #b71c1c;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.cancelButton:hover {
+    background: #b71c1c;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .container {
+        padding: 10px;
+    }
+
+    .title {
+        font-size: 1.8rem;
+    }
+
+    .playerItem {
+        padding: 8px;
+        min-height: 50px;
+    }
+
+    .rank {
+        width: 25px;
+        font-size: 1rem;
+    }
+
+    .avatar,
+    .avatarImage {
+        width: 32px;
+        height: 32px;
+        font-size: 1rem;
+    }
+
+    .playerName {
+        font-size: 0.9rem;
+    }
+
+    .titles {
+        font-size: 0.8rem;
+        padding: 3px 6px;
+    }
+
+    .toggleButton {
+        font-size: 0.7rem;
+        padding: 1px 4px;
+    }
+
+    .expandedTitles {
+        left: 46px;
+        right: 8px;
+        max-height: 100px;
+        padding: 6px;
+    }
+
+    .points {
+        font-size: 0.9rem;
+        min-width: 60px;
+    }
+
+    .modal {
+        width: 95%;
+        padding: 10px;
+    }
+
+    .modalTitle {
+        font-size: 1.4rem;
+    }
+
+    .modalAvatar {
+        width: 50px;
+        height: 50px;
+    }
+}

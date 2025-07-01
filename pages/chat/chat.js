@@ -86,7 +86,7 @@ export default function Chat() {
 
         socket.on("connect", () => {
             console.log("Socket.IO connected successfully");
-            socket.emit("joinChat"); // Join room "chat" cho bình luận chung
+            socket.emit("joinChat");
             setError("");
         });
 
@@ -175,7 +175,7 @@ export default function Chat() {
     // Polling làm fallback
     useEffect(() => {
         fetchComments();
-        const intervalId = setInterval(fetchComments, 30000); // Polling mỗi 30 giây
+        const intervalId = setInterval(fetchComments, 30000);
         return () => clearInterval(intervalId);
     }, [fetchComments]);
 
@@ -273,7 +273,7 @@ export default function Chat() {
             }
             if (!res.ok) throw new Error("Không thể tải gợi ý");
             const data = await res.json();
-            setTagSuggestions(data);
+            setTagSuggestions(data.filter(user => user.fullname && user.username));
             setShowSuggestions(data.length > 0);
         } catch (error) {
             console.error("Error fetching tag suggestions:", error);
@@ -572,12 +572,14 @@ export default function Chat() {
 
     const renderCommentContent = (content, taggedUsers) => {
         let renderedContent = content;
-        taggedUsers.forEach(user => {
-            const tagRegex = new RegExp(`@${user.fullname}\\b`, 'g');
-            renderedContent = renderedContent.replace(
-                tagRegex,
-                `<span class="${styles.taggedUser}">@${user.fullname}</span>`
-            );
+        taggedUsers?.forEach(user => {
+            if (user?.fullname) {
+                const tagRegex = new RegExp(`@${user.fullname}\\b`, 'g');
+                renderedContent = renderedContent.replace(
+                    tagRegex,
+                    `<span class="${styles.taggedUser}">@${user.fullname}</span>`
+                );
+            }
         });
         return <span dangerouslySetInnerHTML={{ __html: renderedContent }} />;
     };
@@ -596,157 +598,172 @@ export default function Chat() {
         return avatarColors[firstChar] || styles.avatarA;
     };
 
-    const renderComment = (c, depth = 0) => (
-        <div
-            key={c._id}
-            ref={el => (commentRefs.current[c._id] = el)}
-            className={`${styles.commentItem} ${styles[`depth-${depth}`]}`}
-        >
-            <div className={styles.commentHeader}>
-                <div className={`${styles.avatar} ${getAvatarClass(c.createdBy.fullname)}`}>
-                    {c.createdBy.fullname[0].toUpperCase()}
-                </div>
-                <div className={styles.commentInfo}>
-                    <span
-                        className={`${styles.commentUsername} ${c.createdBy.role === 'ADMIN' ? styles.adminUsername : ''}`}
-                        onClick={() => handleTagUser(c.createdBy)}
-                    >
-                        {c.createdBy.fullname} {c.createdBy.role === "ADMIN" && "(Admin)"}
-                    </span>
-                    <span className={styles.date}>
-                        {formatDistanceToNow(new Date(c.createdAt), { addSuffix: true, locale: vi })}
-                    </span>
-                </div>
-            </div>
-            <p className={styles.commentContent}>
-                {renderCommentContent(c.content, c.taggedUsers)}
-            </p>
-            <div className={styles.commentActions}>
-                <button
-                    className={`${styles.actionLike} ${c.likedBy.includes(session?.user?.id) ? styles.liked : ''}`}
-                    onClick={() => handleLike(c._id)}
-                >
-                    Thích ({c.likedBy.length})
-                </button>
-                {depth < 10 && (
-                    <button
-                        className={styles.actionReply}
-                        onClick={() => {
-                            if (status !== "authenticated") {
-                                setShowLoginModal(true);
-                                return;
-                            }
-                            setReplyTo(c._id);
-                        }}
-                    >
-                        Trả lời
-                    </button>
-                )}
-                {session?.user?.role === "ADMIN" && (
-                    <button
-                        className={styles.actionDelete}
-                        onClick={() => handleDelete(c._id)}
-                        disabled={isLoading}
-                    >
-                        Xóa
-                    </button>
-                )}
-            </div>
-            {replyTo === c._id && status === "authenticated" && (
-                <form
-                    ref={replyFormRef}
-                    className={styles.replyForm}
-                    onSubmit={(e) => handleReplySubmit(e, c._id)}
-                >
-                    <div className={styles.inputWrapper}>
-                        <textarea
-                            className={styles.inputReply}
-                            value={replyContent}
-                            onChange={(e) => handleInputChange(e, true)}
-                            onKeyDown={(e) => handleKeyDown(e, true)}
-                            placeholder="Nhập trả lời của bạn..."
-                            required
-                            autoComplete="off"
-                            ref={el => (replyInputRefs.current[c._id] = el)}
-                        />
-                        <button
-                            type="button"
-                            className={styles.emojiButton}
-                            onClick={() => toggleEmojiPicker(c._id)}
-                        >
-                            😊
-                        </button>
-                        {showEmojiPicker[c._id] && (
-                            <div className={styles.emojiPicker} ref={el => (emojiPickerRefs.current[c._id] = el)}>
-                                <EmojiPicker onEmojiClick={(emoji) => handleEmojiClick(emoji, c._id)} />
-                            </div>
-                        )}
-                        {showSuggestions && (
-                            <div
-                                className={styles.suggestionList}
-                                style={{ top: suggestionPosition.top, left: suggestionPosition.left }}
-                                ref={suggestionRef}
-                            >
-                                {tagSuggestions.map(user => (
-                                    <div
-                                        key={user._id}
-                                        className={styles.suggestionItem}
-                                        onClick={() => handleSelectSuggestion(user, true)}
-                                    >
-                                        {user.fullname} ({user.username})
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+    const renderComment = (c, depth = 0) => {
+        const fullname = c.createdBy?.fullname || "Người dùng ẩn danh";
+        const firstChar = fullname[0]?.toUpperCase() || "?";
+        const role = c.createdBy?.role || "USER";
+
+        return (
+            <div
+                key={c._id}
+                ref={el => (commentRefs.current[c._id] = el)}
+                className={`${styles.commentItem} ${styles[`depth-${depth}`]}`}
+            >
+                <div className={styles.commentHeader}>
+                    <div className={`${styles.avatar} ${getAvatarClass(fullname)}`}>
+                        {firstChar}
                     </div>
-                    <div className={styles.buttonActions}>
-                        <button
-                            className={styles.actionSubmit}
-                            type="submit"
-                            disabled={isLoading}
+                    <div className={styles.commentInfo}>
+                        <span
+                            className={`${styles.commentUsername} ${role === 'ADMIN' ? styles.adminUsername : ''}`}
+                            onClick={() => c.createdBy && handleTagUser(c.createdBy)}
                         >
-                            Gửi
-                        </button>
+                            {fullname} {role === "ADMIN" && "(Admin)"}
+                        </span>
+                        <span className={styles.date}>
+                            {formatDistanceToNow(new Date(c.createdAt), { addSuffix: true, locale: vi })}
+                        </span>
+                    </div>
+                </div>
+                <p className={styles.commentContent}>
+                    {renderCommentContent(c.content, c.taggedUsers || [])}
+                </p>
+                <div className={styles.commentActions}>
+                    <button
+                        className={`${styles.actionLike} ${c.likedBy?.includes(session?.user?.id) ? styles.liked : ''}`}
+                        onClick={() => handleLike(c._id)}
+                    >
+                        Thích ({c.likedBy?.length || 0})
+                    </button>
+                    {depth < 10 && (
                         <button
-                            className={styles.actionCancel}
-                            type="button"
+                            className={styles.actionReply}
                             onClick={() => {
-                                setReplyTo(null);
-                                setReplyContent("");
-                                setTaggedUsers([]);
-                                setShowEmojiPicker({});
-                                setShowSuggestions(false);
+                                if (status !== "authenticated") {
+                                    setShowLoginModal(true);
+                                    return;
+                                }
+                                setReplyTo(c._id);
                             }}
                         >
-                            Hủy
-                        </button>
-                    </div>
-                </form>
-            )}
-            {c.childComments && c.childComments.length > 0 && (
-                <div className={styles.childComments}>
-                    {countAllChildComments(c) >= 2 && (
-                        <button
-                            className={styles.actionToggleComments}
-                            onClick={() => toggleExpandComments(c._id)}
-                        >
-                            {expandedComments[c._id]
-                                ? "Thu gọn"
-                                : `Xem thêm ${countAllChildComments(c)} phản hồi`}
+                            Trả lời
                         </button>
                     )}
-                    {(expandedComments[c._id] || countAllChildComments(c) < 2) && (
-                        <div className={styles.childCommentsList}>
-                            {c.childComments.map((child) => renderComment(child, depth + 1))}
-                        </div>
+                    {session?.user?.role === "ADMIN" && (
+                        <button
+                            className={styles.actionDelete}
+                            onClick={() => handleDelete(c._id)}
+                            disabled={isLoading}
+                        >
+                            Xóa
+                        </button>
                     )}
                 </div>
-            )}
-        </div>
-    );
+                {replyTo === c._id && status === "authenticated" && (
+                    <form
+                        ref={replyFormRef}
+                        className={styles.replyForm}
+                        onSubmit={(e) => handleReplySubmit(e, c._id)}
+                    >
+                        <div className={styles.inputWrapper}>
+                            <textarea
+                                className={styles.inputReply}
+                                value={replyContent}
+                                onChange={(e) => handleInputChange(e, true)}
+                                onKeyDown={(e) => handleKeyDown(e, true)}
+                                placeholder="Nhập trả lời của bạn..."
+                                required
+                                autoComplete="off"
+                                ref={el => (replyInputRefs.current[c._id] = el)}
+                            />
+                            <button
+                                type="button"
+                                className={styles.emojiButton}
+                                onClick={() => toggleEmojiPicker(c._id)}
+                            >
+                                😊
+                            </button>
+                            {showEmojiPicker[c._id] && (
+                                <div className={styles.emojiPicker} ref={el => (emojiPickerRefs.current[c._id] = el)}>
+                                    <EmojiPicker onEmojiClick={(emoji) => handleEmojiClick(emoji, c._id)} />
+                                </div>
+                            )}
+                            {showSuggestions && (
+                                <div
+                                    className={styles.suggestionList}
+                                    style={{ top: suggestionPosition.top, left: suggestionPosition.left }}
+                                    ref={suggestionRef}
+                                >
+                                    {tagSuggestions.map(user => (
+                                        <div
+                                            key={user._id}
+                                            className={styles.suggestionItem}
+                                            onClick={() => handleSelectSuggestion(user, true)}
+                                        >
+                                            {user.fullname} ({user.username})
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        <div className={styles.buttonActions}>
+                            <button
+                                className={styles.actionSubmit}
+                                type="submit"
+                                disabled={isLoading}
+                            >
+                                Gửi
+                            </button>
+                            <button
+                                className={styles.actionCancel}
+                                type="button"
+                                onClick={() => {
+                                    setReplyTo(null);
+                                    setReplyContent("");
+                                    setTaggedUsers([]);
+                                    setShowEmojiPicker({});
+                                    setShowSuggestions(false);
+                                }}
+                            >
+                                Hủy
+                            </button>
+                        </div>
+                    </form>
+                )}
+                {c.childComments && c.childComments.length > 0 && (
+                    <div className={styles.childComments}>
+                        {countAllChildComments(c) >= 2 && (
+                            <button
+                                className={styles.actionToggleComments}
+                                onClick={() => toggleExpandComments(c._id)}
+                            >
+                                {expandedComments[c._id]
+                                    ? "Thu gọn"
+                                    : `Xem thêm ${countAllChildComments(c)} phản hồi`}
+                            </button>
+                        )}
+                        {(expandedComments[c._id] || countAllChildComments(c) < 2) && (
+                            <div className={styles.childCommentsList}>
+                                {c.childComments.map((child) => renderComment(child, depth + 1))}
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+        );
+    };
 
     if (status === "loading") {
         return <p className={styles.loading}>Đang tải...</p>;
+    }
+
+    if (error) {
+        return (
+            <div className={styles.chatContainer}>
+                <h1 className={styles.title}>Cuộc trò chuyện</h1>
+                <p className={styles.error}>Lỗi: {error}</p>
+            </div>
+        );
     }
 
     return (
