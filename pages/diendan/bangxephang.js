@@ -1,13 +1,16 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import io from 'socket.io-client';
 import axios from 'axios';
+
+import Link from 'next/link';
 import styles from '../../styles/Leaderboard.module.css';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
-// Mảng ánh xạ danh hiệu từ users.models.js
 const TITLE_THRESHOLDS = [
     { title: 'Tân thủ', minPoints: 0, maxPoints: 100 },
     { title: 'Học Giả', minPoints: 101, maxPoints: 500 },
@@ -17,89 +20,138 @@ const TITLE_THRESHOLDS = [
 ];
 
 const Leaderboard = () => {
-    const { data: session } = useSession();
+    const { data: session, status } = useSession();
+    const router = useRouter();
     const [players, setPlayers] = useState([]);
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
     const [selectedPlayer, setSelectedPlayer] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [expandedTitles, setExpandedTitles] = useState({});
+    const [sortBy, setSortBy] = useState('points');
     const modalRef = useRef(null);
-    const titleRefs = useRef({}); // Lưu ref cho mỗi expandedTitles
+    const titleRefs = useRef({});
+    const socketRef = useRef(null);
 
-    // Lấy danh sách người chơi
     const fetchLeaderboard = async () => {
+        setIsLoading(true);
         try {
-            const headers = {
-                'Content-Type': 'application/json',
-                // 'User-Agent': 'Leaderboard-Client'
-            };
-            if (session?.accessToken) {
-                headers.Authorization = `Bearer ${session.accessToken}`;
-            }
-
+            console.log('Fetching leaderboard from:', `${API_BASE_URL}/api/users/leaderboard`);
+            const headers = session?.accessToken
+                ? {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${session.accessToken}`,
+                }
+                : {
+                    'Content-Type': 'application/json',
+                };
             const res = await axios.get(`${API_BASE_URL}/api/users/leaderboard`, {
                 headers,
-                params: { limit: 50 }
+                params: { limit: 50, sortBy },
             });
-
-            if (res.status !== 200) {
-                throw new Error(res.data.message || 'Không thể lấy bảng xếp hạng');
-            }
-
-            setPlayers(res.data.users);
+            setPlayers(res.data.users || []);
             setError('');
         } catch (err) {
             console.error('Error fetching leaderboard:', err.message);
-            setError(err.response?.data?.message || 'Đã có lỗi xảy ra');
+            if (err.response?.status === 401 && session?.accessToken) {
+                setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+                signOut({ redirect: false });
+                router.push('/login?error=SessionExpired');
+            } else {
+                setError(err.response?.data?.message || 'Đã có lỗi xảy ra khi lấy bảng xếp hạng');
+            }
+        } finally {
+            setIsLoading(false);
         }
     };
 
-    // Gọi API khi component mount
     useEffect(() => {
+        if (status === 'loading') return;
         fetchLeaderboard();
-    }, [session]);
+    }, [status, sortBy]);
 
-    // Xử lý click ngoài modal và expandedTitles
     useEffect(() => {
-        const handleClickOutside = (event) => {
-            // Đóng modal
-            if (modalRef.current && !modalRef.current.contains(event.target)) {
-                setShowModal(false);
-                setSelectedPlayer(null);
-            }
-            // Đóng tất cả expandedTitles
-            if (!Object.values(titleRefs.current).some(ref => ref && ref.contains(event.target))) {
-                setExpandedTitles({});
-            }
+        if (!session?.accessToken) {
+            console.log('Socket.IO not initialized: No token');
+            return;
+        }
+
+        const socket = io(API_BASE_URL, {
+            query: { token: session.accessToken },
+            reconnectionAttempts: 5,
+            reconnectionDelay: 5000,
+        });
+        socketRef.current = socket;
+
+        socket.on('connect', () => {
+            console.log('Socket.IO connected for leaderboard:', socket.id);
+            socket.emit('joinLeaderboard');
+        });
+
+        socket.on('connect_error', (err) => {
+            console.error('Socket.IO connection error:', err.message);
+            setError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
+        });
+
+        socket.on('USER_UPDATED', (updatedUser) => {
+            console.log('Received USER_UPDATED:', updatedUser);
+            setPlayers((prev) =>
+                prev
+                    .map((player) =>
+                        player._id === updatedUser._id
+                            ? {
+                                ...player,
+                                points: updatedUser.points,
+                                titles: updatedUser.titles,
+                                winCount: updatedUser.winCount,
+                            }
+                            : player
+                    )
+                    .sort((a, b) => (sortBy === 'winCount' ? b.winCount - a.winCount : b.points - a.points))
+            );
+        });
+
+        return () => {
+            socket.disconnect();
+            console.log('Socket.IO disconnected for leaderboard');
         };
+    }, [session, sortBy]);
+
+    const handleClickOutside = (event) => {
+        if (modalRef.current && !modalRef.current.contains(event.target)) {
+            setShowModal(false);
+            setSelectedPlayer(null);
+        }
+        if (!Object.values(titleRefs.current).some((ref) => ref && ref.contains(event.target))) {
+            setExpandedTitles({});
+        }
+    };
+
+    useEffect(() => {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // Xử lý click vào avatar hoặc fullname
     const handleShowDetails = (player) => {
         setShowModal(true);
         setSelectedPlayer(player);
-        setExpandedTitles({}); // Đóng tất cả danh hiệu khi mở modal
+        setExpandedTitles({});
     };
 
-    // Xử lý toggle danh hiệu
     const handleToggleTitles = (playerId) => {
         setExpandedTitles((prev) => ({
             ...prev,
-            [playerId]: !prev[playerId]
+            [playerId]: !prev[playerId],
         }));
     };
 
-    // Tìm danh hiệu cao nhất dựa trên points
     const getHighestTitle = (points, titles) => {
-        const validTitle = TITLE_THRESHOLDS.slice().reverse().find(
-            threshold => points >= threshold.minPoints && points <= threshold.maxPoints
-        );
+        const validTitle = TITLE_THRESHOLDS.slice()
+            .reverse()
+            .find((threshold) => points >= threshold.minPoints && points <= threshold.maxPoints);
         return validTitle?.title && titles.includes(validTitle.title) ? validTitle.title : titles[0] || 'Tân thủ';
     };
 
-    // Render avatar
     const getAvatarClass = (fullname) => {
         const firstChar = fullname[0]?.toLowerCase() || 'a';
         const avatarColors = {
@@ -109,25 +161,30 @@ const Leaderboard = () => {
             m: styles.avatarM, n: styles.avatarN, o: styles.avatarO, p: styles.avatarP,
             q: styles.avatarQ, r: styles.avatarR, s: styles.avatarS, t: styles.avatarT,
             u: styles.avatarU, v: styles.avatarV, w: styles.avatarW, x: styles.avatarX,
-            y: styles.avatarY, z: styles.avatarZ
+            y: styles.avatarY, z: styles.avatarZ,
         };
         return avatarColors[firstChar] || styles.avatarA;
     };
 
-    // Render mỗi người chơi
     const renderPlayer = (player, index) => {
         const fullname = player.fullname || 'Người chơi ẩn danh';
         const firstChar = fullname[0]?.toUpperCase() || '?';
         const highestTitle = getHighestTitle(player.points || 0, player.titles || []);
-        const titleClass = highestTitle.toLowerCase().includes('học giả') ? 'hocgia' :
-            highestTitle.toLowerCase().includes('chuyên gia') ? 'chuyengia' :
-                highestTitle.toLowerCase().includes('thần số học') ? 'thansohoc' :
-                    highestTitle.toLowerCase().includes('thần chốt số') ? 'thanchotso' : 'tanthu';
+        const titleClass = highestTitle.toLowerCase().includes('học giả')
+            ? 'hocgia'
+            : highestTitle.toLowerCase().includes('chuyên gia')
+                ? 'chuyengia'
+                : highestTitle.toLowerCase().includes('thần số học')
+                    ? 'thansohoc'
+                    : highestTitle.toLowerCase().includes('thần chốt số')
+                        ? 'thanchotso'
+                        : 'tanthu';
 
         return (
             <div key={player._id} className={styles.playerItem}>
+                <span className={styles.rankCircle}>{index + 1}</span>
+    
                 <div className={styles.playerHeader}>
-                    <span className={styles.rank}>{index + 1}</span>
                     {player.img ? (
                         <img
                             src={player.img}
@@ -164,35 +221,49 @@ const Leaderboard = () => {
                             )}
                         </div>
                     </div>
-                    <span className={styles.points}>{player.points || 0}</span>
+                    <span className={styles.points}>
+                        {sortBy === 'winCount' ? `Số lần trúng: ${player.winCount || 0}` : `Điểm: ${player.points || 0}`}
+                    </span>
+                    {expandedTitles[player._id] && player.titles?.length > 1 && (
+                        <div
+                            className={styles.expandedTitles}
+                            ref={(el) => (titleRefs.current[player._id] = el)}
+                        >
+                            {player.titles.map((title, index) => {
+                                const titleClass = title.toLowerCase().includes('học giả')
+                                    ? 'hocgia'
+                                    : title.toLowerCase().includes('chuyên gia')
+                                        ? 'chuyengia'
+                                        : title.toLowerCase().includes('thần số học')
+                                            ? 'thansohoc'
+                                            : title.toLowerCase().includes('thần chốt số')
+                                                ? 'thanchotso'
+                                                : 'tanthu';
+                                return (
+                                    <span key={index} className={`${styles.titles} ${styles[titleClass]}`}>
+                                        {title}
+                                    </span>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
-                {expandedTitles[player._id] && player.titles?.length > 1 && (
-                    <div
-                        className={styles.expandedTitles}
-                        ref={(el) => (titleRefs.current[player._id] = el)}
-                    >
-                        {player.titles.map((title, index) => {
-                            const titleClass = title.toLowerCase().includes('học giả') ? 'hocgia' :
-                                title.toLowerCase().includes('chuyên gia') ? 'chuyengia' :
-                                    title.toLowerCase().includes('thần số học') ? 'thansohoc' :
-                                        title.toLowerCase().includes('thần chốt số') ? 'thanchotso' : 'tanthu';
-                            return (
-                                <span key={index} className={`${styles.titles} ${styles[titleClass]}`}>
-                                    {title}
-                                </span>
-                            );
-                        })}
-                    </div>
-                )}
             </div>
         );
     };
 
     return (
         <div className={styles.container}>
-            <h1 className={styles.title}>Bảng Xếp Hạng 50</h1>
+            <h1 className={styles.title}>Top 50 Thánh Bảng</h1>
+            {isLoading && <p className={styles.loading}>Đang tải...</p>}
             {error && <p className={styles.error}>{error}</p>}
-
+            <div className={styles.sortOptions}>
+                <label>Sắp xếp theo: </label>
+                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                    <option value="points">Điểm</option>
+                    <option value="winCount">Số lần trúng</option>
+                </select>
+            </div>
             <div className={styles.playerList}>
                 {players.length === 0 ? (
                     <p className={styles.noPlayers}>Chưa có người chơi nào.</p>
@@ -200,7 +271,6 @@ const Leaderboard = () => {
                     players.map((player, index) => renderPlayer(player, index))
                 )}
             </div>
-
             {showModal && selectedPlayer && (
                 <div className={styles.modalOverlay}>
                     <div className={styles.modal} ref={modalRef}>
@@ -221,23 +291,34 @@ const Leaderboard = () => {
                         <p><strong>Tên:</strong> {selectedPlayer.fullname || 'Người chơi ẩn danh'}</p>
                         <p><strong>Cấp độ:</strong> {selectedPlayer.level || 1}</p>
                         <p><strong>Số điểm:</strong> {selectedPlayer.points || 0}</p>
-                        <p><strong>Danh hiệu:</strong> <span className={styles.titles}>
-                            {selectedPlayer.titles?.map((title, index) => {
-                                const titleClass = title.toLowerCase().includes('học giả') ? 'hocgia' :
-                                    title.toLowerCase().includes('chuyên gia') ? 'chuyengia' :
-                                        title.toLowerCase().includes('thần số học') ? 'thansohoc' :
-                                            title.toLowerCase().includes('thần chốt số') ? 'thanchotso' : 'tanthu';
-                                return (
-                                    <span
-                                        key={index}
-                                        className={`${styles.titles} ${styles[titleClass]} ${title === getHighestTitle(selectedPlayer.points || 0, selectedPlayer.titles || []) ? styles.highestTitle : ''
-                                            }`}
-                                    >
-                                        {title}
-                                    </span>
-                                );
-                            }) || 'Tân thủ'}
-                        </span></p>
+                        <p><strong>Số lần trúng:</strong> {selectedPlayer.winCount || 0}</p>
+                        <p>
+                            <strong>Danh hiệu:</strong>{' '}
+                            <span className={styles.titles}>
+                                {selectedPlayer.titles?.map((title, index) => {
+                                    const titleClass = title.toLowerCase().includes('học giả')
+                                        ? 'hocgia'
+                                        : title.toLowerCase().includes('chuyên gia')
+                                            ? 'chuyengia'
+                                            : title.toLowerCase().includes('thần số học')
+                                                ? 'thansohoc'
+                                                : title.toLowerCase().includes('thần chốt số')
+                                                    ? 'thanchotso'
+                                                    : 'tanthu';
+                                    return (
+                                        <span
+                                            key={index}
+                                            className={`${styles.titles} ${styles[titleClass]} ${title === getHighestTitle(selectedPlayer.points || 0, selectedPlayer.titles || [])
+                                                ? styles.highestTitle
+                                                : ''
+                                                }`}
+                                        >
+                                            {title}
+                                        </span>
+                                    );
+                                }) || 'Tân thủ'}
+                            </span>
+                        </p>
                         <button
                             className={styles.cancelButton}
                             onClick={() => {

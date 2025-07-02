@@ -1,11 +1,11 @@
-
 "use client";
-import { useSession } from 'next-auth/react';
+
+import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import moment from 'moment';
-require('moment-timezone');
+import 'moment-timezone';
 import styles from '../../styles/userLotteryManagement.module.css';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
@@ -20,16 +20,18 @@ export default function UserLotteryManagement() {
     const [userRegistrations, setUserRegistrations] = useState([]);
     const [pointsInput, setPointsInput] = useState('');
     const [error, setError] = useState('');
-    const [lotteryResults, setLotteryResults] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const fetchRegistrations = useCallback(async () => {
+        if (status !== 'authenticated') {
+            setError('Vui lòng đăng nhập để xem thông tin');
+            return;
+        }
         try {
             const res = await axios.get(`${API_BASE_URL}/api/lottery/registrations`, {
                 headers: {
                     Authorization: `Bearer ${session?.accessToken}`,
                     'Content-Type': 'application/json',
-                    'User-Agent': 'UserLotteryManagement-Client'
                 },
                 params: { region }
             });
@@ -37,35 +39,22 @@ export default function UserLotteryManagement() {
             setError('');
         } catch (err) {
             const errorMessage = err.response?.data?.message || err.message || 'Đã có lỗi khi lấy danh sách đăng ký';
-            setError(errorMessage);
-            alert(errorMessage);
-        }
-    }, [session?.accessToken, region]);
-
-    const fetchLotteryResults = useCallback(async () => {
-        try {
-            const today = moment().tz('Asia/Ho_Chi_Minh').format('YYYY-MM-DD');
-            const res = await axios.get(`${API_BASE_URL}/api/lottery/results`, {
-                headers: {
-                    Authorization: `Bearer ${session?.accessToken}`,
-                    'Content-Type': 'application/json'
-                },
-                params: { region, date: today }
-            });
-            setLotteryResults(res.data);
-        } catch (err) {
-            if (err.response?.status === 404) {
-                setLotteryResults(null);
-                setError('Chưa có kết quả xổ số cho ngày hôm nay');
+            if (err.response?.status === 401) {
+                setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+                signOut({ redirect: false });
+                router.push('/login?error=SessionExpired');
             } else {
-                const errorMessage = err.response?.data?.message || err.message || 'Đã có lỗi khi lấy kết quả xổ số';
                 setError(errorMessage);
                 alert(errorMessage);
             }
         }
-    }, [session?.accessToken, region]);
+    }, [session?.accessToken, region, status, router]);
 
     const fetchUserDetails = useCallback(async (userId) => {
+        if (status !== 'authenticated') {
+            setError('Vui lòng đăng nhập để xem thông tin');
+            return;
+        }
         try {
             const [userRes, regRes] = await Promise.all([
                 axios.get(`${API_BASE_URL}/api/users/${userId}`, {
@@ -98,13 +87,44 @@ export default function UserLotteryManagement() {
             setError('');
         } catch (err) {
             const errorMessage = err.response?.data?.message || err.message || 'Đã có lỗi khi lấy thông tin người dùng';
-            setError(errorMessage);
-            alert(errorMessage);
-            setUserDetails(null);
-            setUserRegistrations([]);
-            setPointsInput('');
+            if (err.response?.status === 401) {
+                setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+                signOut({ redirect: false });
+                router.push('/login?error=SessionExpired');
+            } else {
+                setError(errorMessage);
+                alert(errorMessage);
+                setUserDetails(null);
+                setUserRegistrations([]);
+                setPointsInput('');
+            }
         }
-    }, [session?.accessToken, region]);
+    }, [session?.accessToken, region, status, router]);
+
+    const checkLotteryResult = (registration) => {
+        if (registration.result && registration.result.isChecked) {
+            const winDetails = [];
+            if (registration.numbers.bachThuLo) {
+                winDetails.push(`Bạch thủ lô: ${registration.numbers.bachThuLo} (${registration.result.winningNumbers.bachThuLo ? 'Trúng' : 'Trượt'})`);
+            }
+            if (registration.numbers.songThuLo && registration.numbers.songThuLo.length > 0) {
+                if (registration.result.winningNumbers.songThuLo.length > 0) {
+                    winDetails.push(`Song thủ lô: ${registration.result.winningNumbers.songThuLo.join(', ')} (Trúng)`);
+                } else {
+                    winDetails.push(`Song thủ lô: ${registration.numbers.songThuLo.join(', ')} (Trượt)`);
+                }
+            }
+            if (registration.numbers.threeCL) {
+                winDetails.push(`3CL: ${registration.numbers.threeCL} (${registration.result.winningNumbers.threeCL ? 'Trúng' : 'Trượt'})`);
+            }
+            if (registration.numbers.cham) {
+                winDetails.push(`Chạm: ${registration.numbers.cham} (${registration.result.winningNumbers.cham ? 'Trúng' : 'Trượt'})`);
+            }
+            const status = registration.result.isWin ? 'Trúng' : 'Trượt';
+            return { status, details: winDetails.join('; ') || '-' };
+        }
+        return { status: 'Chưa đối chiếu', details: '-' };
+    };
 
     const handleViewDetails = (userId) => {
         setSelectedUser(userId);
@@ -113,6 +133,10 @@ export default function UserLotteryManagement() {
 
     const handleCloseModal = () => {
         setIsModalOpen(false);
+        setSelectedUser(null);
+        setUserDetails(null);
+        setUserRegistrations([]);
+        setPointsInput('');
     };
 
     const handleAddPoints = async () => {
@@ -133,8 +157,14 @@ export default function UserLotteryManagement() {
             setError('');
         } catch (err) {
             const errorMessage = err.response?.data?.message || err.message || 'Đã có lỗi khi cộng điểm';
-            setError(errorMessage);
-            alert(errorMessage);
+            if (err.response?.status === 401) {
+                setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+                signOut({ redirect: false });
+                router.push('/login?error=SessionExpired');
+            } else {
+                setError(errorMessage);
+                alert(errorMessage);
+            }
         }
     };
 
@@ -159,58 +189,30 @@ export default function UserLotteryManagement() {
             setError('');
         } catch (err) {
             const errorMessage = err.response?.data?.message || err.message || 'Đã có lỗi khi cập nhật điểm';
-            setError(errorMessage);
-            alert(errorMessage);
+            if (err.response?.status === 401) {
+                setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+                signOut({ redirect: false });
+                router.push('/login?error=SessionExpired');
+            } else {
+                setError(errorMessage);
+                alert(errorMessage);
+            }
         }
-    };
-
-    const checkLotteryResult = (registration) => {
-        if (!lotteryResults) return { status: 'Chưa có kết quả', details: '-' };
-
-        const { numbers } = registration;
-        const { giaiDacBiet, giaiBay, giaiTam } = lotteryResults.results;
-        const winDetails = [];
-
-        if (numbers.bachThuLo) {
-            const isWin = giaiBay.some(num => num.slice(-2) === numbers.bachThuLo);
-            if (isWin) winDetails.push(`Bạch thủ lô: ${numbers.bachThuLo} (Trúng)`);
-            else winDetails.push(`Bạch thủ lô: ${numbers.bachThuLo} (Trượt)`);
-        }
-
-        if (numbers.songThuLo.length > 0) {
-            const wins = numbers.songThuLo.filter(num => giaiBay.some(gb => gb.slice(-2) === num));
-            if (wins.length > 0) winDetails.push(`Song thủ lô: ${wins.join(', ')} (Trúng)`);
-            else winDetails.push(`Song thủ lô: ${numbers.songThuLo.join(', ')} (Trượt)`);
-        }
-
-        if (numbers.threeCL) {
-            const isWin = giaiDacBiet.slice(-3) === numbers.threeCL;
-            if (isWin) winDetails.push(`3CL: ${numbers.threeCL} (Trúng)`);
-            else winDetails.push(`3CL: ${numbers.threeCL} (Trượt)`);
-        }
-
-        if (numbers.cham) {
-            const isWin = giaiTam.some(num => num.includes(numbers.cham));
-            if (isWin) winDetails.push(`Chạm: ${numbers.cham} (Trúng)`);
-            else winDetails.push(`Chạm: ${numbers.cham} (Trượt)`);
-        }
-
-        const status = winDetails.some(detail => detail.includes('Trúng')) ? 'Trúng' : 'Trượt';
-        return { status, details: winDetails.join('; ') || '-' };
     };
 
     useEffect(() => {
+        if (status === 'loading') return;
+        if (status === 'unauthenticated') {
+            router.push('/login');
+            return;
+        }
         if (status === 'authenticated' && session.user.role !== 'ADMIN') {
             router.push('/?error=AccessDenied');
             alert('Chỉ admin mới được truy cập trang này.');
             return;
         }
-
-        if (status === 'authenticated') {
-            fetchRegistrations();
-            fetchLotteryResults();
-        }
-    }, [status, session, region, fetchRegistrations, fetchLotteryResults]);
+        fetchRegistrations();
+    }, [status, session, region, fetchRegistrations]);
 
     useEffect(() => {
         if (selectedUser) {
@@ -219,10 +221,6 @@ export default function UserLotteryManagement() {
     }, [selectedUser, fetchUserDetails]);
 
     if (status === 'loading') return <div className={styles.loading}>Đang tải...</div>;
-    if (status === 'unauthenticated') {
-        router.push('/login');
-        return null;
-    }
 
     return (
         <div className={styles.container}>
@@ -342,18 +340,25 @@ export default function UserLotteryManagement() {
                                         <th>3CL</th>
                                         <th>Chạm</th>
                                         <th>Thời gian</th>
+                                        <th>Kết quả</th>
+                                        <th>Trạng thái</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {userRegistrations.map((reg) => (
-                                        <tr key={reg._id}>
-                                            <td>{reg.numbers.bachThuLo || '-'}</td>
-                                            <td>{reg.numbers.songThuLo.join(', ') || '-'}</td>
-                                            <td>{reg.numbers.threeCL || '-'}</td>
-                                            <td>{reg.numbers.cham || '-'}</td>
-                                            <td>{new Date(reg.createdAt).toLocaleString('vi-VN')}</td>
-                                        </tr>
-                                    ))}
+                                    {userRegistrations.map((reg) => {
+                                        const { status, details } = checkLotteryResult(reg);
+                                        return (
+                                            <tr key={reg._id}>
+                                                <td>{reg.numbers.bachThuLo || '-'}</td>
+                                                <td>{reg.numbers.songThuLo.join(', ') || '-'}</td>
+                                                <td>{reg.numbers.threeCL || '-'}</td>
+                                                <td>{reg.numbers.cham || '-'}</td>
+                                                <td>{new Date(reg.createdAt).toLocaleString('vi-VN')}</td>
+                                                <td>{details}</td>
+                                                <td>{status}</td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         ) : (

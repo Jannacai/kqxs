@@ -6,8 +6,6 @@ import { useEffect, useState, useRef } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import vi from 'date-fns/locale/vi';
 import Link from 'next/link';
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import styles from '../styles/userAvatar.module.css';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
@@ -55,10 +53,7 @@ const UserAvatar = () => {
                 if (error.message.includes("Invalid token") || session?.error === "RefreshTokenError") {
                     signOut({ redirect: false });
                     router.push('/login?error=SessionExpired');
-                    toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.", {
-                        position: "top-right",
-                        autoClose: 5000,
-                    });
+                    alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
                 }
             }
         };
@@ -77,10 +72,7 @@ const UserAvatar = () => {
                 if (res.status === 401) {
                     signOut({ redirect: false });
                     router.push('/login?error=SessionExpired');
-                    toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.", {
-                        position: "top-right",
-                        autoClose: 5000,
-                    });
+                    alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
                     return;
                 }
                 if (!res.ok) {
@@ -91,10 +83,7 @@ const UserAvatar = () => {
                 setNotifications(data);
             } catch (error) {
                 console.error('Error fetching notifications:', error);
-                toast.error("Lỗi khi tải thông báo.", {
-                    position: "top-right",
-                    autoClose: 5000,
-                });
+                alert("Lỗi khi tải thông báo.");
             }
         };
 
@@ -128,10 +117,7 @@ const UserAvatar = () => {
         if (!file) return;
 
         if (!session?.accessToken) {
-            toast.error("Không có access token. Vui lòng đăng nhập lại.", {
-                position: "top-right",
-                autoClose: 5000,
-            });
+            alert("Không có access token. Vui lòng đăng nhập lại.");
             signOut({ redirect: false });
             router.push('/login?error=SessionExpired');
             return;
@@ -153,10 +139,7 @@ const UserAvatar = () => {
             });
 
             if (res.status === 401) {
-                toast.error("Không thể xác thực người dùng. Vui lòng đăng nhập lại.", {
-                    position: "top-right",
-                    autoClose: 5000,
-                });
+                alert("Không thể xác thực người dùng. Vui lòng đăng nhập lại.");
                 signOut({ redirect: false });
                 router.push('/login?error=SessionExpired');
                 return;
@@ -170,10 +153,7 @@ const UserAvatar = () => {
             const data = await res.json();
             setUserInfo(data.user);
             fileInputRef.current.value = null;
-            toast.success("Tải ảnh đại diện thành công!", {
-                position: "top-right",
-                autoClose: 3000,
-            });
+            alert("Tải ảnh đại diện thành công!");
         } catch (error) {
             console.error('Error uploading avatar:', error);
             let errorMessage = error.message;
@@ -188,10 +168,7 @@ const UserAvatar = () => {
                 signOut({ redirect: false });
                 router.push('/login?error=AuthError');
             }
-            toast.error(errorMessage, {
-                position: "top-right",
-                autoClose: 5000,
-            });
+            alert(errorMessage);
         } finally {
             setUploading(false);
         }
@@ -201,10 +178,7 @@ const UserAvatar = () => {
         if (!session?.refreshToken) {
             await signOut({ redirect: false });
             router.push('/login');
-            toast.error("Không có refresh token. Vui lòng đăng nhập lại.", {
-                position: "top-right",
-                autoClose: 5000,
-            });
+            alert("Không có refresh token. Vui lòng đăng nhập lại.");
             return;
         }
 
@@ -226,18 +200,12 @@ const UserAvatar = () => {
             router.push('/login');
             setUserInfo(null);
             setFetchError(null);
-            toast.success("Đăng xuất thành công!", {
-                position: "top-right",
-                autoClose: 3000,
-            });
+            alert("Đăng xuất thành công!");
         } catch (error) {
             console.error('Logout error:', error.message);
             await signOut({ redirect: false });
             router.push('/login');
-            toast.error("Lỗi khi đăng xuất. Vui lòng thử lại.", {
-                position: "top-right",
-                autoClose: 5000,
-            });
+            alert("Lỗi khi đăng xuất. Vui lòng thử lại.");
         }
         setIsSubmenuOpen(false);
     };
@@ -255,10 +223,7 @@ const UserAvatar = () => {
             if (res.status === 401) {
                 signOut({ redirect: false });
                 router.push('/login?error=SessionExpired');
-                toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.", {
-                    position: "top-right",
-                    autoClose: 5000,
-                });
+                alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
                 return;
             }
             if (!res.ok) {
@@ -278,10 +243,7 @@ const UserAvatar = () => {
             router.push(`/chat/chat?commentId=${commentId}`);
         } catch (error) {
             console.error('Error marking notification as read:', error);
-            toast.error("Lỗi khi đánh dấu thông báo đã đọc.", {
-                position: "top-right",
-                autoClose: 5000,
-            });
+            alert("Lỗi khi đánh dấu thông báo đã đọc.");
         }
         setIsNotificationOpen(false);
     };
@@ -299,10 +261,7 @@ const UserAvatar = () => {
             if (res.status === 401) {
                 signOut({ redirect: false });
                 router.push('/login?error=SessionExpired');
-                toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.", {
-                    position: "top-right",
-                    autoClose: 5000,
-                });
+                alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
                 return;
             }
             if (!res.ok) {
@@ -310,16 +269,10 @@ const UserAvatar = () => {
             }
 
             setNotifications(notifications.map(n => ({ ...n, isRead: true })));
-            toast.success("Đã đánh dấu tất cả thông báo đã đọc.", {
-                position: "top-right",
-                autoClose: 3000,
-            });
+            alert("Đã đánh dấu tất cả thông báo đã đọc.");
         } catch (error) {
             console.error('Error marking all notifications as read:', error);
-            toast.error("Lỗi khi đánh dấu tất cả thông báo đã đọc.", {
-                position: "top-right",
-                autoClose: 5000,
-            });
+            alert("Lỗi khi đánh dấu tất cả thông báo đã đọc.");
         }
     };
 
@@ -336,10 +289,7 @@ const UserAvatar = () => {
             if (res.status === 401) {
                 signOut({ redirect: false });
                 router.push('/login?error=SessionExpired');
-                toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.", {
-                    position: "top-right",
-                    autoClose: 5000,
-                });
+                alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
                 return;
             }
             if (!res.ok) {
@@ -347,16 +297,10 @@ const UserAvatar = () => {
             }
 
             setNotifications(notifications.filter(n => n._id !== notificationId));
-            toast.success("Xóa thông báo thành công.", {
-                position: "top-right",
-                autoClose: 3000,
-            });
+            alert("Xóa thông báo thành công.");
         } catch (error) {
             console.error('Error deleting notification:', error);
-            toast.error("Lỗi khi xóa thông báo.", {
-                position: "top-right",
-                autoClose: 5000,
-            });
+            alert("Lỗi khi xóa thông báo.");
         }
     };
 
@@ -384,7 +328,6 @@ const UserAvatar = () => {
 
     return (
         <div className={styles.userInfo} ref={submenuRef}>
-            <ToastContainer />
             {fetchError && <p className={styles.error}>{fetchError}</p>}
             {userInfo ? (
                 <>

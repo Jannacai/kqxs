@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession, signOut } from 'next-auth/react';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import moment from 'moment';
 import 'moment-timezone';
@@ -27,49 +27,42 @@ export default function LotteryRegistrationFeed() {
     const socketRef = useRef(null);
     const [isAtBottom, setIsAtBottom] = useState(true);
 
-    // Lấy danh sách đăng ký ban đầu
     const fetchRegistrations = async () => {
         try {
             const params = { region, page: 1, limit: 20 };
             console.log('Fetching registrations with params:', params);
-            const headers = {
-                'Content-Type': 'application/json',
-                // 'User-Agent': 'LotteryRegistrationFeed-Client'
-            };
-            if (session?.accessToken) {
-                headers.Authorization = `Bearer ${session.accessToken}`;
-            }
-
+            const headers = session?.accessToken
+                ? { 'Content-Type': 'application/json', Authorization: `Bearer ${session.accessToken}` }
+                : { 'Content-Type': 'application/json' };
             const res = await axios.get(`${API_BASE_URL}/api/lottery/registrations`, {
                 headers,
                 params
             });
-
-            if (res.status === 401 && session) {
-                setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
-                signOut({ redirect: false });
-                router.push('/login?error=SessionExpired');
-                return;
-            }
-
-            if (res.status !== 200) {
-                throw new Error(res.data.message || 'Không thể lấy danh sách đăng ký');
-            }
-
-            console.log('Received registrations:', res.data.registrations);
             setRegistrations(res.data.registrations.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
             setError('');
         } catch (err) {
-            console.error('Error fetching registrations:', err.message);
-            setError(err.response?.data?.message || err.message || 'Đã có lỗi xảy ra');
+            console.error('Error fetching registrations:', err.response?.data || err.message);
+            if (err.response?.status === 401) {
+                setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+                signOut({ redirect: false });
+                router.push('/login?error=SessionExpired');
+            } else {
+                setError(err.response?.data?.message || 'Đã có lỗi khi lấy danh sách đăng ký');
+            }
         }
     };
 
-    // Thiết lập Socket.IO
+    useEffect(() => {
+        if (status === 'loading') return;
+        fetchRegistrations();
+        const intervalId = setInterval(fetchRegistrations, 30000);
+        return () => clearInterval(intervalId);
+    }, [status, region]);
+
     useEffect(() => {
         console.log('Initializing Socket.IO with URL:', API_BASE_URL);
         const socket = io(API_BASE_URL, {
-            query: session?.accessToken ? { token: session.accessToken } : undefined,
+            query: session?.accessToken ? { token: session.accessToken } : {},
             reconnectionAttempts: 5,
             reconnectionDelay: 5000,
         });
@@ -98,6 +91,25 @@ export default function LotteryRegistrationFeed() {
             }
         });
 
+        socket.on('LOTTERY_RESULT_CHECKED', (data) => {
+            console.log('Received LOTTERY_RESULT_CHECKED:', data);
+            setRegistrations((prevRegistrations) => {
+                if (region && data.region !== region) return prevRegistrations;
+                if (prevRegistrations.some(r => r._id === data._id)) {
+                    return prevRegistrations.map(r => (r._id === data._id ? data : r));
+                }
+                return prevRegistrations;
+            });
+            if (isAtBottom && registrationListRef.current) {
+                registrationListRef.current.scrollTop = registrationListRef.current.scrollHeight;
+            }
+        });
+
+        socket.on('LOTTERY_RESULT_ERROR', (data) => {
+            console.error('Received LOTTERY_RESULT_ERROR:', data);
+            setError(data.message || 'Lỗi khi đối chiếu kết quả xổ số');
+        });
+
         socket.on('connect_error', (error) => {
             console.error('Socket.IO connection error:', error.message);
             setError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
@@ -120,16 +132,8 @@ export default function LotteryRegistrationFeed() {
             console.log('Cleaning up Socket.IO connection');
             socket.disconnect();
         };
-    }, [region, isAtBottom, session]);
+    }, [region]);
 
-    // Lấy danh sách đăng ký khi component mount hoặc region thay đổi
-    useEffect(() => {
-        fetchRegistrations();
-        const intervalId = setInterval(fetchRegistrations, 30000);
-        return () => clearInterval(intervalId);
-    }, [region, status]);
-
-    // Xử lý cuộn
     useEffect(() => {
         const handleScroll = () => {
             if (registrationListRef.current) {
@@ -142,7 +146,6 @@ export default function LotteryRegistrationFeed() {
         return () => registrationList?.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // Xử lý click ngoài modal
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (modalRef.current && !modalRef.current.contains(event.target)) {
@@ -154,13 +157,11 @@ export default function LotteryRegistrationFeed() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // Xử lý click vào avatar
     const handleShowDetails = (user) => {
         setSelectedUser(user);
         setShowModal(true);
     };
 
-    // Render avatar
     const getAvatarClass = (fullname) => {
         const firstChar = fullname[0]?.toLowerCase() || 'a';
         const avatarColors = {
@@ -175,7 +176,6 @@ export default function LotteryRegistrationFeed() {
         return avatarColors[firstChar] || styles.avatarA;
     };
 
-    // Render mỗi đăng ký
     const renderRegistration = (registration) => {
         const fullname = registration.userId?.fullname || 'Người dùng ẩn danh';
         const firstChar = fullname[0]?.toUpperCase() || '?';
@@ -201,7 +201,34 @@ export default function LotteryRegistrationFeed() {
                 <p className={styles.commentContent}>
                     Đã đăng ký quay số miền <strong>{registration.region}</strong><br />
                     Cấp độ: {registration.userId?.level || 0}<br />
-                    Danh hiệu: <span className={styles.titles}>{titles}</span>
+                    Số điểm: {registration.userId?.points || 0}<br />
+                    Số lần trúng: {registration.userId?.winCount || 0}<br />
+                    Danh hiệu: <span className={styles.titles}>{titles}</span><br />
+                    <strong>Số đăng ký:</strong><br />
+                    {registration.numbers.bachThuLo && `Bạch thủ lô: ${registration.numbers.bachThuLo}<br />`}
+                    {registration.numbers.songThuLo.length > 0 && `Song thủ lô: ${registration.numbers.songThuLo.join(', ')}<br />`}
+                    {registration.numbers.threeCL && `3CL: ${registration.numbers.threeCL}<br />`}
+                    {registration.numbers.cham && `Chạm: ${registration.numbers.cham}<br />`}
+                    {registration.result && registration.result.isChecked ? (
+                        registration.result.isWin ? (
+                            <span className={styles.winningResult}>
+                                <strong>Kết quả: Trúng</strong><br />
+                                {registration.result.winningNumbers.bachThuLo && `Bạch thủ lô: ${registration.numbers.bachThuLo}<br />`}
+                                {registration.result.winningNumbers.songThuLo.length > 0 && `Song thủ lô: ${registration.result.winningNumbers.songThuLo.join(', ')}<br />`}
+                                {registration.result.winningNumbers.threeCL && `3CL: ${registration.numbers.threeCL}<br />`}
+                                {registration.result.winningNumbers.cham && `Chạm: ${registration.numbers.cham}<br />`}
+                                <strong>Giải trúng:</strong> {registration.result.matchedPrizes.join(', ')}
+                            </span>
+                        ) : (
+                            <span className={styles.losingResult}>
+                                <strong>Kết quả: Trượt</strong>
+                            </span>
+                        )
+                    ) : (
+                        <span className={styles.pendingResult}>
+                            <strong>Kết quả: Chưa đối chiếu</strong>
+                        </span>
+                    )}
                 </p>
             </div>
         );
@@ -210,13 +237,8 @@ export default function LotteryRegistrationFeed() {
     return (
         <div className={styles.container}>
             <h1 className={styles.title}>Thông báo đăng ký quay số</h1>
-            {status === 'unauthenticated' && (
-                <p className={styles.warning}>
-                    Bạn cần <Link href="/login">đăng nhập</Link> để đăng ký quay số.
-                </p>
-            )}
             {error && <p className={styles.error}>{error}</p>}
-
+            {status === 'loading' && <p className={styles.loading}>Đang tải...</p>}
             <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Lọc theo miền</label>
                 <select
@@ -230,7 +252,6 @@ export default function LotteryRegistrationFeed() {
                     <option value="Bac">Miền Bắc</option>
                 </select>
             </div>
-
             <div className={styles.commentList} ref={registrationListRef}>
                 {registrations.length === 0 ? (
                     <p className={styles.noComments}>Chưa có đăng ký nào.</p>
@@ -238,7 +259,6 @@ export default function LotteryRegistrationFeed() {
                     registrations.map((registration) => renderRegistration(registration))
                 )}
             </div>
-
             {showModal && selectedUser && (
                 <div className={styles.modalOverlay}>
                     <div className={styles.modal} ref={modalRef}>
@@ -246,6 +266,7 @@ export default function LotteryRegistrationFeed() {
                         <p><strong>Tên:</strong> {selectedUser.fullname || 'Người dùng ẩn danh'}</p>
                         <p><strong>Cấp độ:</strong> {selectedUser.level || 0}</p>
                         <p><strong>Số điểm:</strong> {selectedUser.points || 0}</p>
+                        <p><strong>Số lần trúng:</strong> {selectedUser.winCount || 0}</p>
                         <p><strong>Danh hiệu:</strong> <span className={styles.titles}>{selectedUser.titles?.join(', ') || 'Không có danh hiệu'}</span></p>
                         <button
                             className={styles.cancelButton}

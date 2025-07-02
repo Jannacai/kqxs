@@ -8,6 +8,8 @@ import 'moment-timezone';
 import Thongbao from './thongbao';
 import Leaderboard from './bangxephang';
 import LotteryRegistration from './dangkyquayso';
+import Vinhdanh from './vinhdanh';
+
 import styles from '../../styles/DienDan.module.css';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -186,6 +188,7 @@ const DienDan = () => {
         <div className='container'>
             <div className={styles.container}>
                 <h1 className={styles.title}>Diễn Đàn Quay Số</h1>
+                <Vinhdanh />
                 <div className={styles.buttonWrapper}>
                     <button
                         onClick={() => setShowModal(true)}
@@ -360,7 +363,7 @@ const DienDan = () => {
                 )}
             </div>
             <div className={styles.leaderboardSection}>
-                <h2 className={styles.sectionTitle}>Bảng Xếp Hạng</h2>
+                {/* <h2 className={styles.sectionTitle}>Bảng Xếp Hạng</h2> */}
                 <Leaderboard />
             </div>
         </div>

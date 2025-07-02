@@ -1,42 +1,70 @@
 .container {
-    max-width: 800px;
+    max-width: 700px;
     margin: 0 auto;
     padding: 15px;
-    background: #f5f7fa;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    color: #333;
-    font-family: 'Orbitron', 'Roboto', sans-serif;
-    min-height: 100vh;
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    color: #2d3748;
+    font-family: 'Inter', 'Roboto', sans-serif;
+    height: 600px;
 }
 
 .title {
-    font-size: 2.2rem;
+    display: flex;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: 700;
     text-align: center;
-    color: #4a90e2;
+    color: #2b6cb0;
     margin-bottom: 20px;
 }
 
 .error {
-    color: #d32f2f;
-    background: #ffebee;
-    padding: 8px;
+    color: #9b2c2c;
+    background: #fef6f6;
+    padding: 10px;
     border-radius: 6px;
-    border: 1px solid rgba(211, 47, 47, 0.2);
+    border: 1px solid #feb2b2;
     margin-bottom: 15px;
     text-align: center;
     font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.sortOptions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    margin-bottom: 15px;
+    gap: 8px;
+}
+
+.sortOptions label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #4a5568;
+}
+
+.sortOptions select {
+    padding: 6px 10px;
+    font-size: 0.9rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 5px;
+    background: #f7fafc;
+    color: #2d3748;
+    cursor: pointer;
 }
 
 .playerList {
-    max-height: 500px;
-    overflow-y: auto;
-    background: #fff;
+    background: #f7fafc;
     border-radius: 8px;
-    border: 1px solid rgba(74, 144, 226, 0.2);
+    border: 1px solid #e2e8f0;
     padding: 10px;
+    max-height: 450px;
+    overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: #4a90e2 #fff;
+    scrollbar-color: #2b6cb0 #f7fafc;
 }
 
 .playerList::-webkit-scrollbar {
@@ -44,182 +72,263 @@
 }
 
 .playerList::-webkit-scrollbar-track {
-    background: #fff;
+    background: #f7fafc;
     border-radius: 6px;
 }
 
 .playerList::-webkit-scrollbar-thumb {
-    background: #4a90e2;
+    background: #2b6cb0;
     border-radius: 6px;
 }
 
 .playerItem {
-    display: flex;
-    flex-direction: column;
-    padding: 10px;
-    margin-bottom: 10px;
-    background: #f8fafd;
-    border-radius: 6px;
-    border: 1px solid rgba(74, 144, 226, 0.2);
-    min-height: 60px;
     position: relative;
-    /* Để expandedTitles định vị tương đối */
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    border-radius: 20px;
+    border: none;
+    height: 60px;
+    transition: background-color 0.3s, transform 0.2s;
+    /* overflow: hidden; */
+}
+
+.playerItem:nth-child(1) {
+    background: linear-gradient(135deg, #ffd700, #ffec80, #ff6f00, #ffd700);
+    background-size: 400%;
+    animation: vibrantSparkle 8s ease-in-out infinite;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.7), 0 0 30px rgba(255, 165, 0, 0.5);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    transform: scale(1.02);
+}
+
+.playerItem:nth-child(2) {
+    background: linear-gradient(135deg, #c0c0c0, #e6e6e6, #87ceeb, #c0c0c0);
+    background-size: 400%;
+    animation: vibrantSparkle 10s ease-in-out infinite;
+    box-shadow: 0 0 18px rgba(192, 192, 192, 0.7), 0 0 25px rgba(135, 206, 235, 0.5);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    transform: scale(1.01);
+}
+
+.playerItem:nth-child(3) {
+    background: linear-gradient(135deg, #d4a373, #f4c4a2, #cd7f32, #d4a373);
+    background-size: 400%;
+    animation: vibrantSparkle 12s ease-in-out infinite;
+    box-shadow: 0 0 16px rgba(212, 163, 115, 0.7), 0 0 20px rgba(205, 127, 50, 0.5);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+}
+
+.playerItem:nth-child(n+4) {
+    background: linear-gradient(to right, #b0b7bf, #d3d8de);
+    box-shadow: 0 0 10px rgba(176, 183, 191, 0.3);
+}
+
+@keyframes vibrantSparkle {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 400% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.rankCircle {
+    position: absolute;
+    width: 55px;
+    height: 55px;
+    background: linear-gradient(to right, #e6f0fa, #b3d4fc);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #2b6cb0;
+    border: 2px solid #b3d4fc;
+    left: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    flex-shrink: 0;
+}
+
+.playerItem:nth-child(1) .rankCircle {
+    background: linear-gradient(135deg, #ffec80, #ff6f00);
+    color: #ffffff;
+    border: 2px solid #ffd700;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+}
+
+.star {
+    position: absolute;
+}
+
+.playerItem:nth-child(2) .rankCircle {
+    background: linear-gradient(135deg, #e6e6e6, #87ceeb);
+    color: #ffffff;
+    border: 2px solid #c0c0c0;
+    box-shadow: 0 0 10px rgba(192, 192, 192, 0.8);
+}
+
+.playerItem:nth-child(3) .rankCircle {
+    background: linear-gradient(135deg, #f4c4a2, #cd7f32);
+    color: #ffffff;
+    border: 2px solid #d4a373;
+    box-shadow: 0 0 10px rgba(212, 163, 115, 0.8);
 }
 
 .playerHeader {
     display: flex;
     align-items: center;
     flex: 1;
-}
-
-.rank {
-    width: 30px;
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #4a90e2;
-    text-align: center;
-    margin-right: 10px;
+    gap: 10px;
+    margin-left: 50px;
 }
 
 .avatar {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: 600;
-    color: #fff;
-    margin-right: 10px;
-    border: 1px solid #4a90e2;
+    color: #ffffff;
+    border: 1px solid #2b6cb0;
     cursor: pointer;
 }
 
 .avatarImage {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
-    border: 1px solid #4a90e2;
-    cursor: pointer;
+    border: 1px solid #2b6cb0;
     object-fit: cover;
+    cursor: pointer;
 }
 
 .avatarA {
-    background: #e57373;
+    background: #f56565;
 }
 
 .avatarB {
-    background: #64b5f6;
+    background: #4299e1;
 }
 
 .avatarC {
-    background: #81c784;
+    background: #48bb78;
 }
 
 .avatarD {
-    background: #ba68c8;
+    background: #9f7aea;
 }
 
 .avatarE {
-    background: #ffd54f;
+    background: #ecc94b;
 }
 
 .avatarF {
-    background: #4dd0e1;
+    background: #4fd1c5;
 }
 
 .avatarG {
-    background: #ff8a65;
+    background: #ed8936;
 }
 
 .avatarH {
-    background: #9575cd;
+    background: #667eea;
 }
 
 .avatarI {
-    background: #4db6ac;
+    background: #38b2ac;
 }
 
 .avatarJ {
-    background: #ef5350;
+    background: #e53e3e;
 }
 
 .avatarK {
-    background: #42a5f5;
+    background: #3182ce;
 }
 
 .avatarL {
-    background: #dce775;
+    background: #a0aec0;
 }
 
 .avatarM {
-    background: #ab47bc;
+    background: #805ad5;
 }
 
 .avatarN {
-    background: #4fc3f7;
+    background: #0bc5ea;
 }
 
 .avatarO {
-    background: #ff8f00;
+    background: #dd6b20;
 }
 
 .avatarP {
-    background: #8e24aa;
+    background: #6b46c1;
 }
 
 .avatarQ {
-    background: #26a69a;
+    background: #319795;
 }
 
 .avatarR {
-    background: #ef5350;
+    background: #d53f8c;
 }
 
 .avatarS {
-    background: #1e88e5;
+    background: #2b6cb0;
 }
 
 .avatarT {
-    background: #d4e157;
+    background: #d69e2e;
 }
 
 .avatarU {
-    background: #9c27b0;
+    background: #553c9a;
 }
 
 .avatarV {
-    background: #26c6da;
+    background: #2c7a7b;
 }
 
 .avatarW {
-    background: #ffca28;
+    background: #b7791f;
 }
 
 .avatarX {
-    background: #7b1fa2;
+    background: #702459;
 }
 
 .avatarY {
-    background: #00acc1;
+    background: #0987a0;
 }
 
 .avatarZ {
-    background: #f44336;
+    background: #c53030;
 }
 
 .playerInfo {
     flex: 1;
     display: flex;
     flex-direction: column;
-    min-width: 0;
+    gap: 2px;
 }
 
 .playerName {
     font-size: 1rem;
-    color: #4a90e2;
     font-weight: 600;
+    color: #2b6cb0;
     cursor: pointer;
     white-space: nowrap;
     overflow: hidden;
@@ -229,94 +338,88 @@
 .titleWrapper {
     display: flex;
     align-items: center;
-    margin-top: 4px;
-    position: relative;
+    gap: 6px;
 }
 
 .titles {
-    display: inline-block;
-    padding: 4px 8px;
-    margin: 0 4px 0 0;
-    border-radius: 5px;
-    font-size: 0.85rem;
-    font-weight: 600;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
     text-transform: uppercase;
     line-height: 1.2;
+    border: none;
+    background: none;
+    color: #2d3748;
 }
 
 .tanthu {
-    background: #f4a261;
-    color: #fff;
-    border: 1px solid #e69138;
+    background: #feebc8;
+    color: #7b341e;
 }
 
 .hocgia {
-    background: #b0bec5;
-    color: #333;
-    border: 1px solid #90a4ae;
+    background: #e2e8f0;
+    color: #4a5568;
 }
 
 .chuyengia {
-    background: #f4c107;
-    color: #fff;
-    border: 1px solid #e6b800;
+    background: #fefcbf;
+    color: #744210;
 }
 
 .thansohoc {
-    background: #4dd0e1;
-    color: #fff;
-    border: 1px solid #26a69a;
+    background: #b2f5ea;
+    color: #285e61;
 }
 
 .thanchotso {
-    background: #d81b60;
-    color: #fff;
-    border: 1px solid #ad1457;
+    background: #fed7e2;
+    color: #702459;
 }
 
 .toggleButton {
-    background: #4a90e2;
-    color: #fff;
-    border: 1px solid #357abd;
+    background: #e2e8f0;
+    color: #2b6cb0;
+    border: none;
     border-radius: 4px;
-    padding: 2px 6px;
-    font-size: 0.8rem;
+    padding: 2px 5px;
+    font-size: 0.7rem;
     cursor: pointer;
-}
-
-.toggleButton:hover {
-    background: #357abd;
 }
 
 .expandedTitles {
     position: absolute;
-    top: 100%;
-    left: 56px;
-    right: 10px;
-    background: #f0f2f5;
-    border: 1px solid rgba(74, 144, 226, 0.2);
-    border-radius: 4px;
+    top: 0px;
+    left: 60px;
+    max-width: 300px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
     padding: 8px;
-    max-height: 120px;
+    max-height: 100px;
     overflow-y: auto;
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
     gap: 4px;
-    z-index: 10;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .points {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #4a90e2;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #2b6cb0;
     text-align: right;
-    min-width: 80px;
+    width: 90px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .noPlayers {
     text-align: center;
-    color: #666;
+    color: #718096;
     font-size: 1rem;
     padding: 15px;
 }
@@ -327,7 +430,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.65);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -335,20 +438,22 @@
 }
 
 .modal {
-    background: #fff;
-    border-radius: 8px;
-    border: 1px solid #4a90e2;
+    background: #ffffff;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
     max-width: 500px;
     width: 90%;
     max-height: 80vh;
     overflow-y: auto;
     padding: 15px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+    position: relative;
 }
 
 .modalTitle {
-    font-size: 1.6rem;
-    color: #4a90e2;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #2b6cb0;
     text-align: center;
     margin-bottom: 15px;
 }
@@ -357,7 +462,7 @@
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    border: 1px solid #4a90e2;
+    border: 1px solid #2b6cb0;
     display: block;
     margin: 0 auto 15px;
     object-fit: cover;
@@ -365,61 +470,93 @@
 
 .modal p {
     font-size: 1rem;
-    color: #333;
+    color: #2d3748;
     margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .modal p strong {
-    color: #4a90e2;
+    color: #2b6cb0;
+    font-weight: 600;
+    margin-right: 8px;
+}
+
+.modalTitles {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.modal .titles {
+    display: inline-block;
+    font-size: 0.8rem;
+    padding: 3px 6px;
+    border-radius: 4px;
+    text-align: center;
 }
 
 .highestTitle {
-    font-weight: 700;
-    border-width: 2px;
+    font-weight: 600;
+    text-decoration: underline;
 }
 
 .cancelButton {
     display: block;
     width: 100%;
     padding: 8px;
-    background: #d32f2f;
-    color: #fff;
-    font-size: 0.95rem;
+    background: #9b2c2c;
+    color: #ffffff;
+    font-size: 0.9rem;
     font-weight: 600;
-    border: 1px solid #b71c1c;
+    border: 1px solid #742a2a;
     border-radius: 6px;
     cursor: pointer;
 }
 
-.cancelButton:hover {
-    background: #b71c1c;
-}
-
-/* Responsive */
 @media (max-width: 600px) {
     .container {
         padding: 10px;
+        max-width: 100%;
     }
 
     .title {
         font-size: 1.8rem;
     }
 
-    .playerItem {
-        padding: 8px;
-        min-height: 50px;
+    .sortOptions {
+        justify-content: center;
     }
 
-    .rank {
-        width: 25px;
+    .playerItem {
+        padding: 8px 12px;
+        height: 50px;
+    }
+
+    .rankCircle {
+        width: 30px;
+        height: 30px;
         font-size: 1rem;
+        left: 8px;
+    }
+
+    .playerHeader {
+        margin-left: 40px;
+    }
+
+    .expandedTitles {
+        left: 48px;
     }
 
     .avatar,
     .avatarImage {
-        width: 32px;
-        height: 32px;
-        font-size: 1rem;
+        width: 28px;
+        height: 28px;
+        font-size: 0.9rem;
     }
 
     .playerName {
@@ -427,30 +564,30 @@
     }
 
     .titles {
-        font-size: 0.8rem;
-        padding: 3px 6px;
+        font-size: 0.7rem;
+        padding: 2px 5px;
     }
 
     .toggleButton {
-        font-size: 0.7rem;
+        font-size: 0.65rem;
         padding: 1px 4px;
     }
 
     .expandedTitles {
-        left: 46px;
-        right: 8px;
-        max-height: 100px;
+        max-width: 250px;
+        max-height: 90px;
         padding: 6px;
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
     }
 
     .points {
-        font-size: 0.9rem;
-        min-width: 60px;
+        font-size: 0.8rem;
+        width: 80px;
     }
 
     .modal {
         width: 95%;
-        padding: 10px;
+        padding: 12px;
     }
 
     .modalTitle {
@@ -460,5 +597,14 @@
     .modalAvatar {
         width: 50px;
         height: 50px;
+    }
+
+    .modal .titles {
+        font-size: 0.75rem;
+        padding: 2px 5px;
+    }
+
+    .modalTitles {
+        gap: 4px;
     }
 }
