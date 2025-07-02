@@ -5,6 +5,10 @@ import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import io from 'socket.io-client';
 import axios from 'axios';
+import Image from 'next/image';
+import star1 from '../asset/img/start 1.png';
+// import star2 from '../asset/img';
+import star3 from '../asset/img/nenxephang1.png';
 
 import Link from 'next/link';
 import styles from '../../styles/Leaderboard.module.css';
@@ -183,7 +187,9 @@ const Leaderboard = () => {
         return (
             <div key={player._id} className={styles.playerItem}>
                 <span className={styles.rankCircle}>{index + 1}</span>
-    
+
+                <Image className={styles.star1} src={star1} alt='xổ số bắc trung nam' />
+
                 <div className={styles.playerHeader}>
                     {player.img ? (
                         <img
@@ -222,7 +228,7 @@ const Leaderboard = () => {
                         </div>
                     </div>
                     <span className={styles.points}>
-                        {sortBy === 'winCount' ? `Số lần trúng: ${player.winCount || 0}` : `Điểm: ${player.points || 0}`}
+                        {sortBy === 'winCount' ? `Trúng: ${player.winCount || 0}` : `Điểm: ${player.points || 0}`}
                     </span>
                     {expandedTitles[player._id] && player.titles?.length > 1 && (
                         <div
@@ -270,6 +276,7 @@ const Leaderboard = () => {
                 ) : (
                     players.map((player, index) => renderPlayer(player, index))
                 )}
+                {/* <Image className='header__logo--img' src={bangxephang} alt='xổ số bắc trung nam' /> */}
             </div>
             {showModal && selectedPlayer && (
                 <div className={styles.modalOverlay}>
