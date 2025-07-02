@@ -9,8 +9,8 @@ import Thongbao from './thongbao';
 import Leaderboard from './bangxephang';
 import LotteryRegistration from './dangkyquayso';
 import styles from '../../styles/DienDan.module.css';
-// ấ
-const API_BASE_URL = "https://backendkqxs.onrender.com";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 const DienDan = () => {
     const { data: session, status } = useSession();
@@ -40,15 +40,22 @@ const DienDan = () => {
     };
 
     const fetchRegistrations = async () => {
-        if (!session?.user?.id) return;
+        if (!session?.user?.id) {
+            console.log('No session or user ID');
+            return;
+        }
         try {
             const todayStart = moment().tz('Asia/Ho_Chi_Minh').startOf('day').toDate();
             const todayEnd = moment().tz('Asia/Ho_Chi_Minh').endOf('day').toDate();
+            console.log('Fetching registrations with:', {
+                userId: session.user.id,
+                startDate: todayStart.toISOString(),
+                endDate: todayEnd.toISOString()
+            });
             const res = await axios.get(`${API_BASE_URL}/api/lottery/check-results`, {
                 headers: {
                     Authorization: `Bearer ${session.accessToken}`,
                     'Content-Type': 'application/json',
-                    // 'User-Agent': 'DienDan-Client'
                 },
                 params: {
                     userId: session.user.id,
@@ -56,9 +63,10 @@ const DienDan = () => {
                     endDate: todayEnd.toISOString()
                 }
             });
-            setRegistrations(res.data.registrations);
+            console.log('API response:', res.data);
+            setRegistrations(res.data.registrations || []);
         } catch (err) {
-            console.error('Error fetching registrations:', err.message);
+            console.error('Error fetching registrations:', err.response?.data || err.message);
             setError(err.response?.data?.message || 'Đã có lỗi khi lấy danh sách đăng ký');
         }
     };
@@ -120,7 +128,6 @@ const DienDan = () => {
                 headers: {
                     Authorization: `Bearer ${session.accessToken}`,
                     'Content-Type': 'application/json',
-                    'User-Agent': 'DienDan-Client'
                 }
             });
 
@@ -204,7 +211,7 @@ const DienDan = () => {
                     <div className={styles.modalOverlay}>
                         <div className={styles.modal}>
                             <h2 className={styles.modalTitle}>Đăng ký quay số</h2>
-                            <LotteryRegistration />
+                            <LotteryRegistration onRegistrationSuccess={fetchRegistrations} />
                             <button
                                 className={styles.cancelButton}
                                 onClick={() => setShowModal(false)}
@@ -244,7 +251,7 @@ const DienDan = () => {
                                                     {reg.result.winningNumbers.bachThuLo && <p>- Bạch thủ lô: {reg.numbers.bachThuLo}</p>}
                                                     {reg.result.winningNumbers.songThuLo.length > 0 && <p>- Song thủ lô: {reg.result.winningNumbers.songThuLo.join(', ')}</p>}
                                                     {reg.result.winningNumbers.threeCL && <p>- 3CL: {reg.numbers.threeCL}</p>}
-                                                    {reg.result.winningNumbers.cham && <p>- Chạm: {reg.numbers.cham}</p>}
+                                                    {reg.result.winningNumbers.cham && <p>- Chạm: Humphrey: {reg.numbers.cham}</p>}
                                                     <p><strong>Giải trúng:</strong> {reg.result.matchedPrizes.join(', ')}</p>
                                                 </div>
                                             )}

@@ -10,7 +10,7 @@ import styles from '../../styles/lotteryRegistration.module.css';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
-export default function LotteryRegistration() {
+export default function LotteryRegistration({ onRegistrationSuccess }) {
     const { data: session, status } = useSession();
     const router = useRouter();
     const [region, setRegion] = useState('Nam');
@@ -33,17 +33,16 @@ export default function LotteryRegistration() {
         Bac: false
     });
 
-    // Kiểm tra thời gian đăng ký
     const checkRegistrationTime = () => {
         const now = moment().tz('Asia/Ho_Chi_Minh');
         setCurrentTime(now.format('HH:mm:ss'));
         const currentTimeInMinutes = now.hours() * 60 + now.minutes();
 
         const timeLimits = {
-            Nam: 16 * 60 + 10, // 16:10
-            Trung: 17 * 60 + 10, // 17:10
-            Bac: 18 * 60 + 10, // 18:10
-            reset: 18 * 60 + 40 // 18:40
+            Nam: 16 * 60 + 10,
+            Trung: 17 * 60 + 10,
+            Bac: 18 * 60 + 10,
+            reset: 18 * 60 + 40
         };
 
         setIsRegistrationOpen({
@@ -53,19 +52,16 @@ export default function LotteryRegistration() {
         });
     };
 
-    // Kiểm tra số lần đăng ký hôm nay
     const checkRegistrationLimit = async () => {
         if (!session?.user?.id) return;
 
         try {
             const todayStart = moment().tz('Asia/Ho_Chi_Minh').startOf('day').toDate();
             const todayEnd = moment().tz('Asia/Ho_Chi_Minh').endOf('day').toDate();
-
             const res = await axios.get(`${API_BASE_URL}/api/lottery/check-limit`, {
                 headers: {
                     Authorization: `Bearer ${session.accessToken}`,
                     'Content-Type': 'application/json',
-                    // 'User-Agent': 'LotteryRegistration-Client'
                 },
                 params: {
                     userId: session.user.id,
@@ -73,8 +69,8 @@ export default function LotteryRegistration() {
                     endDate: todayEnd.toISOString()
                 }
             });
-
             const registrations = res.data.registrations;
+            console.log('Registration limit response:', res.data);
             setHasRegisteredToday({
                 Nam: registrations.some(r => r.region === 'Nam'),
                 Trung: registrations.some(r => r.region === 'Trung'),
@@ -163,9 +159,10 @@ export default function LotteryRegistration() {
                 headers: {
                     Authorization: `Bearer ${session?.accessToken}`,
                     'Content-Type': 'application/json',
-                    'User-Agent': 'LotteryRegistration-Client'
                 }
             });
+
+            console.log('Registration response:', res.data);
 
             if (res.status === 401) {
                 signOut({ redirect: false });
@@ -182,6 +179,10 @@ export default function LotteryRegistration() {
             setFormData({ bachThuLo: '', songThuLo: '', threeCL: '', cham: '' });
             setError('');
             setHasRegisteredToday({ ...hasRegisteredToday, [region]: true });
+            if (onRegistrationSuccess) {
+                console.log('Calling onRegistrationSuccess');
+                onRegistrationSuccess();
+            }
         } catch (err) {
             const errorMessage = err.response?.data?.message || err.message || 'Đã có lỗi xảy ra';
             console.error('Registration error:', errorMessage);

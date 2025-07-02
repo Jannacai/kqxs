@@ -19,7 +19,7 @@ export default NextAuth({
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        "User-Agent": "NextAuth-Client",
+                        // "User-Agent": "NextAuth-Client",
                     },
                     body: JSON.stringify({ username, password }),
                 });
@@ -65,7 +65,7 @@ export default NextAuth({
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        "User-Agent": "NextAuth-Client",
+                        // "User-Agent": "NextAuth-Client",
                     },
                     body: JSON.stringify({ refreshToken: token.refreshToken }),
                 });
