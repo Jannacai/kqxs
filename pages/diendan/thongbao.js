@@ -12,7 +12,7 @@ import { formatDistanceToNow } from 'date-fns';
 import vi from 'date-fns/locale/vi';
 import Link from 'next/link';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backendkqxs.onrender.com';
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
 export default function LotteryRegistrationFeed() {
     const { data: session, status } = useSession();
@@ -34,6 +34,7 @@ export default function LotteryRegistrationFeed() {
             console.log('Fetching registrations with params:', params);
             const headers = {
                 'Content-Type': 'application/json',
+                // 'User-Agent': 'LotteryRegistrationFeed-Client'
             };
             if (session?.accessToken) {
                 headers.Authorization = `Bearer ${session.accessToken}`;
@@ -41,7 +42,7 @@ export default function LotteryRegistrationFeed() {
 
             const res = await axios.get(`${API_BASE_URL}/api/lottery/registrations`, {
                 headers,
-                params,
+                params
             });
 
             if (res.status === 401 && session) {
@@ -66,15 +67,9 @@ export default function LotteryRegistrationFeed() {
 
     // Thiết lập Socket.IO
     useEffect(() => {
-        if (status !== 'authenticated' || !session?.accessToken) {
-            console.log('Socket.IO not initialized: User not authenticated or no token');
-            return;
-        }
-
         console.log('Initializing Socket.IO with URL:', API_BASE_URL);
-        console.log('Access Token:', session.accessToken); // Debug
         const socket = io(API_BASE_URL, {
-            query: { token: session.accessToken },
+            query: session?.accessToken ? { token: session.accessToken } : undefined,
             reconnectionAttempts: 5,
             reconnectionDelay: 5000,
         });
@@ -90,8 +85,8 @@ export default function LotteryRegistrationFeed() {
             console.log('Received NEW_LOTTERY_REGISTRATION:', data);
             setRegistrations((prevRegistrations) => {
                 if (region && data.region !== region) return prevRegistrations;
-                if (prevRegistrations.some((r) => r._id === data._id)) {
-                    return prevRegistrations.map((r) => (r._id === data._id ? data : r));
+                if (prevRegistrations.some(r => r._id === data._id)) {
+                    return prevRegistrations.map(r => (r._id === data._id ? data : r));
                 }
                 const updatedRegistrations = [data, ...prevRegistrations].sort(
                     (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
@@ -125,7 +120,7 @@ export default function LotteryRegistrationFeed() {
             console.log('Cleaning up Socket.IO connection');
             socket.disconnect();
         };
-    }, [region, isAtBottom, status, session?.accessToken]);
+    }, [region, isAtBottom, session]);
 
     // Lấy danh sách đăng ký khi component mount hoặc region thay đổi
     useEffect(() => {
@@ -156,7 +151,7 @@ export default function LotteryRegistrationFeed() {
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
-        return () => document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
     // Xử lý click vào avatar
