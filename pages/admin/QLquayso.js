@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession, signOut } from 'next-auth/react';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import moment from 'moment';
@@ -13,7 +13,9 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:50
 export default function UserLotteryManagement() {
     const { data: session, status } = useSession();
     const router = useRouter();
-    const [region, setRegion] = useState('Nam');
+    const [region, setRegion] = useState('');
+    const [eventId, setEventId] = useState('');
+    const [events, setEvents] = useState([]);
     const [registrations, setRegistrations] = useState([]);
     const [selectedUser, setSelectedUser] = useState(null);
     const [userDetails, setUserDetails] = useState(null);
@@ -21,6 +23,24 @@ export default function UserLotteryManagement() {
     const [pointsInput, setPointsInput] = useState('');
     const [error, setError] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [rewardingUser, setRewardingUser] = useState(null);
+    const [rewardPoints, setRewardPoints] = useState(0);
+    const [registrationCount, setRegistrationCount] = useState(0);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+
+    const fetchEvents = useCallback(async () => {
+        try {
+            const res = await axios.get(`${API_BASE_URL}/api/events`, {
+                params: { type: 'event' },
+                headers: { Authorization: `Bearer ${session?.accessToken}` }
+            });
+            setEvents(res.data.events || []);
+        } catch (err) {
+            console.error('Error fetching events:', err.message);
+            setError('Đã có lỗi khi lấy danh sách sự kiện');
+        }
+    }, [session?.accessToken]);
 
     const fetchRegistrations = useCallback(async () => {
         if (status !== 'authenticated') {
@@ -28,14 +48,21 @@ export default function UserLotteryManagement() {
             return;
         }
         try {
+            const params = {
+                eventId: eventId || undefined,
+                page: currentPage,
+                limit: itemsPerPage
+            };
+            if (region) params.region = region;
             const res = await axios.get(`${API_BASE_URL}/api/lottery/registrations`, {
                 headers: {
                     Authorization: `Bearer ${session?.accessToken}`,
                     'Content-Type': 'application/json',
                 },
-                params: { region }
+                params
             });
             setRegistrations(res.data.registrations);
+            setRegistrationCount(res.data.total);
             setError('');
         } catch (err) {
             const errorMessage = err.response?.data?.message || err.message || 'Đã có lỗi khi lấy danh sách đăng ký';
@@ -48,7 +75,7 @@ export default function UserLotteryManagement() {
                 alert(errorMessage);
             }
         }
-    }, [session?.accessToken, region, status, router]);
+    }, [session?.accessToken, region, eventId, status, router, currentPage]);
 
     const fetchUserDetails = useCallback(async (userId) => {
         if (status !== 'authenticated') {
@@ -56,6 +83,8 @@ export default function UserLotteryManagement() {
             return;
         }
         try {
+            const params = { userId, eventId: eventId || undefined };
+            if (region) params.region = region;
             const [userRes, regRes] = await Promise.all([
                 axios.get(`${API_BASE_URL}/api/users/${userId}`, {
                     headers: {
@@ -73,7 +102,7 @@ export default function UserLotteryManagement() {
                         Authorization: `Bearer ${session?.accessToken}`,
                         'Content-Type': 'application/json'
                     },
-                    params: { userId, region }
+                    params
                 }).catch(err => {
                     if (err.response?.status === 404) {
                         return { data: { registrations: [] } };
@@ -99,7 +128,7 @@ export default function UserLotteryManagement() {
                 setPointsInput('');
             }
         }
-    }, [session?.accessToken, region, status, router]);
+    }, [session?.accessToken, region, eventId, status, router]);
 
     const checkLotteryResult = (registration) => {
         if (registration.result && registration.result.isChecked) {
@@ -137,6 +166,14 @@ export default function UserLotteryManagement() {
         setUserDetails(null);
         setUserRegistrations([]);
         setPointsInput('');
+        setRewardingUser(null);
+        setRewardPoints(0);
+    };
+
+    const handleOverlayClick = (e) => {
+        if (e.target.classList.contains(styles.modal)) {
+            handleCloseModal();
+        }
     };
 
     const handleAddPoints = async () => {
@@ -200,6 +237,55 @@ export default function UserLotteryManagement() {
         }
     };
 
+    const handleReward = (user) => {
+        setRewardingUser(user);
+        setRewardPoints(0);
+    };
+
+    const handleSaveReward = async () => {
+        if (rewardPoints < 0) {
+            alert('Số điểm không thể âm!');
+            return;
+        }
+        try {
+            const newPoints = (rewardingUser.points || 0) + parseInt(rewardPoints || 0);
+            const res = await axios.put(`${API_BASE_URL}/api/users/${rewardingUser._id}`, {
+                points: newPoints
+            }, {
+                headers: {
+                    Authorization: `Bearer ${session?.accessToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            setRegistrations((prev) =>
+                prev.map((reg) =>
+                    reg.userId._id === res.data.user._id ? { ...reg, userId: { ...reg.userId, points: res.data.user.points } } : reg
+                )
+            );
+            setRewardingUser(null);
+            setRewardPoints(0);
+            alert(`Đã phát thưởng ${rewardPoints} điểm cho ${res.data.user.username}!`);
+            setError('');
+            fetchRegistrations();
+        } catch (err) {
+            const errorMessage = err.response?.data?.message || err.message || 'Đã có lỗi khi phát thưởng';
+            if (err.response?.status === 401) {
+                setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+                signOut({ redirect: false });
+                router.push('/login?error=SessionExpired');
+            } else {
+                setError(errorMessage);
+                alert(errorMessage);
+            }
+        }
+    };
+
+    const handlePageChange = (newPage) => {
+        if (newPage > 0 && newPage <= Math.ceil(registrationCount / itemsPerPage)) {
+            setCurrentPage(newPage);
+        }
+    };
+
     useEffect(() => {
         if (status === 'loading') return;
         if (status === 'unauthenticated') {
@@ -211,8 +297,9 @@ export default function UserLotteryManagement() {
             alert('Chỉ admin mới được truy cập trang này.');
             return;
         }
+        fetchEvents();
         fetchRegistrations();
-    }, [status, session, region, fetchRegistrations]);
+    }, [status, session, region, eventId, currentPage, fetchEvents, fetchRegistrations]);
 
     useEffect(() => {
         if (selectedUser) {
@@ -235,21 +322,46 @@ export default function UserLotteryManagement() {
                         setRegion(e.target.value);
                         setSelectedUser(null);
                         setIsModalOpen(false);
+                        setCurrentPage(1);
                     }}
                     className={styles.input}
                 >
+                    <option value="">Tất cả</option>
                     <option value="Nam">Miền Nam</option>
                     <option value="Trung">Miền Trung</option>
                     <option value="Bac">Miền Bắc</option>
                 </select>
             </div>
 
-            <h2 className={styles.subtitle}>Danh sách đăng ký ({region})</h2>
+            <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Chọn sự kiện</label>
+                <select
+                    value={eventId}
+                    onChange={(e) => {
+                        setEventId(e.target.value);
+                        setSelectedUser(null);
+                        setIsModalOpen(false);
+                        setCurrentPage(1);
+                    }}
+                    className={styles.input}
+                >
+                    <option value="">Tất cả sự kiện</option>
+                    {events.map((event) => (
+                        <option key={event._id} value={event._id}>
+                            {event.title}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            <h2 className={styles.subtitle}>Danh sách đăng ký ({region || 'Tất cả'}) - Tổng: {registrationCount}</h2>
             <table className={styles.table}>
                 <thead>
                     <tr>
+                        <th>STT</th>
                         <th>Username</th>
                         <th>Họ tên</th>
+                        <th>Tên sự kiện</th>
                         <th>Miền</th>
                         <th>Bạch thủ lô</th>
                         <th>Song thủ lô</th>
@@ -262,12 +374,14 @@ export default function UserLotteryManagement() {
                     </tr>
                 </thead>
                 <tbody>
-                    {registrations.map((reg) => {
+                    {registrations.map((reg, index) => {
                         const { status, details } = checkLotteryResult(reg);
                         return (
                             <tr key={reg._id}>
+                                <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
                                 <td>{reg.userId?.username || 'N/A'}</td>
                                 <td>{reg.userId?.fullname || 'N/A'}</td>
+                                <td>{reg.eventId?.title || 'Không có sự kiện'}</td>
                                 <td>{reg.region}</td>
                                 <td>{reg.numbers.bachThuLo || '-'}</td>
                                 <td>{reg.numbers.songThuLo.join(', ') || '-'}</td>
@@ -280,8 +394,16 @@ export default function UserLotteryManagement() {
                                     <button
                                         className={styles.actionButton}
                                         onClick={() => handleViewDetails(reg.userId._id)}
+                                        aria-label={`Xem chi tiết người dùng ${reg.userId?.username || 'N/A'}`}
                                     >
                                         Xem chi tiết
+                                    </button>
+                                    <button
+                                        className={styles.actionButton}
+                                        onClick={() => handleReward(reg.userId)}
+                                        aria-label={`Phát thưởng cho người dùng ${reg.userId?.username || 'N/A'}`}
+                                    >
+                                        Phát thưởng
                                     </button>
                                 </td>
                             </tr>
@@ -290,13 +412,34 @@ export default function UserLotteryManagement() {
                 </tbody>
             </table>
 
+            <div className={styles.pagination}>
+                <button
+                    className={styles.paginationButton}
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    aria-label="Trang trước"
+                >
+                    Trang trước
+                </button>
+                <span>Trang {currentPage} / {Math.ceil(registrationCount / itemsPerPage)}</span>
+                <button
+                    className={styles.paginationButton}
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === Math.ceil(registrationCount / itemsPerPage)}
+                    aria-label="Trang sau"
+                >
+                    Trang sau
+                </button>
+            </div>
+
             {isModalOpen && userDetails && (
-                <div className={styles.modal}>
+                <div className={styles.modal} onClick={handleOverlayClick}>
                     <div className={styles.modalContent}>
                         <h2 className={styles.modalTitle}>Chi tiết người dùng</h2>
                         <button
                             className={styles.closeButton}
                             onClick={handleCloseModal}
+                            aria-label="Đóng modal chi tiết"
                         >
                             ×
                         </button>
@@ -330,11 +473,13 @@ export default function UserLotteryManagement() {
                             <strong>Cấp độ:</strong> {userDetails.level}
                         </div>
 
-                        <h3 className={styles.subtitle}>Số đã đăng ký ({region})</h3>
+                        <h3 className={styles.subtitle}>Số đã đăng ký ({region || 'Tất cả'})</h3>
                         {userRegistrations.length > 0 ? (
                             <table className={styles.table}>
                                 <thead>
                                     <tr>
+                                        <th>STT</th>
+                                        <th>Tên sự kiện</th>
                                         <th>Bạch thủ lô</th>
                                         <th>Song thủ lô</th>
                                         <th>3CL</th>
@@ -345,10 +490,12 @@ export default function UserLotteryManagement() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {userRegistrations.map((reg) => {
+                                    {userRegistrations.map((reg, index) => {
                                         const { status, details } = checkLotteryResult(reg);
                                         return (
                                             <tr key={reg._id}>
+                                                <td>{index + 1}</td>
+                                                <td>{reg.eventId?.title || 'Không có sự kiện'}</td>
                                                 <td>{reg.numbers.bachThuLo || '-'}</td>
                                                 <td>{reg.numbers.songThuLo.join(', ') || '-'}</td>
                                                 <td>{reg.numbers.threeCL || '-'}</td>
@@ -362,7 +509,7 @@ export default function UserLotteryManagement() {
                                 </tbody>
                             </table>
                         ) : (
-                            <p>Chưa có đăng ký cho miền {region}</p>
+                            <p>Chưa có đăng ký cho miền {region || 'Tất cả'}</p>
                         )}
 
                         <h3 className={styles.subtitle}>Quản lý điểm</h3>
@@ -370,6 +517,7 @@ export default function UserLotteryManagement() {
                             <button
                                 className={styles.submitButton}
                                 onClick={handleAddPoints}
+                                aria-label="Cộng 10 điểm"
                             >
                                 Cộng 10 điểm
                             </button>
@@ -384,14 +532,74 @@ export default function UserLotteryManagement() {
                                     placeholder="Nhập số điểm mới"
                                     className={styles.input}
                                     min="0"
+                                    aria-label="Nhập số điểm mới"
                                 />
                             </div>
                             <div className={styles.buttonGroup}>
-                                <button type="submit" className={styles.submitButton}>
+                                <button type="submit" className={styles.submitButton} aria-label="Cập nhật điểm">
                                     Cập nhật điểm
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {rewardingUser && (
+                <div className={styles.modal} role="dialog" aria-labelledby="rewardModalTitle">
+                    <div className={styles.modalContent}>
+                        <h2 id="rewardModalTitle" className={styles.modalTitle}>
+                            Phát thưởng cho: {rewardingUser.username}
+                        </h2>
+                        <button
+                            className={styles.closeButton}
+                            onClick={() => {
+                                setRewardingUser(null);
+                                setRewardPoints(0);
+                            }}
+                            aria-label="Đóng modal phát thưởng"
+                        >
+                            ×
+                        </button>
+                        <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>
+                                Số điểm hiện tại: {rewardingUser.points}
+                            </label>
+                        </div>
+                        <div className={styles.formGroup}>
+                            <label className={styles.formLabel} htmlFor="rewardPoints">
+                                Số điểm cần cộng thêm
+                            </label>
+                            <input
+                                id="rewardPoints"
+                                type="number"
+                                value={rewardPoints}
+                                onChange={(e) => setRewardPoints(parseInt(e.target.value) || 0)}
+                                className={styles.input}
+                                min="0"
+                                placeholder="Nhập số điểm cần cộng"
+                                aria-label="Số điểm cần cộng thêm"
+                            />
+                        </div>
+                        <div className={styles.buttonGroup}>
+                            <button
+                                onClick={() => {
+                                    setRewardingUser(null);
+                                    setRewardPoints(0);
+                                }}
+                                className={styles.cancelButton}
+                                aria-label="Hủy phát thưởng"
+                            >
+                                Hủy
+                            </button>
+                            <button
+                                onClick={handleSaveReward}
+                                className={styles.submitButton}
+                                aria-label="Lưu phát thưởng"
+                            >
+                                Lưu
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

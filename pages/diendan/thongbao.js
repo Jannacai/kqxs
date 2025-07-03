@@ -10,7 +10,8 @@ import io from 'socket.io-client';
 import styles from '../../styles/lotteryRegistration.module.css';
 import { formatDistanceToNow } from 'date-fns';
 import vi from 'date-fns/locale/vi';
-import Link from 'next/link';
+import Image from 'next/image';
+import { FaGift } from 'react-icons/fa';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
@@ -18,6 +19,8 @@ export default function LotteryRegistrationFeed() {
     const { data: session, status } = useSession();
     const router = useRouter();
     const [registrations, setRegistrations] = useState([]);
+    const [rewardNotifications, setRewardNotifications] = useState([]);
+    const [eventNotifications, setEventNotifications] = useState([]);
     const [error, setError] = useState('');
     const [region, setRegion] = useState('');
     const [selectedUser, setSelectedUser] = useState(null);
@@ -28,16 +31,24 @@ export default function LotteryRegistrationFeed() {
     const [isAtBottom, setIsAtBottom] = useState(true);
 
     const fetchRegistrations = async () => {
+        if (status !== 'authenticated' || !session?.accessToken) {
+            setError('Vui lòng đăng nhập để xem thông báo.');
+            router.push('/login?error=SessionRequired');
+            return;
+        }
+
         try {
             const params = { region, page: 1, limit: 20 };
             console.log('Fetching registrations with params:', params);
-            const headers = session?.accessToken
-                ? { 'Content-Type': 'application/json', Authorization: `Bearer ${session.accessToken}` }
-                : { 'Content-Type': 'application/json' };
+            const headers = {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${session.accessToken}`,
+            };
             const res = await axios.get(`${API_BASE_URL}/api/lottery/registrations`, {
                 headers,
-                params
+                params,
             });
+            console.log('Registrations data:', res.data.registrations);
             setRegistrations(res.data.registrations.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
             setError('');
         } catch (err) {
@@ -54,15 +65,20 @@ export default function LotteryRegistrationFeed() {
 
     useEffect(() => {
         if (status === 'loading') return;
+        if (status === 'unauthenticated') {
+            setError('Vui lòng đăng nhập để xem thông báo.');
+            router.push('/login?error=SessionRequired');
+            return;
+        }
         fetchRegistrations();
-        const intervalId = setInterval(fetchRegistrations, 30000);
-        return () => clearInterval(intervalId);
     }, [status, region]);
 
     useEffect(() => {
+        if (status !== 'authenticated' || !session?.accessToken) return;
+
         console.log('Initializing Socket.IO with URL:', API_BASE_URL);
         const socket = io(API_BASE_URL, {
-            query: session?.accessToken ? { token: session.accessToken } : {},
+            query: { token: session.accessToken },
             reconnectionAttempts: 5,
             reconnectionDelay: 5000,
         });
@@ -71,6 +87,7 @@ export default function LotteryRegistrationFeed() {
         socket.on('connect', () => {
             console.log('Socket.IO connected successfully:', socket.id);
             socket.emit('joinLotteryFeed');
+            socket.emit('join', 'leaderboard');
             setError('');
         });
 
@@ -105,6 +122,75 @@ export default function LotteryRegistrationFeed() {
             }
         });
 
+        socket.on('USER_UPDATED', (data) => {
+            console.log('Received USER_UPDATED:', data);
+            setRegistrations((prevRegistrations) =>
+                prevRegistrations.map((r) =>
+                    r.userId._id === data._id ? { ...r, userId: { ...r.userId, img: data.img, titles: data.titles, points: data.points, winCount: data.winCount } } : r
+                )
+            );
+            setRewardNotifications((prevNotifications) =>
+                prevNotifications.map((n) =>
+                    n.userId._id === data._id ? { ...n, userId: { ...n.userId, img: data.img, titles: data.titles, points: data.points, winCount: data.winCount } } : n
+                )
+            );
+            setEventNotifications((prevNotifications) =>
+                prevNotifications.map((n) =>
+                    n.userId._id === data._id ? { ...n, userId: { ...n.userId, img: data.img, titles: data.titles, points: data.points, winCount: data.winCount } } : n
+                )
+            );
+        });
+
+        socket.on('UPDATE_LOTTERY_REGISTRATION', (data) => {
+            console.log('Received UPDATE_LOTTERY_REGISTRATION:', data);
+            setRegistrations((prevRegistrations) =>
+                prevRegistrations.map((r) => (r._id === data._id ? data : r))
+            );
+        });
+
+        socket.on('USER_REWARDED', (data) => {
+            console.log('Received USER_REWARDED:', data);
+            setRewardNotifications((prevNotifications) => {
+                const rewardNotification = {
+                    _id: `reward_${data.userId}_${Date.now()}`,
+                    userId: {
+                        _id: data.userId,
+                        fullname: data.fullname,
+                        img: data.img,
+                        titles: data.titles || [],
+                        points: data.points,
+                        winCount: data.winCount || 0
+                    },
+                    region: '',
+                    numbers: {},
+                    result: { isChecked: true, isWin: false },
+                    createdAt: data.awardedAt,
+                    isReward: true,
+                    pointsAwarded: data.pointsAwarded
+                };
+                const updatedNotifications = [rewardNotification, ...prevNotifications].sort(
+                    (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+                );
+                return updatedNotifications.slice(0, 50);
+            });
+            if (isAtBottom && registrationListRef.current) {
+                registrationListRef.current.scrollTop = registrationListRef.current.scrollHeight;
+            }
+        });
+
+        socket.on('NEW_EVENT_NOTIFICATION', (data) => {
+            console.log('Received NEW_EVENT_NOTIFICATION:', data);
+            setEventNotifications((prevNotifications) => {
+                const updatedNotifications = [data, ...prevNotifications].sort(
+                    (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+                );
+                return updatedNotifications.slice(0, 50);
+            });
+            if (isAtBottom && registrationListRef.current) {
+                registrationListRef.current.scrollTop = registrationListRef.current.scrollHeight;
+            }
+        });
+
         socket.on('LOTTERY_RESULT_ERROR', (data) => {
             console.error('Received LOTTERY_RESULT_ERROR:', data);
             setError(data.message || 'Lỗi khi đối chiếu kết quả xổ số');
@@ -112,16 +198,23 @@ export default function LotteryRegistrationFeed() {
 
         socket.on('connect_error', (error) => {
             console.error('Socket.IO connection error:', error.message);
-            setError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
+            if (error.message.includes('Authentication error')) {
+                setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+                signOut({ redirect: false });
+                router.push('/login?error=SessionExpired');
+            } else {
+                setError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
+            }
         });
 
-        socket.on('reconnect_attempt', () => {
-            console.log('Attempting to reconnect to Socket.IO');
+        socket.on('reconnect_attempt', (attempt) => {
+            console.log(`Socket.IO reconnect attempt ${attempt}`);
         });
 
         socket.on('reconnect', () => {
             console.log('Reconnected to Socket.IO');
             socket.emit('joinLotteryFeed');
+            socket.emit('join', 'leaderboard');
         });
 
         socket.on('disconnect', (reason) => {
@@ -132,7 +225,7 @@ export default function LotteryRegistrationFeed() {
             console.log('Cleaning up Socket.IO connection');
             socket.disconnect();
         };
-    }, [region]);
+    }, [status, session]);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -162,6 +255,14 @@ export default function LotteryRegistrationFeed() {
         setShowModal(true);
     };
 
+    const handleEventClick = (eventId) => {
+        if (status !== 'authenticated') {
+            router.push('/login?error=SessionRequired');
+            return;
+        }
+        router.push(`/diendan/events/${eventId}`);
+    };
+
     const getAvatarClass = (fullname) => {
         const firstChar = fullname[0]?.toLowerCase() || 'a';
         const avatarColors = {
@@ -176,74 +277,136 @@ export default function LotteryRegistrationFeed() {
         return avatarColors[firstChar] || styles.avatarA;
     };
 
-    const renderRegistration = (registration) => {
-        const fullname = registration.userId?.fullname || 'Người dùng ẩn danh';
+    const renderRegistration = (item) => {
+        const fullname = item.userId?.fullname || 'Người dùng ẩn danh';
         const firstChar = fullname[0]?.toUpperCase() || '?';
-        const titles = registration.userId?.titles?.join(', ') || 'Không có danh hiệu';
+        const titles = item.userId?.titles || [];
+
+        console.log('Rendering item for user:', {
+            userId: item.userId?._id,
+            fullname,
+            img: item.userId?.img,
+            titles
+        });
 
         return (
-            <div key={registration._id} className={styles.commentItem}>
+            <div
+                key={item._id}
+                className={`${styles.commentItem} ${item.isReward ? styles.rewardNotification : item.isEvent ? styles.eventNotification : styles.registrationNotification}`}
+                onClick={item.isEvent ? () => handleEventClick(item.eventId) : undefined}
+                style={item.isEvent ? { cursor: 'pointer' } : {}}
+            >
                 <div className={styles.commentHeader}>
-                    <div
-                        className={`${styles.avatar} ${getAvatarClass(fullname)}`}
-                        onClick={() => handleShowDetails(registration.userId)}
-                        style={{ cursor: 'pointer' }}
-                    >
-                        {firstChar}
-                    </div>
-                    <div className={styles.commentInfo}>
-                        <span className={styles.commentUsername}>{fullname}</span>
-                        <span className={styles.date}>
-                            {formatDistanceToNow(new Date(registration.createdAt), { addSuffix: true, locale: vi })}
-                        </span>
+                    {item.userId?.img ? (
+                        <Image
+                            src={item.userId.img}
+                            alt={fullname}
+                            className={styles.avatarImage}
+                            width={40}
+                            height={40}
+                            onClick={(e) => {
+                                e.stopPropagation(); // Ngăn chặn sự kiện click của div cha
+                                handleShowDetails(item.userId);
+                            }}
+                            style={{ cursor: 'pointer' }}
+                            onError={(e) => {
+                                console.error('Failed to load avatar:', item.userId.img);
+                                e.target.style.display = 'none';
+                                e.target.nextSibling.style.display = 'flex';
+                            }}
+                        />
+                    ) : null}
+                    <div className={styles.group}>
+                        <div
+                            className={`${styles.avatar} ${getAvatarClass(fullname)}`}
+                            onClick={(e) => {
+                                e.stopPropagation(); // Ngăn chặn sự kiện click của div cha
+                                handleShowDetails(item.userId);
+                            }}
+                            style={{ cursor: 'pointer', display: item.userId?.img ? 'none' : 'flex' }}
+                        >
+                            {firstChar}
+                        </div>
+                        <div className={styles.commentInfo}>
+                            <span
+                                className={styles.commentUsername}
+                                onClick={(e) => {
+                                    e.stopPropagation(); // Ngăn chặn sự kiện click của div cha
+                                    handleShowDetails(item.userId);
+                                }}
+                                style={{ cursor: 'pointer' }}
+                            >
+                                {fullname}
+                            </span>
+                            <span className={styles.date}>
+                                {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true, locale: vi })}
+                            </span>
+                        </div>
                     </div>
                 </div>
                 <p className={styles.commentContent}>
-                    Đã đăng ký quay số miền <strong>{registration.region}</strong><br />
-                    Cấp độ: {registration.userId?.level || 0}<br />
-                    Số điểm: {registration.userId?.points || 0}<br />
-                    Số lần trúng: {registration.userId?.winCount || 0}<br />
-                    Danh hiệu: <span className={styles.titles}>{titles}</span><br />
-                    <strong>Số đăng ký:</strong><br />
-                    {registration.numbers.bachThuLo && `Bạch thủ lô: ${registration.numbers.bachThuLo}<br />`}
-                    {registration.numbers.songThuLo.length > 0 && `Song thủ lô: ${registration.numbers.songThuLo.join(', ')}<br />`}
-                    {registration.numbers.threeCL && `3CL: ${registration.numbers.threeCL}<br />`}
-                    {registration.numbers.cham && `Chạm: ${registration.numbers.cham}<br />`}
-                    {registration.result && registration.result.isChecked ? (
-                        registration.result.isWin ? (
-                            <span className={styles.winningResult}>
-                                <strong>Kết quả: Trúng</strong><br />
-                                {registration.result.winningNumbers.bachThuLo && `Bạch thủ lô: ${registration.numbers.bachThuLo}<br />`}
-                                {registration.result.winningNumbers.songThuLo.length > 0 && `Song thủ lô: ${registration.result.winningNumbers.songThuLo.join(', ')}<br />`}
-                                {registration.result.winningNumbers.threeCL && `3CL: ${registration.numbers.threeCL}<br />`}
-                                {registration.result.winningNumbers.cham && `Chạm: ${registration.numbers.cham}<br />`}
-                                <strong>Giải trúng:</strong> {registration.result.matchedPrizes.join(', ')}
-                            </span>
-                        ) : (
-                            <span className={styles.losingResult}>
-                                <strong>Kết quả: Trượt</strong>
-                            </span>
-                        )
-                    ) : (
-                        <span className={styles.pendingResult}>
-                            <strong>Kết quả: Chưa đối chiếu</strong>
+                    {item.isReward ? (
+                        <span className={styles.rewardPoints}>
+                            <FaGift className={styles.giftIcon} />
+                            Đã được phát thưởng <strong className={styles.poins}>{item.pointsAwarded} điểm</strong>!
                         </span>
+                    ) : item.isEvent ? (
+                        <span>
+                            Đã đăng {item.type === 'event' ? 'sự kiện' : 'tin hot'}: <strong>{item.title}</strong>
+                        </span>
+                    ) : (
+                        <>
+                            Đã đăng ký quay số miền <strong>{item.region}</strong>
+                            <br />
+                            <strong>Số đăng ký:</strong><br />
+                            {item.numbers.bachThuLo && `Bạch thủ lô: ${item.numbers.bachThuLo} | `}
+                            {item.numbers.songThuLo.length > 0 && `Song thủ lô: ${item.numbers.songThuLo.join(', ')} | `}
+                            {item.numbers.threeCL && `3CL: ${item.numbers.threeCL}`}
+                            {item.numbers.cham && `Chạm: ${item.numbers.cham}`}
+                            {item.result && item.result.isChecked ? (
+                                item.result.isWin ? (
+                                    <span className={styles.winningResult}>
+                                        <strong>Kết quả: Trúng</strong><br />
+                                        {item.result.winningNumbers.songThuLo.length > 0 && `Song thủ lô: ${item.result.winningNumbers.songThuLo.join(', ')}`}<br />
+                                        {item.result.winningNumbers.threeCL && `3CL: ${item.numbers.threeCL}`}<br />
+                                        {item.result.winningNumbers.cham && `Chạm: ${item.numbers.cham}`}<br />
+                                        <strong>Giải trúng:</strong> {item.result.matchedPrizes.join(', ')}
+                                    </span>
+                                ) : (
+                                    <span className={styles.losingResult}>
+                                        <strong>Kết quả: Trượt</strong>
+                                    </span>
+                                )
+                            ) : (
+                                <span>
+                                    {/* <strong>Chưa đối chiếu</strong> */}
+                                </span>
+                            )}
+                        </>
                     )}
                 </p>
             </div>
         );
     };
 
+    const combinedFeed = [...registrations, ...rewardNotifications, ...eventNotifications].sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    ).slice(0, 50);
+
     return (
         <div className={styles.container}>
-            <h1 className={styles.title}>Thông báo đăng ký quay số</h1>
+            <h1 className={styles.title}>Thông báo</h1>
             {error && <p className={styles.error}>{error}</p>}
             {status === 'loading' && <p className={styles.loading}>Đang tải...</p>}
             <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Lọc theo miền</label>
                 <select
                     value={region}
-                    onChange={(e) => setRegion(e.target.value)}
+                    onChange={(e) => {
+                        setRegion(e.target.value);
+                        setRewardNotifications([]);
+                        setEventNotifications([]);
+                    }}
                     className={styles.input}
                 >
                     <option value="">Tất cả</option>
@@ -253,21 +416,65 @@ export default function LotteryRegistrationFeed() {
                 </select>
             </div>
             <div className={styles.commentList} ref={registrationListRef}>
-                {registrations.length === 0 ? (
-                    <p className={styles.noComments}>Chưa có đăng ký nào.</p>
+                {combinedFeed.length === 0 ? (
+                    <p className={styles.noComments}>Chưa có đăng ký hoặc thông báo nào.</p>
                 ) : (
-                    registrations.map((registration) => renderRegistration(registration))
+                    combinedFeed.map((item) => renderRegistration(item))
                 )}
             </div>
             {showModal && selectedUser && (
                 <div className={styles.modalOverlay}>
                     <div className={styles.modal} ref={modalRef}>
                         <h2 className={styles.modalTitle}>Chi tiết người dùng</h2>
+                        {selectedUser.img ? (
+                            <Image
+                                src={selectedUser.img}
+                                alt={selectedUser.fullname || 'Người dùng ẩn danh'}
+                                className={styles.modalAvatar}
+                                width={96}
+                                height={96}
+                                onError={(e) => {
+                                    console.error('Failed to load modal avatar:', selectedUser.img);
+                                    e.target.style.display = 'none';
+                                    e.target.nextSibling.style.display = 'flex';
+                                }}
+                            />
+                        ) : (
+                            <div
+                                className={`${styles.avatar} ${getAvatarClass(selectedUser.fullname || 'Người dùng ẩn danh')}`}
+                                style={{ display: selectedUser.img ? 'none' : 'flex' }}
+                            >
+                                {(selectedUser.fullname?.[0]?.toUpperCase()) || '?'}
+                            </div>
+                        )}
                         <p><strong>Tên:</strong> {selectedUser.fullname || 'Người dùng ẩn danh'}</p>
-                        <p><strong>Cấp độ:</strong> {selectedUser.level || 0}</p>
+                        <p><strong>Cấp độ:</strong> {selectedUser.level || 1}</p>
                         <p><strong>Số điểm:</strong> {selectedUser.points || 0}</p>
                         <p><strong>Số lần trúng:</strong> {selectedUser.winCount || 0}</p>
-                        <p><strong>Danh hiệu:</strong> <span className={styles.titles}>{selectedUser.titles?.join(', ') || 'Không có danh hiệu'}</span></p>
+                        <p>
+                            <strong>Danh hiệu:</strong>{' '}
+                            <span className={styles.titles}>
+                                {selectedUser.titles?.map((title, index) => {
+                                    const titleClass = title.toLowerCase().includes('học giả')
+                                        ? 'hocgia'
+                                        : title.toLowerCase().includes('chuyên gia')
+                                            ? 'chuyengia'
+                                            : title.toLowerCase().includes('thần số học')
+                                                ? 'thansohoc'
+                                                : title.toLowerCase().includes('thần chốt số')
+                                                    ? 'thanchotso'
+                                                    : 'tanthu';
+                                    return (
+                                        <span
+                                            key={index}
+                                            className={`${styles.titleBadge} ${styles[titleClass]}`}
+                                        >
+                                            {title}
+                                        </span>
+                                    );
+                                }) || 'Tân thủ'}
+                            </span>
+                        </p>
                         <button
                             className={styles.cancelButton}
                             onClick={() => {

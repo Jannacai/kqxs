@@ -214,83 +214,142 @@
 
 .submenu {
     position: absolute;
-    top: calc(100% + 8px);
+    top: calc(100% + 12px);
     right: 0;
-    background-color: #fff;
-    border: 1px solid #E5E7EB;
+    background-color: #ffffff;
+    border: 1px solid #d1d5db;
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    padding: 8px;
-    min-width: 140px;
-    max-width: 90vw;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+    padding: 12px;
+    min-width: 180px;
+    max-width: 95vw;
     z-index: 1000;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.submenu.active {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 .submenuItem {
-    padding: 5px 10px;
-    background-color: #f7fafc;
-    color: #111827;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background-color: #f9fafb;
+    color: #1f2937;
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     text-align: left;
     transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
-.submenuItem:hover {
-    background-color: #edf2f7;
-    transform: translateY(-1px);
+.submenuItem:hover,
+.submenuItem:focus {
+    background-color: #e5e7eb;
+    transform: translateX(2px);
+    outline: none;
+}
+
+.submenuItem::before {
+    content: '🔹';
+    font-size: 12px;
 }
 
 .uploadButton {
-    padding: 5px 10px;
-    background-color: #38a169;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background-color: #10b981;
     color: white;
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     text-align: left;
     transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
-.uploadButton:hover {
-    background-color: #2f855a;
-    transform: translateY(-1px);
+.uploadButton:hover,
+.uploadButton:focus {
+    background-color: #059669;
+    transform: translateX(2px);
+    outline: none;
+}
+
+.uploadButton::before {
+    content: '📤';
+    font-size: 12px;
 }
 
 .fullname {
-    font-size: 14px;
-    font-weight: 500;
+    font-size: 15px;
+    font-weight: 600;
     color: #111827;
-    padding: 3px 6px;
+    padding: 8px 12px;
+    border-bottom: 1px solid #e5e7eb;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 .logoutButton {
-    padding: 5px 10px;
-    background-color: #DC2626;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background-color: #dc2626;
     color: white;
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     text-align: left;
     transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
-.logoutButton:hover {
-    background-color: #B91C1C;
-    transform: translateY(-1px);
+.logoutButton:hover,
+.logoutButton:focus {
+    background-color: #b91c1c;
+    transform: translateX(2px);
+    outline: none;
+}
+
+.logoutButton::before {
+    content: '🚪';
+    font-size: 12px;
+}
+
+.adminMenuWrapper {
+    position: relative;
+}
+
+.adminSubmenu {
+    position: absolute;
+    top: 0;
+    right: calc(100% + 8px);
+    background-color: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+    padding: 8px;
+    min-width: 160px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
 
 .profileMenu {
@@ -377,8 +436,9 @@
 
     .submenu {
         right: 0;
-        min-width: 120px;
-        padding: 4px;
+        min-width: 160px;
+        padding: 8px;
+        max-width: 100%;
     }
 
     .profileMenu {
@@ -388,14 +448,20 @@
     }
 
     .fullname {
-        font-size: 13px;
-        padding: 2px 4px;
+        font-size: 14px;
+        padding: 6px 8px;
     }
 
     .submenuItem,
     .uploadButton,
     .logoutButton {
-        padding: 4px 8px;
-        font-size: 12px;
+        padding: 6px 10px;
+        font-size: 13px;
+    }
+
+    .adminSubmenu {
+        right: 0;
+        top: calc(100% + 8px);
+        min-width: 140px;
     }
 }

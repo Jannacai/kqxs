@@ -1,7 +1,7 @@
 .container {
     max-width: 700px;
     margin: 0 auto;
-    padding: 15px;
+    padding: 10px;
     background-image: url('../pages/asset/img/bangxephangto3.png');
     background-position-x: center;
     border-radius: 10px;
@@ -86,9 +86,9 @@
     background-image: url('../pages/asset/img/nenxephang1.png');
     border-radius: 8px;
     border: 1px solid #e2e8f0;
-    padding: 10px;
+    padding: 6px;
     max-height: 350px;
-    width: 330px;
+    width: 300px;
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-width: thin;
@@ -216,7 +216,7 @@
     display: flex;
     align-items: center;
     flex: 1;
-    gap: 10px;
+    gap: 4px;
     margin-left: 50px;
 }
 
@@ -373,8 +373,8 @@
 .titles {
     padding: 3px 6px;
     border-radius: 4px;
-    font-size: 0.75rem;
-    width: 80px;
+    font-size: 0.6rem;
+    width: 50px;
     font-weight: 500;
     line-height: 1.2;
     border: none;

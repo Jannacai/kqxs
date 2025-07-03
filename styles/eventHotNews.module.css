@@ -1,0 +1,158 @@
+.container {
+    max-width: 960px;
+    width: 600px;
+    margin: 0 auto;
+    padding: 24px;
+    background-color: #f9fafb;
+    border-radius: 8px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.title {
+    text-align: center;
+    font-size: 28px;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 24px;
+}
+
+.tabContainer {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 24px;
+}
+
+.tab {
+    padding: 12px 24px;
+    border: none;
+    background-color: #e5e7eb;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 6px;
+}
+
+.tab.active {
+    background-color: #3b82f6;
+    color: #ffffff;
+}
+
+.tab:hover {
+    background-color: #d1d5db;
+}
+
+.tab.active:hover {
+    background-color: #2563eb;
+}
+
+.listContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.item {
+    padding: 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background-color: #ffffff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+}
+
+.item:hover {
+    background-color: #f9fafb;
+}
+
+.item h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.itemLabel {
+    display: inline-block;
+    width: 60px;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #ffffff;
+    background-color: #3b82f6;
+    border-radius: 4px;
+}
+
+.itemLabel[data-type="hot_news"] {
+    background-color: #ef4444;
+}
+
+.itemLabel[data-type="event"] {
+    background-color: #10b981;
+}
+
+.itemTitle {
+    display: inline-block;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.itemMeta {
+    font-size: 13px;
+    color: #6b7280;
+    font-style: italic;
+}
+
+.error {
+    color: #dc2626;
+    font-size: 14px;
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.pagination button {
+    padding: 10px 20px;
+    border: 1px solid #d1d5db;
+    background-color: #ffffff;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 6px;
+}
+
+.pagination button:disabled {
+    background-color: #e5e7eb;
+    color: #9ca3af;
+    cursor: not-allowed;
+}
+
+.pagination button:hover:not(:disabled) {
+    background-color: #f3f4f6;
+}
+
+.pagination span {
+    font-size: 14px;
+    color: #374151;
+}
+
+.loading {
+    text-align: center;
+    font-size: 18px;
+    color: #374151;
+    padding: 32px;
+}

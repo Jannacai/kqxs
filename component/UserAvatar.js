@@ -18,11 +18,13 @@ const UserAvatar = () => {
     const [isSubmenuOpen, setIsSubmenuOpen] = useState(false);
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const [uploading, setUploading] = useState(false);
     const submenuRef = useRef(null);
     const notificationRef = useRef(null);
     const profileRef = useRef(null);
+    const adminMenuRef = useRef(null);
     const fileInputRef = useRef(null);
 
     useEffect(() => {
@@ -105,6 +107,9 @@ const UserAvatar = () => {
             }
             if (profileRef.current && !profileRef.current.contains(event.target)) {
                 setIsProfileOpen(false);
+            }
+            if (adminMenuRef.current && !adminMenuRef.current.contains(event.target)) {
+                setIsAdminMenuOpen(false);
             }
         };
 
@@ -202,7 +207,7 @@ const UserAvatar = () => {
             setFetchError(null);
             alert("Đăng xuất thành công!");
         } catch (error) {
-            console.error('Logout error:', error.message);
+            console.error('Logout(hr error:', error.message);
             await signOut({ redirect: false });
             router.push('/login');
             alert("Lỗi khi đăng xuất. Vui lòng thử lại.");
@@ -335,6 +340,7 @@ const UserAvatar = () => {
                         <div
                             className={styles.notificationIcon}
                             onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                            aria-label="Mở danh sách thông báo"
                         >
                             🔔
                             {unreadCount > 0 && (
@@ -345,10 +351,11 @@ const UserAvatar = () => {
                             <div className={styles.notificationMenu} ref={notificationRef}>
                                 <div className={styles.notificationHeader}>
                                     <span>Thông báo</span>
-                                    {unreadCount > 0 && (
+                                    {LandreadCount > 0 && (
                                         <button
                                             className={styles.markAllReadButton}
                                             onClick={handleMarkAllRead}
+                                            aria-label="Đánh dấu tất cả thông báo đã đọc"
                                         >
                                             Đánh dấu tất cả đã đọc
                                         </button>
@@ -383,6 +390,7 @@ const UserAvatar = () => {
                                                         e.stopPropagation();
                                                         handleNotificationClick(notification);
                                                     }}
+                                                    aria-label="Đánh dấu thông báo này đã đọc"
                                                 >
                                                     Đánh dấu đã đọc
                                                 </button>
@@ -393,6 +401,7 @@ const UserAvatar = () => {
                                                     e.stopPropagation();
                                                     handleDeleteNotification(notification._id);
                                                 }}
+                                                aria-label="Xóa thông báo này"
                                             >
                                                 Xóa
                                             </button>
@@ -405,9 +414,11 @@ const UserAvatar = () => {
                     <div
                         className={`${styles.avatar} ${getRoleColorClass(userInfo.role)}`}
                         onClick={() => setIsSubmenuOpen(!isSubmenuOpen)}
+                        aria-expanded={isSubmenuOpen}
+                        aria-label="Mở menu người dùng"
                     >
                         {userInfo.img ? (
-                            <img src={userInfo.img} alt="Avatar" className={styles.avatarImage} />
+                            <img src={userInfo.img} alt="Avatar người dùng" className={styles.avatarImage} />
                         ) : (
                             getInitials(userInfo.fullname)
                         )}
@@ -416,6 +427,8 @@ const UserAvatar = () => {
                         <span
                             className={styles.username}
                             onClick={() => setIsSubmenuOpen(!isSubmenuOpen)}
+                            aria-expanded={isSubmenuOpen}
+                            aria-label="Mở menu người dùng"
                         >
                             {getDisplayName(userInfo.fullname)}
                         </span>
@@ -424,7 +437,7 @@ const UserAvatar = () => {
                         </span>
                     </div>
                     {isSubmenuOpen && (
-                        <div className={styles.submenu}>
+                        <div className={`${styles.submenu} ${isSubmenuOpen ? styles.active : ''}`} ref={submenuRef}>
                             <span className={styles.fullname}>{userInfo.fullname}</span>
                             <button
                                 className={styles.submenuItem}
@@ -432,10 +445,11 @@ const UserAvatar = () => {
                                     setIsProfileOpen(true);
                                     setIsSubmenuOpen(false);
                                 }}
+                                aria-label="Xem thông tin cá nhân"
                             >
                                 Thông tin cá nhân
                             </button>
-                            <label className={styles.uploadButton}>
+                            <label className={styles.uploadButton} aria-label="Tải ảnh đại diện">
                                 {uploading ? 'Đang tải...' : 'Tải ảnh đại diện'}
                                 <input
                                     type="file"
@@ -447,16 +461,35 @@ const UserAvatar = () => {
                                 />
                             </label>
                             {userInfo.role === 'ADMIN' && (
-                                <>
-                                    <Link href="/admin/quanlyuser" className={styles.submenuItem}>
-                                        Quản lý người dùng
-                                    </Link>
-                                    <Link href="/admin/QLquayso" className={styles.submenuItem}>
-                                        Quản lý đăng ký xổ số
-                                    </Link>
-                                </>
+                                <div className={styles.adminMenuWrapper}>
+                                    <button
+                                        className={styles.submenuItem}
+                                        onClick={() => setIsAdminMenuOpen(!isAdminMenuOpen)}
+                                        aria-expanded={isAdminMenuOpen}
+                                        aria-label="Mở menu quản lý"
+                                    >
+                                        Quản lý chung
+                                    </button>
+                                    {isAdminMenuOpen && (
+                                        <div className={styles.adminSubmenu} ref={adminMenuRef}>
+                                            <Link href="/admin/quanlyuser" className={styles.submenuItem}>
+                                                Quản lý người dùng
+                                            </Link>
+                                            <Link href="/admin/QLquayso" className={styles.submenuItem}>
+                                                Quản lý đăng ký xổ số
+                                            </Link>
+                                            <Link href="/diendan/AdminPostEvent" className={styles.submenuItem}>
+                                                Đăng bài post
+                                            </Link>
+                                        </div>
+                                    )}
+                                </div>
                             )}
-                            <button onClick={handleLogout} className={styles.logoutButton}>
+                            <button
+                                onClick={handleLogout}
+                                className={styles.logoutButton}
+                                aria-label="Đăng xuất"
+                            >
                                 Đăng xuất
                             </button>
                         </div>
@@ -468,6 +501,7 @@ const UserAvatar = () => {
                                 <button
                                     className={styles.closeButton}
                                     onClick={() => setIsProfileOpen(false)}
+                                    aria-label="Đóng thông tin cá nhân"
                                 >
                                     ✕
                                 </button>

@@ -1,121 +1,217 @@
 .container {
-    max-width: 1200px;
+    max-width: 1280px;
     margin: 0 auto;
-    padding: 16px;
+    font-family: "Poppins", sans-serif;
+    padding: 24px;
 }
 
 .title {
-    font-size: 24px;
-    font-weight: bold;
-    margin-bottom: 16px;
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 24px;
+    color: #1f2937;
 }
 
 .error {
-    color: #e53e3e;
-    margin-bottom: 16px;
+    color: #dc2626;
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 24px;
+    padding: 8px 12px;
+    background-color: #fee2e2;
+    border-radius: 6px;
 }
 
 .searchForm {
-    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
 }
 
 .searchInput {
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    margin-right: 8px;
-    width: 200px;
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 16px;
+    width: 100%;
+    max-width: 300px;
+    background-color: #ffffff;
+}
+
+.searchInput:focus {
+    border-color: #2563eb;
+    outline: none;
 }
 
 .searchButton {
-    padding: 8px 16px;
-    background-color: #3182ce;
-    color: white;
+    padding: 12px 24px;
+    background-color: #2563eb;
+    color: #ffffff;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
 }
 
-.searchButton:hover {
-    background-color: #2b6cb0;
+.searchButton:hover,
+.searchButton:focus {
+    background-color: #1d4ed8;
+    outline: none;
+}
+
+.clearSearchButton {
+    padding: 12px 24px;
+    background-color: #6b7280;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.clearSearchButton:hover,
+.clearSearchButton:focus {
+    background-color: #4b5563;
+    outline: none;
 }
 
 .statsContainer {
-    margin-bottom: 16px;
+    margin-bottom: 32px;
+    padding: 16px;
+    background-color: #f9fafb;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
 }
 
 .statsTitle {
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 600;
-    margin-bottom: 8px;
+    margin-bottom: 16px;
+    color: #1f2937;
 }
 
 .statsGrid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 24px;
 }
 
 .statsSubtitle {
+    font-size: 18px;
     font-weight: 500;
-    margin-bottom: 4px;
+    margin-bottom: 8px;
+    color: #374151;
+}
+
+.clickableStat {
+    font-size: 16px;
+    color: #2563eb;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 6px;
+}
+
+.clickableStat:hover,
+.clickableStat:focus {
+    background-color: #e5e7eb;
+    outline: none;
 }
 
 .table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
 }
 
 .th,
 .td {
-    padding: 8px;
+    padding: 12px 16px;
     text-align: left;
-    border: 1px solid #ddd;
+    border-bottom: 1px solid #e5e7eb;
 }
 
 .th {
-    background-color: #f4f4f4;
+    background-color: #f3f4f6;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
 }
 
 .td {
-    background-color: #fff;
+    background-color: #ffffff;
+    font-size: 15px;
+    color: #374151;
 }
 
-.table tr:nth-child(even) {
-    background-color: #f9f9f9;
+.table tr:last-child .td {
+    border-bottom: none;
 }
 
 .avatar {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
+    object-fit: cover;
 }
 
 .editButton {
-    padding: 4px 8px;
-    background-color: #d69e2e;
-    color: white;
+    padding: 8px 16px;
+    background-color: #d97706;
+    color: #ffffff;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
     margin-right: 8px;
 }
 
-.editButton:hover {
-    background-color: #b7791f;
+.editButton:hover,
+.editButton:focus {
+    background-color: #b45309;
+    outline: none;
 }
 
 .deleteButton {
-    padding: 4px 8px;
-    background-color: #e53e3e;
-    color: white;
+    padding: 8px 16px;
+    background-color: #dc2626;
+    color: #ffffff;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    margin-right: 8px;
 }
 
-.deleteButton:hover {
-    background-color: #c53030;
+.deleteButton:hover,
+.deleteButton:focus {
+    background-color: #b91c1c;
+    outline: none;
+}
+
+.rewardButton {
+    padding: 8px 16px;
+    background-color: #16a34a;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.rewardButton:hover,
+.rewardButton:focus {
+    background-color: #15803d;
+    outline: none;
 }
 
 .modalOverlay {
@@ -124,7 +220,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.6);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -132,79 +228,162 @@
 }
 
 .modal {
-    background-color: white;
-    padding: 16px;
-    border-radius: 4px;
-    width: 400px;
+    background-color: #ffffff;
+    padding: 24px;
+    border-radius: 8px;
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .modalTitle {
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 600;
-    margin-bottom: 16px;
+    margin-bottom: 24px;
+    color: #1f2937;
 }
 
 .formGroup {
-    margin-bottom: 16px;
+    margin-bottom: 20px;
 }
 
 .formLabel {
     display: block;
+    font-size: 16px;
     font-weight: 500;
-    margin-bottom: 4px;
+    margin-bottom: 8px;
+    color: #374151;
 }
 
 .checkboxLabel {
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    margin-right: 8px;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 15px;
+    color: #374151;
 }
 
 .checkboxText {
-    margin-left: 4px;
+    font-weight: 400;
 }
 
 .input {
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 16px;
     width: 100%;
+    background-color: #ffffff;
+}
+
+.input:focus {
+    border-color: #2563eb;
+    outline: none;
 }
 
 .buttonGroup {
     display: flex;
     justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
 }
 
 .cancelButton {
-    padding: 8px 16px;
-    background-color: #718096;
-    color: white;
+    padding: 12px 24px;
+    background-color: #6b7280;
+    color: #ffffff;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
-    margin-right: 8px;
+    font-size: 16px;
+    font-weight: 500;
 }
 
-.cancelButton:hover {
-    background-color: #5a6470;
+.cancelButton:hover,
+.cancelButton:focus {
+    background-color: #4b5563;
+    outline: none;
 }
 
 .saveButton {
-    padding: 8px 16px;
-    background-color: #3182ce;
-    color: white;
+    padding: 12px 24px;
+    background-color: #2563eb;
+    color: #ffffff;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
 }
 
-.saveButton:hover {
-    background-color: #2b6cb0;
+.saveButton:hover,
+.saveButton:focus {
+    background-color: #1d4ed8;
+    outline: none;
 }
 
 .loading {
-    font-size: 16px;
+    font-size: 18px;
+    font-weight: 500;
     text-align: center;
-    padding: 16px;
+    padding: 24px;
+    color: #374151;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 16px;
+    }
+
+    .title {
+        font-size: 24px;
+    }
+
+    .searchForm {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .searchInput {
+        max-width: none;
+    }
+
+    .statsGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .modal {
+        max-width: 90%;
+        padding: 16px;
+    }
+
+    .modalTitle {
+        font-size: 20px;
+    }
+
+    .formLabel {
+        font-size: 15px;
+    }
+
+    .input {
+        font-size: 15px;
+    }
+
+    .checkboxLabel {
+        font-size: 14px;
+    }
+
+    .cancelButton,
+    .saveButton {
+        padding: 10px 20px;
+        font-size: 15px;
+    }
 }
