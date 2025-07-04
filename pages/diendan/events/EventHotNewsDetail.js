@@ -16,7 +16,7 @@ const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000
 export default function EventHotNewsDetail() {
     const { data: session, status } = useSession();
     const router = useRouter();
-    const { id } = router.query || {}; // Xử lý trường hợp router.query không tồn tại
+    const { id } = router.query || {};
     const [item, setItem] = useState(null);
     const [comment, setComment] = useState('');
     const [showLotteryModal, setShowLotteryModal] = useState(false);
@@ -35,17 +35,21 @@ export default function EventHotNewsDetail() {
     const [isLoading, setIsLoading] = useState(true);
     const modalRef = useRef(null);
 
+    // Debug router.query
     useEffect(() => {
-        if (!router.isReady || !id) {
-            setError('Không tìm thấy ID bài viết');
-            setIsLoading(false);
+        console.log('router.query:', router.query);
+    }, [router.query]);
+
+    useEffect(() => {
+        if (!router.isReady) {
+            console.log('Router is not ready yet');
+            setIsLoading(true);
             return;
         }
 
-        // Kiểm tra tính hợp lệ của id
-        if (typeof id !== 'string' || id === '[object Object]') {
+        if (!id || typeof id !== 'string' || id === '[object Object]') {
             console.error('Invalid event ID:', id);
-            setError('ID bài viết không hợp lệ');
+            setError('ID bài viết không hợp lệ. Vui lòng kiểm tra lại URL.');
             setIsLoading(false);
             return;
         }
@@ -54,7 +58,7 @@ export default function EventHotNewsDetail() {
             try {
                 console.log('Fetching event details for ID:', id);
                 const res = await axios.get(`${API_BASE_URL}/api/events/${id}`, {
-                    headers: { Authorization: `Bearer ${session?.accessToken}` } // Loại bỏ dấu cách
+                    headers: { Authorization: `Bearer ${session?.accessToken}` }
                 });
                 console.log('Event details response:', res.data);
                 setItem(res.data);
@@ -71,7 +75,7 @@ export default function EventHotNewsDetail() {
     }, [id, router.isReady, session]);
 
     useEffect(() => {
-        if (!router.isReady || !id || status !== 'authenticated' || !session?.user?.id) {
+        if (!router.isReady || !id || typeof id !== 'string' || id === '[object Object]' || status !== 'authenticated' || !session?.user?.id) {
             console.log('Skipping checkRegistrationStatus:', { status, id, userId: session?.user?.id });
             return;
         }
@@ -130,7 +134,6 @@ export default function EventHotNewsDetail() {
                 console.error('Error checking registration status:', err.message, err.response?.data);
                 const errorMessage = err.response?.data?.message || 'Đã có lỗi khi kiểm tra trạng thái đăng ký';
                 setError(errorMessage);
-                console.log('Set error:', errorMessage);
             }
         };
 
@@ -156,7 +159,8 @@ export default function EventHotNewsDetail() {
     }, []);
 
     useEffect(() => {
-        if (!router.isReady || !id || !showRegistrationsModal || !session) {
+        if (!router.isReady || !id || typeof id !== 'string' || id === '[object Object]' || !showRegistrationsModal || !session) {
+            console.log('Skipping fetchRegistrations:', { id, showRegistrationsModal, session });
             return;
         }
 
@@ -195,6 +199,10 @@ export default function EventHotNewsDetail() {
         }
         if (!comment.trim()) {
             setError('Nội dung bình luận không được để trống');
+            return;
+        }
+        if (!id || typeof id !== 'string' || id === '[object Object]') {
+            setError('ID bài viết không hợp lệ');
             return;
         }
         try {
@@ -264,6 +272,10 @@ export default function EventHotNewsDetail() {
         if (!session) {
             router.push('/login');
             alert('Vui lòng đăng nhập để chỉnh sửa.');
+            return;
+        }
+        if (!id || typeof id !== 'string' || id === '[object Object]') {
+            setError('ID bài viết không hợp lệ');
             return;
         }
 
@@ -359,7 +371,11 @@ export default function EventHotNewsDetail() {
                 <button className={styles.backButton} onClick={() => router.push('/diendan')}>
                     Quay lại
                 </button>
-                <p className={styles.error}>{error}</p>
+                <p className={styles.error}>
+                    {error.includes('ID bài viết không hợp lệ')
+                        ? 'Không tìm thấy bài viết do ID không hợp lệ. Vui lòng kiểm tra lại URL.'
+                        : error}
+                </p>
             </div>
         );
     }

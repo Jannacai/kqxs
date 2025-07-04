@@ -51,7 +51,9 @@ export default function UserLotteryManagement() {
             const params = {
                 eventId: eventId || undefined,
                 page: currentPage,
-                limit: itemsPerPage
+                limit: itemsPerPage,
+                isReward: false, // Chỉ lấy đăng ký xổ số
+                isEvent: false
             };
             if (region) params.region = region;
             const res = await axios.get(`${API_BASE_URL}/api/lottery/registrations`, {
@@ -61,8 +63,8 @@ export default function UserLotteryManagement() {
                 },
                 params
             });
-            setRegistrations(res.data.registrations);
-            setRegistrationCount(res.data.total);
+            setRegistrations(res.data.registrations || []);
+            setRegistrationCount(res.data.total || 0);
             setError('');
         } catch (err) {
             const errorMessage = err.response?.data?.message || err.message || 'Đã có lỗi khi lấy danh sách đăng ký';
@@ -83,7 +85,12 @@ export default function UserLotteryManagement() {
             return;
         }
         try {
-            const params = { userId, eventId: eventId || undefined };
+            const params = {
+                userId,
+                eventId: eventId || undefined,
+                isReward: false, // Chỉ lấy đăng ký xổ số
+                isEvent: false
+            };
             if (region) params.region = region;
             const [userRes, regRes] = await Promise.all([
                 axios.get(`${API_BASE_URL}/api/users/${userId}`, {
@@ -304,6 +311,10 @@ export default function UserLotteryManagement() {
     useEffect(() => {
         if (selectedUser) {
             fetchUserDetails(selectedUser);
+        } else {
+            setUserDetails(null);
+            setUserRegistrations([]);
+            setPointsInput('');
         }
     }, [selectedUser, fetchUserDetails]);
 
@@ -355,62 +366,66 @@ export default function UserLotteryManagement() {
             </div>
 
             <h2 className={styles.subtitle}>Danh sách đăng ký ({region || 'Tất cả'}) - Tổng: {registrationCount}</h2>
-            <table className={styles.table}>
-                <thead>
-                    <tr>
-                        <th>STT</th>
-                        <th>Username</th>
-                        <th>Họ tên</th>
-                        <th>Tên sự kiện</th>
-                        <th>Miền</th>
-                        <th>Bạch thủ lô</th>
-                        <th>Song thủ lô</th>
-                        <th>3CL</th>
-                        <th>Chạm</th>
-                        <th>Thời gian đăng ký</th>
-                        <th>Kết quả</th>
-                        <th>Trạng thái</th>
-                        <th>Hành động</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {registrations.map((reg, index) => {
-                        const { status, details } = checkLotteryResult(reg);
-                        return (
-                            <tr key={reg._id}>
-                                <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                                <td>{reg.userId?.username || 'N/A'}</td>
-                                <td>{reg.userId?.fullname || 'N/A'}</td>
-                                <td>{reg.eventId?.title || 'Không có sự kiện'}</td>
-                                <td>{reg.region}</td>
-                                <td>{reg.numbers.bachThuLo || '-'}</td>
-                                <td>{reg.numbers.songThuLo.join(', ') || '-'}</td>
-                                <td>{reg.numbers.threeCL || '-'}</td>
-                                <td>{reg.numbers.cham || '-'}</td>
-                                <td>{new Date(reg.createdAt).toLocaleString('vi-VN')}</td>
-                                <td>{details}</td>
-                                <td>{status}</td>
-                                <td>
-                                    <button
-                                        className={styles.actionButton}
-                                        onClick={() => handleViewDetails(reg.userId._id)}
-                                        aria-label={`Xem chi tiết người dùng ${reg.userId?.username || 'N/A'}`}
-                                    >
-                                        Xem chi tiết
-                                    </button>
-                                    <button
-                                        className={styles.actionButton}
-                                        onClick={() => handleReward(reg.userId)}
-                                        aria-label={`Phát thưởng cho người dùng ${reg.userId?.username || 'N/A'}`}
-                                    >
-                                        Phát thưởng
-                                    </button>
-                                </td>
-                            </tr>
-                        );
-                    })}
-                </tbody>
-            </table>
+            {registrations.length === 0 ? (
+                <p>Chưa có đăng ký nào cho miền {region || 'Tất cả'}</p>
+            ) : (
+                <table className={styles.table}>
+                    <thead>
+                        <tr>
+                            <th>STT</th>
+                            <th>Username</th>
+                            <th>Họ tên</th>
+                            <th>Tên sự kiện</th>
+                            <th>Miền</th>
+                            <th>Bạch thủ lô</th>
+                            <th>Song thủ lô</th>
+                            <th>3CL</th>
+                            <th>Chạm</th>
+                            <th>Thời gian đăng ký</th>
+                            <th>Kết quả</th>
+                            <th>Trạng thái</th>
+                            <th>Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {registrations.map((reg, index) => {
+                            const { status, details } = checkLotteryResult(reg);
+                            return (
+                                <tr key={reg._id}>
+                                    <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
+                                    <td>{reg.userId?.username || 'N/A'}</td>
+                                    <td>{reg.userId?.fullname || 'N/A'}</td>
+                                    <td>{reg.eventId?.title || 'Không có sự kiện'}</td>
+                                    <td>{reg.region}</td>
+                                    <td>{reg.numbers.bachThuLo || '-'}</td>
+                                    <td>{reg.numbers.songThuLo.join(', ') || '-'}</td>
+                                    <td>{reg.numbers.threeCL || '-'}</td>
+                                    <td>{reg.numbers.cham || '-'}</td>
+                                    <td>{new Date(reg.createdAt).toLocaleString('vi-VN')}</td>
+                                    <td>{details}</td>
+                                    <td>{status}</td>
+                                    <td>
+                                        <button
+                                            className={styles.actionButton}
+                                            onClick={() => handleViewDetails(reg.userId._id)}
+                                            aria-label={`Xem chi tiết người dùng ${reg.userId?.username || 'N/A'}`}
+                                        >
+                                            Xem chi tiết
+                                        </button>
+                                        <button
+                                            className={styles.actionButton}
+                                            onClick={() => handleReward(reg.userId)}
+                                            aria-label={`Phát thưởng cho người dùng ${reg.userId?.username || 'N/A'}`}
+                                        >
+                                            Phát thưởng
+                                        </button>
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            )}
 
             <div className={styles.pagination}>
                 <button
@@ -509,7 +524,7 @@ export default function UserLotteryManagement() {
                                 </tbody>
                             </table>
                         ) : (
-                            <p>Chưa có đăng ký cho miền {region || 'Tất cả'}</p>
+                            <p>Chưa có đăng ký nào cho miền {region || 'Tất cả'}</p>
                         )}
 
                         <h3 className={styles.subtitle}>Quản lý điểm</h3>

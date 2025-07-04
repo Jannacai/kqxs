@@ -49,7 +49,13 @@ export default function LotteryRegistrationFeed() {
                 params,
             });
             console.log('Registrations data:', res.data.registrations);
-            setRegistrations(res.data.registrations.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+            // Phân loại dữ liệu
+            const registrationsData = res.data.registrations.filter(r => !r.isReward && !r.isEvent);
+            const rewardData = res.data.registrations.filter(r => r.isReward);
+            const eventData = res.data.registrations.filter(r => r.isEvent);
+            setRegistrations(registrationsData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+            setRewardNotifications(rewardData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+            setEventNotifications(eventData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
             setError('');
         } catch (err) {
             console.error('Error fetching registrations:', err.response?.data || err.message);
@@ -161,12 +167,13 @@ export default function LotteryRegistrationFeed() {
                         points: data.points,
                         winCount: data.winCount || 0
                     },
-                    region: '',
+                    region: data.region,
                     numbers: {},
                     result: { isChecked: true, isWin: false },
-                    createdAt: data.awardedAt,
+                    createdAt: new Date(),
                     isReward: true,
-                    pointsAwarded: data.pointsAwarded
+                    pointsAwarded: data.pointsAwarded,
+                    eventTitle: data.eventTitle
                 };
                 const updatedNotifications = [rewardNotification, ...prevNotifications].sort(
                     (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
@@ -260,11 +267,17 @@ export default function LotteryRegistrationFeed() {
             router.push('/login?error=SessionRequired');
             return;
         }
+        if (!eventId || typeof eventId !== 'string' || eventId === '[object Object]') {
+            console.error('Invalid eventId for navigation:', eventId);
+            setError('ID sự kiện không hợp lệ. Vui lòng thử lại.');
+            return;
+        }
+        console.log('Navigating to event details with eventId:', eventId);
         router.push(`/diendan/events/${eventId}`);
     };
 
     const getAvatarClass = (fullname) => {
-        const firstChar = fullname[0]?.toLowerCase() || 'a';
+        const firstChar = fullname ? fullname[0]?.toLowerCase() : 'a';
         const avatarColors = {
             a: styles.avatarA, b: styles.avatarB, c: styles.avatarC, d: styles.avatarD,
             e: styles.avatarE, f: styles.avatarF, g: styles.avatarG, h: styles.avatarH,
@@ -281,20 +294,23 @@ export default function LotteryRegistrationFeed() {
         const fullname = item.userId?.fullname || 'Người dùng ẩn danh';
         const firstChar = fullname[0]?.toUpperCase() || '?';
         const titles = item.userId?.titles || [];
+        const eventId = item.isEvent && item.eventId?._id ? item.eventId._id.toString() : null;
 
         console.log('Rendering item for user:', {
             userId: item.userId?._id,
             fullname,
             img: item.userId?.img,
-            titles
+            titles,
+            isEvent: item.isEvent,
+            eventId
         });
 
         return (
             <div
                 key={item._id}
                 className={`${styles.commentItem} ${item.isReward ? styles.rewardNotification : item.isEvent ? styles.eventNotification : styles.registrationNotification}`}
-                onClick={item.isEvent ? () => handleEventClick(item.eventId) : undefined}
-                style={item.isEvent ? { cursor: 'pointer' } : {}}
+                onClick={item.isEvent && eventId ? () => handleEventClick(eventId) : undefined}
+                style={item.isEvent && eventId ? { cursor: 'pointer' } : {}}
             >
                 <div className={styles.commentHeader}>
                     {item.userId?.img ? (
@@ -305,7 +321,7 @@ export default function LotteryRegistrationFeed() {
                             width={40}
                             height={40}
                             onClick={(e) => {
-                                e.stopPropagation(); // Ngăn chặn sự kiện click của div cha
+                                e.stopPropagation();
                                 handleShowDetails(item.userId);
                             }}
                             style={{ cursor: 'pointer' }}
@@ -320,7 +336,7 @@ export default function LotteryRegistrationFeed() {
                         <div
                             className={`${styles.avatar} ${getAvatarClass(fullname)}`}
                             onClick={(e) => {
-                                e.stopPropagation(); // Ngăn chặn sự kiện click của div cha
+                                e.stopPropagation();
                                 handleShowDetails(item.userId);
                             }}
                             style={{ cursor: 'pointer', display: item.userId?.img ? 'none' : 'flex' }}
@@ -331,7 +347,7 @@ export default function LotteryRegistrationFeed() {
                             <span
                                 className={styles.commentUsername}
                                 onClick={(e) => {
-                                    e.stopPropagation(); // Ngăn chặn sự kiện click của div cha
+                                    e.stopPropagation();
                                     handleShowDetails(item.userId);
                                 }}
                                 style={{ cursor: 'pointer' }}
@@ -348,7 +364,7 @@ export default function LotteryRegistrationFeed() {
                     {item.isReward ? (
                         <span className={styles.rewardPoints}>
                             <FaGift className={styles.giftIcon} />
-                            Đã được phát thưởng <strong className={styles.poins}>{item.pointsAwarded} điểm</strong>!
+                            Đã được phát thưởng <strong className={styles.poins}>{item.pointsAwarded} điểm</strong> cho sự kiện <strong>{item.eventTitle}</strong>!
                         </span>
                     ) : item.isEvent ? (
                         <span>
@@ -367,6 +383,7 @@ export default function LotteryRegistrationFeed() {
                                 item.result.isWin ? (
                                     <span className={styles.winningResult}>
                                         <strong>Kết quả: Trúng</strong><br />
+                                        {item.result.winningNumbers.bachThuLo && `Bạch thủ lô: ${item.numbers.bachThuLo}`}<br />
                                         {item.result.winningNumbers.songThuLo.length > 0 && `Song thủ lô: ${item.result.winningNumbers.songThuLo.join(', ')}`}<br />
                                         {item.result.winningNumbers.threeCL && `3CL: ${item.numbers.threeCL}`}<br />
                                         {item.result.winningNumbers.cham && `Chạm: ${item.numbers.cham}`}<br />
