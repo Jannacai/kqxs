@@ -45,10 +45,10 @@ export default function Home({ drawDate }) {
                 <meta property="og:description" content={description} />
                 <meta property="og:type" content="website" />
                 <meta property="og:url" content={canonicalUrl} />
-                <meta property="og:image" content="https://xsmb.win/facebook.png" />
+                <meta property="og:image" content="https://xsmb.win/XSMB.png" />
                 <meta property="og:image:width" content="1200" />
                 <meta property="og:image:height" content="630" />
-                <meta property="og:image:secure_url" content="https://xsmb.win/facebook.png" />
+                <meta property="og:image:secure_url" content="https://xsmb.win/XSMB.png" />
                 <meta property="og:image:type" content="image/png" />
                 <meta property="og:image:alt" content="Kết quả xổ số miền Bắc 2025" />
                 <meta property="og:site_name" content="XSMB" />
@@ -73,7 +73,7 @@ export default function Home({ drawDate }) {
                 <meta name="twitter:card" content="summary_large_image" />
                 <meta name="twitter:title" content={title} />
                 <meta name="twitter:description" content={description} />
-                <meta name="twitter:image" content="https://xsmb.win/facebook.png" />
+                <meta name="twitter:image" content="https://xsmb.win/XSMB.png" />
                 <meta name="twitter:image:alt" content="Kết quả xổ số miền Bắc 2025" />
 
                 {/* Canonical */}

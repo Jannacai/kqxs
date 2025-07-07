@@ -11,7 +11,6 @@ import { apiMB } from './api/kqxs/kqxsMB';
 import styles from '../public/css/kqxsMB.module.css';
 import Chat from './chat/chat';
 
-
 // Lazy load components
 const PostList = dynamic(() => import('./tin-tuc/list.js'), { ssr: false });
 const ThongKe = dynamic(() => import('../component/thongKe.js'), { ssr: true });
@@ -20,12 +19,14 @@ export async function getStaticProps() {
     const now = new Date();
     const isUpdateWindow = now.getHours() === 18 && now.getMinutes() >= 10 && now.getMinutes() <= 35;
     const revalidateTime = isUpdateWindow ? 10 : 3600;
+    const drawDate = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()}`;
 
     try {
         const initialData = await apiMB.getLottery('xsmb', null, null);
         return {
             props: {
                 initialData,
+                drawDate,
             },
             revalidate: revalidateTime,
         };
@@ -34,29 +35,17 @@ export async function getStaticProps() {
         return {
             props: {
                 initialData: [],
+                drawDate,
             },
             revalidate: revalidateTime,
         };
     }
 }
 
-const XSMB = ({ initialData }) => {
-    const today = new Date().toLocaleDateString('vi-VN', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-    }).replace(/\//g, '/');
-    const drawDate = Array.isArray(initialData) && initialData[0]?.drawDate
-        ? new Date(initialData[0].drawDate).toLocaleDateString('vi-VN', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-        }).replace(/\//g, '/')
-        : today;
-
-    const title = `XSMB - Kết Quả Xổ Số Miền Bắc - SXMB Hôm Nay - KQXSMB`;
-    const description = `XSMB - Xem kết quả xổ số Miền Bắc hôm nay Nhanh và Chính xác tường thuật SXMB hàng ngày 18h15p trực tiếp từ trường quay với thông tin chi tiết về giải đặc biệt, lô tô, đầu đuôi. Cập nhật nhanh tại xsmb.win!`;
+const XSMB = ({ initialData, drawDate }) => {
     const canonicalUrl = 'https://www.xsmb.win/ket-qua-xo-so-mien-bac';
+    const title = `XSMB - Kết Quả Xổ Số Miền Bắc - KQXSMB Hôm Nay ${drawDate}`;
+    const description = `XSMB - Xem kết quả xổ số Miền Bắc ngày ${drawDate} nhanh và chính xác, tường thuật SXMB lúc 18h15 trực tiếp từ trường quay. Xem giải đặc biệt, lô tô, đầu đuôi tại xsmb.win!`;
 
     if (!Array.isArray(initialData) || initialData.length === 0) {
         return (
@@ -75,7 +64,10 @@ const XSMB = ({ initialData }) => {
                 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
                 <title>{title}</title>
                 <meta name="description" content={description} />
-                <meta name="keywords" content="xổ số miền bắc, kqxs, lô tô, đầu đuôi, xsmb" />
+                <meta
+                    name="keywords"
+                    content="xổ số miền bắc, xsmb, kqxs, kết quả xổ số miền bắc, xổ số hôm nay, kqxsmb, sxmb, lô tô, đầu đuôi, soi cầu xsmb"
+                />
                 <meta name="robots" content="index, follow" />
 
                 {/* Open Graph Tags */}
@@ -88,7 +80,7 @@ const XSMB = ({ initialData }) => {
                 <meta property="og:image:height" content="630" />
                 <meta property="og:image:secure_url" content="https://xsmb.win/XSMB.png" />
                 <meta property="og:image:type" content="image/png" />
-                <meta property="og:image:alt" content="Kết quả xổ số miền Bắc 2025" />
+                <meta property="og:image:alt" content={`Kết quả xổ số miền Bắc ${drawDate}`} />
                 <meta property="og:site_name" content="XSMB" />
                 <meta property="og:locale" content="vi_VN" />
                 <meta property="fb:app_id" content={process.env.FB_APP_ID || ''} />
@@ -104,7 +96,10 @@ const XSMB = ({ initialData }) => {
                 {/* Telegram */}
                 <meta name="telegram:channel" content={process.env.TELEGRAM_CHANNEL || '@YourChannel'} />
                 <meta name="telegram:share_url" content={canonicalUrl} />
-                <meta name="telegram:description" content={`Cập nhật XSMB nhanh nhất ngày ${drawDate} tại ${process.env.TELEGRAM_CHANNEL || '@YourChannel'}!`} />
+                <meta
+                    name="telegram:description"
+                    content={`Cập nhật XSMB nhanh nhất ngày ${drawDate} tại ${process.env.TELEGRAM_CHANNEL || '@YourChannel'}!`}
+                />
                 <meta name="telegram:og:image" content="https://xsmb.win/zalotelegram.png" />
 
                 {/* Twitter Cards */}
@@ -112,34 +107,75 @@ const XSMB = ({ initialData }) => {
                 <meta name="twitter:title" content={title} />
                 <meta name="twitter:description" content={description} />
                 <meta name="twitter:image" content="https://xsmb.win/XSMB.png" />
-                <meta name="twitter:image:alt" content="Kết quả xổ số miền Bắc 2025" />
+                <meta name="twitter:image:alt" content={`Kết quả xổ số miền Bắc ${drawDate}`} />
 
-                {/* Canonical và Alternate */}
                 <link rel="canonical" href={canonicalUrl} />
                 <link rel="alternate" hrefLang="vi" href={canonicalUrl} />
 
                 {/* JSON-LD Schema */}
                 <script type="application/ld+json">
-                    {JSON.stringify({
-                        "@context": "https://schema.org",
-                        "@type": ["Dataset", "WebPage"],
-                        "name": `Kết Quả Xổ Số Miền Bắc ${drawDate}`,
-                        "description": `Kết quả xổ số Miền Bắc ngày ${drawDate} với các giải thưởng và thống kê.`,
-                        "temporalCoverage": drawDate,
-                        "keywords": ["xổ số", "miền bắc", "kết quả", "xsmb"],
-                        "url": canonicalUrl,
-                        "publisher": {
+                    {JSON.stringify([
+                        {
+                            "@context": "https://schema.org",
+                            "@type": ["Dataset", "WebPage"],
+                            "name": `Kết Quả Xổ Số Miền Bắc ${drawDate}`,
+                            "description": `Kết quả xổ số Miền Bắc ngày ${drawDate} với các giải thưởng và thống kê.`,
+                            "temporalCoverage": drawDate,
+                            "keywords": ["xổ số", "miền bắc", "kết quả", "xsmb", "lô tô", "đầu đuôi", "soi cầu xsmb"],
+                            "url": canonicalUrl,
+                            "publisher": {
+                                "@type": "Organization",
+                                "name": "XSMB",
+                                "url": "https://www.xsmb.win"
+                            },
+                            "license": "https://creativecommons.org/licenses/by/4.0/",
+                            "creator": {
+                                "@type": "Organization",
+                                "name": "XSMB.WIN",
+                                "url": "https://www.xsmb.win"
+                            }
+                        },
+                        {
+                            "@context": "https://schema.org",
                             "@type": "Organization",
                             "name": "XSMB",
-                            "url": "https://www.xsmb.win"
+                            "url": "https://www.xsmb.win",
+                            "logo": "https://xsmb.win/logo.png",
+                            "sameAs": [
+                                "https://zalo.me/your-zalo-oa-link",
+                                "https://t.me/YourChannel"
+                            ]
                         },
-                        "license": "https://creativecommons.org/licenses/by/4.0/",
-                        "creator": {
-                            "@type": "Organization",
-                            "name": "XSMB.WIN",
-                            "url": "https://www.xsmb.win"
+                        {
+                            "@context": "https://schema.org",
+                            "@type": "WebSite",
+                            "name": "XSMB",
+                            "url": "https://www.xsmb.win",
+                            "potentialAction": {
+                                "@type": "SearchAction",
+                                "target": "https://www.xsmb.win/search?q={search_term_string}",
+                                "query-input": "required name=search_term_string"
+                            }
+                        },
+                        {
+                            "@context": "https://schema.org",
+                            "@type": "BreadcrumbList",
+                            "itemListElement": [
+                                {
+                                    "@type": "ListItem",
+                                    "position": 1,
+                                    "name": "Trang chủ",
+                                    "item": "https://www.xsmb.win"
+                                },
+                                {
+                                    "@type": "ListItem",
+                                    "position": 2,
+                                    "name": "Xổ Số Miền Bắc",
+                                    "item": "https://www.xsmb.win/ket-qua-xo-so-mien-bac"
+                                }
+                            ]
                         }
-                    })}
+                    ])}
                 </script>
             </Head>
             <div>
@@ -162,6 +198,7 @@ const XSMB = ({ initialData }) => {
                                     muted
                                     playsInline
                                     alt='xổ số bắc trung nam'
+                                    loading="lazy"
                                     suppressHydrationWarning
                                 />
                             </a>
@@ -172,12 +209,12 @@ const XSMB = ({ initialData }) => {
                             <span>Đang tải kết quả...</span>
                         )}
                         <div className="desc1">
-                            <h1 className='heading'>XSMB.WIN | Trang Kết Quả Xổ Số Miền Bắc Nhanh Nhất - Chính Xác Nhất - XSMB</h1>
+                            <h1 className='heading'>XSMB.WIN | Kết Quả Xổ Số Miền Bắc Nhanh Nhất - Chính Xác Nhất</h1>
                             <p>
-                                Kết quả xổ số Miền Bắc được cập nhật hàng ngày, bao gồm giải đặc biệt, lô tô và thống kê chi tiết. Xem thêm kết quả
-                                Xổ Số VN chuyên cập nhật kết quả XSMB tất cả các ngày trong tuần nhanh chóng, chính xác nhất. Lô thủ, người xem,… có thể truy cập vào web xsmb.win để theo dõi KQXSMB miễn phí.<a href="/ket-qua-xo-so-mien-trung">XSMT</a> và <a href="/ket-qua-xo-so-mien-nam">XSMN</a> để so sánh!
+                                Cập nhật kết quả xổ số Miền Bắc (XSMB) ngày {drawDate} lúc 18h15 trực tiếp từ trường quay. Xem chi tiết giải đặc biệt, lô tô, đầu đuôi và thống kê nhanh chóng tại xsmb.win. Khám phá thêm <a href="/ket-qua-xo-so-mien-trung">XSMT</a>, <a href="/ket-qua-xo-so-mien-nam">XSMN</a>, và <a href="/thong-ke-xsmb">thống kê XSMB</a> để phân tích chi tiết!
                             </p>
-                            <br></br> <p className='note'>Chú ý: Mọi hành vi liên quan đến vi phạm pháp luật chúng tôi KHÔNG khuyến khích và KHÔNG chịu trách nhiệm.</p>
+                            <br />
+                            <p className='note'>Chú ý: Mọi hành vi liên quan đến vi phạm pháp luật chúng tôi KHÔNG khuyến khích và KHÔNG chịu trách nhiệm.</p>
                         </div>
                     </div>
                     <div>
@@ -194,6 +231,7 @@ const XSMB = ({ initialData }) => {
                                     muted
                                     playsInline
                                     alt='xổ số bắc trung nam'
+                                    loading="lazy"
                                     suppressHydrationWarning
                                 />
                             </a>
