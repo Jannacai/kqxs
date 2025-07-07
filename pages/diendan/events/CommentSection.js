@@ -12,7 +12,6 @@ import userAvatarStyles from '../../../styles/comment.module.css';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
-// Hàm kiểm tra ObjectId hợp lệ (24 ký tự hex)
 const isValidObjectId = (id) => {
     return /^[0-9a-fA-F]{24}$/.test(id);
 };
@@ -33,8 +32,7 @@ const getRoleColorClass = (role) => {
     return role?.toLowerCase() === 'admin' ? userAvatarStyles.admin : userAvatarStyles.user;
 };
 
-// Bộ lọc từ tục tĩu sử dụng regex
-const profaneWords = ['kẹt', 'chửi', 'lồn', 'đụ', 'địt', 'cẹt', 'cược', 'má', 'lồnn', 'lonn', 'lồnnn',]; // Danh sách từ tục tĩu
+const profaneWords = ['kẹt', 'chửi', 'lồn', 'đụ', 'địt', 'cẹt', 'cược', 'má', 'lồnn', 'lonn', 'lồnnn'];
 const profaneRegex = new RegExp(profaneWords.join('|'), 'gi');
 const vowelRegex = /[ẹáàảãạíìỉĩịóòỏõọúùủũụéèẻẽẹ]/g;
 
@@ -48,7 +46,7 @@ const isProfane = (text) => {
     return profaneRegex.test(text);
 };
 
-export default function CommentSection({ comments, session, eventId, setItem, error, setError }) {
+export default function CommentSection({ comments = [], session, eventId, setItem, error, setError }) {
     const router = useRouter();
     const [comment, setComment] = useState('');
     const [userInfo, setUserInfo] = useState(null);
@@ -56,13 +54,11 @@ export default function CommentSection({ comments, session, eventId, setItem, er
     const [usersCache, setUsersCache] = useState({});
     const socketRef = useRef(null);
 
-    // Debug eventId
     console.log('CommentSection eventId:', eventId);
 
-    // Xử lý thay đổi nội dung bình luận
     const handleCommentChange = (e) => {
         const value = e.target.value;
-        const cleanValue = filterProfanity(value); // Lọc từ tục tĩu
+        const cleanValue = filterProfanity(value);
         setComment(cleanValue);
         if (isProfane(value)) {
             setError('Bình luận chứa từ ngữ không phù hợp');
@@ -73,7 +69,6 @@ export default function CommentSection({ comments, session, eventId, setItem, er
         }
     };
 
-    // Lấy thông tin người dùng hiện tại (nếu có session)
     useEffect(() => {
         const fetchUserInfo = async () => {
             if (!session?.accessToken) {
@@ -107,7 +102,6 @@ export default function CommentSection({ comments, session, eventId, setItem, er
         }
     }, [session]);
 
-    // Lấy thông tin người dùng khác qua /api/users/:id
     const fetchUserDetails = async (userId) => {
         if (!userId || usersCache[userId]) return usersCache[userId];
 
@@ -122,7 +116,6 @@ export default function CommentSection({ comments, session, eventId, setItem, er
         }
     };
 
-    // Tích hợp Socket.IO
     useEffect(() => {
         const socket = io(API_BASE_URL, {
             query: { token: session?.accessToken || '' },
@@ -185,11 +178,15 @@ export default function CommentSection({ comments, session, eventId, setItem, er
         };
     }, [eventId, setItem]);
 
-    // Lấy thông tin người dùng cho các bình luận ban đầu
     useEffect(() => {
         const fetchMissingUserDetails = async () => {
+            if (!Array.isArray(comments)) {
+                console.warn('Comments is not an array:', comments);
+                return;
+            }
+
             const missingUsers = comments
-                .filter((comment) => comment.userId?._id && !usersCache[comment.userId._id])
+                .filter((comment) => comment?.userId?._id && !usersCache[comment.userId._id])
                 .map((comment) => comment.userId._id);
             const uniqueMissingUsers = [...new Set(missingUsers)];
 
@@ -198,10 +195,10 @@ export default function CommentSection({ comments, session, eventId, setItem, er
             }
         };
 
-        if (comments.length > 0) {
+        if (comments?.length > 0) {
             fetchMissingUserDetails();
         }
-    }, [comments]);
+    }, [comments, usersCache]);
 
     const handleCommentSubmit = async (e) => {
         e.preventDefault();
@@ -242,10 +239,9 @@ export default function CommentSection({ comments, session, eventId, setItem, er
         router.push('/login');
     };
 
-    // Sắp xếp bình luận từ mới nhất đến cũ
-    const sortedComments = [...comments].sort((a, b) =>
-        new Date(b.createdAt) - new Date(a.createdAt)
-    );
+    const sortedComments = Array.isArray(comments)
+        ? [...comments].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        : [];
 
     return (
         <div className={styles.commentSection}>
@@ -281,7 +277,7 @@ export default function CommentSection({ comments, session, eventId, setItem, er
                 <p>Chưa có bình luận nào</p>
             ) : (
                 sortedComments.map((comment) => {
-                    const displayUser = usersCache[comment.userId?._id] || comment.userId;
+                    const displayUser = usersCache[comment.userId?._id] || comment.userId || {};
                     return (
                         <div key={comment._id} className={styles.commentWrapper}>
                             <div className={styles.commentHeader}>
@@ -330,7 +326,7 @@ export default function CommentSection({ comments, session, eventId, setItem, er
                             </div>
                             <div className={styles.comment}>
                                 <p className={styles.commentMeta}>
-                                    <i class="fa-solid fa-clock"></i> Gửi lúc: {moment.tz(comment.createdAt, 'Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm:ss')}
+                                    <i className="fa-solid fa-clock"></i> Gửi lúc: {moment.tz(comment.createdAt, 'Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm:ss')}
                                 </p>
                                 <p className={styles.commentContent}>{comment.content}</p>
                             </div>
