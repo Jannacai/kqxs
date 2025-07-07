@@ -1,6 +1,7 @@
 .leaderboard {
     max-width: 800px;
     margin: 20px auto;
+    width: 350px;
     padding: 20px;
     background-color: #f9f9f9;
     border-radius: 8px;
@@ -147,4 +148,5 @@
 }
 
 .modalContent p strong {
-    color: #007bff; }
+    color: #007bff;
+}

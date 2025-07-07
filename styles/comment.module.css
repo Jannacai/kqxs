@@ -1,0 +1,162 @@
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 600;
+    color: #ffffff;
+    background-color: #6b7280;
+    /* Gray-500 as default */
+    overflow: hidden;
+    flex-shrink: 0;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.avatar:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.avatarImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.admin {
+    background-color: #dc2626;
+    /* Red-600 for admin */
+}
+
+.user {
+    background-color: #3b82f6;
+    /* Blue-500 for user */
+}
+
+.username {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+    /* Gray-800 */
+    transition: color 0.2s ease;
+}
+
+.username:hover {
+    color: #2563eb;
+    /* Blue-600 */
+    text-decoration: underline;
+}
+
+.role {
+    font-size: 12px;
+    font-weight: 500;
+    padding: 3px 8px;
+    border-radius: 10px;
+    color: #ffffff;
+    background-color: #6b7280;
+    /* Gray-500 */
+    text-transform: capitalize;
+}
+
+.roless {
+    font-size: 13px;
+    font-weight: 500;
+    color: #7c2d12;
+    /* Amber-900 */
+    background: linear-gradient(135deg, #fef3c7, #fcd34d);
+    /* Amber gradient */
+    padding: 4px 12px;
+    border-radius: 12px;
+    border: 1px solid #d97706;
+    /* Amber-600 */
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    /* Allow titles to wrap if too long */
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.roless::before {
+    content: '🏆';
+    font-size: 14px;
+}
+
+.roless:hover {
+    transform: scale(1.02);
+    background: linear-gradient(135deg, #fef9c3, #fbbf24);
+    /* Lighter amber gradient */
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.level {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1f2937;
+    /* Gray-800 */
+    background-color: #f3f4f6;
+    /* Gray-100 */
+    padding: 3px 8px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.level::before {
+    content: '🌟';
+    font-size: 12px;
+}
+
+.points {
+    font-size: 13px;
+    font-weight: 600;
+    color: #15803d;
+    /* Green-700 */
+    background-color: #f0fdf4;
+    /* Green-50 */
+    padding: 3px 8px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.points::before {
+    content: '🎯';
+    font-size: 12px;
+}
+
+@media (max-width: 640px) {
+    .avatar {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+    }
+
+    .username {
+        font-size: 14px;
+    }
+
+    .role {
+        font-size: 11px;
+        padding: 2px 6px;
+    }
+
+    .roless {
+        font-size: 12px;
+        padding: 3px 10px;
+    }
+
+    .level {
+        font-size: 12px;
+        padding: 2px 6px;
+    }
+
+    .points {
+        font-size: 12px;
+        padding: 2px 6px;
+    }
+}

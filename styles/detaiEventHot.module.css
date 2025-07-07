@@ -1,31 +1,69 @@
 .container {
-    max-width: 960px;
+    /* max-width: 960px; */
     margin: 0 auto;
+    border: 1px solid var(--primary-color);
+    width: 100%;
     padding: 32px;
     background-color: #f9fafb;
     border-radius: 12px;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
 
+.binhluan {
+    margin: 0 auto;
+    width: 100%;
+    padding: 32px;
+    background-color: #f9fafb;
+    border-radius: 12px;
+    max-height: 800px;
+    overflow-y: auto;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.group {
+    width: 380px;
+}
+
 .itemTitle {
+    height: 80px;
+    width: 860px;
+    position: relative;
     font-size: 28px;
+    padding: 10px 30px;
+    background-image: linear-gradient(135deg, #FDD819 10%, #e8050569 100%);
+    text-align: center;
     font-weight: 600;
     color: #1f2937;
     margin-bottom: 16px;
 }
 
+.itemTitle::before {
+    content: "";
+    position: absolute;
+    left: -20px;
+    top: 0;
+    display: block;
+    background-color: var(--primary-color);
+    height: 80px;
+    width: 70px;
+    clip-path: polygon(75% 0%, 100% 50%, 75% 100%, 0% 100%, 25% 50%, 0% 0%);
+}
+
 .itemContent {
-    font-size: 16px;
+    font-size: 18px;
     color: #4b5563;
-    line-height: 1.6;
-    margin-bottom: 20px;
+    line-height: 1.5;
+    font-weight: 600;
+    margin-bottom: 5px;
 }
 
 .itemMeta {
-    font-size: 14px;
+    font-size: 18px;
+    font-weight: 800;
     color: #6b7280;
     font-style: italic;
-    margin-bottom: 24px;
+    margin-top: 24px;
+    margin-bottom: 10px;
 }
 
 .backButton {
@@ -38,6 +76,7 @@
     font-size: 14px;
     font-weight: 500;
     margin-bottom: 24px;
+    transition: background-color 0.2s ease;
 }
 
 .backButton:hover {
@@ -46,24 +85,46 @@
 
 .lotterySection {
     display: flex;
+    justify-content: center;
+    margin-top: 20px;
+    padding: 0 10px;
     flex-wrap: wrap;
     gap: 12px;
-    margin: 24px 0;
 }
 
-.registerButton,
+.registerButton {
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #3b82f6, #60a5fa);
+    /* Blue gradient */
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    animation: pulse 2s infinite ease-in-out;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.registerButton:hover {
+    background: linear-gradient(135deg, #F55555, #F55555);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
 .viewRegistrationsButton {
     padding: 12px 24px;
     background-color: #3b82f6;
     color: #ffffff;
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
+    font-size: 15px;
+    font-weight: 600;
+    transition: background-color 0.2s ease;
 }
 
-.registerButton:hover,
 .viewRegistrationsButton:hover:not(:disabled) {
     background-color: #2563eb;
 }
@@ -87,29 +148,72 @@
     margin-bottom: 20px;
 }
 
+.commentWrapper {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    align-items: flex-start;
+}
+
+.commentHeader {
+    flex: 0 0 200px;
+    position: relative;
+    height: 200px;
+    background-image: linear-gradient(135deg, #FAD7A1, #e96d7138);
+    padding: 0 10px;
+    border-radius: 8px;
+    border: 1px solid #3b82f6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.commentHeader::after {
+    content: "";
+    position: absolute;
+    right: -15px;
+    top: -1px;
+    display: block;
+    background-color: #059669;
+    height: 20px;
+    width: 20px;
+    clip-path: polygon(75% 0%, 100% 50%, 75% 100%, 0% 100%, 25% 50%, 0% 0%);
+}
+
+.commentInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 8px;
+}
+
 .comment {
-    padding: 16px;
+    flex: 1;
+    padding: 5px;
     border: 1px solid #e5e7eb;
     border-radius: 8px;
-    background-color: #ffffff;
+    background-color: #cccccc45;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    margin-bottom: 16px;
 }
 
-.comment p {
+.commentContent {
+    margin-top: 10px;
+    border: 1px solid #ccc;
+    min-height: 100px;
     font-size: 15px;
-    color: #4b5563;
+    background-color: #ffff;
+    padding: 10px;
+    color: #000;
+    font-weight: 700;
     margin-bottom: 8px;
-}
-
-.comment p strong {
-    color: #1f2937;
-    font-weight: 500;
+    line-height: 1.5;
 }
 
 .commentMeta {
     font-size: 13px;
     color: #6b7280;
+    font-weight: 700;
     font-style: italic;
 }
 
@@ -118,6 +222,7 @@
     flex-direction: column;
     gap: 16px;
     margin-top: 24px;
+    margin-bottom: 20px;
 }
 
 .commentInput {
@@ -126,7 +231,8 @@
     border-radius: 6px;
     font-size: 15px;
     background-color: #ffffff;
-    resize: vertical;
+    resize: none;
+    width: 100%;
     min-height: 100px;
 }
 
@@ -195,7 +301,7 @@
     border-radius: 12px;
     max-width: 720px;
     width: 90%;
-    max-height: 80vh;
+    max-height: 90vh;
     overflow-y: auto;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
     cursor: default;
@@ -210,7 +316,10 @@
 
 .cancelButton {
     padding: 12px 24px;
-    background-color: #6b7280;
+    width: 100px;
+    display: block;
+    margin: 0 auto;
+    background-color: #f87171;
     color: #ffffff;
     border: none;
     border-radius: 6px;
@@ -222,7 +331,7 @@
 }
 
 .cancelButton:hover {
-    background-color: #4b5563;
+    background: linear-gradient(135deg, #10b981, #10b981);
 }
 
 .registrationsList {
@@ -342,4 +451,207 @@
     font-size: 18px;
     color: #374151;
     padding: 32px;
+}
+
+/* Animations */
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+    }
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+    .container {
+        background-color: #1f2937;
+        color: #e5e7eb;
+    }
+
+    .itemTitle {
+        color: #e5e7eb;
+    }
+
+    .itemContent {
+        color: #d1d5db;
+    }
+
+    .itemMeta {
+        color: #9ca3af;
+    }
+
+    .backButton {
+        background-color: #4b5563;
+    }
+
+    .backButton:hover {
+        background-color: #374151;
+    }
+
+    .registerButton {
+        background: linear-gradient(135deg, #3b82f6, #60a5fa);
+    }
+
+    .registerButton:hover {
+        background: linear-gradient(135deg, #2563eb, #3b82f6);
+    }
+
+    .viewRegistrationsButton {
+        background-color: #3b82f6;
+    }
+
+    .viewRegistrationsButton:hover:not(:disabled) {
+        background-color: #2563eb;
+    }
+
+    .viewRegistrationsButton:disabled {
+        background-color: #4b5563;
+        color: #6b7280;
+    }
+
+    .commentSection {
+        border-top-color: #4b5563;
+    }
+
+    .commentSection h3 {
+        color: #e5e7eb;
+    }
+
+    .commentHeader {
+        background-image: linear-gradient(135deg, #FAD7A1, #e96d7138);
+        border-color: #3b82f6;
+    }
+
+    .comment {
+        background-color: #374151;
+        border-color: #4b5563;
+    }
+
+    .commentContent {
+        color: #d1d5db;
+    }
+
+    .commentMeta {
+        color: #9ca3af;
+    }
+
+    .commentInput {
+        background-color: #374151;
+        color: #e5e7eb;
+        border-color: #4b5563;
+    }
+
+    .commentInput:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+
+    .submitButton {
+        background-color: #10b981;
+    }
+
+    .submitButton:hover {
+        background-color: #059669;
+    }
+
+    .loginPrompt {
+        color: #d1d5db;
+    }
+
+    .loginButton {
+        background-color: #3b82f6;
+    }
+
+    .loginButton:hover {
+        background-color: #2563eb;
+    }
+
+    .modal {
+        background-color: #374151;
+        color: #e5e7eb;
+    }
+
+    .modalTitle {
+        color: #e5e7eb;
+    }
+
+    .cancelButton {
+        background-color: #4b5563;
+    }
+
+    .cancelButton:hover {
+        background-color: #374151;
+    }
+
+    .registrationsList {
+        background-color: #374151;
+    }
+
+    .registrationItem {
+        background-color: #4b5563;
+        border-color: #6b7280;
+    }
+
+    .registrationItem p {
+        color: #d1d5db;
+    }
+
+    .registrationItem p strong {
+        color: #e5e7eb;
+    }
+
+    .editButton {
+        background-color: #3b82f6;
+    }
+
+    .editButton:hover {
+        background-color: #2563eb;
+    }
+
+    .warning {
+        color: #f87171;
+    }
+
+    .noRegistrations {
+        color: #d1d5db;
+    }
+
+    .editForm {
+        background-color: #374151;
+        border-color: #4b5563;
+    }
+
+    .formTitle {
+        color: #e5e7eb;
+    }
+
+    .formLabel {
+        color: #e5e7eb;
+    }
+
+    .input {
+        background-color: #4b5563;
+        color: #e5e7eb;
+        border-color: #6b7280;
+    }
+
+    .input:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+
+    .error {
+        color: #f87171;
+    }
+
+    .loading {
+        color: #d1d5db;
+    }
 }

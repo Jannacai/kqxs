@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
+import moment from 'moment';
+import 'moment-timezone';
 import styles from '../../styles/adminPostEvent.module.css';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
@@ -14,7 +16,13 @@ export default function AdminPostEvent() {
     const [type, setType] = useState('event');
     const [formData, setFormData] = useState({
         title: '',
-        content: ''
+        content: '',
+        startTime: '',
+        endTime: '',
+        rules: '',
+        rewards: '',
+        scoringMethod: '',
+        notes: ''
     });
     const [lotteryFields, setLotteryFields] = useState({
         bachThuLo: false,
@@ -50,19 +58,45 @@ export default function AdminPostEvent() {
             setError('Tiêu đề và nội dung là bắt buộc');
             return;
         }
+        if (formData.startTime && formData.endTime && moment(formData.endTime).isBefore(formData.startTime)) {
+            setError('Thời gian kết thúc phải sau thời gian bắt đầu');
+            return;
+        }
         try {
+            const payload = {
+                ...formData,
+                type,
+                lotteryFields,
+                startTime: formData.startTime ? moment(formData.startTime).tz('Asia/Ho_Chi_Minh').toISOString() : undefined,
+                endTime: formData.endTime ? moment(formData.endTime).tz('Asia/Ho_Chi_Minh').toISOString() : undefined,
+                rules: formData.rules.trim() || undefined,
+                rewards: formData.rewards.trim() || undefined,
+                scoringMethod: formData.scoringMethod.trim() || undefined,
+                notes: formData.notes.trim() || undefined
+            };
             const res = await axios.post(
                 `${API_BASE_URL}/api/events`,
-                { ...formData, type, lotteryFields },
+                payload,
                 { headers: { Authorization: `Bearer ${session?.accessToken}` } }
             );
-            setSuccess('Đăng thành công!');
-            setFormData({ title: '', content: '' });
+            setSuccess(`Đăng thành công lúc ${moment().tz('Asia/Ho_Chi_Minh').format('HH:mm:ss DD/MM/YYYY')} !`);
+            alert(`Đăng thành công lúc ${moment().tz('Asia/Ho_Chi_Minh').format('HH:mm:ss DD/MM/YYYY')} !`); // Thêm alert
+            setFormData({
+                title: '',
+                content: '',
+                startTime: '',
+                endTime: '',
+                rules: '',
+                rewards: '',
+                scoringMethod: '',
+                notes: ''
+            });
             setLotteryFields({ bachThuLo: false, songThuLo: false, threeCL: false, cham: false });
             setError('');
             setTimeout(() => setSuccess(''), 3000);
         } catch (err) {
             setError(err.response?.data?.message || 'Đã có lỗi khi đăng');
+            alert(err.response?.data?.message || 'Đã có lỗi khi đăng'); // Thêm alert cho lỗi
         }
     };
 
@@ -88,7 +122,7 @@ export default function AdminPostEvent() {
                     <select
                         value={type}
                         onChange={(e) => setType(e.target.value)}
-                        className={styles.input}
+                        className={styles.select}
                     >
                         <option value="event">Sự kiện</option>
                         <option value="hot_news">Tin hot</option>
@@ -113,6 +147,66 @@ export default function AdminPostEvent() {
                         value={formData.content}
                         onChange={handleInputChange}
                         placeholder="Nhập nội dung"
+                        className={styles.textarea}
+                    />
+                </div>
+                <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Thời gian bắt đầu</label>
+                    <input
+                        type="datetime-local"
+                        name="startTime"
+                        value={formData.startTime}
+                        onChange={handleInputChange}
+                        className={styles.input}
+                    />
+                </div>
+                <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Thời gian kết thúc</label>
+                    <input
+                        type="datetime-local"
+                        name="endTime"
+                        value={formData.endTime}
+                        onChange={handleInputChange}
+                        className={styles.input}
+                    />
+                </div>
+                <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Quy định</label>
+                    <textarea
+                        name="rules"
+                        value={formData.rules}
+                        onChange={handleInputChange}
+                        placeholder="Nhập quy định của sự kiện"
+                        className={styles.textarea}
+                    />
+                </div>
+                <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Phần thưởng</label>
+                    <textarea
+                        name="rewards"
+                        value={formData.rewards}
+                        onChange={handleInputChange}
+                        placeholder="Nhập thông tin phần thưởng"
+                        className={styles.textarea}
+                    />
+                </div>
+                <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Cách tính điểm</label>
+                    <textarea
+                        name="scoringMethod"
+                        value={formData.scoringMethod}
+                        onChange={handleInputChange}
+                        placeholder="Nhập cách tính điểm"
+                        className={styles.textarea}
+                    />
+                </div>
+                <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Lưu ý</label>
+                    <textarea
+                        name="notes"
+                        value={formData.notes}
+                        onChange={handleInputChange}
+                        placeholder="Nhập các lưu ý"
                         className={styles.textarea}
                     />
                 </div>
@@ -158,7 +252,7 @@ export default function AdminPostEvent() {
                     </div>
                 </div>
                 <button type="submit" className={styles.submitButton}>
-                    Đăng
+                    <i className="fa-solid fa-paper-plane"></i> Đăng
                 </button>
             </form>
         </div>

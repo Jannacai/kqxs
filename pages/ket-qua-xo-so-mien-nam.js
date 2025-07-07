@@ -12,7 +12,6 @@ import styles from '../public/css/kqxsMB.module.css';
 import Skeleton from 'react-loading-skeleton';
 import Chat from './chat/chat';
 
-// Lazy load components
 const PostList = dynamic(() => import('./tin-tuc/list.js'), { ssr: false });
 const ThongKe = dynamic(() => import('../component/thongKe.js'), { ssr: true });
 const DynamicCalendar = dynamic(() => import('../component/caledar'), { ssr: false });
@@ -21,16 +20,13 @@ const DynamicListXSMT = dynamic(() => import('../component/listXSMT'), { ssr: fa
 const DynamicListXSMN = dynamic(() => import('../component/listXSMN'), { ssr: false });
 const DynamicCongCuHot = dynamic(() => import('../component/CongCuHot'), { ssr: false });
 
-export async function getStaticProps() {
-    const now = new Date();
-    const isUpdateWindow = now.getHours() === 12 && now.getMinutes() >= 15 && now.getMinutes() <= 38;
-    const revalidateTime = isUpdateWindow ? 10 : 21600; // 10 giây trong khung giờ cập nhật, 6 giờ ngoài khung giờ
-
+export async function getServerSideProps() {
+    const today = new Date();
+    const drawDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
     try {
         const initialData = await apiMN.getLottery('xsmn', null, null, null, { limit: 3 });
         return {
-            props: { initialData },
-            revalidate: revalidateTime,
+            props: { initialData, drawDate },
         };
     } catch (error) {
         console.error('Lỗi khi lấy dữ liệu ban đầu:', {
@@ -38,29 +34,15 @@ export async function getStaticProps() {
             stack: error.stack,
         });
         return {
-            props: { initialData: [] },
-            revalidate: revalidateTime,
+            props: { initialData: [], drawDate },
         };
     }
 }
 
-const XSMN = ({ initialData }) => {
-    const today = new Date().toLocaleDateString('vi-VN', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-    }).replace(/\//g, '/');
-    const drawDate = Array.isArray(initialData) && initialData[0]?.drawDate
-        ? new Date(initialData[0].drawDate).toLocaleDateString('vi-VN', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-        }).replace(/\//g, '/')
-        : today;
-
-    const title = `XSMN - Kết Quả Xổ Số Miền Nam - SXMN Hôm Nay - KQXSMN`;
-    const description = `XSMN - Xem kết quả xổ số Miền Nam hôm nay Nhanh và Chính xác tường thuật SXMN hàng ngày 16h10p trực tiếp từ trường quay với thông tin chi tiết về giải đặc biệt, lô tô, đầu đuôi. Cập nhật nhanh tại xsmb.win!`;
+const XSMN = ({ initialData, drawDate }) => {
     const canonicalUrl = 'https://www.xsmb.win/ket-qua-xo-so-mien-nam';
+    const title = `XSMN - Kết Quả Xổ Số Miền Nam - KQXSMN Hôm Nay ${drawDate}`;
+    const description = `XSMN - Xem kết quả xổ số Miền Nam ngày ${drawDate} nhanh và chính xác, tường thuật SXMN lúc 16h10 trực tiếp từ trường quay. Xem giải đặc biệt, lô tô, đầu đuôi tại xsmb.win!`;
 
     if (!Array.isArray(initialData) || initialData.length === 0) {
         return (
@@ -77,23 +59,28 @@ const XSMN = ({ initialData }) => {
                 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
                 <title>{title}</title>
                 <meta name="description" content={description} />
-                <meta name="keywords" content="xổ số miền nam, kqxs, lô tô, đầu đuôi, xsmn, xosomn, kqxsmn" />
+                <meta
+                    name="keywords"
+                    content="xổ số miền nam, xsmn, kqxs, kết quả xổ số miền nam, xổ số hôm nay, kqxsmn, sxmn, lô tô, đầu đuôi, soi cầu xsmn"
+                />
                 <meta name="robots" content="index, follow" />
 
+                {/* Open Graph Tags */}
                 <meta property="og:title" content={title} />
                 <meta property="og:description" content={description} />
                 <meta property="og:type" content="website" />
                 <meta property="og:url" content={canonicalUrl} />
-                <meta property="og:image" content="https://xsmb.win/facebook.png" />
+                <meta property="og:image" content="https://xsmb.win/xsmn.png" />
                 <meta property="og:image:width" content="1200" />
                 <meta property="og:image:height" content="630" />
-                <meta property="og:image:secure_url" content="https://xsmb.win/facebook.png" />
+                <meta property="og:image:secure_url" content="https://xsmb.win/xsmn.png" />
                 <meta property="og:image:type" content="image/png" />
-                <meta property="og:image:alt" content="Kết quả xổ số miền Nam 2025" />
+                <meta property="og:image:alt" content={`Kết quả xổ số miền Nam ${drawDate}`} />
                 <meta property="og:site_name" content="XSMN" />
                 <meta property="og:locale" content="vi_VN" />
                 <meta property="fb:app_id" content={process.env.FB_APP_ID || ''} />
 
+                {/* Zalo */}
                 <meta property="og:app_id" content={process.env.ZALO_APP_ID || ''} />
                 <meta property="zalo:official_account_id" content={process.env.ZALO_OA_ID || ''} />
                 <meta property="zalo:share_url" content={canonicalUrl} />
@@ -101,41 +88,89 @@ const XSMN = ({ initialData }) => {
                 <meta property="zalo:og:image:width" content="600" />
                 <meta property="zalo:og:image:height" content="600" />
 
+                {/* Telegram */}
                 <meta name="telegram:channel" content={process.env.TELEGRAM_CHANNEL || '@YourChannel'} />
                 <meta name="telegram:share_url" content={canonicalUrl} />
-                <meta name="telegram:description" content={`Cập nhật XSMN nhanh nhất ngày ${drawDate} tại ${process.env.TELEGRAM_CHANNEL || '@YourChannel'}!`} />
+                <meta
+                    name="telegram:description"
+                    content={`Cập nhật XSMN nhanh nhất ngày ${drawDate} tại ${process.env.TELEGRAM_CHANNEL || '@YourChannel'}!`}
+                />
                 <meta name="telegram:og:image" content="https://xsmb.win/zalotelegram.png" />
 
+                {/* Twitter Cards */}
                 <meta name="twitter:card" content="summary_large_image" />
                 <meta name="twitter:title" content={title} />
                 <meta name="twitter:description" content={description} />
-                <meta name="twitter:image" content="https://xsmb.win/facebook.png" />
-                <meta name="twitter:image:alt" content="Kết quả xổ số miền Nam 2025" />
+                <meta name="twitter:image" content="https://xsmb.win/xsmn.png" />
+                <meta name="twitter:image:alt" content={`Kết quả xổ số miền Nam ${drawDate}`} />
 
                 <link rel="canonical" href={canonicalUrl} />
                 <link rel="alternate" hrefLang="vi" href={canonicalUrl} />
 
+                {/* JSON-LD Schema */}
                 <script type="application/ld+json">
-                    {JSON.stringify({
-                        "@context": "https://schema.org",
-                        "@type": "Dataset",
-                        "name": `Kết Quả Xổ Số Miền Nam ${drawDate}`,
-                        "description": `Kết quả xổ số Miền Nam ngày ${drawDate} với các giải thưởng và thống kê.`,
-                        "temporalCoverage": drawDate,
-                        "keywords": ["xổ số", "miền nam", "kết quả", "xsmn"],
-                        "url": canonicalUrl,
-                        "publisher": {
+                    {JSON.stringify([
+                        {
+                            "@context": "https://schema.org",
+                            "@type": "Dataset",
+                            "name": `Kết Quả Xổ Số Miền Nam ${drawDate}`,
+                            "description": `Kết quả xổ số Miền Nam ngày ${drawDate} với các giải thưởng và thống kê.`,
+                            "temporalCoverage": drawDate,
+                            "keywords": ["xổ số", "miền nam", "kết quả", "xsmn", "lô tô", "đầu đuôi", "soi cầu xsmn"],
+                            "url": canonicalUrl,
+                            "publisher": {
+                                "@type": "Organization",
+                                "name": "XSMN",
+                                "url": "https://www.xsmb.win",
+                            },
+                            "license": "https://creativecommons.org/licenses/by/4.0/",
+                            "creator": {
+                                "@type": "Organization",
+                                "name": "XSMB.WIN",
+                                "url": "https://www.xsmb.win"
+                            }
+                        },
+                        {
+                            "@context": "https://schema.org",
                             "@type": "Organization",
                             "name": "XSMN",
                             "url": "https://www.xsmb.win",
+                            "logo": "https://xsmb.win/logo.png",
+                            "sameAs": [
+                                "https://zalo.me/your-zalo-oa-link",
+                                "https://t.me/YourChannel"
+                            ]
                         },
-                        "license": "https://creativecommons.org/licenses/by/4.0/",
-                        "creator": {
-                            "@type": "Organization",
-                            "name": "XSMB.WIN",
-                            "url": "https://www.xsmb.win"
+                        {
+                            "@context": "https://schema.org",
+                            "@type": "WebSite",
+                            "name": "XSMN",
+                            "url": "https://www.xsmb.win",
+                            "potentialAction": {
+                                "@type": "SearchAction",
+                                "target": "https://www.xsmb.win/search?q={search_term_string}",
+                                "query-input": "required name=search_term_string"
+                            }
+                        },
+                        {
+                            "@context": "https://schema.org",
+                            "@type": "BreadcrumbList",
+                            "itemListElement": [
+                                {
+                                    "@type": "ListItem",
+                                    "position": 1,
+                                    "name": "Trang chủ",
+                                    "item": "https://www.xsmb.win"
+                                },
+                                {
+                                    "@type": "ListItem",
+                                    "position": 2,
+                                    "name": "Xổ Số Miền Nam",
+                                    "item": "https://www.xsmb.win/ket-qua-xo-so-mien-nam"
+                                }
+                            ]
                         }
-                    })}
+                    ])}
                 </script>
             </Head>
             <div>
@@ -158,6 +193,7 @@ const XSMN = ({ initialData }) => {
                                     muted
                                     playsInline
                                     alt='xổ số bắc trung nam'
+                                    loading="lazy"
                                     suppressHydrationWarning
                                 />
                             </a>
@@ -168,12 +204,12 @@ const XSMN = ({ initialData }) => {
                             <span>Đang tải kết quả...</span>
                         )}
                         <div className="desc1">
-                            <h1 className='heading'>XSMB.WIN | Trang Kết Quả Xổ Số Miền Bắc Nhanh Nhất - Chính Xác Nhất - XSMB</h1>
+                            <h1 className='heading'>XSMN.WIN | Kết Quả Xổ Số Miền Nam Nhanh Nhất - Chính Xác Nhất</h1>
                             <p>
-                                Kết quả xổ số Miền Bắc được cập nhật hàng ngày, bao gồm giải đặc biệt, lô tô và thống kê chi tiết. Xem thêm kết quả
-                                Xổ Số VN chuyên cập nhật kết quả XSMB tất cả các ngày trong tuần nhanh chóng, chính xác nhất. Lô thủ, người xem,… có thể truy cập vào web xsmb.win để theo dõi KQXSMB miễn phí.<a href="/ket-qua-xo-so-mien-trung">XSMT</a> và <a href="/ket-qua-xo-so-mien-nam">XSMN</a> để so sánh!
+                                Cập nhật kết quả xổ số Miền Nam (XSMN) ngày {drawDate} lúc 16h10 trực tiếp từ trường quay các tỉnh. Xem chi tiết giải đặc biệt, lô tô, đầu đuôi và thống kê nhanh chóng tại xsmb.win. Khám phá thêm <a href="/ket-qua-xo-so-mien-bac">XSMB</a>, <a href="/ket-qua-xo-so-mien-trung">XSMT</a>, và <a href="/thong-ke-xsmn">thống kê XSMN</a> để phân tích chi tiết!
                             </p>
-                            <br></br> <p className='note'>Chú ý: Mọi hành vi liên quan đến vi phạm pháp luật chúng tôi KHÔNG khuyến khích và KHÔNG chịu trách nhiệm.</p>
+                            <br />
+                            <p className='note'>Chú ý: Mọi hành vi liên quan đến vi phạm pháp luật chúng tôi KHÔNG khuyến khích và KHÔNG chịu trách nhiệm.</p>
                         </div>
                     </div>
                     <div>
@@ -190,6 +226,7 @@ const XSMN = ({ initialData }) => {
                                     muted
                                     playsInline
                                     alt='xổ số bắc trung nam'
+                                    loading="lazy"
                                     suppressHydrationWarning
                                 />
                             </a>

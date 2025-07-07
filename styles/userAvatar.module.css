@@ -1,30 +1,32 @@
 .userInfo {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 0;
+    gap: 12px;
+    padding: 8px 0;
     position: relative;
 }
 
 .avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 6px;
+    width: 28px;
+    /* Thu nhỏ avatar */
+    height: 28px;
+    border-radius: 5px;
     background-color: #1E40AF;
     border: 2px solid #FFFFFF;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 15px;
+    font-size: 13px;
+    /* Giảm kích thước chữ */
     font-weight: 700;
     cursor: pointer;
     transition: transform 0.2s ease;
 }
 
 .avatarImage {
-    width: 100%;
-    height: 100%;
-    border-radius: 6px;
+    width: 50px;
+    height: 50px;
+    border-radius: 5px;
     object-fit: cover;
 }
 
@@ -35,6 +37,11 @@
 .admin {
     background-color: #f6b0b0;
     color: #ffffff;
+}
+
+.roless {
+    border: 1px solid #ccc;
+    background-color: red;
 }
 
 .user {
@@ -48,9 +55,9 @@
 }
 
 .username {
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 700;
-    color: #FFFFF0;
+    color: #000;
     line-height: 1.2;
     cursor: pointer;
 }
@@ -83,61 +90,125 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: color 0.2s ease;
+}
+
+.notificationIcon.hasNotifications {
+    animation: bellShake 1.2s cubic-bezier(0.36, 0.07, 0.19, 0.97) 3;
+    /* Chạy 3 lần */
+}
+
+@keyframes bellShake {
+    0% {
+        transform: rotate(0);
+    }
+
+    15% {
+        transform: rotate(8deg);
+    }
+
+    30% {
+        transform: rotate(-8deg);
+    }
+
+    45% {
+        transform: rotate(6deg);
+    }
+
+    60% {
+        transform: rotate(-6deg);
+    }
+
+    75% {
+        transform: rotate(4deg);
+    }
+
+    90% {
+        transform: rotate(-4deg);
+    }
+
+    100% {
+        transform: rotate(0);
+    }
+}
+
+.notificationIcon:hover {
+    color: #007bff;
 }
 
 .notificationBadge {
     position: absolute;
-    top: -5px;
-    right: -5px;
+    top: -8px;
+    right: -8px;
     background-color: #ff4444;
     color: white;
     border-radius: 50%;
     font-size: 12px;
     font-weight: 600;
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .notificationMenu {
     position: absolute;
-    top: calc(100% + 8px);
+    top: calc(100% + 10px);
     right: 0;
-    background-color: #fff;
-    border: 8px solid #E5E7EB;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    padding: 10px;
-    min-width: 300px;
-    max-width: 90vw;
-    max-height: 400px;
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+    padding: 14px;
+    min-width: 320px;
+    max-width: 95vw;
+    max-height: 450px;
     overflow-y: auto;
     z-index: 1000;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
+    scrollbar-width: thin;
+    scrollbar-color: #b0b0b0 #f1f1f1;
+}
+
+.notificationMenu::-webkit-scrollbar {
+    width: 6px;
+}
+
+.notificationMenu::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.notificationMenu::-webkit-scrollbar-thumb {
+    background: #b0b0b0;
+    border-radius: 10px;
 }
 
 .notificationHeader {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px;
-    border-bottom: 1px solid #E5E7EB;
+    padding: 10px 12px;
+    border-bottom: 1px solid #e5e7eb;
     font-size: 16px;
     font-weight: 600;
+    color: #1f2937;
 }
 
 .markAllReadButton {
     background-color: #007bff;
     color: white;
     border: none;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
+    transition: background-color 0.2s ease;
 }
 
 .markAllReadButton:hover {
@@ -146,51 +217,94 @@
 
 .notificationItem {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px;
-    border-radius: 6px;
+    flex-direction: column;
+    padding: 14px;
+    border-radius: 8px;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    border: 1px solid #e5e7eb;
 }
 
 .notificationItem.unread {
     background-color: #f0f8ff;
+    border-left: 4px solid #007bff;
 }
 
 .notificationItem.read {
-    background-color: #fff;
+    background-color: #fafafa;
 }
 
 .notificationItem:hover {
-    background-color: #f5f5e5;
+    background-color: #f1f3f5;
+    transform: translateX(2px);
+}
+
+.notificationHeader {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.notificationInfo {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.notificationUsername {
+    font-size: 15px;
+    /* Tăng kích thước để nổi bật */
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.notificationTime {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #6b7280;
 }
 
 .notificationContent {
     flex: 1;
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    align-items: center;
+    gap: 8px;
 }
 
 .notificationContent span:first-child {
-    font-size: 14px;
-    color: #333;
+    font-size: 15px;
+    /* Tăng kích thước để nổi bật */
+    color: #1f2937;
+    line-height: 1.4;
 }
 
-.notificationTime {
-    font-size: 12px;
-    color: #777;
+.rewardPoints strong {
+    color: #007bff;
+    font-weight: 600;
+}
+
+.giftIcon {
+    color: #28a745;
+    margin-right: 6px;
+}
+
+.eventIcon {
+    margin-right: 6px;
 }
 
 .markReadButton {
     background-color: #28a745;
     color: white;
     border: none;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
+    transition: background-color 0.2s ease;
+    align-self: flex-end;
+    /* Căn nút sang phải */
 }
 
 .markReadButton:hover {
@@ -201,11 +315,14 @@
     background-color: #dc3545;
     color: white;
     border: none;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
-    margin-left: 4px;
+    transition: background-color 0.2s ease;
+    align-self: flex-end;
+    margin-left: 8px;
 }
 
 .deleteNotificationButton:hover {
@@ -277,7 +394,7 @@
     cursor: pointer;
     font-size: 14px;
     font-weight: 500;
-    text-align: left;
+    text-align: personally;
     transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
@@ -413,10 +530,15 @@
 }
 
 @media (max-width: 640px) {
+    .userInfo {
+        gap: 8px;
+    }
+
     .avatar {
-        width: 32px;
-        height: 32px;
-        font-size: 14px;
+        width: 24px;
+        /* Nhỏ hơn trên mobile */
+        height: 24px;
+        font-size: 12px;
     }
 
     .username {
@@ -428,10 +550,38 @@
         padding: 2px 6px;
     }
 
+    .notificationIcon {
+        font-size: 22px;
+    }
+
     .notificationMenu {
         width: 100%;
         right: 0;
-        min-width: 200px;
+        min-width: 280px;
+        max-height: 400px;
+        padding: 10px;
+    }
+
+    .notificationItem {
+        padding: 10px;
+    }
+
+    .notificationUsername {
+        font-size: 14px;
+    }
+
+    .notificationContent span:first-child {
+        font-size: 14px;
+    }
+
+    .notificationTime {
+        font-size: 11px;
+    }
+
+    .markReadButton,
+    .deleteNotificationButton {
+        padding: 5px 10px;
+        font-size: 12px;
     }
 
     .submenu {

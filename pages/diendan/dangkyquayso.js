@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useSession } from 'next-auth/react';
@@ -7,7 +6,7 @@ import { useState, useEffect } from 'react';
 import moment from 'moment';
 import 'moment-timezone';
 import axios from 'axios';
-import styles from '../../styles/lotteryRegistration.module.css';
+import styles from '../../styles/dangkyquayso.module.css';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
@@ -62,7 +61,7 @@ export default function LotteryRegistration({ lotteryFields, onRegistrationSucce
             const todayEnd = moment().tz('Asia/Ho_Chi_Minh').endOf('day').toDate();
             const res = await axios.get(`${API_BASE_URL}/api/lottery/check-limit`, {
                 headers: {
-                    Authorization: `Bearer ${session.accessToken} `,
+                    Authorization: `Bearer ${session.accessToken}`,
                     'Content-Type': 'application/json',
                 },
                 params: {
@@ -134,14 +133,14 @@ export default function LotteryRegistration({ lotteryFields, onRegistrationSucce
         }
 
         if (!isRegistrationOpen[region]) {
-            setError(`Đăng ký miền ${region} đã đóng.Vui lòng thử lại sau 18: 40.`);
-            alert(`Đăng ký miền ${region} đã đóng.Vui lòng thử lại sau 18: 40.`);
+            setError(`Đăng ký miền ${region} đã đóng. Vui lòng thử lại sau 18:40.`);
+            alert(`Đăng ký miền ${region} đã đóng. Vui lòng thử lại sau 18:40.`);
             return;
         }
 
         if (hasRegisteredToday[region]) {
-            setError(`Bạn đã đăng ký cho miền ${region} hôm nay.Vui lòng thử lại vào ngày mai.`);
-            alert(`Bạn đã đăng ký cho miền ${region} hôm nay.Vui lòng thử lại vào ngày mai.`);
+            setError(`Bạn đã đăng ký cho miền ${region} hôm nay. Vui lòng thử lại vào ngày mai.`);
+            alert(`Bạn đã đăng ký cho miền ${region} hôm nay. Vui lòng thử lại vào ngày mai.`);
             return;
         }
 
@@ -154,7 +153,7 @@ export default function LotteryRegistration({ lotteryFields, onRegistrationSucce
 
         try {
             const payload = {
-                eventId, // Thêm eventId vào payload
+                eventId,
                 region,
                 numbers: {
                     bachThuLo: lotteryFields?.bachThuLo ? formData.bachThuLo || null : null,
@@ -166,13 +165,13 @@ export default function LotteryRegistration({ lotteryFields, onRegistrationSucce
 
             const res = await axios.post(`${API_BASE_URL}/api/lottery/register`, payload, {
                 headers: {
-                    Authorization: `Bearer ${session?.accessToken} `,
+                    Authorization: `Bearer ${session?.accessToken}`,
                     'Content-Type': 'application/json',
                 }
             });
 
             setSuccess(`Đăng ký thành công cho miền ${region} lúc ${moment().tz('Asia/Ho_Chi_Minh').format('HH:mm:ss DD/MM/YYYY')} !`);
-            alert(`Đăng ký thành công cho miền ${region} lúc ${moment().tz('Asia/Ho_Chi_Minh').format('HH:mm:ss DD/MM/YYYY')} !Bạn được cộng 10 điểm.`);
+            alert(`Đăng ký thành công cho miền ${region} lúc ${moment().tz('Asia/Ho_Chi_Minh').format('HH:mm:ss DD/MM/YYYY')} ! Bạn được cộng 10 điểm.`);
             setFormData({ bachThuLo: '', songThuLo: '', threeCL: '', cham: '' });
             setError('');
             setHasRegisteredToday({ ...hasRegisteredToday, [region]: true });
@@ -204,7 +203,7 @@ export default function LotteryRegistration({ lotteryFields, onRegistrationSucce
     return (
         <div className={styles.container}>
             <h3 className={styles.title}>Đăng ký quay số</h3>
-            <p className={styles.time}>Thời gian hiện tại: {currentTime}</p>
+            <p className={styles.time}><i class="fa-solid fa-clock"></i> Thời gian hiện tại: {currentTime}</p>
             {success && <p className={styles.success}>{success}</p>}
             {error && <p className={styles.error}>{error}</p>}
             {hasRegisteredToday[region] && (
@@ -217,7 +216,7 @@ export default function LotteryRegistration({ lotteryFields, onRegistrationSucce
                         <select
                             value={region}
                             onChange={(e) => setRegion(e.target.value)}
-                            className={styles.input}
+                            className={styles.select} // Thay đổi từ styles.input thành styles.select
                         >
                             <option value="Nam">Miền Nam</option>
                             <option value="Trung">Miền Trung</option>

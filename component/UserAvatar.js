@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useSession, signOut } from 'next-auth/react';
@@ -23,9 +24,7 @@ const UserAvatar = () => {
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
-    const [registrations, setRegistrations] = useState([]);
-    const [rewardNotifications, setRewardNotifications] = useState([]);
-    const [eventNotifications, setEventNotifications] = useState([]);
+    const [notifications, setNotifications] = useState([]);
     const [notificationError, setNotificationError] = useState('');
     const [uploading, setUploading] = useState(false);
     const submenuRef = useRef(null);
@@ -48,14 +47,14 @@ const UserAvatar = () => {
             try {
                 const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
                     headers: {
-                        Authorization: `Bearer ${session.accessToken}`,
+                        Authorization: `Bearer ${session.accessToken} `,
                         "User-Agent": "UserAvatar-Client",
                     },
                 });
 
                 if (!res.ok) {
                     const errorText = await res.json();
-                    throw new Error(`Không thể lấy thông tin: ${errorText.error}`);
+                    throw new Error(`Không thể lấy thông tin: ${errorText.error} `);
                 }
 
                 const data = await res.json();
@@ -84,22 +83,22 @@ const UserAvatar = () => {
         }
 
         try {
-            const params = { page: 1, limit: 20 };
+            const params = { type: ['USER_REWARDED', 'NEW_EVENT'], page: 1, limit: 20 };
             const headers = {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${session.accessToken}`,
+                Authorization: `Bearer ${session.accessToken} `,
             };
-            const res = await axios.get(`${API_BASE_URL}/api/lottery/registrations`, {
+            const res = await axios.get(`${API_BASE_URL}/api/notifications`, {
                 headers,
                 params,
             });
 
-            const registrationsData = res.data.registrations.filter(r => !r.isReward && !r.isEvent);
-            const rewardData = res.data.registrations.filter(r => r.isReward);
-            const eventData = res.data.registrations.filter(r => r.isEvent);
-            setRegistrations(registrationsData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
-            setRewardNotifications(rewardData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
-            setEventNotifications(eventData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+            const notifications = res.data.notifications.map(notification => ({
+                ...notification,
+                eventId: notification.eventId ? notification.eventId.toString() : null
+            }));
+            console.log('Fetched notifications:', JSON.stringify(notifications, null, 2));
+            setNotifications(notifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
             setNotificationError('');
         } catch (err) {
             console.error('Error fetching notifications:', err.response?.data || err.message);
@@ -117,6 +116,15 @@ const UserAvatar = () => {
     useEffect(() => {
         if (status !== "authenticated" || !session?.accessToken) return;
 
+        console.log('Initializing Socket.IO with URL:', API_BASE_URL);
+        console.log('Session user:', JSON.stringify(session?.user, null, 2));
+        const userId = session?.user?.userId || session?.user?.id; // Hỗ trợ cả userId và id
+        if (!userId) {
+            console.error('No userId found in session');
+            setNotificationError('Không tìm thấy ID người dùng. Vui lòng đăng nhập lại.');
+            return;
+        }
+
         const socket = io(API_BASE_URL, {
             query: { token: session.accessToken },
             reconnectionAttempts: 5,
@@ -126,62 +134,21 @@ const UserAvatar = () => {
 
         socket.on('connect', () => {
             console.log('Socket.IO connected successfully:', socket.id);
-            socket.emit('joinLotteryFeed');
+            socket.emit('joinRewardFeed');
+            socket.emit('joinEventFeed');
+            socket.emit('joinRoom', `user:${userId} `);
+            console.log(`Client joined room: user:${userId} `);
             setNotificationError('');
         });
 
-        socket.on('NEW_LOTTERY_REGISTRATION', (data) => {
-            setRegistrations((prev) => {
-                if (prev.some(r => r._id === data._id)) {
-                    return prev.map(r => (r._id === data._id ? data : r));
-                }
-                const updated = [data, ...prev].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 50);
-                if (isAtBottom && notificationListRef.current) {
-                    notificationListRef.current.scrollTop = notificationListRef.current.scrollHeight;
-                }
-                return updated;
-            });
-        });
-
-        socket.on('LOTTERY_RESULT_CHECKED', (data) => {
-            setRegistrations((prev) => {
-                if (prev.some(r => r._id === data._id)) {
-                    return prev.map(r => (r._id === data._id ? data : r));
-                }
-                return prev;
-            });
-            if (isAtBottom && notificationListRef.current) {
-                notificationListRef.current.scrollTop = notificationListRef.current.scrollHeight;
-            }
-        });
-
-        socket.on('USER_UPDATED', (data) => {
-            setRegistrations((prev) =>
-                prev.map((r) =>
-                    r.userId._id === data._id ? { ...r, userId: { ...r.userId, img: data.img, titles: data.titles, points: data.points, winCount: data.winCount } } : r
-                )
-            );
-            setRewardNotifications((prev) =>
-                prev.map((n) =>
-                    n.userId._id === data._id ? { ...n, userId: { ...n.userId, img: data.img, titles: data.titles, points: data.points, winCount: data.winCount } } : n
-                )
-            );
-            setEventNotifications((prev) =>
-                prev.map((n) =>
-                    n.userId._id === data._id ? { ...n, userId: { ...n.userId, img: data.img, titles: data.titles, points: data.points, winCount: data.winCount } } : n
-                )
-            );
-        });
-
-        socket.on('UPDATE_LOTTERY_REGISTRATION', (data) => {
-            setRegistrations((prev) =>
-                prev.map((r) => (r._id === data._id ? data : r))
-            );
-        });
-
         socket.on('USER_REWARDED', (data) => {
-            const rewardNotification = {
-                _id: `reward_${data.userId}_${Date.now()}`,
+            console.log('Received USER_REWARDED:', JSON.stringify(data, null, 2));
+            if (data.userId !== userId) {
+                console.log('Ignoring USER_REWARDED for another user:', data.userId);
+                return;
+            }
+            const notification = {
+                _id: data.notificationId,
                 userId: {
                     _id: data.userId,
                     fullname: data.fullname,
@@ -190,17 +157,19 @@ const UserAvatar = () => {
                     points: data.points,
                     winCount: data.winCount || 0
                 },
-                region: data.region,
-                numbers: {},
-                result: { isChecked: true, isWin: false },
-                createdAt: new Date(),
-                isReward: true,
-                pointsAwarded: data.pointsAwarded,
-                eventTitle: data.eventTitle,
-                notificationId: data.notificationId // Lưu notificationId từ WebSocket
+                type: 'USER_REWARDED',
+                content: `Bạn đã được phát thưởng ${data.pointsAwarded} điểm cho sự kiện ${data.eventTitle} !`,
+                isRead: false,
+                createdAt: new Date(data.awardedAt),
+                eventId: data.eventId ? data.eventId.toString() : null
             };
-            setRewardNotifications((prev) => {
-                const updated = [rewardNotification, ...prev].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 50);
+            setNotifications((prev) => {
+                if (prev.some(n => n._id === notification._id)) {
+                    console.log('Duplicate USER_REWARDED ignored:', notification._id);
+                    return prev;
+                }
+                console.log('Adding USER_REWARDED:', notification);
+                const updated = [notification, ...prev].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 50);
                 if (isAtBottom && notificationListRef.current) {
                     notificationListRef.current.scrollTop = notificationListRef.current.scrollHeight;
                 }
@@ -208,21 +177,34 @@ const UserAvatar = () => {
             });
         });
 
-        socket.on('NEW_EVENT_NOTIFICATION', (data) => {
-            setEventNotifications((prev) => {
-                const updated = [{ ...data, notificationId: data.notificationId }, ...prev].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 50);
+        socket.on('NEW_EVENT', (data) => {
+            console.log('Received NEW_EVENT:', JSON.stringify(data, null, 2));
+            const notification = {
+                _id: `temp_${Date.now()} `, // ID tạm thời
+                userId: data.createdBy || { fullname: 'Hệ thống', img: null },
+                type: 'NEW_EVENT',
+                content: `HOT!! ${data.type === 'event' ? 'sự kiện' : 'tin hot'}: ${data.title} `,
+                isRead: false,
+                createdAt: new Date(data.createdAt),
+                eventId: data._id ? data._id.toString() : null
+            };
+            setNotifications((prev) => {
+                if (prev.some(n => n.eventId === notification.eventId && n.type === 'NEW_EVENT')) {
+                    console.log('Duplicate NEW_EVENT ignored:', notification.eventId);
+                    return prev;
+                }
+                console.log('Adding NEW_EVENT:', notification);
+                const updated = [notification, ...prev].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 50);
                 if (isAtBottom && notificationListRef.current) {
                     notificationListRef.current.scrollTop = notificationListRef.current.scrollHeight;
                 }
                 return updated;
             });
-        });
-
-        socket.on('LOTTERY_RESULT_ERROR', (data) => {
-            setNotificationError(data.message || 'Lỗi khi đối chiếu kết quả xổ số');
+            fetchNotifications(); // Lấy lại danh sách để có notification._id thực
         });
 
         socket.on('connect_error', (error) => {
+            console.error('Socket.IO connection error:', error.message);
             if (error.message.includes('Authentication error')) {
                 setNotificationError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
                 signOut({ redirect: false });
@@ -233,7 +215,14 @@ const UserAvatar = () => {
         });
 
         socket.on('reconnect', () => {
-            socket.emit('joinLotteryFeed');
+            console.log('Reconnected to Socket.IO');
+            socket.emit('joinRewardFeed');
+            socket.emit('joinEventFeed');
+            socket.emit('joinRoom', `user:${userId} `);
+        });
+
+        socket.on('disconnect', (reason) => {
+            console.log('Socket.IO disconnected:', reason);
         });
 
         if (status === "authenticated") {
@@ -241,9 +230,10 @@ const UserAvatar = () => {
         }
 
         return () => {
+            console.log('Cleaning up Socket.IO connection');
             socket.disconnect();
         };
-    }, [status, session]);
+    }, [status, session, router]);
 
     // Xử lý cuộn và click ngoài
     useEffect(() => {
@@ -297,7 +287,7 @@ const UserAvatar = () => {
             const res = await fetch(`${API_BASE_URL}/api/users/upload-avatar`, {
                 method: 'POST',
                 headers: {
-                    Authorization: `Bearer ${session.accessToken}`,
+                    Authorization: `Bearer ${session.accessToken} `,
                     "User-Agent": "UserAvatar-Client",
                     'Cache-Control': 'no-cache',
                 },
@@ -379,14 +369,14 @@ const UserAvatar = () => {
 
     // Xử lý nhấp vào thông báo
     const handleNotificationClick = async (notification) => {
-        if (!notification.notificationId) {
-            console.error('Invalid notification ID:', notification);
-            alert('Thông báo không hợp lệ.');
+        if (!notification._id || notification._id.startsWith('temp_')) {
+            console.error('Invalid or temporary notification ID:', notification._id);
+            setNotificationError('Thông báo chưa được đồng bộ. Vui lòng chờ hoặc làm mới trang.');
             return;
         }
 
         try {
-            const res = await fetch(`${API_BASE_URL}/api/notifications/${notification.notificationId}/read`, {
+            const res = await fetch(`${API_BASE_URL}/api/notifications/${notification._id}/read`, {
                 method: "POST",
                 headers: {
                     Authorization: `Bearer ${session.accessToken}`,
@@ -405,18 +395,22 @@ const UserAvatar = () => {
                 throw new Error(errorText.error || "Không thể đánh dấu đã đọc");
             }
 
-            if (notification.isEvent && notification.eventId?._id) {
-                setEventNotifications(prev => prev.map(n => n._id === notification._id ? { ...n, isRead: true } : n));
-                router.push(`/diendan/events/${notification.eventId._id}`);
-            } else if (notification.isReward && notification.eventTitle) {
-                setRewardNotifications(prev => prev.map(n => n._id === notification._id ? { ...n, isRead: true } : n));
-                router.push(`/lottery?eventId=${notification.eventTitle}`);
-            } else {
-                setRegistrations(prev => prev.map(n => n._id === notification._id ? { ...n, isRead: true } : n));
-            }
+            setNotifications(prev => prev.map(n => n._id === notification._id ? { ...n, isRead: true } : n));
         } catch (error) {
             console.error('Error marking notification as read:', error);
             alert(error.message || "Lỗi khi đánh dấu thông báo đã đọc.");
+            return;
+        }
+
+        if (notification.eventId) {
+            const eventId = notification.eventId.toString ? notification.eventId.toString() : notification.eventId;
+            if (!eventId || typeof eventId !== 'string' || eventId === '[object Object]') {
+                console.error('Invalid eventId for navigation:', notification.eventId);
+                setNotificationError('ID sự kiện không hợp lệ. Vui lòng kiểm tra lại.');
+                return;
+            }
+            console.log('Navigating to event details with eventId:', eventId);
+            router.push(`/diendan/events/${eventId}`);
         }
         setIsNotificationOpen(false);
     };
@@ -443,9 +437,7 @@ const UserAvatar = () => {
                 throw new Error(errorText.error || "Không thể đánh dấu tất cả đã đọc");
             }
 
-            setRegistrations(prev => prev.map(n => ({ ...n, isRead: true })));
-            setRewardNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-            setEventNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+            setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
             alert("Đã đánh dấu tất cả thông báo đã đọc.");
         } catch (error) {
             console.error('Error marking all notifications as read:', error);
@@ -455,14 +447,15 @@ const UserAvatar = () => {
 
     // Xóa thông báo
     const handleDeleteNotification = async (notification) => {
-        if (!notification.notificationId) {
-            console.error('Invalid notification ID:', notification);
-            alert('ID thông báo không hợp lệ.');
+        if (!notification._id || notification._id.startsWith('temp_')) {
+            console.error('Invalid or temporary notification ID:', notification._id);
+            setNotifications(prev => prev.filter(n => n._id !== notification._id));
+            alert("Thông báo tạm thời đã được xóa.");
             return;
         }
 
         try {
-            const res = await fetch(`${API_BASE_URL}/api/notifications/${notification.notificationId}`, {
+            const res = await fetch(`${API_BASE_URL}/api/notifications/${notification._id}`, {
                 method: "DELETE",
                 headers: {
                     Authorization: `Bearer ${session.accessToken}`,
@@ -481,9 +474,7 @@ const UserAvatar = () => {
                 throw new Error(errorText.error || "Không thể xóa thông báo");
             }
 
-            setRegistrations(prev => prev.filter(n => n._id !== notification._id));
-            setRewardNotifications(prev => prev.filter(n => n._id !== notification._id));
-            setEventNotifications(prev => prev.filter(n => n._id !== notification._id));
+            setNotifications(prev => prev.filter(n => n._id !== notification._id));
             alert("Xóa thông báo thành công.");
         } catch (error) {
             console.error('Error deleting notification:', error);
@@ -491,23 +482,22 @@ const UserAvatar = () => {
         }
     };
 
-    // Hàm hiển thị thông báo
-    const renderNotification = (item) => {
-        const fullname = item.userId?.fullname || 'Người dùng ẩn danh';
+    // Hiển thị thông báo
+    const renderNotification = (notification) => {
+        const fullname = notification.userId?.fullname || 'Hệ thống';
         const firstChar = fullname[0]?.toUpperCase() || '?';
-        const titles = item.userId?.titles || [];
 
         return (
             <div
-                key={item._id}
-                className={`${styles.notificationItem} ${item.isRead ? styles.read : styles.unread} ${item.isReward ? styles.rewardNotification : item.isEvent ? styles.eventNotification : styles.registrationNotification}`}
-                onClick={() => handleNotificationClick(item)}
-                style={item.isEvent && item.eventId?._id ? { cursor: 'pointer' } : {}}
+                key={notification._id}
+                className={`${styles.notificationItem} ${notification.isRead ? styles.read : styles.unread}`}
+                onClick={() => handleNotificationClick(notification)}
+                style={notification.eventId ? { cursor: 'pointer' } : {}}
             >
                 <div className={styles.notificationHeader}>
-                    {item.userId?.img ? (
+                    {notification.userId?.img ? (
                         <Image
-                            src={item.userId.img}
+                            src={notification.userId.img}
                             alt={fullname}
                             className={styles.avatarImage}
                             width={40}
@@ -520,63 +510,38 @@ const UserAvatar = () => {
                     ) : null}
                     <div
                         className={`${styles.avatar} ${styles.avatarA}`}
-                        style={{ display: item.userId?.img ? 'none' : 'flex' }}
+                        style={{ display: notification.userId?.img ? 'none' : 'flex' }}
                     >
                         {firstChar}
                     </div>
                     <div className={styles.notificationInfo}>
                         <span className={styles.notificationUsername}>{fullname}</span>
                         <span className={styles.notificationTime}>
-                            {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true, locale: vi })}
+                            {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true, locale: vi })}
                         </span>
                     </div>
                 </div>
                 <div className={styles.notificationContent}>
-                    {item.isReward ? (
-                        <span className={styles.rewardPoints}>
-                            <FaGift className={styles.giftIcon} />
-                            Đã được phát thưởng <strong className={styles.points}>{item.pointsAwarded} điểm</strong> cho sự kiện <strong>{item.eventTitle}</strong>!
-                        </span>
-                    ) : item.isEvent ? (
-                        <span>
-                            Đã đăng {item.type === 'event' ? 'sự kiện' : 'tin hot'}: <strong>{item.title}</strong>
-                        </span>
-                    ) : (
-                        <>
-                            Đã đăng ký quay số miền <strong>{item.region}</strong>
-                            <br />
-                            <strong>Số đăng ký:</strong><br />
-                            {item.numbers.bachThuLo && `Bạch thủ lô: ${item.numbers.bachThuLo} | `}
-                            {item.numbers.songThuLo.length > 0 && `Song thủ lô: ${item.numbers.songThuLo.join(', ')} | `}
-                            {item.numbers.threeCL && `3CL: ${item.numbers.threeCL}`}
-                            {item.numbers.cham && `Chạm: ${item.numbers.cham}`}
-                            {item.result && item.result.isChecked ? (
-                                item.result.isWin ? (
-                                    <span className={styles.winningResult}>
-                                        <strong>Kết quả: Trúng</strong><br />
-                                        {item.result.winningNumbers.bachThuLo && `Bạch thủ lô: ${item.numbers.bachThuLo}`}<br />
-                                        {item.result.winningNumbers.songThuLo.length > 0 && `Song thủ lô: ${item.result.winningNumbers.songThuLo.join(', ')}`}<br />
-                                        {item.result.winningNumbers.threeCL && `3CL: ${item.numbers.threeCL}`}<br />
-                                        {item.result.winningNumbers.cham && `Chạm: ${item.numbers.cham}`}<br />
-                                        <strong>Giải trúng:</strong> {item.result.matchedPrizes.join(', ')}
-                                    </span>
-                                ) : (
-                                    <span className={styles.losingResult}>
-                                        <strong>Kết quả: Trượt</strong>
-                                    </span>
-                                )
-                            ) : (
-                                <span></span>
-                            )}
-                        </>
-                    )}
+                    <span className={styles.rewardPoints}>
+                        {notification.type === 'USER_REWARDED' ? (
+                            <>
+                                <FaGift className={styles.giftIcon} />
+                                Đã được phát thưởng <strong>{notification.content.match(/(\d+) điểm/)[1]} điểm</strong> cho sự kiện <strong>{notification.content.match(/sự kiện (.+)!/)[1]}</strong>!
+                            </>
+                        ) : (
+                            <>
+                                <span className={styles.eventIcon}>📢</span>
+                                {notification.content}
+                            </>
+                        )}
+                    </span>
                 </div>
-                {!item.isRead && (
+                {!notification.isRead && (
                     <button
                         className={styles.markReadButton}
                         onClick={(e) => {
                             e.stopPropagation();
-                            handleNotificationClick(item);
+                            handleNotificationClick(notification);
                         }}
                         aria-label="Đánh dấu thông báo này đã đọc"
                     >
@@ -587,7 +552,7 @@ const UserAvatar = () => {
                     className={styles.deleteNotificationButton}
                     onClick={(e) => {
                         e.stopPropagation();
-                        handleDeleteNotification(item);
+                        handleDeleteNotification(notification);
                     }}
                     aria-label="Xóa thông báo này"
                 >
@@ -597,13 +562,8 @@ const UserAvatar = () => {
         );
     };
 
-    // Kết hợp danh sách thông báo
-    const combinedFeed = [...registrations, ...rewardNotifications, ...eventNotifications].sort(
-        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-    ).slice(0, 50);
-
     // Tính số thông báo chưa đọc
-    const unreadCount = combinedFeed.filter(n => !n.isRead).length;
+    const unreadCount = notifications.filter(n => !n.isRead).length;
 
     // Hàm lấy tên hiển thị và màu vai trò
     const getDisplayName = (fullname) => {
@@ -658,12 +618,12 @@ const UserAvatar = () => {
                                 </div>
                                 <div className={styles.notificationList} ref={notificationListRef}>
                                     {notificationError && <p className={styles.error}>{notificationError}</p>}
-                                    {combinedFeed.length === 0 ? (
+                                    {notifications.length === 0 ? (
                                         <div className={styles.notificationItem}>
                                             Không có thông báo
                                         </div>
                                     ) : (
-                                        combinedFeed.map(notification => renderNotification(notification))
+                                        notifications.map(notification => renderNotification(notification))
                                     )}
                                 </div>
                             </div>

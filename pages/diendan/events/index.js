@@ -15,7 +15,7 @@ const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000
 export default function EventHotNews() {
     const { data: session, status } = useSession();
     const router = useRouter();
-    const [tab, setTab] = useState('hot_news'); // Mặc định là Tin hot
+    const [tab, setTab] = useState('event'); // Mặc định là Tin hot
     const [items, setItems] = useState([]);
     const [error, setError] = useState('');
     const [page, setPage] = useState(1);
@@ -86,17 +86,18 @@ export default function EventHotNews() {
         <div className={styles.container}>
             <h1 className={styles.title}>Tin hot & Sự kiện</h1>
             <div className={styles.tabContainer}>
-                <button
-                    className={`${styles.tab} ${tab === 'hot_news' ? styles.active : ''}`}
-                    onClick={() => { setTab('hot_news'); setPage(1); }}
-                >
-                    Tin hot
-                </button>
+
                 <button
                     className={`${styles.tab} ${tab === 'event' ? styles.active : ''}`}
                     onClick={() => { setTab('event'); setPage(1); }}
                 >
                     Sự kiện
+                </button>
+                <button
+                    className={`${styles.tab} ${tab === 'hot_news' ? styles.active : ''}`}
+                    onClick={() => { setTab('hot_news'); setPage(1); }}
+                >
+                    Tin hot
                 </button>
             </div>
             <div className={styles.listContainer}>
