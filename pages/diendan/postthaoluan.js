@@ -9,7 +9,7 @@ import moment from 'moment';
 import 'moment-timezone';
 import styles from '../../styles/postEvent.module.css';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL6 || 'http://localhost:5001';
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
 
 export default function PostDiscussion() {
     const { data: session, status } = useSession();
