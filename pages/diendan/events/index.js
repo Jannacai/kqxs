@@ -8,7 +8,7 @@ import io from 'socket.io-client';
 import moment from 'moment';
 import 'moment-timezone';
 import styles from '../../../styles/eventHotNews.module.css';
-import EditPostModal from '../modals/EditPostModal';
+import EditPostModal from '../../../component/EditPostModal';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
 const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
