@@ -6,22 +6,43 @@
     padding: 32px;
     background-color: #f9fafb;
     border-radius: 12px;
+    /* font-family: "Roboto", sans-serif; */
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
 
 .binhluan {
     margin: 0 auto;
+    margin-top: 10px;
     width: 100%;
-    padding: 32px;
-    background-color: #f9fafb;
+    padding: 12px;
+    background-color: #f2f5f7f7;
     border-radius: 12px;
-    max-height: 800px;
-    overflow-y: auto;
+    /* max-height: 800px; */
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
 
+.stats {
+    display: flex;
+    font-size: 20px;
+    font-weight: 700;
+    gap: 20px;
+    padding: 10px 0;
+}
+
+.itemLabel {
+    display: block;
+    width: 100%;
+    text-align: center;
+    font-size: 30px;
+    color: #fff;
+    font-weight: 700;
+    background-color: #059669;
+    padding: 10px 0;
+
+}
+
 .group {
-    width: 380px;
+    width: 350px;
 }
 
 .itemTitle {
@@ -139,13 +160,41 @@
     margin-top: 32px;
     padding-top: 24px;
     border-top: 1px solid #e5e7eb;
+    max-height: 800px;
+    overflow-y: auto;
 }
 
-.commentSection h3 {
-    font-size: 20px;
-    font-weight: 600;
-    color: #1f2937;
-    margin-bottom: 20px;
+/* Tùy chỉnh thanh trượt cho Chrome, Safari */
+.commentSection::-webkit-scrollbar {
+    width: 12px;
+    /* Chiều rộng thanh trượt */
+}
+
+.commentSection::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    /* Màu nền của track */
+    border-radius: 10px;
+}
+
+.commentSection::-webkit-scrollbar-thumb {
+    background: #2563eb;
+    /* Màu của thumb (phần kéo) */
+    border-radius: 10px;
+    border: 2px solid #f1f1f1;
+    /* Viền quanh thumb */
+}
+
+.commentSection::-webkit-scrollbar-thumb:hover {
+    background: #1d4ed8;
+    /* Màu khi hover */
+}
+
+/* Tùy chỉnh thanh trượt cho Firefox */
+.commentSection {
+    scrollbar-width: thin;
+    /* thin hoặc auto */
+    scrollbar-color: #2563eb #f1f1f1;
+    /* thumb và track */
 }
 
 .commentWrapper {

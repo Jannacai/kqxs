@@ -12,11 +12,10 @@ import CommentSection from './CommentSection';
 import styles from '../../../styles/detaiEventHot.module.css';
 import Thongbao from '../thongbao';
 import EventHotNew from '../events/index';
+import NavBarDienDan from '../navbarDiendan'
 
-
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
+const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
 
 const renderTextContent = (text) => {
     if (!text) return null;
@@ -162,7 +161,7 @@ export default function EventHotNewsDetail() {
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (modalRef.current && !modalRef.current.contains(event.target)) {
-                setShowLotteryModal(false);
+                setShowLOTteryModal(false);
                 setShowRegistrationsModal(false);
                 setEditingRegistration(null);
                 setEditFormData({ bachThuLo: '', songThuLo: '', threeCL: '', cham: '' });
@@ -348,9 +347,11 @@ export default function EventHotNewsDetail() {
     if (error && !item) {
         return (
             <div className={styles.container}>
-                <button className={styles.backButton} onClick={() => router.push('/diendan')}>
-                    Quay lại
-                </button>
+                <div className={styles.headerWrapper}>
+                    <button className={styles.backButton} onClick={() => router.push('/diendan')}>
+                        Quay lại
+                    </button>
+                </div>
                 <p className={styles.error}>
                     {error.includes('ID bài viết không hợp lệ')
                         ? 'Không tìm thấy bài viết do ID không hợp lệ. Vui lòng kiểm tra lại URL.'
@@ -363,305 +364,321 @@ export default function EventHotNewsDetail() {
     if (!item) {
         return (
             <div className={styles.container}>
-                <button className={styles.backButton} onClick={() => router.push('/diendan')}>
-                    Quay lại
-                </button>
+                <div className={styles.headerWrapper}>
+                    <button className={styles.backButton} onClick={() => router.push('/diendan')}>
+                        Quay lại
+                    </button>
+                </div>
                 <p className={styles.error}>Không tìm thấy bài viết</p>
             </div>
         );
     }
 
     return (
-        <div className='container'>
-            <div className={styles.group}>
-                <Thongbao></Thongbao>
-                <EventHotNew />
-            </div>
-            <div>
-                <div className={styles.container}>
-                    <button className={styles.backButton} onClick={() => router.push('/diendan')}>
-                        Quay lại
-                    </button>
-                    <h2 className={styles.itemTitle}>💥{item.title}</h2>
-                    <div className={styles.contentWrapper}>
-                        {renderTextContent(item.content)}
-                    </div>
-                    {item.startTime && (
-                        <p className={styles.itemMeta}>
-                            Thời gian bắt đầu: {moment.tz(item.startTime, 'Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm:ss')}
-                        </p>
-                    )}
-                    {item.endTime && (
-                        <p className={styles.itemMeta}>
-                            Thời gian kết thúc: {moment.tz(item.endTime, 'Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm:ss')}
-                        </p>
-                    )}
-                    {item.rules && (
-                        <div className={styles.contentWrapper}>
-                            <p className={styles.itemMeta}><strong>Quy định:</strong></p>
-                            {renderTextContent(item.rules)}
-                        </div>
-                    )}
+        <div>
+            <NavBarDienDan />
+            <div className='container'>
+                <div className={styles.group}>
+                    <Thongbao></Thongbao>
+                    {/* <EventHotNew /> */}
+                </div>
+                <div>
+                    <div className={styles.container}>
 
-                    {item.rewards && (
-                        <div className={styles.contentWrapper}>
-                            <p className={styles.itemMeta}><strong>Phần thưởng:</strong></p>
-                            {renderTextContent(item.rewards)}
-                        </div>
-                    )}
-                    {item.lotteryFields && (item.lotteryFields.bachThuLo || item.lotteryFields.songThuLo || item.lotteryFields.threeCL || item.lotteryFields.cham) && (
-                        <div className={styles.lotterySection}>
-                            <button
-                                className={styles.registerButton}
-                                onClick={() => setShowLotteryModal(true)}
-                            >
-                                👉  Đăng Ký Tham Gia
+                        <div className={styles.headerWrapper}>
+                            <button className={styles.backButton} onClick={() => router.push('/diendan')}>
+                                Quay lại
                             </button>
-                            {hasRegistered && (
-                                <button
-                                    className={styles.viewRegistrationsButton}
-                                    onClick={() => setShowRegistrationsModal(true)}
-                                    disabled={status !== 'authenticated'}
-                                >
-                                    Xem và Chỉnh sửa Đăng ký
-                                </button>
-                            )}
-                        </div>
-                    )}
-                    {showLotteryModal && (
-                        <div className={styles.modalOverlay}>
-                            <div className={styles.modal} ref={modalRef}>
-                                <LotteryRegistration
-                                    lotteryFields={item.lotteryFields}
-                                    eventId={id}
-                                    onRegistrationSuccess={() => {
-                                        const fetchRegistrations = async () => {
-                                            try {
-                                                const todayStart = moment().tz('Asia/Ho_Chi_Minh').startOf('day').toDate();
-                                                const todayEnd = moment().tz('Asia/Ho_Chi_Minh').endOf('day').toDate();
-                                                const res = await axios.get(`${API_BASE_URL}/api/lottery/check-results`, {
-                                                    headers: {
-                                                        Authorization: `Bearer ${session.accessToken}`,
-                                                        'Content-Type': 'application/json',
-                                                    },
-                                                    params: {
-                                                        userId: session.user.id,
-                                                        date: moment().tz('Asia/Ho_Chi_Minh').format('DD-MM-YYYY'),
-                                                        eventId: id
-                                                    }
-                                                });
-                                                setRegistrations(res.data.registrations || []);
-                                            } catch (err) {
-                                                console.error('Error fetching registrations after registration:', err.message, err.response?.data);
-                                                setError(err.response?.data?.message || 'Đã có lỗi khi lấy danh sách đăng ký');
-                                            }
-                                        };
-                                        fetchRegistrations();
-                                        const checkRegistrationStatus = async () => {
-                                            try {
-                                                const todayStart = moment().tz('Asia/Ho_Chi_Minh').startOf('day').toDate();
-                                                const todayEnd = moment().tz('Asia/Ho_Chi_Minh').endOf('day').toDate();
-                                                const res = await axios.get(`${API_BASE_URL}/api/lottery/check-limit`, {
-                                                    headers: {
-                                                        Authorization: `Bearer ${session.accessToken}`,
-                                                        'Content-Type': 'application/json',
-                                                    },
-                                                    params: {
-                                                        userId: session.user.id,
-                                                        startDate: todayStart.toISOString(),
-                                                        endDate: todayEnd.toISOString(),
-                                                        eventId: id
-                                                    }
-                                                });
-                                                console.log('Registration status after success:', res.data);
-                                                setHasRegistered(res.data.registrations?.length > 0);
-                                            } catch (err) {
-                                                console.error('Error checking registration status after registration:', err.message, err.response?.data);
-                                                setError(err.response?.data?.message || 'Đã có lỗi khi kiểm tra trạng thái đăng ký');
-                                            }
-                                        };
-                                        checkRegistrationStatus();
-                                    }}
-                                />
-                                <button
-                                    className={styles.cancelButton}
-                                    onClick={() => setShowLotteryModal(false)}
-                                >
-                                    Đóng
-                                </button>
+                            <span className={styles.itemLabel} data-type={item.type}>
+                                {item.type === 'hot_news' ? 'Tin hot' : item.type === 'event' ? 'Sự kiện Event' : 'Hỏi Đáp - Thảo luận'}
+                            </span>
+                            <div className={styles.stats}>
+                                <span className={styles.viewCount}>👀 Lượt xem: {item.viewCount || 0}</span>
+                                {item.type === 'event' && (
+                                    <span className={styles.registrationCount}>🎟️ Người đăng ký: {item.registrationCount || 0}</span>
+                                )}
+                                <span className={styles.commentCount}>💬 Bình luận: {item.commentCount || 0}</span>
                             </div>
                         </div>
-                    )}
-                    {item.scoringMethod && (
+                        <h2 className={styles.itemTitle}>💥{item.title}</h2>
                         <div className={styles.contentWrapper}>
-                            <p className={styles.itemMeta}><strong>Cách tính điểm:</strong></p>
-                            {renderTextContent(item.scoringMethod)}
+                            {renderTextContent(item.content)}
                         </div>
-                    )}
-                    {item.notes && (
-                        <div className={styles.contentWrapper}>
-                            <p className={styles.itemMeta}><strong>Ghi chú:</strong></p>
-                            {renderTextContent(item.notes)}
-                        </div>
-                    )}
-                    <p className={styles.itemMeta}>
-                        Đăng bởi: {item.createdBy.fullname} |{' '}
-                        {moment.tz(item.createdAt, 'Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm:ss')}
-                    </p>
-
-                    {showRegistrationsModal && (
-                        <div className={styles.modalOverlay}>
-                            <div className={styles.modal} ref={modalRef}>
-                                <h2 className={styles.modalTitle}>Danh sách Đăng ký Quay số</h2>
-                                {error && <p className={styles.error}>{error}</p>}
-                                {registrations.length === 0 ? (
-                                    <p className={styles.noRegistrations}>Bạn chưa có đăng ký nào cho bài viết này.</p>
-                                ) : (
-                                    <div className={styles.registrationsList}>
-                                        {registrations.map((reg) => (
-                                            <div key={reg._id} className={styles.registrationItem}>
-                                                <p><strong>Miền:</strong> {reg.region}</p>
-                                                <p><strong>Thời gian đăng ký:</strong> {moment(reg.createdAt).tz('Asia/Ho_Chi_Minh').format('HH:mm:ss DD/MM/YYYY')}</p>
-                                                <p><strong>Bạch thủ lô:</strong> {reg.numbers.bachThuLo || 'Không có'}</p>
-                                                <p><strong>Song thủ lô:</strong> {reg.numbers.songThuLo.length > 0 ? reg.numbers.songThuLo.join(', ') : 'Không có'}</p>
-                                                <p><strong>3CL:</strong> {reg.numbers.threeCL || 'Không có'}</p>
-                                                <p><strong>Chạm:</strong> {reg.numbers.cham || 'Không có'}</p>
-                                                <p><strong>Lần chỉnh sửa:</strong> {reg.updatedCount || 0}</p>
-                                                {reg.result.isChecked ? (
-                                                    <p><strong>Kết quả:</strong> {reg.result.isWin ? 'Trúng' : 'Trượt'}</p>
-                                                ) : (
-                                                    <p><strong>Kết quả:</strong> Chưa đối chiếu</p>
-                                                )}
-                                                {reg.result.isWin && (
-                                                    <div>
-                                                        <p><strong>Số trúng:</strong></p>
-                                                        {reg.result.winningNumbers.bachThuLo && <p>- Bạch thủ lô: {reg.numbers.bachThuLo}</p>}
-                                                        {reg.result.winningNumbers.songThuLo.length > 0 && <p>- Song thủ lô: {reg.result.winningNumbers.songThuLo.join(', ')}</p>}
-                                                        {reg.result.winningNumbers.threeCL && <p>- 3CL: {reg.numbers.threeCL}</p>}
-                                                        {reg.result.winningNumbers.cham && <p>- Chạm: {reg.numbers.cham}</p>}
-                                                        <p><strong>Giải trúng:</strong> {reg.result.matchedPrizes.join(', ')}</p>
-                                                    </div>
-                                                )}
-                                                {checkRegistrationTime(reg.region) && (reg.updatedCount || 0) < 1 ? (
-                                                    <button
-                                                        className={styles.editButton}
-                                                        onClick={() => handleEdit(reg)}
-                                                    >
-                                                        Chỉnh sửa
-                                                    </button>
-                                                ) : (
-                                                    <p className={styles.warning}>
-                                                        {reg.updatedCount >= 1
-                                                            ? 'Bạn đã chỉnh sửa đăng ký này.'
-                                                            : `Thời gian chỉnh sửa cho miền ${reg.region} đã đóng.`}
-                                                    </p>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
+                        {item.startTime && (
+                            <p className={styles.itemMeta}>
+                                Thời gian bắt đầu: {moment.tz(item.startTime, 'Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm:ss')}
+                            </p>
+                        )}
+                        {item.endTime && (
+                            <p className={styles.itemMeta}>
+                                Thời gian kết thúc: {moment.tz(item.endTime, 'Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm:ss')}
+                            </p>
+                        )}
+                        {item.rules && (
+                            <div className={styles.contentWrapper}>
+                                <p className={styles.itemMeta}><strong>Quy định:</strong></p>
+                                {renderTextContent(item.rules)}
+                            </div>
+                        )}
+                        {item.rewards && (
+                            <div className={styles.contentWrapper}>
+                                <p className={styles.itemMeta}><strong>Phần thưởng:</strong></p>
+                                {renderTextContent(item.rewards)}
+                            </div>
+                        )}
+                        {item.lotteryFields && (item.lotteryFields.bachThuLo || item.lotteryFields.songThuLo || item.lotteryFields.threeCL || item.lotteryFields.cham) && (
+                            <div className={styles.lotterySection}>
+                                <button
+                                    className={styles.registerButton}
+                                    onClick={() => setShowLotteryModal(true)}
+                                >
+                                    👉  Đăng Ký Tham Gia
+                                </button>
+                                {hasRegistered && (
+                                    <button
+                                        className={styles.viewRegistrationsButton}
+                                        onClick={() => setShowRegistrationsModal(true)}
+                                        disabled={status !== 'authenticated'}
+                                    >
+                                        Xem và Chỉnh sửa Đăng ký
+                                    </button>
                                 )}
-                                {editingRegistration && (
-                                    <form onSubmit={handleUpdateSubmit} className={styles.editForm}>
-                                        <h3 className={styles.formTitle}>Chỉnh sửa Đăng ký - Miền {editingRegistration.region}</h3>
-                                        {item.lotteryFields.bachThuLo && (
-                                            <div className={styles.formGroup}>
-                                                <label className={styles.formLabel}>Bạch thủ lô (2 chữ số, ví dụ: 23)</label>
-                                                <input
-                                                    type="text"
-                                                    name="bachThuLo"
-                                                    value={editFormData.bachThuLo}
-                                                    onChange={handleEditInputChange}
-                                                    placeholder="Nhập số 2 chữ số"
-                                                    className={styles.input}
-                                                    maxLength={2}
-                                                />
-                                            </div>
-                                        )}
-                                        {item.lotteryFields.songThuLo && (
-                                            <div className={styles.formGroup}>
-                                                <label className={styles.formLabel}>Song thủ lô (2 số, ví dụ: 23,45)</label>
-                                                <input
-                                                    type="text"
-                                                    name="songThuLo"
-                                                    value={editFormData.songThuLo}
-                                                    onChange={handleEditInputChange}
-                                                    placeholder="Nhập 2 số, cách nhau bởi dấu phẩy"
-                                                    className={styles.input}
-                                                    maxLength={5}
-                                                />
-                                            </div>
-                                        )}
-                                        {item.lotteryFields.threeCL && (
-                                            <div className={styles.formGroup}>
-                                                <label className={styles.formLabel}>3CL (3 chữ số, ví dụ: 123)</label>
-                                                <input
-                                                    type="text"
-                                                    name="threeCL"
-                                                    value={editFormData.threeCL}
-                                                    onChange={handleEditInputChange}
-                                                    placeholder="Nhập số 3 chữ số"
-                                                    className={styles.input}
-                                                    maxLength={3}
-                                                />
-                                            </div>
-                                        )}
-                                        {item.lotteryFields.cham && (
-                                            <div className={styles.formGroup}>
-                                                <label className={styles.formLabel}>Chạm (1 chữ số, ví dụ: 5)</label>
-                                                <input
-                                                    type="text"
-                                                    name="cham"
-                                                    value={editFormData.cham}
-                                                    onChange={handleEditInputChange}
-                                                    placeholder="Nhập số 1 chữ số"
-                                                    className={styles.input}
-                                                    maxLength={1}
-                                                />
-                                            </div>
-                                        )}
-                                        <div className={styles.buttonGroup}>
-                                            <button type="submit" className={styles.submitButton}>
-                                                Lưu chỉnh sửa
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className={styles.cancelButton}
-                                                onClick={() => {
-                                                    setEditingRegistration(null);
-                                                    setEditFormData({ bachThuLo: '', songThuLo: '', threeCL: '', cham: '' });
-                                                    setError('');
-                                                }}
-                                            >
-                                                Hủy
-                                            </button>
+                            </div>
+                        )}
+                        {showLotteryModal && (
+                            <div className={styles.modalOverlay}>
+                                <div className={styles.modal} ref={modalRef}>
+                                    <LotteryRegistration
+                                        lotteryFields={item.lotteryFields}
+                                        eventId={id}
+                                        onRegistrationSuccess={() => {
+                                            const fetchRegistrations = async () => {
+                                                try {
+                                                    const todayStart = moment().tz('Asia/Ho_Chi_Minh').startOf('day').toDate();
+                                                    const todayEnd = moment().tz('Asia/Ho_Chi_Minh').endOf('day').toDate();
+                                                    const res = await axios.get(`${API_BASE_URL}/api/lottery/check-results`, {
+                                                        headers: {
+                                                            Authorization: `Bearer ${session.accessToken}`,
+                                                            'Content-Type': 'application/json',
+                                                        },
+                                                        params: {
+                                                            userId: session.user.id,
+                                                            date: moment().tz('Asia/Ho_Chi_Minh').format('DD-MM-YYYY'),
+                                                            eventId: id
+                                                        }
+                                                    });
+                                                    setRegistrations(res.data.registrations || []);
+                                                } catch (err) {
+                                                    console.error('Error fetching registrations after registration:', err.message, err.response?.data);
+                                                    setError(err.response?.data?.message || 'Đã có lỗi khi lấy danh sách đăng ký');
+                                                }
+                                            };
+                                            fetchRegistrations();
+                                            const checkRegistrationStatus = async () => {
+                                                try {
+                                                    const todayStart = moment().tz('Asia/Ho_Chi_Minh').startOf('day').toDate();
+                                                    const todayEnd = moment().tz('Asia/Ho_Chi_Minh').endOf('day').toDate();
+                                                    const res = await axios.get(`${API_BASE_URL}/api/lottery/check-limit`, {
+                                                        headers: {
+                                                            Authorization: `Bearer ${session.accessToken}`,
+                                                            'Content-Type': 'application/json',
+                                                        },
+                                                        params: {
+                                                            userId: session.user.id,
+                                                            startDate: todayStart.toISOString(),
+                                                            endDate: todayEnd.toISOString(),
+                                                            eventId: id
+                                                        }
+                                                    });
+                                                    console.log('Registration status after success:', res.data);
+                                                    setHasRegistered(res.data.registrations?.length > 0);
+                                                } catch (err) {
+                                                    console.error('Error checking registration status after registration:', err.message, err.response?.data);
+                                                    setError(err.response?.data?.message || 'Đã có lỗi khi kiểm tra trạng thái đăng ký');
+                                                }
+                                            };
+                                            checkRegistrationStatus();
+                                        }}
+                                    />
+                                    <button
+                                        className={styles.cancelButton}
+                                        onClick={() => setShowLotteryModal(false)}
+                                    >
+                                        Đóng
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                        {item.scoringMethod && (
+                            <div className={styles.contentWrapper}>
+                                <p className={styles.itemMeta}><strong>Cách tính điểm:</strong></p>
+                                {renderTextContent(item.scoringMethod)}
+                            </div>
+                        )}
+                        {item.notes && (
+                            <div className={styles.contentWrapper}>
+                                <p className={styles.itemMeta}><strong>Ghi chú:</strong></p>
+                                {renderTextContent(item.notes)}
+                            </div>
+                        )}
+                        <p className={styles.itemMeta}>
+                            Đăng bởi: {item.createdBy.fullname} |{' '}
+                            {moment.tz(item.createdAt, 'Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm:ss')}
+                        </p>
+                        {showRegistrationsModal && (
+                            <div className={styles.modalOverlay}>
+                                <div className={styles.modal} ref={modalRef}>
+                                    <h2 className={styles.modalTitle}>Danh sách Đăng ký Quay số</h2>
+                                    {error && <p className={styles.error}>{error}</p>}
+                                    {registrations.length === 0 ? (
+                                        <p className={styles.noRegistrations}>Bạn chưa có đăng ký nào cho bài viết này.</p>
+                                    ) : (
+                                        <div className={styles.registrationsList}>
+                                            {registrations.map((reg) => (
+                                                <div key={reg._id} className={styles.registrationItem}>
+                                                    <p><strong>Miền:</strong> {reg.region}</p>
+                                                    <p><strong>Thời gian đăng ký:</strong> {moment(reg.createdAt).tz('Asia/Ho_Chi_Minh').format('HH:mm:ss DD/MM/YYYY')}</p>
+                                                    <p><strong>Bạch thủ lô:</strong> {reg.numbers.bachThuLo || 'Không có'}</p>
+                                                    <p><strong>Song thủ lô:</strong> {reg.numbers.songThuLo.length > 0 ? reg.numbers.songThuLo.join(', ') : 'Không có'}</p>
+                                                    <p><strong>3CL:</strong> {reg.numbers.threeCL || 'Không có'}</p>
+                                                    <p><strong>Chạm:</strong> {reg.numbers.cham || 'Không có'}</p>
+                                                    <p><strong>Lần chỉnh sửa:</strong> {reg.updatedCount || 0}</p>
+                                                    {reg.result.isChecked ? (
+                                                        <p><strong>Kết quả:</strong> {reg.result.isWin ? 'Trúng' : 'Trượt'}</p>
+                                                    ) : (
+                                                        <p><strong>Kết quả:</strong> Chưa đối chiếu</p>
+                                                    )}
+                                                    {reg.result.isWin && (
+                                                        <div>
+                                                            <p><strong>Số trúng:</strong></p>
+                                                            {reg.result.winningNumbers.bachThuLo && <p>- Bạch thủ lô: {reg.numbers.bachThuLo}</p>}
+                                                            {reg.result.winningNumbers.songThuLo.length > 0 && <p>- Song thủ lô: {reg.result.winningNumbers.songThuLo.join(', ')}</p>}
+                                                            {reg.result.winningNumbers.threeCL && <p>- 3CL: {reg.numbers.threeCL}</p>}
+                                                            {reg.result.winningNumbers.cham && <p>- Chạm: {reg.numbers.cham}</p>}
+                                                            <p><strong>Giải trúng:</strong> {reg.result.matchedPrizes.join(', ')}</p>
+                                                        </div>
+                                                    )}
+                                                    {checkRegistrationTime(reg.region) && (reg.updatedCount || 0) < 1 ? (
+                                                        <button
+                                                            className={styles.editButton}
+                                                            onClick={() => handleEdit(reg)}
+                                                        >
+                                                            Chỉnh sửa
+                                                        </button>
+                                                    ) : (
+                                                        <p className={styles.warning}>
+                                                            {reg.updatedCount >= 1
+                                                                ? 'Bạn đã chỉnh sửa đăng ký này.'
+                                                                : `Thời gian chỉnh sửa cho miền ${reg.region} đã đóng.`}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            ))}
                                         </div>
-                                    </form>
-                                )}
-                                <button
-                                    className={styles.cancelButton}
-                                    onClick={() => {
-                                        setShowRegistrationsModal(false);
-                                        setEditingRegistration(null);
-                                        setEditFormData({ bachThuLo: '', songThuLo: '', threeCL: '', cham: '' });
-                                        setError('');
-                                    }}
-                                >
-                                    Đóng
-                                </button>
+                                    )}
+                                    {editingRegistration && (
+                                        <form onSubmit={handleUpdateSubmit} className={styles.editForm}>
+                                            <h3 className={styles.formTitle}>Chỉnh sửa Đăng ký - Miền {editingRegistration.region}</h3>
+                                            {item.lotteryFields.bachThuLo && (
+                                                <div className={styles.formGroup}>
+                                                    <label className={styles.formLabel}>Bạch thủ lô (2 chữ số, ví dụ: 23)</label>
+                                                    <input
+                                                        type="text"
+                                                        name="bachThuLo"
+                                                        value={editFormData.bachThuLo}
+                                                        onChange={handleEditInputChange}
+                                                        placeholder="Nhập số 2 chữ số"
+                                                        className={styles.input}
+                                                        maxLength={2}
+                                                    />
+                                                </div>
+                                            )}
+                                            {item.lotteryFields.songThuLo && (
+                                                <div className={styles.formGroup}>
+                                                    <label className={styles.formLabel}>Song thủ lô (2 số, ví dụ: 23,45)</label>
+                                                    <input
+                                                        type="text"
+                                                        name="songThuLo"
+                                                        value={editFormData.songThuLo}
+                                                        onChange={handleEditInputChange}
+                                                        placeholder="Nhập 2 số, cách nhau bởi dấu phẩy"
+                                                        className={styles.input}
+                                                        maxLength={5}
+                                                    />
+                                                </div>
+                                            )}
+                                            {item.lotteryFields.threeCL && (
+                                                <div className={styles.formGroup}>
+                                                    <label className={styles.formLabel}>3CL (3 chữ số, ví dụ: 123)</label>
+                                                    <input
+                                                        type="text"
+                                                        name="threeCL"
+                                                        value={editFormData.threeCL}
+                                                        onChange={handleEditInputChange}
+                                                        placeholder="Nhập số 3 chữ số"
+                                                        className={styles.input}
+                                                        maxLength={3}
+                                                    />
+                                                </div>
+                                            )}
+                                            {item.lotteryFields.cham && (
+                                                <div className={styles.formGroup}>
+                                                    <label className={styles.formLabel}>Chạm (1 chữ số, ví dụ: 5)</label>
+                                                    <input
+                                                        type="text"
+                                                        name="cham"
+                                                        value={editFormData.cham}
+                                                        onChange={handleEditInputChange}
+                                                        placeholder="Nhập số 1 chữ số"
+                                                        className={styles.input}
+                                                        maxLength={1}
+                                                    />
+                                                </div>
+                                            )}
+                                            <div className={styles.buttonGroup}>
+                                                <button type="submit" className={styles.submitButton}>
+                                                    Lưu chỉnh sửa
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className={styles.cancelButton}
+                                                    onClick={() => {
+                                                        setEditingRegistration(null);
+                                                        setEditFormData({ bachThuLo: '', songThuLo: '', threeCL: '', cham: '' });
+                                                        setError('');
+                                                    }}
+                                                >
+                                                    Hủy
+                                                </button>
+                                            </div>
+                                        </form>
+                                    )}
+                                    <button
+                                        className={styles.cancelButton}
+                                        onClick={() => {
+                                            setShowRegistrationsModal(false);
+                                            setEditingRegistration(null);
+                                            setEditFormData({ bachThuLo: '', songThuLo: '', threeCL: '', cham: '' });
+                                            setError('');
+                                        }}
+                                    >
+                                        Đóng
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
-                <div className={styles.binhluan}>
-                    <CommentSection
-                        comments={item.comments}
-                        session={session}
-                        eventId={id}
-                        setItem={setItem}
-                        error={error}
-                        setError={setError}
-                    />
-                </div>
+            </div>
+            <div className={styles.binhluan}>
+                <CommentSection
+                    comments={item.comments}
+                    session={session}
+                    eventId={id}
+                    setItem={setItem}
+                    error={error}
+                    setError={setError}
+                />
             </div>
         </div>
     );

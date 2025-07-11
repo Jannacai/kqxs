@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -6,11 +7,11 @@ import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import moment from 'moment';
 import 'moment-timezone';
-import styles from '../../styles/adminPostEvent.module.css';
+import styles from '../../styles/postEvent.module.css';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
 
-export default function AdminPostEvent() {
+export default function PostEvent() {
     const { data: session, status } = useSession();
     const router = useRouter();
     const [type, setType] = useState('event');
@@ -48,39 +49,40 @@ export default function AdminPostEvent() {
         );
     }
 
-    if (status === 'authenticated' && session.user.role !== 'ADMIN') {
-        return <div className={styles.error}>Chỉ admin mới có quyền truy cập</div>;
-    }
-
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!formData.title.trim() || !formData.content.trim()) {
             setError('Tiêu đề và nội dung là bắt buộc');
+            alert('Tiêu đề và nội dung là bắt buộc');
             return;
         }
-        if (formData.startTime && formData.endTime && moment(formData.endTime).isBefore(formData.startTime)) {
+        if (type !== 'discussion' && formData.startTime && formData.endTime && moment(formData.endTime).isBefore(formData.startTime)) {
             setError('Thời gian kết thúc phải sau thời gian bắt đầu');
+            alert('Thời gian kết thúc phải sau thời gian bắt đầu');
             return;
         }
         try {
             const payload = {
-                ...formData,
+                title: formData.title,
+                content: formData.content,
                 type,
-                lotteryFields,
-                startTime: formData.startTime ? moment(formData.startTime).tz('Asia/Ho_Chi_Minh').toISOString() : undefined,
-                endTime: formData.endTime ? moment(formData.endTime).tz('Asia/Ho_Chi_Minh').toISOString() : undefined,
-                rules: formData.rules.trim() || undefined,
-                rewards: formData.rewards.trim() || undefined,
-                scoringMethod: formData.scoringMethod.trim() || undefined,
-                notes: formData.notes.trim() || undefined
+                ...(type !== 'discussion' && {
+                    lotteryFields,
+                    startTime: formData.startTime ? moment(formData.startTime).tz('Asia/Ho_Chi_Minh').toISOString() : undefined,
+                    endTime: formData.endTime ? moment(formData.endTime).tz('Asia/Ho_Chi_Minh').toISOString() : undefined,
+                    rules: formData.rules.trim() || undefined,
+                    rewards: formData.rewards.trim() || undefined,
+                    scoringMethod: formData.scoringMethod.trim() || undefined,
+                    notes: formData.notes.trim() || undefined
+                })
             };
             const res = await axios.post(
                 `${API_BASE_URL}/api/events`,
                 payload,
-                { headers: { Authorization: `Bearer ${session?.accessToken}` } }
+                { headers: { Authorization: `Bearer ${session?.accessToken} ` } }
             );
             setSuccess(`Đăng thành công lúc ${moment().tz('Asia/Ho_Chi_Minh').format('HH:mm:ss DD/MM/YYYY')} !`);
-            alert(`Đăng thành công lúc ${moment().tz('Asia/Ho_Chi_Minh').format('HH:mm:ss DD/MM/YYYY')} !`); // Thêm alert
+            alert(`Đăng thành công lúc ${moment().tz('Asia/Ho_Chi_Minh').format('HH:mm:ss DD/MM/YYYY')} !`);
             setFormData({
                 title: '',
                 content: '',
@@ -96,7 +98,7 @@ export default function AdminPostEvent() {
             setTimeout(() => setSuccess(''), 3000);
         } catch (err) {
             setError(err.response?.data?.message || 'Đã có lỗi khi đăng');
-            alert(err.response?.data?.message || 'Đã có lỗi khi đăng'); // Thêm alert cho lỗi
+            alert(err.response?.data?.message || 'Đã có lỗi khi đăng');
         }
     };
 
@@ -111,9 +113,16 @@ export default function AdminPostEvent() {
         setLotteryFields({ ...lotteryFields, [name]: checked });
     };
 
+    // Danh sách tùy chọn loại bài đăng
+    const typeOptions = [
+        { value: 'event', label: 'Sự kiện', adminOnly: true },
+        { value: 'hot_news', label: 'Tin hot', adminOnly: true },
+        { value: 'discussion', label: 'Thảo luận', adminOnly: false }
+    ].filter(option => !option.adminOnly || session?.user?.role === 'ADMIN');
+
     return (
         <div className={styles.container}>
-            <h1 className={styles.title}>Đăng sự kiện / Tin hot</h1>
+            <h1 className={styles.title}>Đăng bài</h1>
             {success && <p className={styles.success}>{success}</p>}
             {error && <p className={styles.error}>{error}</p>}
             <form onSubmit={handleSubmit} className={styles.form}>
@@ -124,8 +133,11 @@ export default function AdminPostEvent() {
                         onChange={(e) => setType(e.target.value)}
                         className={styles.select}
                     >
-                        <option value="event">Sự kiện</option>
-                        <option value="hot_news">Tin hot</option>
+                        {typeOptions.map(option => (
+                            <option key={option.value} value={option.value}>
+                                {option.label}
+                            </option>
+                        ))}
                     </select>
                 </div>
                 <div className={styles.formGroup}>
@@ -150,107 +162,111 @@ export default function AdminPostEvent() {
                         className={styles.textarea}
                     />
                 </div>
-                <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Thời gian bắt đầu</label>
-                    <input
-                        type="datetime-local"
-                        name="startTime"
-                        value={formData.startTime}
-                        onChange={handleInputChange}
-                        className={styles.input}
-                    />
-                </div>
-                <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Thời gian kết thúc</label>
-                    <input
-                        type="datetime-local"
-                        name="endTime"
-                        value={formData.endTime}
-                        onChange={handleInputChange}
-                        className={styles.input}
-                    />
-                </div>
-                <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Quy định</label>
-                    <textarea
-                        name="rules"
-                        value={formData.rules}
-                        onChange={handleInputChange}
-                        placeholder="Nhập quy định của sự kiện"
-                        className={styles.textarea}
-                    />
-                </div>
-                <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Phần thưởng</label>
-                    <textarea
-                        name="rewards"
-                        value={formData.rewards}
-                        onChange={handleInputChange}
-                        placeholder="Nhập thông tin phần thưởng"
-                        className={styles.textarea}
-                    />
-                </div>
-                <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Cách tính điểm</label>
-                    <textarea
-                        name="scoringMethod"
-                        value={formData.scoringMethod}
-                        onChange={handleInputChange}
-                        placeholder="Nhập cách tính điểm"
-                        className={styles.textarea}
-                    />
-                </div>
-                <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Lưu ý</label>
-                    <textarea
-                        name="notes"
-                        value={formData.notes}
-                        onChange={handleInputChange}
-                        placeholder="Nhập các lưu ý"
-                        className={styles.textarea}
-                    />
-                </div>
-                <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Cho phép đăng ký quay số</label>
-                    <div className={styles.checkboxGroup}>
-                        <label>
+                {type !== 'discussion' && (
+                    <>
+                        <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Thời gian bắt đầu</label>
                             <input
-                                type="checkbox"
-                                name="bachThuLo"
-                                checked={lotteryFields.bachThuLo}
-                                onChange={handleCheckboxChange}
+                                type="datetime-local"
+                                name="startTime"
+                                value={formData.startTime}
+                                onChange={handleInputChange}
+                                className={styles.input}
                             />
-                            Bạch thủ lô
-                        </label>
-                        <label>
+                        </div>
+                        <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Thời gian kết thúc</label>
                             <input
-                                type="checkbox"
-                                name="songThuLo"
-                                checked={lotteryFields.songThuLo}
-                                onChange={handleCheckboxChange}
+                                type="datetime-local"
+                                name="endTime"
+                                value={formData.endTime}
+                                onChange={handleInputChange}
+                                className={styles.input}
                             />
-                            Song thủ lô
-                        </label>
-                        <label>
-                            <input
-                                type="checkbox"
-                                name="threeCL"
-                                checked={lotteryFields.threeCL}
-                                onChange={handleCheckboxChange}
+                        </div>
+                        <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Quy định</label>
+                            <textarea
+                                name="rules"
+                                value={formData.rules}
+                                onChange={handleInputChange}
+                                placeholder="Nhập quy định của sự kiện"
+                                className={styles.textarea}
                             />
-                            3CL
-                        </label>
-                        <label>
-                            <input
-                                type="checkbox"
-                                name="cham"
-                                checked={lotteryFields.cham}
-                                onChange={handleCheckboxChange}
+                        </div>
+                        <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Phần thưởng</label>
+                            <textarea
+                                name="rewards"
+                                value={formData.rewards}
+                                onChange={handleInputChange}
+                                placeholder="Nhập thông tin phần thưởng"
+                                className={styles.textarea}
                             />
-                            Chạm
-                        </label>
-                    </div>
-                </div>
+                        </div>
+                        <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Cách tính điểm</label>
+                            <textarea
+                                name="scoringMethod"
+                                value={formData.scoringMethod}
+                                onChange={handleInputChange}
+                                placeholder="Nhập cách tính điểm"
+                                className={styles.textarea}
+                            />
+                        </div>
+                        <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Lưu ý</label>
+                            <textarea
+                                name="notes"
+                                value={formData.notes}
+                                onChange={handleInputChange}
+                                placeholder="Nhập các lưu ý"
+                                className={styles.textarea}
+                            />
+                        </div>
+                        <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Cho phép đăng ký quay số</label>
+                            <div className={styles.checkboxGroup}>
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        name="bachThuLo"
+                                        checked={lotteryFields.bachThuLo}
+                                        onChange={handleCheckboxChange}
+                                    />
+                                    Bạch thủ lô
+                                </label>
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        name="songThuLo"
+                                        checked={lotteryFields.songThuLo}
+                                        onChange={handleCheckboxChange}
+                                    />
+                                    Song thủ lô
+                                </label>
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        name="threeCL"
+                                        checked={lotteryFields.threeCL}
+                                        onChange={handleCheckboxChange}
+                                    />
+                                    3CL
+                                </label>
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        name="cham"
+                                        checked={lotteryFields.cham}
+                                        onChange={handleCheckboxChange}
+                                    />
+                                    Chạm
+                                </label>
+                            </div>
+                        </div>
+                    </>
+                )}
                 <button type="submit" className={styles.submitButton}>
                     <i className="fa-solid fa-paper-plane"></i> Đăng
                 </button>

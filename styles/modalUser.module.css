@@ -1,0 +1,157 @@
+.error {
+    color: #b91c1c;
+    background: #fef2f2;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid #f87171;
+    margin-bottom: 24px;
+    text-align: center;
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+.table {
+    width: 100%;
+}
+
+.table td {
+    /* width: 100%; */
+    color: #000;
+    font-weight: 700;
+    border: 1px solid #ccc;
+    padding: 10px;
+}
+
+.table td:first-child {
+    /* width: 100%; */
+    color: var(--background-color);
+}
+
+.titleAvatar {
+    display: flex;
+    padding: 10px;
+    width: 100%;
+}
+
+
+.modalButtons {
+    display: flex;
+    margin-top: 10px;
+    width: 100%;
+    justify-content: center;
+    gap: 5px;
+    align-items: center;
+}
+
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal {
+    background: #ffffff;
+    border-radius: 16px;
+    max-width: 480px;
+    width: 90%;
+    padding: 24px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+}
+
+.modalTitle {
+    font-size: 1.75rem;
+    color: #1e3a8a;
+    margin-bottom: 24px;
+    font-weight: 700;
+}
+
+.modalAvatar {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    border: 3px solid #1e3a8a;
+    margin-bottom: 24px;
+    object-fit: cover;
+}
+
+/* .modal p {
+    font-size: 1.2rem;
+    color: #1f2937;
+    margin-bottom: 16px;
+    text-align: center;
+} */
+/* 
+.modal p strong {
+    color: #1e3a8a;
+    border-right: 1px solid #ccc;
+    width: 100px;
+    text-align: center;
+    background-color: red;
+} */
+
+.cancelButton {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    width: 40px;
+    height: 40px;
+    padding: 12px;
+    background: #b91c1c;
+    color: #ffffff;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.cancelButton:hover {
+    background: #991b1b;
+    transform: translateY(-2px);
+}
+
+.chatButton {
+    width: 100%;
+    padding: 12px;
+    background: #1e3a8a;
+    color: #ffffff;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.chatButton:hover {
+    background: #1e40af;
+    transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+    .modal {
+        width: 95%;
+        padding: 16px;
+    }
+
+    .modalAvatar {
+        width: 80px;
+        height: 80px;
+    }
+
+    .modalTitle {
+        font-size: 1.5rem;
+    }
+}

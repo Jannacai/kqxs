@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import axios from 'axios';
 import moment from 'moment';
 import 'moment-timezone';
@@ -10,8 +10,9 @@ import Image from 'next/image';
 import io from 'socket.io-client';
 import styles from '../../styles/groupchat.module.css';
 import PrivateChat from './chatrieng';
+import UserInfoModal from './modals/UserInfoModal';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
 
 const isValidObjectId = (id) => {
     return /^[0-9a-fA-F]{24}$/.test(id);
@@ -19,8 +20,7 @@ const isValidObjectId = (id) => {
 
 const getDisplayName = (fullname) => {
     if (!fullname) return 'User';
-    const nameParts = fullname.trim().split(' ');
-    return nameParts[nameParts.length - 1];
+    return fullname;
 };
 
 const getInitials = (fullname) => {
@@ -50,11 +50,11 @@ export default function GroupChat({ session: serverSession }) {
     const [fetchError, setFetchError] = useState(null);
     const [error, setError] = useState('');
     const [usersCache, setUsersCache] = useState({});
-    const [modalUser, setModalUser] = useState(null);
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [showModal, setShowModal] = useState(false);
     const [privateChats, setPrivateChats] = useState([]);
     const socketRef = useRef(null);
     const messagesContainerRef = useRef(null);
-    const contextMenuRef = useRef(null);
 
     useEffect(() => {
         console.log('Session status:', status);
@@ -63,14 +63,19 @@ export default function GroupChat({ session: serverSession }) {
         console.log('Used session:', JSON.stringify(session, null, 2));
         if (session?.error === 'RefreshTokenExpired') {
             console.log('Refresh token expired, redirecting to login');
-            router.push('/login');
+            setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+            signOut({ redirect: false });
+            router.push('/login?error=SessionExpired');
         }
     }, [session, serverSession, clientSession, status, router]);
 
     useEffect(() => {
         const fetchMessages = async () => {
             try {
-                const res = await axios.get(`${API_BASE_URL}/api/groupchat`);
+                const headers = session?.accessToken
+                    ? { Authorization: `Bearer ${session.accessToken}`, 'Content-Type': 'application/json' }
+                    : { 'Content-Type': 'application/json' };
+                const res = await axios.get(`${API_BASE_URL}/api/groupchat`, { headers });
                 console.log('Messages fetched:', res.data);
                 setMessages(res.data.messages.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
             } catch (err) {
@@ -79,7 +84,7 @@ export default function GroupChat({ session: serverSession }) {
             }
         };
         fetchMessages();
-    }, []);
+    }, [session?.accessToken]);
 
     useEffect(() => {
         const scrollToBottom = () => {
@@ -93,21 +98,6 @@ export default function GroupChat({ session: serverSession }) {
     }, [messages]);
 
     useEffect(() => {
-        const refreshAccessToken = async () => {
-            try {
-                const res = await axios.post(`${API_BASE_URL}/api/auth/refresh-token`, {
-                    refreshToken: session?.refreshToken,
-                });
-                const { accessToken, newRefreshToken } = res.data;
-                console.log('New accessToken:', accessToken);
-                return accessToken;
-            } catch (err) {
-                console.error('Error refreshing token:', err.message);
-                router.push('/login');
-                return null;
-            }
-        };
-
         const fetchUserInfo = async () => {
             if (!session?.accessToken) {
                 console.log('No accessToken in session');
@@ -115,38 +105,25 @@ export default function GroupChat({ session: serverSession }) {
             }
             try {
                 console.log('Fetching user info with token:', session.accessToken);
-                const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+                const res = await axios.get(`${API_BASE_URL}/api/auth/me`, {
                     headers: {
                         Authorization: `Bearer ${session.accessToken}`,
-                        'User-Agent': 'GroupChat-Client',
+                        'Content-Type': 'application/json',
                     },
                 });
-                if (res.status === 401) {
-                    const newToken = await refreshAccessToken();
-                    if (newToken) {
-                        const retryRes = await fetch(`${API_BASE_URL}/api/auth/me`, {
-                            headers: {
-                                Authorization: `Bearer ${newToken}`,
-                                'User-Agent': 'GroupChat-Client',
-                            },
-                        });
-                        if (!retryRes.ok) throw new Error('Retry failed');
-                        const data = await retryRes.json();
-                        setUserInfo(data);
-                        setUsersCache((prev) => ({ ...prev, [data._id]: data }));
-                    }
-                } else if (!res.ok) {
-                    const errorText = await res.json();
-                    throw new Error(`Không thể lấy thông tin: ${errorText.error}`);
+                const data = res.data;
+                console.log('User info fetched:', data);
+                setUserInfo(data);
+                setUsersCache((prev) => ({ ...prev, [data._id]: data }));
+            } catch (err) {
+                console.error('Error fetching user info:', err.message);
+                if (err.response?.status === 401) {
+                    setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+                    signOut({ redirect: false });
+                    router.push('/login?error=SessionExpired');
                 } else {
-                    const data = await res.json();
-                    console.log('User info fetched:', data);
-                    setUserInfo(data);
-                    setUsersCache((prev) => ({ ...prev, [data._id]: data }));
+                    setFetchError(`Không thể lấy thông tin người dùng: ${err.message}`);
                 }
-            } catch (error) {
-                console.error('Error fetching user info:', error.message);
-                setFetchError(error.message);
             }
         };
         if (session && !session.error) fetchUserInfo();
@@ -174,7 +151,13 @@ export default function GroupChat({ session: serverSession }) {
 
         socket.on('connect_error', (err) => {
             console.error('Socket.IO connection error:', err.message);
-            setFetchError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
+            if (err.message.includes('Authentication error')) {
+                setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+                signOut({ redirect: false });
+                router.push('/login?error=SessionExpired');
+            } else {
+                setFetchError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
+            }
         });
 
         socket.on('NEW_MESSAGE', (newMessage) => {
@@ -198,37 +181,15 @@ export default function GroupChat({ session: serverSession }) {
             }
         });
 
-        socket.on('PRIVATE_MESSAGE', async (newMessage) => {
+        socket.on('PRIVATE_MESSAGE', (newMessage) => {
             console.log('Received PRIVATE_MESSAGE:', JSON.stringify(newMessage, null, 2));
-            if (newMessage && newMessage.userId?._id && newMessage.roomId) {
-                const [userId1, userId2] = newMessage.roomId.split('-');
-                const otherUserId = userId1 === userInfo._id ? userId2 : userId1;
-                console.log('Other user ID:', otherUserId);
-                try {
-                    const res = await axios.get(`${API_BASE_URL}/api/users/${otherUserId}`, {
-                        headers: { Authorization: `Bearer ${session.accessToken}` },
-                    });
-                    const otherUser = res.data;
-                    console.log('Fetched other user for private chat:', JSON.stringify(otherUser, null, 2));
-                    setPrivateChats((prev) => {
-                        if (prev.some((chat) => chat.receiver._id === otherUser._id)) {
-                            console.log('Updating existing chat with user:', otherUser._id);
-                            return prev.map((chat) =>
-                                chat.receiver._id === otherUser._id
-                                    ? { ...chat, isMinimized: false }
-                                    : chat
-                            );
-                        }
-                        console.log('Opening new private chat with user:', otherUser._id);
-                        return [...prev, { receiver: otherUser, isMinimized: false }];
-                    });
-                } catch (err) {
-                    console.error(`Error fetching user ${otherUserId}:`, err.message);
-                    setFetchError(`Không thể lấy thông tin người dùng ${otherUserId}`);
-                }
-            } else {
-                console.warn('Ignoring invalid PRIVATE_MESSAGE:', newMessage);
-            }
+            setPrivateChats((prev) =>
+                prev.map((chat) =>
+                    chat.receiver._id === newMessage.senderId || chat.receiver._id === newMessage.receiverId
+                        ? { ...chat, messages: [...(chat.messages || []), newMessage] }
+                        : chat
+                )
+            );
         });
 
         socket.on('USER_UPDATED', (updatedUser) => {
@@ -253,25 +214,31 @@ export default function GroupChat({ session: serverSession }) {
                 .map((msg) => msg.userId._id);
             const uniqueMissingUsers = [...new Set(missingUsers)];
             for (const userId of uniqueMissingUsers) {
-                await fetchUserDetails(userId);
+                try {
+                    const headers = session?.accessToken
+                        ? { Authorization: `Bearer ${session.accessToken}`, 'Content-Type': 'application/json' }
+                        : { 'Content-Type': 'application/json' };
+                    const res = await axios.get(`${API_BASE_URL}/api/users/${userId}`, { headers });
+                    const userData = res.data;
+                    setUsersCache((prev) => ({ ...prev, [userId]: userData }));
+                } catch (err) {
+                    console.error(`Error fetching user ${userId}:`, err.message);
+                    setFetchError(`Không thể lấy thông tin người dùng ${userId}`);
+                }
             }
         };
         if (messages.length > 0) fetchMissingUserDetails();
-    }, [messages, usersCache]);
+    }, [messages, usersCache, session?.accessToken]);
 
-    const fetchUserDetails = async (userId) => {
-        if (!userId || usersCache[userId]) return usersCache[userId];
-        try {
-            const res = await axios.get(`${API_BASE_URL}/api/users/${userId}`, {
-                headers: { Authorization: `Bearer ${session?.accessToken}` },
-            });
-            const userData = res.data;
-            setUsersCache((prev) => ({ ...prev, [userId]: userData }));
-            return userData;
-        } catch (err) {
-            console.error(`Error fetching user ${userId}:`, err.message);
-            return null;
+    const handleShowDetails = (user) => {
+        console.log('handleShowDetails called with user:', user);
+        if (!user?._id || !isValidObjectId(user._id)) {
+            console.error('Invalid user ID:', user?._id);
+            setError('ID người dùng không hợp lệ');
+            return;
         }
+        setSelectedUser(user);
+        setShowModal(true);
     };
 
     const handleMessageChange = (e) => {
@@ -290,6 +257,7 @@ export default function GroupChat({ session: serverSession }) {
     const handleMessageSubmit = async (e) => {
         e.preventDefault();
         if (!session || session.error) {
+            setError('Vui lòng đăng nhập để gửi tin nhắn');
             router.push('/login');
             return;
         }
@@ -302,10 +270,13 @@ export default function GroupChat({ session: serverSession }) {
             return;
         }
         try {
+            const headers = session?.accessToken
+                ? { Authorization: `Bearer ${session.accessToken}`, 'Content-Type': 'application/json' }
+                : { 'Content-Type': 'application/json' };
             const res = await axios.post(
                 `${API_BASE_URL}/api/groupchat`,
                 { content: message },
-                { headers: { Authorization: `Bearer ${session.accessToken}` } }
+                { headers }
             );
             console.log('Message submission response:', JSON.stringify(res.data, null, 2));
             setMessage('');
@@ -323,23 +294,15 @@ export default function GroupChat({ session: serverSession }) {
         router.push('/login');
     };
 
-    const openUserModal = (user) => {
-        setModalUser(user);
-    };
-
-    const closeUserModal = () => {
-        setModalUser(null);
-    };
-
     const openPrivateChat = (user) => {
-        console.log('Opening private chat with user:', JSON.stringify(user, null, 2));
+        console.log('openPrivateChat called with user:', JSON.stringify(user, null, 2));
         if (!userInfo) {
             setError('Vui lòng đăng nhập để mở chat riêng');
             console.log('Blocked: userInfo not loaded');
             return;
         }
-        const isCurrentUserAdmin = userInfo?.role === 'admin' || userInfo?.role === 'ADMIN';
-        const isTargetAdmin = user.role === 'admin' || user.role === 'ADMIN';
+        const isCurrentUserAdmin = userInfo?.role?.toLowerCase() === 'admin';
+        const isTargetAdmin = user?.role?.toLowerCase() === 'admin';
         if (!isCurrentUserAdmin && !isTargetAdmin) {
             setError('Bạn chỉ có thể chat riêng với admin');
             console.log('Blocked: User cannot open private chat with non-admin');
@@ -353,7 +316,8 @@ export default function GroupChat({ session: serverSession }) {
                 );
             }
             console.log('Opening new private chat:', user._id);
-            return [...prev, { receiver: user, isMinimized: false }];
+            console.log('privateChats updated:', [...prev, { receiver: user, isMinimized: false, messages: [] }]);
+            return [...prev, { receiver: user, isMinimized: false, messages: [] }];
         });
     };
 
@@ -371,150 +335,8 @@ export default function GroupChat({ session: serverSession }) {
         );
     };
 
-    const handleClick = (e, user) => {
-        e.preventDefault();
-        e.stopPropagation();
-        console.log('Left click menu for user:', JSON.stringify(user, null, 2));
-        console.log('Current userInfo:', JSON.stringify(userInfo, null, 2));
-        if (!userInfo) {
-            console.log('Blocked: userInfo not loaded');
-            return;
-        }
-
-        // Remove existing context menu if it exists
-        if (contextMenuRef.current && document.body.contains(contextMenuRef.current)) {
-            document.body.removeChild(contextMenuRef.current);
-            contextMenuRef.current = null;
-        }
-
-        // Create new context menu
-        const menu = document.createElement('div');
-        menu.className = styles.contextMenu;
-        menu.innerHTML = `
-            <div class="${styles.contextMenuItem}" data-action="private-chat">Chat riêng</div>
-            <div class="${styles.contextMenuItem}" data-action="user-details">Chi tiết người dùng</div>
-        `;
-        document.body.appendChild(menu);
-        contextMenuRef.current = menu;
-
-        // Position the menu below the avatar
-        const avatarElement = e.currentTarget.classList.contains(styles.avatar)
-            ? e.currentTarget
-            : e.currentTarget.closest(`.${styles.messageWrapper}`).querySelector(`.${styles.avatar}`);
-        const rect = avatarElement.getBoundingClientRect();
-        const menuRect = menu.getBoundingClientRect();
-        const maxX = window.innerWidth - menuRect.width;
-        const maxY = window.innerHeight - menuRect.height;
-        const menuX = Math.min(rect.left + window.scrollX, maxX);
-        const menuY = Math.min(rect.bottom + window.scrollY + 4, maxY); // 4px gap below avatar
-        menu.style.left = `${menuX}px`;
-        menu.style.top = `${menuY}px`;
-
-        // Handle menu item clicks
-        const handleMenuClick = (e) => {
-            e.stopPropagation();
-            const action = e.target.getAttribute('data-action');
-            if (action === 'private-chat') {
-                const isCurrentUserAdmin = userInfo?.role === 'admin' || userInfo?.role === 'ADMIN';
-                const isTargetAdmin = user.role === 'admin' || user.role === 'ADMIN';
-                if (isCurrentUserAdmin || isTargetAdmin) {
-                    openPrivateChat(user);
-                } else {
-                    setError('Bạn chỉ có thể chat riêng với admin');
-                    console.log('Blocked: User cannot open private chat with non-admin');
-                }
-            } else if (action === 'user-details') {
-                openUserModal(user);
-            }
-            if (contextMenuRef.current && document.body.contains(contextMenuRef.current)) {
-                document.body.removeChild(contextMenuRef.current);
-                contextMenuRef.current = null;
-            }
-            document.removeEventListener('click', handleClickOutside);
-        };
-
-        // Handle click outside to close menu
-        const handleClickOutside = (e) => {
-            if (contextMenuRef.current && document.body.contains(contextMenuRef.current)) {
-                if (!menu.contains(e.target)) {
-                    document.body.removeChild(contextMenuRef.current);
-                    contextMenuRef.current = null;
-                }
-            }
-            document.removeEventListener('click', handleClickOutside);
-        };
-
-        menu.addEventListener('click', handleMenuClick);
-        document.addEventListener('click', handleClickOutside, { once: true });
-    };
-
-    const handleContextMenu = (e, user) => {
-        e.preventDefault();
-        console.log('Context menu for user:', JSON.stringify(user, null, 2));
-        console.log('Current userInfo:', JSON.stringify(userInfo, null, 2));
-        if (!userInfo) {
-            console.log('Blocked: userInfo not loaded');
-            return;
-        }
-
-        // Remove existing context menu if it exists
-        if (contextMenuRef.current && document.body.contains(contextMenuRef.current)) {
-            document.body.removeChild(contextMenuRef.current);
-        }
-
-        // Create new context menu
-        const menu = document.createElement('div');
-        menu.className = styles.contextMenu;
-        menu.innerHTML = `
-            <div class="${styles.contextMenuItem}" data-action="private-chat">Chat riêng</div>
-            <div class="${styles.contextMenuItem}" data-action="user-details">Chi tiết người dùng</div>
-        `;
-        document.body.appendChild(menu);
-        contextMenuRef.current = menu;
-
-        // Position the menu
-        const rect = menu.getBoundingClientRect();
-        const maxX = window.innerWidth - rect.width;
-        const maxY = window.innerHeight - rect.height;
-        menu.style.left = `${Math.min(e.pageX, maxX)}px`;
-        menu.style.top = `${Math.min(e.pageY, maxY)}px`;
-
-        // Handle menu item clicks
-        const handleMenuClick = (e) => {
-            e.stopPropagation();
-            const action = e.target.getAttribute('data-action');
-            if (action === 'private-chat') {
-                const isCurrentUserAdmin = userInfo?.role === 'admin' || userInfo?.role === 'ADMIN';
-                const isTargetAdmin = user.role === 'admin' || user.role === 'ADMIN';
-                if (isCurrentUserAdmin || isTargetAdmin) {
-                    openPrivateChat(user);
-                } else {
-                    setError('Bạn chỉ có thể chat riêng với admin');
-                    console.log('Blocked: User cannot open private chat with non-admin');
-                }
-            } else if (action === 'user-details') {
-                openUserModal(user);
-            }
-            if (contextMenuRef.current && document.body.contains(contextMenuRef.current)) {
-                document.body.removeChild(contextMenuRef.current);
-                contextMenuRef.current = null;
-            }
-            document.removeEventListener('click', handleClickOutside);
-        };
-
-        // Handle click outside to close menu
-        const handleClickOutside = (e) => {
-            if (contextMenuRef.current && document.body.contains(contextMenuRef.current)) {
-                if (!menu.contains(e.target)) {
-                    document.body.removeChild(contextMenuRef.current);
-                    contextMenuRef.current = null;
-                }
-            }
-            document.removeEventListener('click', handleClickOutside);
-        };
-
-        menu.addEventListener('click', handleMenuClick);
-        document.addEventListener('click', handleClickOutside, { once: true });
+    const getAvatarClass = (role) => {
+        return role?.toLowerCase() === 'admin' ? styles.avatarA : styles.avatarB;
     };
 
     return (
@@ -533,9 +355,10 @@ export default function GroupChat({ session: serverSession }) {
                                 className={`${styles.messageWrapper} ${isOwnMessage ? styles.ownMessage : ''}`}
                             >
                                 <div
-                                    className={styles.avatar}
-                                    onClick={(e) => handleClick(e, displayUser)}
-                                    onContextMenu={(e) => handleContextMenu(e, displayUser)}
+                                    className={`${styles.avatar} ${getAvatarClass(displayUser?.role)}`}
+                                    onClick={() => handleShowDetails(displayUser)}
+                                    role="button"
+                                    aria-label={`Xem chi tiết ${getDisplayName(displayUser.fullname)}`}
                                 >
                                     {displayUser?.img ? (
                                         <Image
@@ -558,29 +381,22 @@ export default function GroupChat({ session: serverSession }) {
                                 <div className={styles.messageContent}>
                                     <div className={styles.messageHeader}>
                                         <span
-                                            className={`${styles.username} ${(displayUser?.role?.toLowerCase() === 'admin' || displayUser?.role?.toLowerCase() === 'ADMIN')
-                                                ? styles.admin
-                                                : styles.user
-                                                }`}
-                                            onClick={(e) => handleClick(e, displayUser)}
-                                            onContextMenu={(e) => handleContextMenu(e, displayUser)}
+                                            className={`${styles.username} ${getAvatarClass(displayUser?.role)}`}
+                                            onClick={() => handleShowDetails(displayUser)}
+                                            role="button"
+                                            aria-label={`Xem chi tiết ${getDisplayName(displayUser.fullname)}`}
                                         >
                                             {getDisplayName(displayUser?.fullname || 'User')}
                                         </span>
                                         {displayUser?.role && (
                                             <span
-                                                className={`${styles.role} ${(displayUser.role.toLowerCase() === 'admin' || displayUser.role.toLowerCase() === 'ADMIN')
-                                                    ? styles.admin
-                                                    : styles.user
-                                                    }`}
+                                                className={`${styles.role} ${getAvatarClass(displayUser?.role)}`}
                                             >
                                                 {displayUser.role}
                                             </span>
                                         )}
                                         <span className={styles.timestamp}>
-                                            {moment
-                                                .tz(msg.createdAt, 'Asia/Ho_Chi_Minh')
-                                                .format('DD/MM/YYYY HH:mm')}
+                                            {moment.tz(msg.createdAt, 'Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm')}
                                         </span>
                                     </div>
                                     <p className={styles.messageText}>{msg.content}</p>
@@ -616,68 +432,22 @@ export default function GroupChat({ session: serverSession }) {
             )}
             {error && <p className={styles.error}>{error}</p>}
             {fetchError && <p className={styles.error}>{fetchError}</p>}
-
-            {modalUser && (
-                <div className={styles.modalOverlay}>
-                    <div className={styles.modal}>
-                        <button className={styles.closeButton} onClick={closeUserModal}>
-                            ×
-                        </button>
-                        <div className={styles.modalContent}>
-                            <div className={styles.modalAvatar}>
-                                {modalUser?.img ? (
-                                    <Image
-                                        src={modalUser.img}
-                                        alt={getDisplayName(modalUser.fullname)}
-                                        className={styles.modalAvatarImage}
-                                        width={80}
-                                        height={80}
-                                        onError={(e) => {
-                                            e.target.style.display = 'none';
-                                            e.target.nextSibling.style.display = 'flex';
-                                        }}
-                                    />
-                                ) : (
-                                    <span className={styles.modalAvatarInitials}>
-                                        {getInitials(modalUser?.fullname || 'User')}
-                                    </span>
-                                )}
-                            </div>
-                            <h3 className={styles.modalUsername}>
-                                {getDisplayName(modalUser?.fullname || 'User')}
-                            </h3>
-                            {modalUser?.role && (
-                                <span
-                                    className={`${styles.modalRole} ${(modalUser.role.toLowerCase() === 'admin' || modalUser.role.toLowerCase() === 'ADMIN')
-                                        ? styles.admin
-                                        : styles.user
-                                        }`}
-                                >
-                                    {modalUser.role}
-                                </span>
-                            )}
-                            <p className={styles.modalDetail}>
-                                Danh hiệu:{' '}
-                                {modalUser?.titles?.length > 0
-                                    ? modalUser.titles.join(', ')
-                                    : 'Chưa có danh hiệu'}
-                            </p>
-                            <p className={styles.modalDetail}>
-                                Cấp độ: {modalUser?.level ?? 'N/A'}
-                            </p>
-                            <p className={styles.modalDetail}>
-                                Điểm: {modalUser?.points ?? 0}
-                            </p>
-                        </div>
-                    </div>
-                </div>
+            {showModal && selectedUser && (
+                <UserInfoModal
+                    selectedUser={selectedUser}
+                    setSelectedUser={setSelectedUser}
+                    setShowModal={setShowModal}
+                    openPrivateChat={openPrivateChat}
+                    getAvatarClass={getAvatarClass}
+                    accessToken={session?.accessToken}
+                />
             )}
-
             <div className={styles.privateChatsContainer}>
                 {privateChats.map((chat, index) => (
                     <PrivateChat
                         key={chat.receiver._id}
                         receiver={chat.receiver}
+                        socket={socketRef.current}
                         onClose={() => closePrivateChat(chat.receiver._id)}
                         isMinimized={chat.isMinimized}
                         onToggleMinimize={() => toggleMinimizePrivateChat(chat.receiver._id)}

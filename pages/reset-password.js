@@ -28,7 +28,7 @@ export default function ResetPassword() {
 
         const verifyToken = async () => {
             try {
-                const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/reset-password`, {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL3}/api/auth/reset-password`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -81,7 +81,7 @@ export default function ResetPassword() {
         setMessage("");
 
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/reset-password`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL3}/api/auth/reset-password`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

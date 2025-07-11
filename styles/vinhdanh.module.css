@@ -1,11 +1,14 @@
 .leaderboard {
-    max-width: 800px;
-    margin: 20px auto;
-    width: 350px;
+    max-width: 930px;
+    margin: 0px auto;
+    width: 930px;
+    border: 10px solid #8f7145;
+    /* width: 350px; */
     padding: 20px;
-    background-color: #f9f9f9;
-    border-radius: 8px;
+    background-color: #ffeead;
+    /* border-radius: 8px; */
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    height: 500px;
 }
 
 .title {

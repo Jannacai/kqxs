@@ -12,8 +12,10 @@ import { formatDistanceToNow } from 'date-fns';
 import vi from 'date-fns/locale/vi';
 import Image from 'next/image';
 import { FaGift } from 'react-icons/fa';
+import PrivateChat from './chatrieng';
+import UserInfoModal from './modals/UserInfoModal';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL3 || 'http://localhost:5001';
 
 export default function LotteryRegistrationFeed() {
     const { data: session, status } = useSession();
@@ -22,10 +24,10 @@ export default function LotteryRegistrationFeed() {
     const [rewardNotifications, setRewardNotifications] = useState([]);
     const [eventNotifications, setEventNotifications] = useState([]);
     const [error, setError] = useState('');
-    const [region, setRegion] = useState('');
+    const [filterType, setFilterType] = useState('all');
     const [selectedUser, setSelectedUser] = useState(null);
     const [showModal, setShowModal] = useState(false);
-    const modalRef = useRef(null);
+    const [privateChats, setPrivateChats] = useState([]);
     const registrationListRef = useRef(null);
     const socketRef = useRef(null);
     const [isAtBottom, setIsAtBottom] = useState(true);
@@ -38,18 +40,25 @@ export default function LotteryRegistrationFeed() {
         }
 
         try {
-            const params = { region, page: 1, limit: 20 };
+            const params = { page: 1, limit: 50 };
+            if (filterType !== 'all') {
+                if (filterType === 'eventNews') params.isEvent = true;
+                if (filterType === 'reward') params.isReward = true;
+                if (filterType === 'userRegistration') {
+                    params.isEvent = false;
+                    params.isReward = false;
+                }
+            }
             console.log('Fetching registrations with params:', params);
             const headers = {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${session.accessToken}`,
+                Authorization: `Bearer ${session.accessToken} `,
             };
             const res = await axios.get(`${API_BASE_URL}/api/lottery/registrations`, {
                 headers,
                 params,
             });
             console.log('Registrations data:', res.data.registrations);
-            // Phân loại dữ liệu
             const registrationsData = res.data.registrations.filter(r => !r.isReward && !r.isEvent);
             const rewardData = res.data.registrations.filter(r => r.isReward);
             const eventData = res.data.registrations.filter(r => r.isEvent);
@@ -69,6 +78,23 @@ export default function LotteryRegistrationFeed() {
         }
     };
 
+    const fetchEventDetails = async (eventId) => {
+        try {
+            const headers = {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${session.accessToken} `,
+            };
+            const res = await axios.get(`${API_BASE_URL}/api/lottery/events`, {
+                headers,
+                params: { eventId }
+            });
+            return res.data.events.find(e => e._id === eventId);
+        } catch (err) {
+            console.error('Error fetching event details:', err.response?.data || err.message);
+            return null;
+        }
+    };
+
     useEffect(() => {
         if (status === 'loading') return;
         if (status === 'unauthenticated') {
@@ -77,7 +103,7 @@ export default function LotteryRegistrationFeed() {
             return;
         }
         fetchRegistrations();
-    }, [status, region]);
+    }, [status, filterType]);
 
     useEffect(() => {
         if (status !== 'authenticated' || !session?.accessToken) return;
@@ -94,37 +120,47 @@ export default function LotteryRegistrationFeed() {
             console.log('Socket.IO connected successfully:', socket.id);
             socket.emit('joinLotteryFeed');
             socket.emit('join', 'leaderboard');
+            socket.emit('joinPrivateRoom', session.user?._id || session.user?.id);
             setError('');
         });
 
-        socket.on('NEW_LOTTERY_REGISTRATION', (data) => {
+        socket.on('NEW_LOTTERY_REGISTRATION', async (data) => {
             console.log('Received NEW_LOTTERY_REGISTRATION:', data);
-            setRegistrations((prevRegistrations) => {
-                if (region && data.region !== region) return prevRegistrations;
-                if (prevRegistrations.some(r => r._id === data._id)) {
-                    return prevRegistrations.map(r => (r._id === data._id ? data : r));
+            if (filterType === 'all' || filterType === 'userRegistration') {
+                let updatedData = { ...data };
+                if (data.eventId && !data.eventId.title) {
+                    const event = await fetchEventDetails(data.eventId._id || data.eventId);
+                    if (event) {
+                        updatedData.eventId = { _id: event._id, title: event.title, viewCount: event.viewCount };
+                    }
                 }
-                const updatedRegistrations = [data, ...prevRegistrations].sort(
-                    (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-                );
-                return updatedRegistrations.slice(0, 50);
-            });
-            if (isAtBottom && registrationListRef.current) {
-                registrationListRef.current.scrollTop = registrationListRef.current.scrollHeight;
+                setRegistrations((prevRegistrations) => {
+                    if (prevRegistrations.some(r => r._id === updatedData._id)) {
+                        return prevRegistrations.map(r => (r._id === updatedData._id ? updatedData : r));
+                    }
+                    const updatedRegistrations = [...prevRegistrations, updatedData].sort(
+                        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+                    );
+                    return updatedRegistrations.slice(0, 100);
+                });
+                if (registrationListRef.current && isAtBottom) {
+                    registrationListRef.current.scrollTop = 0;
+                }
             }
         });
 
         socket.on('LOTTERY_RESULT_CHECKED', (data) => {
             console.log('Received LOTTERY_RESULT_CHECKED:', data);
-            setRegistrations((prevRegistrations) => {
-                if (region && data.region !== region) return prevRegistrations;
-                if (prevRegistrations.some(r => r._id === data._id)) {
-                    return prevRegistrations.map(r => (r._id === data._id ? data : r));
+            if (filterType === 'all' || filterType === 'userRegistration') {
+                setRegistrations((prevRegistrations) => {
+                    if (prevRegistrations.some(r => r._id === data._id)) {
+                        return prevRegistrations.map(r => (r._id === data._id ? data : r));
+                    }
+                    return prevRegistrations;
+                });
+                if (registrationListRef.current && isAtBottom) {
+                    registrationListRef.current.scrollTop = 0;
                 }
-                return prevRegistrations;
-            });
-            if (isAtBottom && registrationListRef.current) {
-                registrationListRef.current.scrollTop = registrationListRef.current.scrollHeight;
             }
         });
 
@@ -132,69 +168,84 @@ export default function LotteryRegistrationFeed() {
             console.log('Received USER_UPDATED:', data);
             setRegistrations((prevRegistrations) =>
                 prevRegistrations.map((r) =>
-                    r.userId._id === data._id ? { ...r, userId: { ...r.userId, img: data.img, titles: data.titles, points: data.points, winCount: data.winCount } } : r
+                    r.userId._id === data._id ? { ...r, userId: { ...r.userId, img: data.img, titles: data.titles, points: data.points, winCount: data.winCount, role: data.role } } : r
                 )
             );
             setRewardNotifications((prevNotifications) =>
                 prevNotifications.map((n) =>
-                    n.userId._id === data._id ? { ...n, userId: { ...n.userId, img: data.img, titles: data.titles, points: data.points, winCount: data.winCount } } : n
+                    n.userId._id === data._id ? { ...n, userId: { ...n.userId, img: data.img, titles: data.titles, points: data.points, winCount: data.winCount, role: data.role } } : n
                 )
             );
             setEventNotifications((prevNotifications) =>
                 prevNotifications.map((n) =>
-                    n.userId._id === data._id ? { ...n, userId: { ...n.userId, img: data.img, titles: data.titles, points: data.points, winCount: data.winCount } } : n
+                    n.userId._id === data._id ? { ...n, userId: { ...n.userId, img: data.img, titles: data.titles, points: data.points, winCount: data.winCount, role: data.role } } : n
                 )
             );
         });
 
         socket.on('UPDATE_LOTTERY_REGISTRATION', (data) => {
             console.log('Received UPDATE_LOTTERY_REGISTRATION:', data);
-            setRegistrations((prevRegistrations) =>
-                prevRegistrations.map((r) => (r._id === data._id ? data : r))
-            );
-        });
-
-        socket.on('USER_REWARDED', (data) => {
-            console.log('Received USER_REWARDED:', data);
-            setRewardNotifications((prevNotifications) => {
-                const rewardNotification = {
-                    _id: `reward_${data.userId}_${Date.now()}`,
-                    userId: {
-                        _id: data.userId,
-                        fullname: data.fullname,
-                        img: data.img,
-                        titles: data.titles || [],
-                        points: data.points,
-                        winCount: data.winCount || 0
-                    },
-                    region: data.region,
-                    numbers: {},
-                    result: { isChecked: true, isWin: false },
-                    createdAt: new Date(),
-                    isReward: true,
-                    pointsAwarded: data.pointsAwarded,
-                    eventTitle: data.eventTitle
-                };
-                const updatedNotifications = [rewardNotification, ...prevNotifications].sort(
-                    (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+            if (filterType === 'all' || filterType === 'userRegistration') {
+                setRegistrations((prevRegistrations) =>
+                    prevRegistrations.map((r) => (r._id === data._id ? data : r))
                 );
-                return updatedNotifications.slice(0, 50);
-            });
-            if (isAtBottom && registrationListRef.current) {
-                registrationListRef.current.scrollTop = registrationListRef.current.scrollHeight;
+                if (registrationListRef.current && isAtBottom) {
+                    registrationListRef.current.scrollTop = 0;
+                }
             }
         });
 
-        socket.on('NEW_EVENT_NOTIFICATION', (data) => {
+        socket.on('USER_REWARDED', async (data) => {
+            console.log('Received USER_REWARDED:', data);
+            if (filterType === 'all' || filterType === 'reward') {
+                let updatedData = { ...data };
+                const rewardNotification = {
+                    _id: `reward_${data.userId}_${Date.now()} `,
+                    userId: updatedData.userId,
+                    region: data.region,
+                    numbers: {},
+                    result: { isChecked: true, isWin: false },
+                    createdAt: new Date(data.awardedAt || Date.now()),
+                    isReward: true,
+                    pointsAwarded: data.pointsAwarded,
+                    eventTitle: data.eventTitle,
+                    eventId: data.eventId ? data.eventId : null,
+                };
+                setRewardNotifications((prevNotifications) => {
+                    const updatedNotifications = [...prevNotifications, rewardNotification].sort(
+                        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+                    );
+                    return updatedNotifications.slice(0, 100);
+                });
+                if (registrationListRef.current && isAtBottom) {
+                    registrationListRef.current.scrollTop = 0;
+                }
+            }
+        });
+
+        socket.on('NEW_EVENT_NOTIFICATION', async (data) => {
             console.log('Received NEW_EVENT_NOTIFICATION:', data);
-            setEventNotifications((prevNotifications) => {
-                const updatedNotifications = [data, ...prevNotifications].sort(
-                    (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-                );
-                return updatedNotifications.slice(0, 50);
-            });
-            if (isAtBottom && registrationListRef.current) {
-                registrationListRef.current.scrollTop = registrationListRef.current.scrollHeight;
+            if (filterType === 'all' || filterType === 'eventNews') {
+                let updatedData = { ...data };
+                if (data.eventId && typeof data.eventId !== 'string') {
+                    updatedData.eventId = data.eventId._id ? data.eventId._id.toString() : data.eventId;
+                }
+                if (!data.title && data.eventId) {
+                    const event = await fetchEventDetails(data.eventId);
+                    if (event) {
+                        updatedData.title = event.title;
+                        updatedData.eventId = event._id.toString();
+                    }
+                }
+                setEventNotifications((prevNotifications) => {
+                    const updatedNotifications = [...prevNotifications, updatedData].sort(
+                        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+                    );
+                    return updatedNotifications.slice(0, 100);
+                });
+                if (registrationListRef.current && isAtBottom) {
+                    registrationListRef.current.scrollTop = 0;
+                }
             }
         });
 
@@ -203,9 +254,9 @@ export default function LotteryRegistrationFeed() {
             setError(data.message || 'Lỗi khi đối chiếu kết quả xổ số');
         });
 
-        socket.on('connect_error', (error) => {
-            console.error('Socket.IO connection error:', error.message);
-            if (error.message.includes('Authentication error')) {
+        socket.on('connect_error', (err) => {
+            console.error('Socket.IO connection error:', err.message);
+            if (err.message.includes('Authentication error')) {
                 setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
                 signOut({ redirect: false });
                 router.push('/login?error=SessionExpired');
@@ -215,13 +266,14 @@ export default function LotteryRegistrationFeed() {
         });
 
         socket.on('reconnect_attempt', (attempt) => {
-            console.log(`Socket.IO reconnect attempt ${attempt}`);
+            console.log(`Socket.IO reconnect attempt ${attempt} `);
         });
 
         socket.on('reconnect', () => {
             console.log('Reconnected to Socket.IO');
             socket.emit('joinLotteryFeed');
             socket.emit('join', 'leaderboard');
+            socket.emit('joinPrivateRoom', session.user?._id || session.user?.id);
         });
 
         socket.on('disconnect', (reason) => {
@@ -238,23 +290,12 @@ export default function LotteryRegistrationFeed() {
         const handleScroll = () => {
             if (registrationListRef.current) {
                 const { scrollTop, scrollHeight, clientHeight } = registrationListRef.current;
-                setIsAtBottom(scrollHeight - scrollTop - clientHeight < 50);
+                setIsAtBottom(scrollHeight - scrollTop - clientHeight < 100);
             }
         };
         const registrationList = registrationListRef.current;
         registrationList?.addEventListener('scroll', handleScroll);
         return () => registrationList?.removeEventListener('scroll', handleScroll);
-    }, []);
-
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (modalRef.current && !modalRef.current.contains(event.target)) {
-                setShowModal(false);
-                setSelectedUser(null);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
     const handleShowDetails = (user) => {
@@ -276,6 +317,39 @@ export default function LotteryRegistrationFeed() {
         router.push(`/diendan/events/${eventId}`);
     };
 
+    const openPrivateChat = (user) => {
+        if (!session?.user) {
+            setError('Vui lòng đăng nhập để mở chat riêng');
+            return;
+        }
+        const isCurrentUserAdmin = session.user.role?.toLowerCase() === 'admin';
+        const isTargetAdmin = user.role?.toLowerCase() === 'admin';
+        if (!isCurrentUserAdmin && !isTargetAdmin) {
+            setError('Bạn chỉ có thể chat riêng với admin');
+            return;
+        }
+        setPrivateChats((prev) => {
+            if (prev.some((chat) => chat.receiver._id === user._id)) {
+                return prev.map((chat) =>
+                    chat.receiver._id === user._id ? { ...chat, isMinimized: false } : chat
+                );
+            }
+            return [...prev, { receiver: user, isMinimized: false }];
+        });
+    };
+
+    const closePrivateChat = (receiverId) => {
+        setPrivateChats((prev) => prev.filter((chat) => chat.receiver._id !== receiverId));
+    };
+
+    const toggleMinimizePrivateChat = (receiverId) => {
+        setPrivateChats((prev) =>
+            prev.map((chat) =>
+                chat.receiver._id === receiverId ? { ...chat, isMinimized: !chat.isMinimized } : chat
+            )
+        );
+    };
+
     const getAvatarClass = (fullname) => {
         const firstChar = fullname ? fullname[0]?.toLowerCase() : 'a';
         const avatarColors = {
@@ -287,14 +361,14 @@ export default function LotteryRegistrationFeed() {
             u: styles.avatarU, v: styles.avatarV, w: styles.avatarW, x: styles.avatarX,
             y: styles.avatarY, z: styles.avatarZ,
         };
-        return avatarColors[firstChar] || styles.avatarA;
+        return avatarColors[firstChar] || avatarColors.a;
     };
 
     const renderRegistration = (item) => {
         const fullname = item.userId?.fullname || 'Người dùng ẩn danh';
         const firstChar = fullname[0]?.toUpperCase() || '?';
         const titles = item.userId?.titles || [];
-        const eventId = item.isEvent && item.eventId?._id ? item.eventId._id.toString() : null;
+        const eventId = item.isEvent && item.eventId ? (typeof item.eventId === 'string' ? item.eventId : item.eventId._id?.toString()) : null;
 
         console.log('Rendering item for user:', {
             userId: item.userId?._id,
@@ -308,7 +382,7 @@ export default function LotteryRegistrationFeed() {
         return (
             <div
                 key={item._id}
-                className={`${styles.commentItem} ${item.isReward ? styles.rewardNotification : item.isEvent ? styles.eventNotification : styles.registrationNotification}`}
+                className={`${styles.commentItem} ${item.isReward ? styles.rewardNotification : item.isEvent ? styles.eventNotification : styles.registrationNotification} `}
                 onClick={item.isEvent && eventId ? () => handleEventClick(eventId) : undefined}
                 style={item.isEvent && eventId ? { cursor: 'pointer' } : {}}
             >
@@ -334,7 +408,7 @@ export default function LotteryRegistrationFeed() {
                     ) : null}
                     <div className={styles.group}>
                         <div
-                            className={`${styles.avatar} ${getAvatarClass(fullname)}`}
+                            className={`${styles.avatar} ${getAvatarClass(fullname)} `}
                             onClick={(e) => {
                                 e.stopPropagation();
                                 handleShowDetails(item.userId);
@@ -364,29 +438,28 @@ export default function LotteryRegistrationFeed() {
                     {item.isReward ? (
                         <span className={styles.rewardPoints}>
                             <FaGift className={styles.giftIcon} />
-                            Đã được phát thưởng <strong className={styles.poins}>{item.pointsAwarded} điểm</strong> cho sự kiện <strong>{item.eventTitle}</strong>!
+                            Đã được nhận thưởng <strong className={styles.points}>{item.pointsAwarded} điểm</strong> của sự kiện <strong>{item.eventTitle || 'Không có sự kiện'}</strong>!
                         </span>
                     ) : item.isEvent ? (
                         <span>
-                            Đã đăng {item.type === 'event' ? 'sự kiện' : 'tin hot'}: <strong>{item.title}</strong>
+                            Tin Mới: {item.type === 'event' ? 'sự kiện' : 'tin hot'}: <strong className={styles.titleStatus}>{item.title || 'Sự kiện không xác định'}</strong>
                         </span>
                     ) : (
                         <>
-                            Đã đăng ký quay số miền <strong>{item.region}</strong>
+                            Đã đăng ký tham gia Sự Kiện: <strong>{item.eventId?.title || 'Không có sự kiện'}</strong> Miền: ({item.region})
                             <br />
-                            <strong>Số đăng ký:</strong><br />
                             {item.numbers.bachThuLo && `Bạch thủ lô: ${item.numbers.bachThuLo} | `}
                             {item.numbers.songThuLo.length > 0 && `Song thủ lô: ${item.numbers.songThuLo.join(', ')} | `}
-                            {item.numbers.threeCL && `3CL: ${item.numbers.threeCL}`}
-                            {item.numbers.cham && `Chạm: ${item.numbers.cham}`}
+                            {item.numbers.threeCL && `3CL: ${item.numbers.threeCL} `}
+                            {item.numbers.cham && `Chạm: ${item.numbers.cham} `}
                             {item.result && item.result.isChecked ? (
                                 item.result.isWin ? (
                                     <span className={styles.winningResult}>
                                         <strong>Kết quả: Trúng</strong><br />
-                                        {item.result.winningNumbers.bachThuLo && `Bạch thủ lô: ${item.numbers.bachThuLo}`}<br />
-                                        {item.result.winningNumbers.songThuLo.length > 0 && `Song thủ lô: ${item.result.winningNumbers.songThuLo.join(', ')}`}<br />
-                                        {item.result.winningNumbers.threeCL && `3CL: ${item.numbers.threeCL}`}<br />
-                                        {item.result.winningNumbers.cham && `Chạm: ${item.numbers.cham}`}<br />
+                                        {item.result.winningNumbers.bachThuLo && `Bạch thủ lô: ${item.numbers.bachThuLo} `}<br />
+                                        {item.result.winningNumbers.songThuLo.length > 0 && `Song thủ lô: ${item.result.winningNumbers.songThuLo.join(', ')} `}<br />
+                                        {item.result.winningNumbers.threeCL && `3CL: ${item.numbers.threeCL} `}<br />
+                                        {item.result.winningNumbers.cham && `Chạm: ${item.numbers.cham} `}<br />
                                         <strong>Giải trúng:</strong> {item.result.matchedPrizes.join(', ')}
                                     </span>
                                 ) : (
@@ -396,7 +469,8 @@ export default function LotteryRegistrationFeed() {
                                 )
                             ) : (
                                 <span>
-                                    {/* <strong>Chưa đối chiếu</strong> */}
+                                    <br />
+                                    <strong className={styles.status}>Đăng ký thành công</strong>
                                 </span>
                             )}
                         </>
@@ -406,104 +480,67 @@ export default function LotteryRegistrationFeed() {
         );
     };
 
-    const combinedFeed = [...registrations, ...rewardNotifications, ...eventNotifications].sort(
-        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-    ).slice(0, 50);
+    const filteredFeed = filterType === 'all'
+        ? [...registrations, ...rewardNotifications, ...eventNotifications].sort(
+            (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        ).slice(0, 50)
+        : filterType === 'eventNews'
+            ? eventNotifications.slice(0, 50)
+            : filterType === 'reward'
+                ? rewardNotifications.slice(0, 50)
+                : registrations.slice(0, 50);
 
     return (
         <div className={styles.container}>
-            {/* <h1 className={styles.title}>🔔 Thông báo</h1> */}
             {error && <p className={styles.error}>{error}</p>}
             {status === 'loading' && <p className={styles.loading}>Đang tải...</p>}
             <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Lọc theo miền</label>
+                <label className={styles.formLabel}>Lọc theo loại thông báo</label>
                 <select
-                    value={region}
+                    value={filterType}
                     onChange={(e) => {
-                        setRegion(e.target.value);
+                        setFilterType(e.target.value);
+                        setRegistrations([]);
                         setRewardNotifications([]);
                         setEventNotifications([]);
                     }}
                     className={styles.input}
                 >
-                    <option value="">Tất cả</option>
-                    <option value="Nam">Miền Nam</option>
-                    <option value="Trung">Miền Trung</option>
-                    <option value="Bac">Miền Bắc</option>
+                    <option value="all">Tất cả</option>
+                    <option value="eventNews">Tin tức sự kiện</option>
+                    <option value="reward">Nhận thưởng</option>
+                    <option value="userRegistration">Đăng ký sự kiện</option>
                 </select>
             </div>
             <div className={styles.commentList} ref={registrationListRef}>
-                {combinedFeed.length === 0 ? (
+                {filteredFeed.length === 0 ? (
                     <p className={styles.noComments}>Chưa có đăng ký hoặc thông báo nào.</p>
                 ) : (
-                    combinedFeed.map((item) => renderRegistration(item))
+                    filteredFeed.map((item) => renderRegistration(item))
                 )}
             </div>
             {showModal && selectedUser && (
-                <div className={styles.modalOverlay}>
-                    <div className={styles.modal} ref={modalRef}>
-                        <h2 className={styles.modalTitle}>Chi tiết người dùng</h2>
-                        {selectedUser.img ? (
-                            <Image
-                                src={selectedUser.img}
-                                alt={selectedUser.fullname || 'Người dùng ẩn danh'}
-                                className={styles.modalAvatar}
-                                width={96}
-                                height={96}
-                                onError={(e) => {
-                                    console.error('Failed to load modal avatar:', selectedUser.img);
-                                    e.target.style.display = 'none';
-                                    e.target.nextSibling.style.display = 'flex';
-                                }}
-                            />
-                        ) : (
-                            <div
-                                className={`${styles.avatar} ${getAvatarClass(selectedUser.fullname || 'Người dùng ẩn danh')}`}
-                                style={{ display: selectedUser.img ? 'none' : 'flex' }}
-                            >
-                                {(selectedUser.fullname?.[0]?.toUpperCase()) || '?'}
-                            </div>
-                        )}
-                        <p><strong>Tên:</strong> {selectedUser.fullname || 'Người dùng ẩn danh'}</p>
-                        <p><strong>Cấp độ:</strong> {selectedUser.level || 1}</p>
-                        <p><strong>Số điểm:</strong> {selectedUser.points || 0}</p>
-                        <p><strong>Số lần trúng:</strong> {selectedUser.winCount || 0}</p>
-                        <p>
-                            <strong>Danh hiệu:</strong>{' '}
-                            <span className={styles.titles}>
-                                {selectedUser.titles?.map((title, index) => {
-                                    const titleClass = title.toLowerCase().includes('học giả')
-                                        ? 'hocgia'
-                                        : title.toLowerCase().includes('chuyên gia')
-                                            ? 'chuyengia'
-                                            : title.toLowerCase().includes('thần số học')
-                                                ? 'thansohoc'
-                                                : title.toLowerCase().includes('thần chốt số')
-                                                    ? 'thanchotso'
-                                                    : 'tanthu';
-                                    return (
-                                        <span
-                                            key={index}
-                                            className={`${styles.titleBadge} ${styles[titleClass]}`}
-                                        >
-                                            {title}
-                                        </span>
-                                    );
-                                }) || 'Tân thủ'}
-                            </span>
-                        </p>
-                        <button
-                            className={styles.cancelButton}
-                            onClick={() => {
-                                setShowModal(false);
-                                setSelectedUser(null);
-                            }}
-                        >
-                            Đóng
-                        </button>
-                    </div>
-                </div>
+                <UserInfoModal
+                    selectedUser={selectedUser}
+                    setSelectedUser={setSelectedUser}
+                    setShowModal={setShowModal}
+                    openPrivateChat={openPrivateChat}
+                    getAvatarClass={getAvatarClass}
+                    accessToken={session?.accessToken}
+                />
             )}
+            <div className={styles.privateChatsContainer}>
+                {privateChats.map((chat, index) => (
+                    <PrivateChat
+                        key={chat.receiver._id}
+                        receiver={chat.receiver}
+                        onClose={() => closePrivateChat(chat.receiver._id)}
+                        isMinimized={chat.isMinimized}
+                        onToggleMinimize={() => toggleMinimizePrivateChat(chat.receiver._id)}
+                        style={{ right: `${20 + index * 320} px` }}
+                    />
+                ))}
+            </div>
         </div>
     );
 }

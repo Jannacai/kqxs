@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { FaSearch, FaEdit, FaTrash, FaTrophy, FaTimes } from 'react-icons/fa';
 import styles from '../../styles/quanlyUser.module.css';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
 
 export default function AdminUsers() {
     const { data: session, status } = useSession();

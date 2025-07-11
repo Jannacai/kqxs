@@ -7,13 +7,11 @@ import io from 'socket.io-client';
 import axios from 'axios';
 import Image from 'next/image';
 import star1 from '../asset/img/start 1.png';
-// import star2 from '../asset/img';
-import star3 from '../asset/img/nenxephang1.png';
-
-import Link from 'next/link';
+import PrivateChat from './chatrieng';
+import UserInfoModal from './modals/UserInfoModal';
 import styles from '../../styles/Leaderboard.module.css';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
 
 const TITLE_THRESHOLDS = [
     { title: 'Tân thủ', minPoints: 0, maxPoints: 100 },
@@ -33,7 +31,7 @@ const Leaderboard = () => {
     const [showModal, setShowModal] = useState(false);
     const [expandedTitles, setExpandedTitles] = useState({});
     const [sortBy, setSortBy] = useState('points');
-    const modalRef = useRef(null);
+    const [privateChats, setPrivateChats] = useState([]);
     const titleRefs = useRef({});
     const socketRef = useRef(null);
 
@@ -42,17 +40,13 @@ const Leaderboard = () => {
         try {
             console.log('Fetching leaderboard from:', `${API_BASE_URL}/api/users/leaderboard`);
             const headers = session?.accessToken
-                ? {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${session.accessToken}`,
-                }
-                : {
-                    'Content-Type': 'application/json',
-                };
+                ? { Authorization: `Bearer ${session.accessToken}`, 'Content-Type': 'application/json' }
+                : { 'Content-Type': 'application/json' };
             const res = await axios.get(`${API_BASE_URL}/api/users/leaderboard`, {
                 headers,
                 params: { limit: 50, sortBy },
             });
+            console.log('Leaderboard data:', res.data.users);
             setPlayers(res.data.users || []);
             setError('');
         } catch (err) {
@@ -90,11 +84,18 @@ const Leaderboard = () => {
         socket.on('connect', () => {
             console.log('Socket.IO connected for leaderboard:', socket.id);
             socket.emit('joinLeaderboard');
+            socket.emit('joinPrivateRoom', session.user?._id || session.user?.id);
         });
 
         socket.on('connect_error', (err) => {
             console.error('Socket.IO connection error:', err.message);
-            setError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
+            if (err.message.includes('Authentication error')) {
+                setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+                signOut({ redirect: false });
+                router.push('/login?error=SessionExpired');
+            } else {
+                setError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
+            }
         });
 
         socket.on('USER_UPDATED', (updatedUser) => {
@@ -103,50 +104,88 @@ const Leaderboard = () => {
                 prev
                     .map((player) =>
                         player._id === updatedUser._id
-                            ? {
-                                ...player,
-                                points: updatedUser.points,
-                                titles: updatedUser.titles,
-                                winCount: updatedUser.winCount,
-                            }
+                            ? { ...player, points: updatedUser.points, titles: updatedUser.titles, winCount: updatedUser.winCount }
                             : player
                     )
                     .sort((a, b) => (sortBy === 'winCount' ? b.winCount - a.winCount : b.points - a.points))
             );
         });
 
+        socket.on('PRIVATE_MESSAGE', (message) => {
+            console.log('Received PRIVATE_MESSAGE:', message);
+            setPrivateChats((prev) =>
+                prev.map((chat) =>
+                    chat.receiver._id === message.senderId || chat.receiver._id === message.receiverId
+                        ? { ...chat, messages: [...(chat.messages || []), message] }
+                        : chat
+                )
+            );
+        });
+
         return () => {
-            socket.disconnect();
+            socketRef.current?.disconnect();
             console.log('Socket.IO disconnected for leaderboard');
         };
     }, [session, sortBy]);
 
-    const handleClickOutside = (event) => {
-        if (modalRef.current && !modalRef.current.contains(event.target)) {
-            setShowModal(false);
-            setSelectedPlayer(null);
-        }
-        if (!Object.values(titleRefs.current).some((ref) => ref && ref.contains(event.target))) {
-            setExpandedTitles({});
-        }
-    };
-
-    useEffect(() => {
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
     const handleShowDetails = (player) => {
-        setShowModal(true);
+        console.log('handleShowDetails called with player:', player);
+        if (!player?._id) {
+            console.error('Invalid player ID:', player?._id);
+            setError('ID người chơi không hợp lệ');
+            return;
+        }
         setSelectedPlayer(player);
+        setShowModal(true);
         setExpandedTitles({});
     };
 
     const handleToggleTitles = (playerId) => {
+        console.log('handleToggleTitles called for playerId:', playerId);
         setExpandedTitles((prev) => ({
             ...prev,
             [playerId]: !prev[playerId],
         }));
+    };
+
+    const openPrivateChat = (player) => {
+        console.log('openPrivateChat called with player:', player);
+        console.log('Current user:', session?.user);
+        if (!session?.user) {
+            setError('Vui lòng đăng nhập để mở chat riêng');
+            return;
+        }
+        const isCurrentUserAdmin = session.user.role?.toLowerCase() === 'admin';
+        const isTargetAdmin = player.role?.toLowerCase() === 'admin';
+        if (!isCurrentUserAdmin && !isTargetAdmin) {
+            setError('Bạn chỉ có thể chat riêng với admin');
+            return;
+        }
+        setPrivateChats((prev) => {
+            if (prev.some((chat) => chat.receiver._id === player._id)) {
+                console.log('Chat already open, unminimizing');
+                return prev.map((chat) =>
+                    chat.receiver._id === player._id ? { ...chat, isMinimized: false } : chat
+                );
+            }
+            console.log('Opening new chat with:', player);
+            console.log('privateChats updated:', [...prev, { receiver: player, isMinimized: false, messages: [] }]);
+            return [...prev, { receiver: player, isMinimized: false, messages: [] }];
+        });
+    };
+
+    const closePrivateChat = (receiverId) => {
+        console.log('Closing private chat with ID:', receiverId);
+        setPrivateChats((prev) => prev.filter((chat) => chat.receiver._id !== receiverId));
+    };
+
+    const toggleMinimizePrivateChat = (receiverId) => {
+        console.log('Toggling minimize for chat with ID:', receiverId);
+        setPrivateChats((prev) =>
+            prev.map((chat) =>
+                chat.receiver._id === receiverId ? { ...chat, isMinimized: !chat.isMinimized } : chat
+            )
+        );
     };
 
     const getHighestTitle = (points, titles) => {
@@ -187,21 +226,29 @@ const Leaderboard = () => {
         return (
             <div key={player._id} className={styles.playerItem}>
                 <span className={styles.rankCircle}>{index + 1}</span>
-
-                <Image className={styles.star1} src={star1} alt='xổ số bắc trung nam' />
-
+                <Image className={styles.star1} src={star1} alt='Star icon' />
                 <div className={styles.playerHeader}>
                     {player.img ? (
-                        <img
+                        <Image
                             src={player.img}
                             alt={fullname}
                             className={styles.avatarImage}
+                            width={32}
+                            height={32}
                             onClick={() => handleShowDetails(player)}
+                            role="button"
+                            aria-label={`Xem chi tiết ${fullname}`}
+                            onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.nextSibling.style.display = 'flex';
+                            }}
                         />
                     ) : (
                         <div
                             className={`${styles.avatar} ${getAvatarClass(fullname)}`}
                             onClick={() => handleShowDetails(player)}
+                            role="button"
+                            aria-label={`Xem chi tiết ${fullname}`}
                         >
                             {firstChar}
                         </div>
@@ -210,6 +257,8 @@ const Leaderboard = () => {
                         <span
                             className={styles.playerName}
                             onClick={() => handleShowDetails(player)}
+                            role="button"
+                            aria-label={`Xem chi tiết ${fullname}`}
                         >
                             {fullname}
                         </span>
@@ -274,70 +323,35 @@ const Leaderboard = () => {
                 {players.length === 0 ? (
                     <p className={styles.noPlayers}>Chưa có người chơi nào.</p>
                 ) : (
-                    players.map((player, index) => renderPlayer(player, index))
+                    players.map((player, index) => {
+                        console.log('Rendering player:', player);
+                        return renderPlayer(player, index);
+                    })
                 )}
-                {/* <Image className='header__logo--img' src={bangxephang} alt='xổ số bắc trung nam' /> */}
             </div>
             {showModal && selectedPlayer && (
-                <div className={styles.modalOverlay}>
-                    <div className={styles.modal} ref={modalRef}>
-                        <h2 className={styles.modalTitle}>Chi Tiết Người Chơi</h2>
-                        {selectedPlayer.img ? (
-                            <img
-                                src={selectedPlayer.img}
-                                alt={selectedPlayer.fullname}
-                                className={styles.modalAvatar}
-                            />
-                        ) : (
-                            <div
-                                className={`${styles.avatar} ${getAvatarClass(selectedPlayer.fullname)}`}
-                            >
-                                {(selectedPlayer.fullname?.[0]?.toUpperCase()) || '?'}
-                            </div>
-                        )}
-                        <p><strong>Tên:</strong> {selectedPlayer.fullname || 'Người chơi ẩn danh'}</p>
-                        <p><strong>Cấp độ:</strong> {selectedPlayer.level || 1}</p>
-                        <p><strong>Số điểm:</strong> {selectedPlayer.points || 0}</p>
-                        <p><strong>Số lần trúng:</strong> {selectedPlayer.winCount || 0}</p>
-                        <p>
-                            <strong>Danh hiệu:</strong>{' '}
-                            <span className={styles.titles}>
-                                {selectedPlayer.titles?.map((title, index) => {
-                                    const titleClass = title.toLowerCase().includes('học giả')
-                                        ? 'hocgia'
-                                        : title.toLowerCase().includes('chuyên gia')
-                                            ? 'chuyengia'
-                                            : title.toLowerCase().includes('thần số học')
-                                                ? 'thansohoc'
-                                                : title.toLowerCase().includes('thần chốt số')
-                                                    ? 'thanchotso'
-                                                    : 'tanthu';
-                                    return (
-                                        <span
-                                            key={index}
-                                            className={`${styles.titles} ${styles[titleClass]} ${title === getHighestTitle(selectedPlayer.points || 0, selectedPlayer.titles || [])
-                                                ? styles.highestTitle
-                                                : ''
-                                                }`}
-                                        >
-                                            {title}
-                                        </span>
-                                    );
-                                }) || 'Tân thủ'}
-                            </span>
-                        </p>
-                        <button
-                            className={styles.cancelButton}
-                            onClick={() => {
-                                setShowModal(false);
-                                setSelectedPlayer(null);
-                            }}
-                        >
-                            Đóng
-                        </button>
-                    </div>
-                </div>
+                <UserInfoModal
+                    selectedUser={selectedPlayer}
+                    setSelectedUser={setSelectedPlayer}
+                    setShowModal={setShowModal}
+                    openPrivateChat={openPrivateChat}
+                    getAvatarClass={getAvatarClass}
+                    accessToken={session?.accessToken}
+                />
             )}
+            <div className={styles.privateChatsContainer}>
+                {privateChats.map((chat, index) => (
+                    <PrivateChat
+                        key={chat.receiver._id}
+                        receiver={chat.receiver}
+                        socket={socketRef.current}
+                        onClose={() => closePrivateChat(chat.receiver._id)}
+                        isMinimized={chat.isMinimized}
+                        onToggleMinimize={() => toggleMinimizePrivateChat(chat.receiver._id)}
+                        style={{ right: `${20 + index * 320}px` }}
+                    />
+                ))}
+            </div>
         </div>
     );
 };

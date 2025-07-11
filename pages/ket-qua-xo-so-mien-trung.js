@@ -208,7 +208,7 @@ const XSMT = ({ initialData, drawDate }) => {
                     </div>
                     <div>
                         <ThongKe />
-                        <Chat />
+                        {/* <Chat /> */}
                         <CongCuHot />
                         <div className='banner1'>
                             <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>

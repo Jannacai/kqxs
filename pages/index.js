@@ -161,7 +161,7 @@ export default function Home({ drawDate }) {
                 <div>
                     <div>
                         <ThongKe />
-                        <Chat />
+                        {/* <Chat /> */}
                         <CongCuHot />
                     </div>
                     <div className='banner1'>

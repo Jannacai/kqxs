@@ -13,7 +13,7 @@ import { FaGift } from 'react-icons/fa';
 import Image from 'next/image';
 import styles from '../styles/userAvatar.module.css';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
 
 const UserAvatar = () => {
     const { data: session, status } = useSession();

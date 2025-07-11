@@ -1,0 +1,24 @@
+.Quydinh {
+    max-width: 930px;
+    margin: 0px auto;
+    width: 930px;
+    border: 10px solid #8f7145;
+    /* width: 350px; */
+    padding: 20px;
+    background-color: #ffeead;
+    /* border-radius: 8px; */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    height: 500px;
+}
+
+.title {
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.quydinhContent {
+    white-space: pre-wrap;
+}

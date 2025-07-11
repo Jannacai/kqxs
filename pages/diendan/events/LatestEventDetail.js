@@ -9,7 +9,7 @@ import 'moment-timezone';
 import parse from 'html-react-parser';
 import styles from '../../../styles/latestEventDetail.module.css';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
 
 const renderTextContent = (text) => {
     if (!text) return null;
@@ -170,42 +170,45 @@ export default function LatestEventDetail() {
     return (
         <div>
             <div className={styles.container} onClick={handleOpenModal}>
-                <h1 className={styles.title}>Sự kiện mới nhất hôm nay</h1>
+                {/* <h1 className={styles.title}>📌Sự kiện mới nhất hôm nay</h1> */}
+                
                 <div className={styles.groupTitle}>
                     <h2 className={styles.itemTitle} onClick={handleOpenModal}>🔥{item.title}</h2>
-                    <div>
-                        {item.startTime && (
-                            <p className={styles.itemMeta}>
-                                <i className="fa-solid fa-clock"></i> Thời gian bắt đầu: {moment.tz(item.startTime, 'Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm:ss')}
-                            </p>
-                        )}
-                        {item.endTime && (
-                            <p className={styles.itemMeta}>
-                                <i className="fa-solid fa-clock"></i> Thời gian kết thúc: {moment.tz(item.endTime, 'Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm:ss')}
-                            </p>
-                        )}
-                    </div>
+
                 </div>
                 <div className={styles.contentWrapper1}>
+
                     <div className={styles.itemMeta2}>
+                        <div className={styles.thoigian}>
+                            {item.startTime && (
+                                <p className={styles.itemMeta}>
+                                    <i className="fa-solid fa-clock"></i> Thời gian bắt đầu: {moment.tz(item.startTime, 'Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm:ss')}
+                                </p>
+                            )}
+                            {item.endTime && (
+                                <p className={styles.itemMeta}>
+                                    <i className="fa-solid fa-clock"></i> Thời gian kết thúc: {moment.tz(item.endTime, 'Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm:ss')}
+                                </p>
+                            )}
+                        </div>
                         <strong className={styles.h3}><i className="fa-solid fa-fire"></i> Thể lệ cuộc thi:</strong><br />
                         {renderTextContent(item.content)}
                     </div>
-                </div>
-                {item.rewards && (
-                    <div className={styles.contentWrapper1}>
-                        <div className={styles.itemMeta1}>
-                            <strong className={styles.h32}>🏆Phần Thưởng:</strong><br />
-                            {renderTextContent(item.rewards)}
+                    {item.rewards && (
+                        <div className={styles.contentWrapper1}>
+                            <div className={styles.itemMeta1}>
+                                <strong className={styles.h32}>🏆Phần Thưởng:</strong><br />
+                                {renderTextContent(item.rewards)}
+                            </div>
                         </div>
-                    </div>
-                )}
-                <button
-                    className={styles.viewDetailsButton}
-                    onClick={handleViewDetails}
-                >
-                    👉Tham Gia Ngay
-                </button>
+                    )}
+                    <button
+                        className={styles.viewDetailsButton}
+                        onClick={handleViewDetails}
+                    >
+                        👉Tham Gia Ngay
+                    </button>
+                </div>
                 {showModal && (
                     <div className={styles.modalOverlay}>
                         <div className={styles.modal} ref={modalRef}>
@@ -262,6 +265,12 @@ export default function LatestEventDetail() {
                                 onClick={handleCloseModal}
                             >
                                 Đóng
+                            </button>
+                            <button
+                                className={styles.viewDetailsButton}
+                                onClick={handleViewDetails}
+                            >
+                                👉Tham Gia Ngay
                             </button>
                         </div>
                     </div>

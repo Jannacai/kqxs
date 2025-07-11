@@ -1,12 +1,17 @@
 .container {
-    max-width: 960px;
+    /* max-width: 960px; */
     margin: 0 auto;
     padding: 12px;
-    background-color: #f9fafb;
-    border-radius: 12px;
+    background-color: #ccc;
+    /* border-radius: 12px; */
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     transition: box-shadow 0.3s ease;
+    max-height: 620px;
+    height: 620px;
+    border: 2px solid #ccc;
+    width: 100%;
+    max-width: 560px;
 }
 
 .container:hover {
@@ -41,14 +46,14 @@
     display: flex;
     justify-content: center;
     gap: 12px;
-    margin-bottom: 32px;
+    margin-bottom: 10px;
 }
 
 .tab {
-    padding: 12px 24px;
+    padding: 12px 0px;
     /* Extra padding for icon */
     border: none;
-    background-color: #e5e7eb;
+    background-color: #fff;
     color: #374151;
     font-size: 15px;
     font-weight: 600;
@@ -56,6 +61,8 @@
     border-radius: 8px;
     transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
     position: relative;
+    max-width: 150px;
+    width: 150px;
 }
 
 .tab::before {
@@ -102,14 +109,16 @@
 .listContainer {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 10px;
+    height: 500px;
+    overflow-y: auto;
 }
 
 .item {
-    padding: 20px;
+    padding: 10px;
     border: 1px solid #e5e7eb;
     border-radius: 12px;
-    background-color: #ffffff;
+    background-color: #f8f4d5;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
@@ -132,20 +141,20 @@
 }
 
 .itemLabel {
-    display: inline-flex;
+    display: block;
+    width: 120px;
     align-items: center;
-    padding: 10px 20px;
-    /* Extra padding for icon */
-    font-size: 13px;
+    padding: 10px 10px;
+    font-size: 17px;
     font-weight: 600;
     color: #ffffff;
     background-color: #3b82f6;
     border-radius: 6px;
     transition: background-color 0.2s ease;
-    position: relative;
+    /* position: relative; */
 }
 
-.itemLabel::before {
+/* .itemLabel::before {
     font-family: 'Font Awesome 6 Free';
     font-weight: 900;
     position: absolute;
@@ -153,24 +162,29 @@
     top: 50%;
     transform: translateY(-50%);
     font-size: 12px;
-}
+} */
 
 .itemLabel[data-type="hot_news"] {
-    background-color: #ef4444;
-}
-
-.itemLabel[data-type="hot_news"]::before {
-    content: '\f0e7';
-    /* Font Awesome icon: bolt */
-    color: #ffffff;
-}
-
-.itemLabel[data-type="event"] {
     background-color: #10b981;
 }
 
+.itemLabel[data-type="hot_news"]::before {
+    content: '‼️';
+    color: #ffffff;
+}
+
+/* .itemLabel[data-type="discussion"]::before {
+    content: '♻️';
+color: #ffffff;
+}
+
+*/
+.itemLabel[data-type="event"] {
+    background-color: #dc2626;
+}
+
 .itemLabel[data-type="event"]::before {
-    content: '\f073';
+    content: '⚜️';
     /* Font Awesome icon: calendar */
     color: #ffffff;
 }
@@ -180,7 +194,7 @@
 }
 
 .item:hover .itemLabel[data-type="hot_news"] {
-    background-color: #dc2626;
+    background-color: #10b981;
 }
 
 .item:hover .itemLabel[data-type="event"] {
@@ -198,7 +212,8 @@
 }
 
 .viewCount,
-.registrationCount {
+.registrationCount,
+.commentCount {
     font-size: 14px;
     color: #4b5563;
     margin-bottom: 8px;
@@ -208,6 +223,7 @@
 }
 
 .viewCount::before,
+.commentCount::before,
 .registrationCount::before {
     font-family: 'Font Awesome 6 Free';
     font-weight: 900;
@@ -227,6 +243,10 @@
 .registrationCount::before {
     content: '\f234';
     /* Font Awesome icon: user-plus */
+}
+
+.commentCount::before {
+    content: '\f135';
 }
 
 .itemMeta {
@@ -281,12 +301,13 @@
     justify-content: center;
     align-items: center;
     gap: 16px;
-    margin-top: 32px;
+    margin-top: 12px;
 }
 
 .pagination button {
-    padding: 12px 22px;
+    /* padding: 12px 22px; */
     /* Extra padding for icon */
+    height: 35px;
     background: linear-gradient(135deg, #3b82f6, #60a5fa);
     color: #ffffff;
     border: none;
@@ -298,6 +319,9 @@
     animation: pulse 2s infinite ease-in-out;
     transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
     position: relative;
+    line-height: 35px;
+    width: 150px;
+    min-width: 100px;
 }
 
 .pagination button::before {
@@ -322,7 +346,7 @@
 }
 
 .pagination button:disabled {
-    background: #e5e7eb;
+    background: #fff;
     color: #9ca3af;
     cursor: not-allowed;
     animation: none;

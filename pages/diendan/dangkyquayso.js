@@ -8,7 +8,7 @@ import 'moment-timezone';
 import axios from 'axios';
 import styles from '../../styles/dangkyquayso.module.css';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
 
 export default function LotteryRegistration({ lotteryFields, onRegistrationSuccess, eventId }) {
     const { data: session, status } = useSession();

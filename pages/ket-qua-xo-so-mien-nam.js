@@ -214,7 +214,7 @@ const XSMN = ({ initialData, drawDate }) => {
                     </div>
                     <div>
                         <ThongKe />
-                        <Chat />
+                        {/* <Chat /> */}
                         <DynamicCongCuHot />
                         <div className='banner1'>
                             <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
