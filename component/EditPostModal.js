@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import axios from 'axios';
 import moment from 'moment';
 import 'moment-timezone';
-import styles from '../../../styles/editPostModal.module.css';
+import styles from '../styles/editPostModal.module.css';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
 
