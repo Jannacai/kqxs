@@ -9,6 +9,7 @@ import { SessionProvider, useSession } from "next-auth/react";
 import Footer from '../component/footer';
 import CalendarMobile from '../component/caledarMobile';
 import { LotteryProvider } from '../contexts/LotteryContext';
+import { SSEProvider } from '../pages/kqxsAll/SSEContext'; // Thêm import SSEProvider
 import dynamic from 'next/dynamic';
 
 const PostList = dynamic(() => import('./tin-tuc/list'), { ssr: false });
@@ -18,25 +19,27 @@ const App = ({ Component, pageProps: { session, ...pageProps } }) => {
     return (
         <SessionProvider session={session}>
             <LotteryProvider>
-                <AppWithTheme setTheme={setTheme}>
-                    <div className={theme}>
-                        <div className='header'>
-                            <Clock />
-                            <div className='header__logo'>
-                                <a href='/' tabIndex={-1}>
-                                    <Image className='header__logo--img' src={logo} alt='xổ số bắc trung nam' />
-                                </a>
+                <SSEProvider> {/* Thêm SSEProvider */}
+                    <AppWithTheme setTheme={setTheme}>
+                        <div className={theme}>
+                            <div className='header'>
+                                <Clock />
+                                <div className='header__logo'>
+                                    <a href='/' tabIndex={-1}>
+                                        <Image className='header__logo--img' src={logo} alt='xổ số bắc trung nam' />
+                                    </a>
+                                </div>
+                                <NavBar />
+                                <CalendarMobile />
                             </div>
-                            <NavBar />
-                            <CalendarMobile />
+                            <div className='container'>
+                                <Component {...pageProps} />
+                            </div>
+                            <PostList />
+                            <Footer />
                         </div>
-                        <div className='container'>
-                            <Component {...pageProps} />
-                        </div>
-                        <PostList />
-                        <Footer />
-                    </div>
-                </AppWithTheme>
+                    </AppWithTheme>
+                </SSEProvider>
             </LotteryProvider>
         </SessionProvider>
     );
