@@ -3,7 +3,7 @@ import styles from '../../styles/LivekqxsMB.module.css';
 import { getFilteredNumber } from "../../library/utils/filterUtils";
 import React from 'react';
 import { useLottery } from '../../contexts/LotteryContext';
-import { useSSE } from './SSEContext';
+import { useSSE } from '../../component/SSEContext';
 
 const reducer = (state, action) => {
     switch (action.type) {

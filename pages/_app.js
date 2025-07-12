@@ -9,7 +9,7 @@ import { SessionProvider, useSession } from "next-auth/react";
 import Footer from '../component/footer';
 import CalendarMobile from '../component/caledarMobile';
 import { LotteryProvider } from '../contexts/LotteryContext';
-import { SSEProvider } from '../pages/kqxsAll/SSEContext'; // Thêm import SSEProvider
+import { SSEProvider } from '../component/SSEContext'; // Thêm import SSEProvider
 import dynamic from 'next/dynamic';
 
 const PostList = dynamic(() => import('./tin-tuc/list'), { ssr: false });
