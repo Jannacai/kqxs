@@ -275,7 +275,7 @@ export const apiMB = {
             throw new Error('Date and station cannot be empty');
         }
 
-        const url = `${API_BASE_URL2}/api/scraper/scrape`;
+        const url = `http://localhost:4000/api/scraper/scrape`;
 
         try {
             const response = await fetch(url, {

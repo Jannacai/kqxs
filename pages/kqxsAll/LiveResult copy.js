@@ -129,7 +129,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             }
 
             try {
-                const response = await fetch(`https://backendkqxs.onrender.com/api/kqxs/xsmb/sse/initial?station=${station}&date=${today}`);
+                const response = await fetch(`http://localhost:5000/api/kqxs/xsmb/sse/initial?station=${station}&date=${today}`);
                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                 const initialData = await response.json();
                 setLiveData(prev => {
@@ -170,7 +170,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                 eventSource.close();
             }
 
-            eventSource = new EventSource(`https://backendkqxs.onrender.com/api/kqxs/xsmb/sse?station=${station}&date=${today}`);
+            eventSource = new EventSource(`http://localhost:5000/api/kqxs/xsmb/sse?station=${station}&date=${today}`);
             const prizeTypes = [
                 'maDB', 'specialPrize_0', 'firstPrize_0', 'secondPrize_0', 'secondPrize_1',
                 'threePrizes_0', 'threePrizes_1', 'threePrizes_2', 'threePrizes_3', 'threePrizes_4', 'threePrizes_5',
