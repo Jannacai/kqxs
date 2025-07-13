@@ -31,15 +31,13 @@ const Ngaunhien9x0x = () => {
         return shuffled;
     };
 
-    // Hàm này tạo ra các số ngẫu nhiên duy nhất từ 00-99
-    const generateRandomNumbers = (count) => {
-        const allNumbers = Array.from({ length: 100 }, (_, i) => i.toString().padStart(2, '0'));
-        const shuffled = shuffleArray(allNumbers);
-        // Cắt lấy 'count' số đầu tiên (đã xáo trộn và duy nhất)
-        return shuffled.slice(0, Math.min(count, 100)).sort((a, b) => parseInt(a) - parseInt(b));
+    // Hàm tạo số ngẫu nhiên từ một kho số
+    const generateRandomNumbers = (count, sourcePool) => {
+        const shuffled = shuffleArray(sourcePool);
+        return shuffled.slice(0, Math.min(count, sourcePool.length)).sort((a, b) => parseInt(a) - parseInt(b));
     };
 
-    // Chức năng gọi API: Chỉ gửi dữ liệu và xử lý lỗi, không cập nhật levelsList nữa
+    // Chức năng gọi API
     const debouncedFetchDan = useCallback(
         debounce(async (value) => {
             try {
@@ -52,24 +50,35 @@ const Ngaunhien9x0x = () => {
                     const errorText = await response.text();
                     throw new Error(`Lỗi khi gọi API: ${response.status} - ${errorText}`);
                 }
+                // Có thể lấy dữ liệu từ API nếu cần
+                const data = await response.json();
+                // Nếu muốn sử dụng dữ liệu từ API, cập nhật states tại đây
+                // setLevelsList(data.levelsList);
+                // setTotalSelected(data.totalSelected);
             } catch (error) {
                 console.error('Error fetching dan:', error);
                 setError(error.message);
             } finally {
-                // Loading state được xử lý ở handleGenerateDan
+                setLoading(false);
             }
         }, 300),
         []
     );
 
     const handleQuantityChange = (e) => {
-        const value = parseInt(e.target.value, 10);
-        if (!isNaN(value) && value >= 1 && value <= 50) {
-            setQuantity(value);
+        const value = e.target.value;
+        if (value === '') {
+            setQuantity('');
+            return;
+        }
+        const num = parseInt(value, 10);
+        if (!isNaN(num) && num >= 1 && num <= 50) {
+            setQuantity(num);
+        } else {
+            setError('Vui lòng nhập số từ 1 đến 50');
         }
     };
 
-    // Chỉnh sửa: Tạo dàn số trực tiếp và cập nhật trạng thái hiển thị
     const handleGenerateDan = () => {
         setLoading(true);
         setError(null);
@@ -81,19 +90,23 @@ const Ngaunhien9x0x = () => {
         for (let i = 0; i < quantity; i++) {
             const levels = {};
             let currentDanTotal = 0;
+            // Khởi tạo kho số ban đầu (00-99)
+            let currentPool = Array.from({ length: 100 }, (_, i) => i.toString().padStart(2, '0'));
 
-            // Tạo số cho mỗi cấp độ, đảm bảo số duy nhất trong cấp độ đó
+            // Tạo số cho mỗi cấp độ, lấy từ kho của cấp độ trước
             levelCounts.forEach(count => {
-                const numbers = generateRandomNumbers(count);
+                const numbers = generateRandomNumbers(count, currentPool);
                 levels[count] = numbers;
                 currentDanTotal += numbers.length;
+                // Cập nhật kho số cho cấp độ tiếp theo
+                currentPool = numbers;
             });
 
             newLevelsList.push(levels);
             total += currentDanTotal;
         }
 
-        // Cập nhật trạng thái hiển thị ngay lập tức
+        // Cập nhật trạng thái hiển thị
         setLevelsList(newLevelsList);
         setTotalSelected(total);
         setLoading(false);
@@ -115,6 +128,11 @@ const Ngaunhien9x0x = () => {
     };
 
     const copyDan = () => {
+        if (levelsList.length === 0) {
+            setError('Chưa có dàn số để sao chép');
+            setShowCopyModal(true);
+            return;
+        }
         const copyText = levelsList
             .map((levels, index) => {
                 const danText = Object.keys(levels)
