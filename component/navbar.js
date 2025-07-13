@@ -130,14 +130,6 @@ const NavBar = () => {
                         </Link>
                     </li>
                     <li
-                        className={`${styles.nav_itemNgang} ${router.pathname.startsWith('/quaythu') ? styles.active : ''
-                            }`}
-                    >
-                        <Link href="#" className={styles.nav_itemLinkNgang}>
-                            Quay Thử
-                        </Link>
-                    </li>
-                    <li
                         className={`${styles.nav_itemNgang} ${router.pathname === '/diendan' ? styles.active : ''
                             }`}
                     >
@@ -776,64 +768,6 @@ const NavBar = () => {
                                     </ul>
                                 </li>
                                 <li
-                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith('/quaythu') ? styles.active : ''
-                                        }`}
-                                >
-                                    <div className={styles.grouplinkMobile}>
-                                        <Link
-                                            href="#"
-                                            className={styles.nav_itemLinkMobile}
-                                            onClick={toggleMenu}
-                                        >
-                                            <span className={styles.iconNav}>
-                                                <i className="fa-solid fa-arrows-spin"></i>
-                                            </span>{' '}
-                                            Quay Thử
-                                        </Link>
-                                        <span onClick={() => toggleMenuList('quaythu')} className={styles.icon}>
-                                            <i
-                                                className={`fa-solid ${isMenuOpenList === 'quaythu' ? 'fa-chevron-up' : 'fa-chevron-down'
-                                                    }`}
-                                            ></i>
-                                        </span>
-                                    </div>
-                                    <ul
-                                        className={`${styles.nav__menuMobile} ${isMenuOpenList === 'quaythu' ? styles.menuList : ''
-                                            }`}
-                                    >
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/quaythu/mienbac' ? styles.active : ''
-                                                    }`}
-                                                href="#"
-                                                onClick={toggleMenu}
-                                            >
-                                                Quay Thử XSMB
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/quaythu/mientrung' ? styles.active : ''
-                                                    }`}
-                                                href="#"
-                                                onClick={toggleMenu}
-                                            >
-                                                Quay Thử XSMT
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === 'quaythu/miennam' ? styles.active : ''
-                                                    }`}
-                                                href="#"
-                                                onClick={toggleMenu}
-                                            >
-                                                Quay Thử XSMN
-                                            </Link>
-                                        </li>
-                                    </ul>
-                                </li>
-                                <li
                                     className={`${styles.nav_itemMobile} ${router.pathname === '/diendan' ? styles.active : ''
                                         }`}
                                 >
@@ -883,7 +817,7 @@ const NavBar = () => {
             {/* PC header */}
             <div>
                 <nav className={styles.navbar}>
-                    <div className="container">
+                    <div className="containerS">
                         <ul className={styles.nav_list}>
                             <li
                                 className={`${styles.nav_item} ${router.pathname === '/' ? styles.active : ''}`}
@@ -1221,36 +1155,7 @@ const NavBar = () => {
                                     </li>
                                 </ul>
                             </li>
-                            <li
-                                className={`${styles.nav_item} ${router.pathname.startsWith('/quaythu') ? styles.active : ''
-                                    }`}
-                            >
-                                <div className={styles.grouplink}>
-                                    <Link href="#" className={styles.nav_itemLink}>
-                                        Quay Thử
-                                    </Link>
-                                    <span className={styles.icon}>
-                                        <i className="fa-solid fa-chevron-down"></i>
-                                    </span>
-                                </div>
-                                <ul className={styles.nav__menu}>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="#">
-                                            Quay Thử XSMB
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="#">
-                                            Quay Thử XSMT
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="#">
-                                            Quay Thử XSMN
-                                        </Link>
-                                    </li>
-                                </ul>
-                            </li>
+
                             <li
                                 className={`${styles.nav_item} ${router.pathname === '/diendan' ? styles.active : ''
                                     }`}

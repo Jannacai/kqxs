@@ -1,21 +1,24 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import Head from "next/head";
+import Image from "next/image"; // Thêm next/image
 import { getPosts, getCategories } from "../pages/api/post";
 import styles from "../styles/tintuc.module.css";
 
 const EnhancedNewsFeed = () => {
-    const [categories, setCategories] = useState([]);
-    const [selectedCategory, setSelectedCategory] = useState(null);
-    const [postsByCategory, setPostsByCategory] = useState({});
-    const [displayedPostsByCategory, setDisplayedPostsByCategory] = useState({});
-    const [heroPost, setHeroPost] = useState(null);
-    const [subHeroPosts, setSubHeroPosts] = useState([]);
-    const [footballPosts, setFootballPosts] = useState([]);
-    const [rotationIndices, setRotationIndices] = useState({});
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const postsPerCategory = 15;
+    const [state, setState] = useState({
+        categories: [],
+        selectedCategory: null,
+        postsByCategory: {},
+        displayedPostsByCategory: {},
+        rotationIndices: {},
+        heroPost: null,
+        subHeroPosts: [],
+        footballPosts: [],
+        loading: true,
+        error: null,
+    });
+    const postsPerCategory = 6; // Giảm từ 15 xuống 6
     const displayPerCategory = 3;
     const defaultImage = "/facebook.png";
 
@@ -35,79 +38,104 @@ const EnhancedNewsFeed = () => {
     const fetchCategories = useCallback(async () => {
         try {
             const data = await getCategories();
-            setCategories(Array.isArray(data) ? data : ["Thể thao", "Đời sống", "Giải trí", "Tin hot"]);
+            setState((prev) => ({
+                ...prev,
+                categories: Array.isArray(data) ? data : ["Thể thao", "Đời sống", "Giải trí", "Tin hot"],
+            }));
         } catch (err) {
             console.error("Error fetching categories:", err);
-            setCategories(["Thể thao", "Đời sống", "Giải trí", "Tin hot"]);
-            setError("Không thể tải danh mục, sử dụng mặc định.");
+            setState((prev) => ({
+                ...prev,
+                categories: ["Thể thao", "Đời sống", "Giải trí", "Tin hot"],
+                error: "Không thể tải danh mục, sử dụng mặc định.",
+            }));
         }
     }, []);
 
-    // Lấy bài viết
+    // Lấy bài viết (gộp yêu cầu)
     const fetchPosts = useCallback(async () => {
-        setLoading(true);
+        setState((prev) => ({ ...prev, loading: true }));
         try {
-            if (selectedCategory) {
-                const data = await getPosts(null, 1, postsPerCategory, selectedCategory);
+            if (state.selectedCategory) {
+                const data = await getPosts(null, 1, postsPerCategory, state.selectedCategory);
                 const fetchedPosts = Array.isArray(data.posts)
                     ? deduplicatePosts(data.posts).slice(0, postsPerCategory)
                     : [];
-                setPostsByCategory({ [selectedCategory]: fetchedPosts });
-                setDisplayedPostsByCategory({ [selectedCategory]: fetchedPosts.slice(0, displayPerCategory) });
-                setRotationIndices({ [selectedCategory]: displayPerCategory });
-                setHeroPost(fetchedPosts[0] || null);
-                setSubHeroPosts(fetchedPosts.slice(0, 3));
-                setFootballPosts(fetchedPosts.filter((post) => post.category.includes("Thể thao")).slice(0, 3));
+                setState((prev) => ({
+                    ...prev,
+                    postsByCategory: { [state.selectedCategory]: fetchedPosts },
+                    displayedPostsByCategory: { [state.selectedCategory]: fetchedPosts.slice(0, displayPerCategory) },
+                    rotationIndices: { [state.selectedCategory]: displayPerCategory },
+                    heroPost: fetchedPosts[0] || null,
+                    subHeroPosts: fetchedPosts.slice(0, 3),
+                    footballPosts: fetchedPosts.filter((post) => post.category.includes("Thể thao")).slice(0, 3),
+                    loading: false,
+                }));
             } else {
+                // Gộp yêu cầu API cho tất cả danh mục
+                const allPostsData = await Promise.all(
+                    state.categories.map((category) =>
+                        getPosts(null, 1, postsPerCategory, category).then((data) => ({
+                            category,
+                            posts: Array.isArray(data.posts) ? deduplicatePosts(data.posts).slice(0, postsPerCategory) : [],
+                        }))
+                    )
+                );
+
                 const newPostsByCategory = {};
                 const newDisplayedPosts = {};
                 const newIndices = {};
                 const allPosts = [];
 
-                for (const category of categories) {
-                    const data = await getPosts(null, 1, postsPerCategory, category);
-                    const categoryPosts = Array.isArray(data.posts)
-                        ? deduplicatePosts(data.posts).slice(0, postsPerCategory)
-                        : [];
-                    newPostsByCategory[category] = categoryPosts;
-                    newDisplayedPosts[category] = categoryPosts.slice(0, displayPerCategory);
+                allPostsData.forEach(({ category, posts }) => {
+                    newPostsByCategory[category] = posts;
+                    newDisplayedPosts[category] = posts.slice(0, displayPerCategory);
                     newIndices[category] = displayPerCategory;
-                    allPosts.push(...categoryPosts);
-                }
+                    allPosts.push(...posts);
+                });
 
-                setPostsByCategory(newPostsByCategory);
-                setDisplayedPostsByCategory(newDisplayedPosts);
-                setRotationIndices(newIndices);
-                const combinedPosts = deduplicatePosts(allPosts);
-                setHeroPost(combinedPosts[0] || null);
-                setSubHeroPosts(combinedPosts.slice(0, 3));
-                setFootballPosts(combinedPosts.filter((post) => post.category.includes("Thể thao")).slice(0, 3));
+                setState((prev) => ({
+                    ...prev,
+                    postsByCategory: newPostsByCategory,
+                    displayedPostsByCategory: newDisplayedPosts,
+                    rotationIndices: newIndices,
+                    heroPost: deduplicatePosts(allPosts)[0] || null,
+                    subHeroPosts: deduplicatePosts(allPosts).slice(0, 3),
+                    footballPosts: deduplicatePosts(allPosts)
+                        .filter((post) => post.category.includes("Thể thao"))
+                        .slice(0, 3),
+                    loading: false,
+                }));
             }
-            setLoading(false);
         } catch (err) {
             console.error("Error fetching posts:", err);
-            setError("Không thể tải bài viết");
-            setPostsByCategory({});
-            setDisplayedPostsByCategory({});
-            setLoading(false);
+            setState((prev) => ({
+                ...prev,
+                error: "Không thể tải bài viết",
+                postsByCategory: {},
+                displayedPostsByCategory: {},
+                loading: false,
+            }));
         }
-    }, [selectedCategory, categories, deduplicatePosts]);
+    }, [state.selectedCategory, state.categories, deduplicatePosts]);
 
     // Xử lý bài viết mới
     const handleNewPost = useCallback(
         (event) => {
             const newPost = event.detail;
             if (!newPost || !newPost._id || !newPost.title || !newPost.slug || !Array.isArray(newPost.category)) {
-                // console.warn("Invalid new post:", newPost);
                 return;
             }
 
-            setPostsByCategory((prev) => {
-                const updated = { ...prev };
+            setState((prev) => {
+                const updatedPostsByCategory = { ...prev.postsByCategory };
+                const updatedDisplayedPosts = { ...prev.displayedPostsByCategory };
+                const updatedIndices = { ...prev.rotationIndices };
+
                 newPost.category.forEach((category) => {
-                    if (selectedCategory && category !== selectedCategory) return;
-                    if (!updated[category]) updated[category] = [];
-                    let newPool = [...updated[category]];
+                    if (prev.selectedCategory && category !== prev.selectedCategory) return;
+                    if (!updatedPostsByCategory[category]) updatedPostsByCategory[category] = [];
+                    let newPool = [...updatedPostsByCategory[category]];
                     if (newPool.length >= postsPerCategory) {
                         const oldestIndex = newPool.reduce(
                             (maxIndex, item, index, arr) =>
@@ -118,73 +146,72 @@ const EnhancedNewsFeed = () => {
                     } else {
                         newPool.push(newPost);
                     }
-                    updated[category] = deduplicatePosts(newPool)
+                    updatedPostsByCategory[category] = deduplicatePosts(newPool)
                         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
                         .slice(0, postsPerCategory);
+                    updatedDisplayedPosts[category] = updatedPostsByCategory[category].slice(0, displayPerCategory);
+                    updatedIndices[category] = displayPerCategory;
                 });
-                return updated;
-            });
 
-            setDisplayedPostsByCategory((prev) => {
-                const updated = { ...prev };
-                newPost.category.forEach((category) => {
-                    if (selectedCategory && category !== selectedCategory) return;
-                    updated[category] = postsByCategory[category]?.slice(0, displayPerCategory) || [];
-                });
-                return updated;
-            });
-
-            setRotationIndices((prev) => {
-                const updated = { ...prev };
-                newPost.category.forEach((category) => {
-                    if (selectedCategory && category !== selectedCategory) return;
-                    updated[category] = displayPerCategory;
-                });
-                return updated;
+                return {
+                    ...prev,
+                    postsByCategory: updatedPostsByCategory,
+                    displayedPostsByCategory: updatedDisplayedPosts,
+                    rotationIndices: updatedIndices,
+                };
             });
         },
-        [selectedCategory, deduplicatePosts, postsByCategory]
+        [deduplicatePosts]
     );
 
-    // Xoay vòng bài viết
+    // Xoay vòng bài viết với IntersectionObserver
     useEffect(() => {
-        const rotateCategoryPosts = () => {
-            setDisplayedPostsByCategory((prev) => {
-                const updated = { ...prev };
-                Object.keys(prev).forEach((category) => {
-                    const postsPool = postsByCategory[category] || [];
-                    if (postsPool.length <= displayPerCategory) return;
-                    const currentIndex = rotationIndices[category] || displayPerCategory;
-                    const nextIndex = (currentIndex % postsPool.length) || displayPerCategory;
-                    const newPost = postsPool[nextIndex];
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting) {
+                    const interval = setInterval(() => {
+                        setState((prev) => {
+                            const updatedDisplayed = { ...prev.displayedPostsByCategory };
+                            Object.keys(prev.displayedPostsByCategory).forEach((category) => {
+                                const postsPool = prev.postsByCategory[category] || [];
+                                if (postsPool.length <= displayPerCategory) return;
+                                const currentIndex = prev.rotationIndices[category] || displayPerCategory;
+                                const nextIndex = (currentIndex % postsPool.length) || displayPerCategory;
+                                const newPost = postsPool[nextIndex];
 
-                    if (newPost) {
-                        updated[category] = [newPost, ...prev[category].slice(0, displayPerCategory - 1)];
-                        updated[category] = deduplicatePosts(updated[category]);
-                    }
+                                if (newPost) {
+                                    updatedDisplayed[category] = [
+                                        newPost,
+                                        ...prev.displayedPostsByCategory[category].slice(0, displayPerCategory - 1),
+                                    ];
+                                    updatedDisplayed[category] = deduplicatePosts(updatedDisplayed[category]);
+                                }
 
-                    setRotationIndices((indices) => ({
-                        ...indices,
-                        [category]: nextIndex + 1,
-                    }));
-                });
-                return updated;
-            });
-        };
+                                prev.rotationIndices[category] = nextIndex + 1;
+                            });
+                            return { ...prev, displayedPostsByCategory: updatedDisplayed };
+                        });
+                    }, 30000); // Tăng interval lên 30 giây
+                    return () => clearInterval(interval);
+                }
+            },
+            { threshold: 0.1 }
+        );
 
-        const interval = setInterval(rotateCategoryPosts, 25000);
-        return () => clearInterval(interval);
-    }, [postsByCategory, rotationIndices, deduplicatePosts]);
+        const contentWrapper = document.querySelector(`.${styles.contentWrapper}`);
+        if (contentWrapper) observer.observe(contentWrapper);
+        return () => observer.disconnect();
+    }, [deduplicatePosts, state.postsByCategory, state.rotationIndices]);
 
     useEffect(() => {
         fetchCategories();
     }, [fetchCategories]);
 
     useEffect(() => {
-        if (categories.length > 0) {
+        if (state.categories.length > 0) {
             fetchPosts();
         }
-    }, [fetchPosts, categories]);
+    }, [fetchPosts, state.categories]);
 
     useEffect(() => {
         window.addEventListener("newPostCreated", handleNewPost);
@@ -238,7 +265,14 @@ const EnhancedNewsFeed = () => {
     // Component HeroPost
     const HeroPost = React.memo(({ post }) => (
         <Link href={`/tin-tuc/${post.slug}-${post._id}`} className={styles.heroPost}>
-            <img src={getValidImage(post)} alt={post.title} className={styles.heroImage} loading="eager" />
+            <Image
+                src={getValidImage(post)}
+                alt={post.title}
+                className={styles.heroImage}
+                width={800}
+                height={450}
+                priority // Thay loading="eager"
+            />
             <div className={styles.heroContent}>
                 <div className={styles.heroMeta}>
                     <span className={styles.postDate}>{formatDate(post.createdAt)}</span>
@@ -262,15 +296,29 @@ const EnhancedNewsFeed = () => {
     // Component SubHeroPost
     const SubHeroPost = React.memo(({ post }) => (
         <Link href={`/tin-tuc/${post.slug}-${post._id}`} className={styles.subHeroPost}>
-            <img src={getValidImage(post)} alt={post.title} className={styles.subHeroImage} loading="eager" />
+            <Image
+                src={getValidImage(post)}
+                alt={post.title}
+                className={styles.subHeroImage}
+                width={400}
+                height={225}
+                loading="lazy"
+            />
             <h3 className={styles.subHeroTitle}>{post.title}</h3>
-        </Link>
+        </Link >
     ));
 
     // Component FootballPost
     const FootballPost = React.memo(({ post }) => (
         <Link href={`/tin-tuc/${post.slug}-${post._id}`} className={styles.footballPost}>
-            <img src={getValidImage(post)} alt={post.title} className={styles.footballImage} loading="lazy" />
+            <Image
+                src={getValidImage(post)}
+                alt={post.title}
+                className={styles.footballImage}
+                width={300}
+                height={200}
+                loading="lazy"
+            />
             <h3 className={styles.footballTitle}>{post.title}</h3>
         </Link>
     ));
@@ -278,7 +326,14 @@ const EnhancedNewsFeed = () => {
     // Component PostItem
     const PostItem = React.memo(({ post }) => (
         <Link href={`/tin-tuc/${post.slug}-${post._id}`} className={styles.postItem}>
-            <img src={getValidImage(post)} alt={post.title} className={styles.postImage} loading="lazy" />
+            <Image
+                src={getValidImage(post)}
+                alt={post.title}
+                className={styles.postImage}
+                width={300}
+                height={200}
+                loading="lazy"
+            />
             <div className={styles.postContent}>
                 <div className={styles.postMeta}>
                     <span className={styles.postDate}>{formatDate(post.createdAt)}</span>
@@ -310,13 +365,13 @@ const EnhancedNewsFeed = () => {
             "@type": "Organization",
             name: "XSMB.WIN",
             logo: {
-                "@type": "ImageObject",
+                "@type": "Image",
                 url: "https://xsmb.win/logo.png",
             },
         },
     };
 
-    if (loading) {
+    if (state.loading) {
         return (
             <div className={styles.loading}>
                 <div className={styles.skeletonMenu}></div>
@@ -327,8 +382,8 @@ const EnhancedNewsFeed = () => {
         );
     }
 
-    if (error) {
-        return <p className={styles.error}>{error}</p>;
+    if (state.error) {
+        return <p className={styles.error}>{state.error}</p>;
     }
 
     return (
@@ -357,30 +412,30 @@ const EnhancedNewsFeed = () => {
                 <div className={styles.container}>
                     <nav className={styles.categoryMenu}>
                         <button
-                            className={`${styles.categoryButton} ${!selectedCategory ? styles.active : ""}`}
-                            onClick={() => setSelectedCategory(null)}
+                            className={`${styles.categoryButton} ${!state.selectedCategory ? styles.active : ""}`}
+                            onClick={() => setState((prev) => ({ ...prev, selectedCategory: null }))}
                         >
                             Tất cả
                         </button>
-                        {categories.map((category) => (
+                        {state.categories ? state.categories.map((category) => (
                             <button
                                 key={category}
-                                className={`${styles.categoryButton} ${selectedCategory === category ? styles.active : ""}`}
-                                onClick={() => setSelectedCategory(category)}
+                                className={`${styles.categoryButton} ${state.selectedCategory === category ? styles.active : ""}`}
+                                onClick={() => setState((prev) => ({ ...prev, selectedCategory: category }))}
                                 style={{ "--category-color": getCategoryColor(category) }}
                             >
                                 {category}
                             </button>
-                        ))}
+                        )) : []}
                     </nav>
                     <div className={styles.mainContent}>
                         <div className={styles.heroSection}>
-                            {heroPost && <HeroPost post={heroPost} />}
+                            {state.heroPost && <HeroPost post={state.heroPost} />}
                             <div className={styles.subHeroSection}>
                                 <h2 className={styles.subHeroTitle}>Tin tức tổng hợp</h2>
                                 <div className={styles.subHeroGrid}>
-                                    {subHeroPosts.length > 0 ? (
-                                        subHeroPosts.map((post) => <SubHeroPost key={post._id} post={post} />)
+                                    {state.subHeroPosts.length > 0 ? (
+                                        state.subHeroPosts.map((post) => <SubHeroPost key={post._id} post={post} />)
                                     ) : (
                                         <p className={styles.noPosts}>Không có bài viết nổi bật.</p>
                                     )}
@@ -389,8 +444,8 @@ const EnhancedNewsFeed = () => {
                         </div>
                         <aside className={styles.footballSidebar}>
                             <h2 className={styles.sidebarTitle}>Tin bóng đá</h2>
-                            {footballPosts.length > 0 ? (
-                                footballPosts.map((post) => <FootballPost key={post._id} post={post} />)
+                            {state.footballPosts.length > 0 ? (
+                                state.footballPosts.map((post) => <FootballPost key={post._id} post={post} />)
                             ) : (
                                 <p className={styles.noPosts}>Không có bài viết bóng đá.</p>
                             )}
@@ -398,12 +453,12 @@ const EnhancedNewsFeed = () => {
                     </div>
                     <div className={styles.contentWrapper}>
                         <div className={styles.postsWrapper}>
-                            {selectedCategory ? (
+                            {state.selectedCategory ? (
                                 <section className={styles.categorySection}>
-                                    <h2 className={styles.categoryTitle}>{selectedCategory}</h2>
+                                    <h2 className={styles.categoryTitle}>{state.selectedCategory}</h2>
                                     <div className={styles.postsList}>
-                                        {displayedPostsByCategory[selectedCategory]?.length > 0 ? (
-                                            displayedPostsByCategory[selectedCategory].map((post) => (
+                                        {state.displayedPostsByCategory[state.selectedCategory]?.length > 0 ? (
+                                            state.displayedPostsByCategory[state.selectedCategory].map((post) => (
                                                 <PostItem key={post._id} post={post} />
                                             ))
                                         ) : (
@@ -412,12 +467,12 @@ const EnhancedNewsFeed = () => {
                                     </div>
                                 </section>
                             ) : (
-                                categories.map((category) => (
+                                state.categories.map((category) => (
                                     <section key={category} className={styles.categorySection}>
                                         <h2 className={styles.categoryTitle}>{category}</h2>
                                         <div className={styles.postsList}>
-                                            {displayedPostsByCategory[category]?.length > 0 ? (
-                                                displayedPostsByCategory[category].map((post) => (
+                                            {state.displayedPostsByCategory[category]?.length > 0 ? (
+                                                state.displayedPostsByCategory[category].map((post) => (
                                                     <PostItem key={post._id} post={post} />
                                                 ))
                                             ) : (
@@ -429,9 +484,6 @@ const EnhancedNewsFeed = () => {
                             )}
                         </div>
                         <div className={styles.bannerContainer}>
-                            {/* Add your banner image here, e.g., <img src="/path/to/your-banner.jpg" alt="Banner" /> */}
-                            {/* <img src="https://xsmb.win/backgrond.png" alt="Banner" />
-                            <img src="https://xsmb.win/backgrond.png" alt="Banner" /> */}
                             <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
                                 <video
                                     className={styles.bannervideo}

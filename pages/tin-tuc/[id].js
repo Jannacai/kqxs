@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import Image from 'next/image';
 import { getCombinedPostData } from '../api/post/index';
 import Link from 'next/link';
 import io from 'socket.io-client';
@@ -17,8 +18,8 @@ export async function getServerSideProps(context) {
         const actualId = id.includes('-') ? id.split('-').pop() : id;
         const data = await getCombinedPostData(actualId, true);
         post = data.post;
-        relatedPosts = [...new Map(data.related.map(item => [item._id, item])).values()].slice(0, 15);
-        footballPosts = [...new Map(data.football.map(item => [item._id, item])).values()].slice(0, 15);
+        relatedPosts = [...new Map(data.related.map(item => [item._id, item])).values()].slice(0, 4);
+        footballPosts = [...new Map(data.football.map(item => [item._id, item])).values()].slice(0, 3);
     } catch (err) {
         error = err.message || 'Đã có lỗi xảy ra khi lấy chi tiết bài viết';
     }
@@ -35,112 +36,117 @@ export async function getServerSideProps(context) {
 
 const PostDetail = ({ post, relatedPosts, footballPosts, error }) => {
     const router = useRouter();
-    const [relatedPostsPool, setRelatedPostsPool] = useState(relatedPosts || []);
-    const [footballPostsPool, setFootballPostsPool] = useState(footballPosts || []);
-    const [relatedPostsState, setRelatedPosts] = useState(relatedPosts.slice(0, 4) || []);
-    const [footballPostsState, setFootballPosts] = useState(footballPosts.slice(0, 3) || []);
-    const [relatedIndex, setRelatedIndex] = useState(4);
-    const [footballIndex, setFootballIndex] = useState(3);
+    const [state, setState] = useState({
+        relatedPostsPool: relatedPosts || [],
+        footballPostsPool: footballPosts || [],
+        relatedPosts: relatedPosts.slice(0, 4) || [],
+        footballPosts: footballPosts.slice(0, 3) || [],
+        relatedIndex: 4,
+        footballIndex: 3,
+    });
 
     const defaultDescription = 'Đọc tin tức mới nhất tại XSMB.WIN - Cập nhật thông tin nhanh chóng, chính xác!';
-    const defaultImage = 'https://xsmb.win/facebook.png'; // Hình ảnh mặc định
+    const defaultImage = 'https://xsmb.win/facebook.png';
+
+    const handleSocketNewPost = useCallback((newPost) => {
+        if (!newPost || !newPost._id || newPost._id === post?._id) return;
+
+        setState((prev) => {
+            let newRelatedPool = [...prev.relatedPostsPool];
+            let newFootballPool = [...prev.footballPostsPool];
+
+            if (Array.isArray(newPost.category) && newPost.category.some(cat => post?.category?.includes(cat))) {
+                if (newRelatedPool.length >= 15) {
+                    const oldestIndex = newRelatedPool.reduce(
+                        (maxIndex, item, index, arr) =>
+                            new Date(item.createdAt) < new Date(arr[maxIndex].createdAt) ? index : maxIndex,
+                        0
+                    );
+                    newRelatedPool[oldestIndex] = newPost;
+                } else {
+                    newRelatedPool.push(newPost);
+                }
+                newRelatedPool = newRelatedPool.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            }
+
+            if (Array.isArray(newPost.category) && newPost.category.includes('Thể thao')) {
+                if (newFootballPool.length >= 15) {
+                    const oldestIndex = newFootballPool.reduce(
+                        (maxIndex, item, index, arr) =>
+                            new Date(item.createdAt) < new Date(arr[maxIndex].createdAt) ? index : maxIndex,
+                        0
+                    );
+                    newFootballPool[oldestIndex] = newPost;
+                } else {
+                    newFootballPool.push(newPost);
+                }
+                newFootballPool = newFootballPool.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            }
+
+            return {
+                ...prev,
+                relatedPostsPool: newRelatedPool,
+                footballPostsPool: newFootballPool,
+                relatedPosts: newRelatedPool.slice(0, 4),
+                footballPosts: newFootballPool.slice(0, 3),
+            };
+        });
+    }, [post?.category, post?._id]);
 
     useEffect(() => {
         const socket = io(process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000', {
-            query: { token: localStorage?.getItem('token') || '' },
+            query: { token: typeof window !== 'undefined' ? localStorage?.getItem('token') || '' : '' },
+            reconnectionAttempts: 3,
         });
 
         socket.on('connect', () => {
             console.log('Connected to Socket.IO server');
         });
 
-        socket.on('newPostCreated', (newPost) => {
-            if (!newPost || !newPost._id || newPost._id === post?._id) return;
-
-            setRelatedPostsPool(prev => {
-                if (!Array.isArray(newPost.category) || !newPost.category.some(cat => post?.category?.includes(cat))) return prev;
-                let newPool = [...prev];
-                if (newPool.length >= 15) {
-                    const oldestIndex = newPool.reduce((maxIndex, item, index, arr) =>
-                        new Date(item.createdAt) < new Date(arr[maxIndex].createdAt) ? index : maxIndex, 0);
-                    newPool[oldestIndex] = newPost;
-                } else {
-                    newPool.push(newPost);
-                }
-                return newPool.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-            });
-
-            setFootballPostsPool(prev => {
-                if (!Array.isArray(newPost.category) || !newPost.category.includes('Thể thao')) return prev;
-                let newPool = [...prev];
-                if (newPool.length >= 15) {
-                    const oldestIndex = newPool.reduce((maxIndex, item, index, arr) =>
-                        new Date(item.createdAt) < new Date(arr[maxIndex].createdAt) ? index : maxIndex, 0);
-                    newPool[oldestIndex] = newPost;
-                } else {
-                    newPool.push(newPost);
-                }
-                return newPool.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-            });
-        });
+        socket.on('newPostCreated', handleSocketNewPost);
 
         socket.on('connect_error', (err) => {
             console.error('Socket.IO connection error:', err.message);
         });
 
-        return () => {
-            socket.disconnect();
-        };
-    }, [post?.category, post?._id]);
+        return () => socket.disconnect();
+    }, [handleSocketNewPost]);
 
     useEffect(() => {
-        const rotatePosts = () => {
-            if (relatedPostsPool.length === 0 || footballPostsPool.length === 0) return;
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting) {
+                    const interval = setInterval(() => {
+                        setState((prev) => {
+                            if (prev.relatedPostsPool.length === 0 && prev.footballPostsPool.length === 0) return prev;
 
-            setRelatedPosts(prev => {
-                if (prev.length < 4) return prev;
-                const currentIds = new Set(prev.map(p => p._id));
-                let nextIndex = relatedIndex;
-                let nextPost = relatedPostsPool[nextIndex];
-                let attempts = 0;
-                const maxAttempts = relatedPostsPool.length;
-
-                while (nextPost && (currentIds.has(nextPost._id) || !nextPost) && attempts < maxAttempts) {
-                    nextIndex = (nextIndex + 1) % relatedPostsPool.length;
-                    nextPost = relatedPostsPool[nextIndex];
-                    attempts++;
+                            const newRelatedPosts = prev.relatedPostsPool.length > 4
+                                ? [...prev.relatedPosts.slice(0, 3), prev.relatedPostsPool[prev.relatedIndex] || prev.relatedPosts[3]]
+                                : prev.relatedPosts;
+                            const newFootballPosts = prev.footballPostsPool.length > 3
+                                ? [...prev.footballPosts.slice(0, 2), prev.footballPostsPool[prev.footballIndex] || prev.footballPosts[2]]
+                                : prev.footballPosts;
+                            const uniqueRelatedPosts = [...new Map(newRelatedPosts.map(item => [item._id, item])).values()];
+                            const uniqueFootballPosts = [...new Map(newFootballPosts.map(item => [item._id, item])).values()];
+                            return {
+                                ...prev,
+                                relatedPosts: uniqueRelatedPosts.length >= 4 ? uniqueRelatedPosts : prev.relatedPosts,
+                                footballPosts: uniqueFootballPosts.length >= 3 ? uniqueFootballPosts : prev.footballPosts,
+                                relatedIndex: (prev.relatedIndex + 1) % prev.relatedPostsPool.length,
+                                footballIndex: (prev.footballIndex + 1) % prev.footballPostsPool.length,
+                            };
+                        });
+                    }, 90000);
+                    return () => clearInterval(interval);
                 }
+            },
+            { threshold: 0.1 }
+        );
 
-                const newPosts = [...prev.slice(0, 3), nextPost || prev[3]];
-                const uniqueNewPosts = [...new Map(newPosts.map(item => [item._id, item])).values()];
-                setRelatedIndex((nextIndex + 1) % relatedPostsPool.length);
-                return uniqueNewPosts.length >= 4 ? uniqueNewPosts : prev;
-            });
-
-            setFootballPosts(prev => {
-                if (prev.length < 3) return prev;
-                const currentIds = new Set(prev.map(p => p._id));
-                let nextIndex = footballIndex;
-                let nextPost = footballPostsPool[nextIndex];
-                let attempts = 0;
-                const maxAttempts = footballPostsPool.length;
-
-                while (nextPost && (currentIds.has(nextPost._id) || !nextPost) && attempts < maxAttempts) {
-                    nextIndex = (nextIndex + 1) % footballPostsPool.length;
-                    nextPost = footballPostsPool[nextIndex];
-                    attempts++;
-                }
-
-                const newPosts = [...prev.slice(0, 2), nextPost || prev[2]];
-                const uniqueNewPosts = [...new Map(newPosts.map(item => [item._id, item])).values()];
-                setFootballIndex((nextIndex + 1) % footballPostsPool.length);
-                return uniqueNewPosts.length >= 3 ? uniqueNewPosts : prev;
-            });
-        };
-
-        const interval = setInterval(rotatePosts, 60000);
-        return () => clearInterval(interval);
-    }, [relatedIndex, footballIndex, relatedPostsPool, footballPostsPool]);
+        const relatedPostsSection = document.querySelector(`.${styles.relatedPosts}`);
+        if (relatedPostsSection) observer.observe(relatedPostsSection);
+        return () => observer.disconnect();
+    }, [state.relatedIndex, state.footballIndex, state.relatedPostsPool, state.footballPostsPool]);
 
     const formattedDate = useMemo(() => {
         if (!post?.createdAt) return 'Ngày đăng';
@@ -150,13 +156,13 @@ const PostDetail = ({ post, relatedPosts, footballPosts, error }) => {
             const month = String(date.getMonth() + 1).padStart(2, '0');
             const year = date.getFullYear();
             return `${day}/${month}/${year}`;
-        } catch (error) {
+        } catch {
             return 'Ngày đăng';
         }
     }, [post?.createdAt]);
 
-    const displayedRelatedPosts = useMemo(() => relatedPostsState.slice(0, 4), [relatedPostsState]);
-    const displayedFootballPosts = useMemo(() => footballPostsState.slice(0, 3), [footballPostsState]);
+    const displayedRelatedPosts = useMemo(() => state.relatedPosts.slice(0, 4), [state.relatedPosts]);
+    const displayedFootballPosts = useMemo(() => state.footballPosts.slice(0, 3), [state.footballPosts]);
 
     if (error) {
         return <p className={styles.error}>{error}</p>;
@@ -175,7 +181,6 @@ const PostDetail = ({ post, relatedPosts, footballPosts, error }) => {
     const canonicalUrl = `https://xsmb.win/tin-tuc/${post.slug}-${post._id}`;
     const imageUrl = post.mainContents?.find(content => content.img && /\.(jpg|jpeg|png|gif)$/i.test(content.img))?.img || defaultImage;
 
-    // Kiểm tra hình ảnh hợp lệ
     const isValidImage = (url) => {
         return url && /\.(jpg|jpeg|png|gif)$/i.test(url) && url.startsWith('https://');
     };
@@ -213,10 +218,12 @@ const PostDetail = ({ post, relatedPosts, footballPosts, error }) => {
         return (
             <Link href={`/tin-tuc/${post.slug}-${post._id}`} className={styles.relatedItem} title={post.title} aria-label={`Xem bài viết ${post.title}`}>
                 {postImage && (
-                    <img
+                    <Image
                         src={postImage}
                         alt={post.title}
                         className={styles.relatedImage}
+                        width={300}
+                        height={200}
                         loading="lazy"
                     />
                 )}
@@ -231,10 +238,12 @@ const PostDetail = ({ post, relatedPosts, footballPosts, error }) => {
         return (
             <Link href={`/tin-tuc/${post.slug}-${post._id}`} className={styles.footballItem} title={post.title} aria-label={`Xem bài viết ${post.title}`}>
                 {postImage && (
-                    <img
+                    <Image
                         src={postImage}
                         alt={post.title}
                         className={styles.footballImage}
+                        width={300}
+                        height={200}
                         loading="lazy"
                     />
                 )}
@@ -271,7 +280,6 @@ const PostDetail = ({ post, relatedPosts, footballPosts, error }) => {
                 <meta name="description" content={metaDescription} />
                 <meta name="robots" content="index, follow" />
                 <meta name="author" content={post.author?.username || 'Admin'} />
-
                 <meta property="og:title" content={post.title.slice(0, 60)} />
                 <meta property="og:description" content={metaDescription} />
                 <meta property="og:type" content="article" />
@@ -292,7 +300,6 @@ const PostDetail = ({ post, relatedPosts, footballPosts, error }) => {
                         <link rel="preload" href={finalImageUrl} as="image" />
                     </>
                 )}
-
                 <meta property="zalo:official_account_id" content={process.env.ZALO_OA_ID || ''} />
                 <meta property="zalo:share_url" content={canonicalUrl} />
                 {finalImageUrl && (
@@ -302,14 +309,11 @@ const PostDetail = ({ post, relatedPosts, footballPosts, error }) => {
                         <meta property="zalo-img:height" content="600" />
                     </>
                 )}
-
                 <meta name="twitter:card" content="summary_large_image" />
                 <meta name="twitter:title" content={post.title.slice(0, 60)} />
                 <meta name="twitter:description" content={metaDescription} />
-
                 <link rel="canonical" href={canonicalUrl} />
                 <link rel="alternate" hrefLang="vi" href={canonicalUrl} />
-
                 <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
             </Head>
             <div className={styles.pageWrapper}>
@@ -425,12 +429,14 @@ const RenderContent = React.memo(({ contentOrder, mainContents, title }) => {
                                 <>
                                     {content.img && /\.(jpg|jpeg|png|gif)$/i.test(content.img) && (
                                         <figure className={styles.imageWrapper}>
-                                            <img
+                                            <Image
                                                 src={content.img}
                                                 srcSet={`${content.img} 1200w, ${content.img.replace(/\/upload\//, '/upload/w_800/')} 800w, ${content.img.replace(/\/upload\//, '/upload/w_400/')} 400w`}
                                                 sizes="(max-width: 768px) 100vw, 800px"
                                                 alt={content.h2 || title}
                                                 className={styles.image}
+                                                width={800}
+                                                height={450}
                                                 loading="lazy"
                                             />
                                             {content.caption && (
@@ -457,12 +463,14 @@ const RenderContent = React.memo(({ contentOrder, mainContents, title }) => {
                                     )}
                                     {content.img && /\.(jpg|jpeg|png|gif)$/i.test(content.img) && (
                                         <figure className={styles.imageWrapper}>
-                                            <img
+                                            <Image
                                                 src={content.img}
                                                 srcSet={`${content.img} 1200w, ${content.img.replace(/\/upload\//, '/upload/w_800/')} 800w, ${content.img.replace(/\/upload\//, '/upload/w_400/')} 400w`}
                                                 sizes="(max-width: 768px) 100vw, 800px"
                                                 alt={content.h2 || title}
                                                 className={styles.image}
+                                                width={800}
+                                                height={450}
                                                 loading="lazy"
                                             />
                                             {content.caption && (
