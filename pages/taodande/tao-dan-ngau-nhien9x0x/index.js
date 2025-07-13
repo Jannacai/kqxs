@@ -3,6 +3,7 @@ import styles from '../../../styles/NgauNhien9x.module.css';
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 import ThongKe from '../../../component/thongKe';
 import CongCuHot from '../../../component/CongCuHot';
+
 const debounce = (func, delay) => {
     let timeoutId;
     return (...args) => {
@@ -30,18 +31,18 @@ const Ngaunhien9x0x = () => {
         return shuffled;
     };
 
+    // Hàm này tạo ra các số ngẫu nhiên duy nhất từ 00-99
     const generateRandomNumbers = (count) => {
         const allNumbers = Array.from({ length: 100 }, (_, i) => i.toString().padStart(2, '0'));
         const shuffled = shuffleArray(allNumbers);
+        // Cắt lấy 'count' số đầu tiên (đã xáo trộn và duy nhất)
         return shuffled.slice(0, Math.min(count, 100)).sort((a, b) => parseInt(a) - parseInt(b));
     };
 
+    // Chức năng gọi API: Chỉ gửi dữ liệu và xử lý lỗi, không cập nhật levelsList nữa
     const debouncedFetchDan = useCallback(
         debounce(async (value) => {
-            setLoading(true);
-            setError(null);
             try {
-                console.log('Sending API request with value:', value);
                 const response = await fetch(`${API_BASE_URL}/api/taodan/ngaunhien9x0x`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -51,16 +52,11 @@ const Ngaunhien9x0x = () => {
                     const errorText = await response.text();
                     throw new Error(`Lỗi khi gọi API: ${response.status} - ${errorText}`);
                 }
-                const data = await response.json();
-                setLevelsList(data.levelsList || []);
-                setTotalSelected(data.totalSelected || 0);
             } catch (error) {
                 console.error('Error fetching dan:', error);
                 setError(error.message);
-                setLevelsList([]);
-                setTotalSelected(0);
             } finally {
-                setLoading(false);
+                // Loading state được xử lý ở handleGenerateDan
             }
         }, 300),
         []
@@ -73,23 +69,40 @@ const Ngaunhien9x0x = () => {
         }
     };
 
+    // Chỉnh sửa: Tạo dàn số trực tiếp và cập nhật trạng thái hiển thị
     const handleGenerateDan = () => {
         setLoading(true);
         setError(null);
-        const newLevelsList = [];
+
         const levelCounts = [95, 88, 78, 68, 58, 48, 38, 28, 18, 8];
+        const newLevelsList = [];
+        let total = 0;
+
         for (let i = 0; i < quantity; i++) {
             const levels = {};
+            let currentDanTotal = 0;
+
+            // Tạo số cho mỗi cấp độ, đảm bảo số duy nhất trong cấp độ đó
             levelCounts.forEach(count => {
-                levels[count] = generateRandomNumbers(count);
+                const numbers = generateRandomNumbers(count);
+                levels[count] = numbers;
+                currentDanTotal += numbers.length;
             });
+
             newLevelsList.push(levels);
+            total += currentDanTotal;
         }
+
+        // Cập nhật trạng thái hiển thị ngay lập tức
+        setLevelsList(newLevelsList);
+        setTotalSelected(total);
+        setLoading(false);
+
+        // Chuẩn bị input và gửi đến API
         const inputValue = newLevelsList
             .map(levels => Object.values(levels).flat().join(','))
             .join(',');
-        console.log('Generated inputValue:', inputValue);
-        console.log('Input for API (first 50 chars):', inputValue.slice(0, 50) + '...');
+
         debouncedFetchDan(inputValue);
     };
 
