@@ -89,7 +89,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                 provinces.map(async (province) => {
                     try {
                         const response = await fetch(
-                            `https://backendkqxs.onrender.com/api/ketquaxs/xsmt/sse/initial?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
+                            `https://backendkqxs-1.onrender.com/api/ketquaxs/xsmt/sse/initial?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
                         );
                         const data = await response.json();
                         if (response.status !== 200) {
@@ -216,7 +216,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
         const connectSSE = (tinh) => {
             console.log(`Kết nối SSE cho tỉnh ${tinh}... (Thử lần ${retryCount + 1}/${maxRetries + 1})`);
             const eventSource = new EventSource(
-                `https://backendkqxs.onrender.com/api/ketquaxs/xsmt/sse?station=${station}&tinh=${tinh}&date=${today.replace(/\//g, '-')}`
+                `https://backendkqxs-1.onrender.com/api/ketquaxs/xsmt/sse?station=${station}&tinh=${tinh}&date=${today.replace(/\//g, '-')}`
             );
             eventSources.push(eventSource);
 
