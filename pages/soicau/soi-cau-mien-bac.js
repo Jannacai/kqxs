@@ -1,10 +1,20 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import Head from 'next/head';
 import { apiMB } from '../api/kqxs/kqxsMB';
 import styles from '../../styles/soicau.module.css';
 import moment from 'moment';
-import Thongke from '../../component/thongKe'
-import CongCuHot from '../../component/CongCuHot'
+import { debounce } from 'lodash';
+import { createClient } from 'redis';
+import Thongke from '../../component/thongKe';
+import CongCuHot from '../../component/CongCuHot';
+
+// Cấu hình giá trị cứng
+const SOI_CAU_CONFIG = {
+    dayOptions: [3, 5, 7, 10, 14],
+    defaultDays: 10,
+    minYear: 2000,
+    maxYear: new Date().getFullYear(),
+};
 
 // Skeleton Loading Components
 const SkeletonRow = () => (
@@ -63,7 +73,7 @@ const SkeletonLotteryTable = () => (
     </div>
 );
 
-const SoiCauBachThuMB = ({ initialLotteryData, initialSoiCauData, initialDate, initialHistory, initialFrequencies, initialRelatedNumbers }) => {
+const SoiCauBachThuMB = React.memo(({ initialLotteryData, initialSoiCauData, initialDate, initialHistory, initialFrequencies, initialRelatedNumbers }) => {
     const [soiCauResults, setSoiCauResults] = useState(initialSoiCauData.predictions || []);
     const [combinedPrediction, setCombinedPrediction] = useState(initialSoiCauData.combinedPrediction || '');
     const [additionalSuggestions, setAdditionalSuggestions] = useState(initialSoiCauData.additionalSuggestions || []);
@@ -72,7 +82,7 @@ const SoiCauBachThuMB = ({ initialLotteryData, initialSoiCauData, initialDate, i
         month: initialDate ? moment(initialDate, 'DD/MM/YYYY').format('MM') : moment().format('MM'),
         year: initialDate ? moment(initialDate, 'DD/MM/YYYY').format('YYYY') : moment().format('YYYY'),
     });
-    const [selectedDays, setSelectedDays] = useState(initialSoiCauData.dataRange?.days || 3);
+    const [selectedDays, setSelectedDays] = useState(initialSoiCauData.dataRange?.days || SOI_CAU_CONFIG.defaultDays);
     const [loadingLottery, setLoadingLottery] = useState(false);
     const [loadingSoiCau, setLoadingSoiCau] = useState(false);
     const [error, setError] = useState(null);
@@ -83,13 +93,27 @@ const SoiCauBachThuMB = ({ initialLotteryData, initialSoiCauData, initialDate, i
     const [frequencies, setFrequencies] = useState(initialFrequencies || []);
     const [relatedNumbers, setRelatedNumbers] = useState(initialRelatedNumbers || { loKep: [], loGan: [] });
 
-    const days = Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, '0'));
-    const months = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'));
-    const years = Array.from({ length: new Date().getFullYear() - 1999 }, (_, i) => (2000 + i).toString());
-    const dayOptions = [3, 5, 7, 10, 14];
+    const days = useMemo(() => Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, '0')), []);
+    const months = useMemo(() => Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0')), []);
+    const years = useMemo(() => Array.from({ length: SOI_CAU_CONFIG.maxYear - SOI_CAU_CONFIG.minYear + 1 }, (_, i) => (SOI_CAU_CONFIG.minYear + i).toString()), []);
+    const dayOptions = SOI_CAU_CONFIG.dayOptions;
 
     const isCurrentDate = moment(`${selectedDate.day}/${selectedDate.month}/${selectedDate.year}`, 'DD/MM/YYYY').isSame(moment(), 'day');
     const isBeforeResultTime = new Date().getHours() < 18 || (new Date().getHours() === 18 && new Date().getMinutes() < 40);
+
+    const retryFetch = async (fn, retries = 3, delay = 5000) => {
+        for (let i = 0; i < retries; i++) {
+            try {
+                return await fn();
+            } catch (err) {
+                if (err.message.includes('429') && i < retries - 1) {
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    continue;
+                }
+                throw err;
+            }
+        }
+    };
 
     const fetchLotteryData = useCallback(async (date) => {
         if (isCurrentDate && isBeforeResultTime) {
@@ -100,7 +124,7 @@ const SoiCauBachThuMB = ({ initialLotteryData, initialSoiCauData, initialDate, i
         setError(null);
         try {
             const targetDate = moment(date, 'DD/MM/YYYY').format('DD-MM-YYYY');
-            const data = await apiMB.getLottery('xsmb', targetDate);
+            const data = await retryFetch(() => apiMB.getLottery('xsmb', targetDate));
             setLotteryData(Array.isArray(data) ? data : data ? [data] : []);
         } catch (err) {
             setError('Không thể tải dữ liệu xổ số. Vui lòng thử lại hoặc chọn ngày khác.');
@@ -115,7 +139,7 @@ const SoiCauBachThuMB = ({ initialLotteryData, initialSoiCauData, initialDate, i
         setError(null);
         setSuggestedDate(null);
         try {
-            const response = await apiMB.getBachThuMB(date, days);
+            const response = await retryFetch(() => apiMB.getBachThuMB(date, days));
             setSoiCauResults(response.predictions || []);
             setCombinedPrediction(response.combinedPrediction || '');
             setAdditionalSuggestions(response.additionalSuggestions || []);
@@ -124,8 +148,7 @@ const SoiCauBachThuMB = ({ initialLotteryData, initialSoiCauData, initialDate, i
             setFrequencies(response.frequencies || []);
             setRelatedNumbers({
                 loKep: response.numbers?.filter(num => num[0] === num[1]) || [],
-                loGan: Array.from({ length: 100 }, (_, i) => i.toString().padStart(2, '0'))
-                    .filter(num => !response.numbers?.includes(num)) || [],
+                loGan: Array.from({ length: 100 }, (_, i) => i.toString().padStart(2, '0')).filter(num => !response.numbers?.includes(num)) || [],
             });
             if (response.metadata?.message) {
                 setError(response.metadata.message);
@@ -170,15 +193,75 @@ const SoiCauBachThuMB = ({ initialLotteryData, initialSoiCauData, initialDate, i
         }
     };
 
+    const debouncedFetchData = useCallback(
+        debounce(async (date, days) => {
+            setLoadingLottery(true);
+            setLoadingSoiCau(true);
+            setError(null);
+            try {
+                const [lotteryData, soiCauData] = await Promise.all([
+                    isCurrentDate && isBeforeResultTime ? Promise.resolve([]) : retryFetch(() => apiMB.getLottery('xsmb', moment(date, 'DD/MM/YYYY').format('DD-MM-YYYY'))),
+                    retryFetch(() => apiMB.getBachThuMB(date, days)),
+                ]);
+
+                setLotteryData(Array.isArray(lotteryData) ? lotteryData : lotteryData ? [lotteryData] : []);
+                setSoiCauResults(soiCauData.predictions || []);
+                setCombinedPrediction(soiCauData.combinedPrediction || '');
+                setAdditionalSuggestions(soiCauData.additionalSuggestions || []);
+                setMetadata(soiCauData.metadata || {});
+                setHistory(soiCauData.history || []);
+                setFrequencies(soiCauData.frequencies || []);
+                setRelatedNumbers({
+                    loKep: soiCauData.numbers?.filter(num => num[0] === num[1]) || [],
+                    loGan: Array.from({ length: 100 }, (_, i) => i.toString().padStart(2, '0')).filter(num => !soiCauData.numbers?.includes(num)) || [],
+                });
+                if (soiCauData.metadata?.message) {
+                    setError(soiCauData.metadata.message);
+                }
+            } catch (err) {
+                const errorMessage = err.message.includes('429')
+                    ? 'Quá nhiều yêu cầu, vui lòng chờ 5 giây trước khi thử lại.'
+                    : err.message.includes('Dữ liệu xổ số không hợp lệ')
+                        ? `Dữ liệu xổ số không hợp lệ. Vui lòng chọn ngày khác hoặc thử lại sau.`
+                        : err.message || 'Không thể tải dữ liệu. Vui lòng thử lại hoặc chọn ngày khác.';
+                setError(errorMessage);
+                setLotteryData([]);
+                setSoiCauResults([]);
+                setCombinedPrediction('');
+                setAdditionalSuggestions([]);
+                setMetadata({});
+                setHistory([]);
+                setFrequencies([]);
+                setRelatedNumbers({ loKep: [], loGan: [] });
+                if (err.message.includes('Không tìm thấy dữ liệu') || err.message.includes('Dữ liệu xổ số không hợp lệ')) {
+                    setSuggestedDate(err.suggestedDate || null);
+                }
+            } finally {
+                setLoadingLottery(false);
+                setLoadingSoiCau(false);
+            }
+        }, 500),
+        [isCurrentDate, isBeforeResultTime]
+    );
+
     useEffect(() => {
+        const savedState = localStorage.getItem('soiCauState');
+        if (savedState) {
+            const { selectedDate, selectedDays } = JSON.parse(savedState);
+            setSelectedDate(selectedDate);
+            setSelectedDays(selectedDays);
+        }
+    }, []);
+
+    useEffect(() => {
+        localStorage.setItem('soiCauState', JSON.stringify({ selectedDate, selectedDays }));
         const date = `${selectedDate.day}/${selectedDate.month}/${selectedDate.year}`;
         if (moment(date, 'DD/MM/YYYY').isValid()) {
-            fetchLotteryData(date);
-            fetchSoiCauData(date, selectedDays);
+            debouncedFetchData(date, selectedDays);
         } else {
             setError('Ngày không hợp lệ');
         }
-    }, [selectedDate.day, selectedDate.month, selectedDate.year, selectedDays, fetchLotteryData, fetchSoiCauData]);
+    }, [selectedDate.day, selectedDate.month, selectedDate.year, selectedDays, debouncedFetchData]);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -191,8 +274,9 @@ const SoiCauBachThuMB = ({ initialLotteryData, initialSoiCauData, initialDate, i
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    const pageTitle = 'Soi Cầu Bạch Thủ Miền Bắc - Dự Đoán Hôm Nay';
-    const pageDescription = `Dự đoán bạch thủ lô miền Bắc hôm nay (${metadata.predictionFor || ''}) dựa trên nhiều phương pháp, sử dụng kết quả xổ số từ ${metadata.dataFrom || ''} đến ${metadata.dataTo || ''}.`;
+    const pageTitle = `Soi Cầu Bạch Thủ Miền Bắc - Dự Đoán Ngày ${metadata.predictionFor || moment().format('DD/MM/YYYY')}`;
+    const pageDescription = `Dự đoán bạch thủ lô miền Bắc ngày ${metadata.predictionFor || moment().format('DD/MM/YYYY')} dựa trên nhiều phương pháp, sử dụng dữ liệu xổ số từ ${metadata.dataFrom || 'trước đó'} đến ${metadata.dataTo || 'hôm nay'}.`;
+    const pageImage = 'https://yourdomain.com/images/soicau-bach-thu-mb.jpg';
 
     return (
         <div className="container">
@@ -202,9 +286,20 @@ const SoiCauBachThuMB = ({ initialLotteryData, initialSoiCauData, initialDate, i
                 <meta property="og:title" content={pageTitle} />
                 <meta property="og:description" content={pageDescription} />
                 <meta property="og:type" content="website" />
-                <meta property="og:url" content="https://yourdomain.com/soicau/bach-thu-mb" />
-                <meta property="og:image" content="https://yourdomain.com/images/soicau-bach-thu-mb.jpg" />
-                <link rel="canonical" href="https://yourdomain.com/soicau/bach-thu-mb" />
+                <meta property="og:url" content={`https://yourdomain.com/soicau/bach-thu-mb?date=${selectedDate.day}-${selectedDate.month}-${selectedDate.year}`} />
+                <meta property="og:image" content={pageImage} />
+                <link rel="canonical" href={`https://yourdomain.com/soicau/bach-thu-mb?date=${selectedDate.day}-${selectedDate.month}-${selectedDate.year}`} />
+                <script type="application/ld+json">
+                    {JSON.stringify({
+                        '@context': 'https://schema.org',
+                        '@type': 'WebPage',
+                        name: pageTitle,
+                        description: pageDescription,
+                        url: `https://yourdomain.com/soicau/bach-thu-mb?date=${selectedDate.day}-${selectedDate.month}-${selectedDate.year}`,
+                        datePublished: moment().toISOString(),
+                        dateModified: moment().toISOString(),
+                    })}
+                </script>
             </Head>
 
             <div className={styles.container}>
@@ -413,7 +508,7 @@ const SoiCauBachThuMB = ({ initialLotteryData, initialSoiCauData, initialDate, i
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {frequencies.map((freq, index) => (
+                                    {frequencies.slice(0, 10).map((freq, index) => (
                                         <tr key={index}>
                                             <td className={styles.highlight}>{freq.number}</td>
                                             <td>{freq.count}</td>
@@ -478,48 +573,59 @@ const SoiCauBachThuMB = ({ initialLotteryData, initialSoiCauData, initialDate, i
             </div>
         </div>
     );
-};
+});
 
 export async function getServerSideProps() {
+    const redisClient = createClient({ url: process.env.REDIS_URL || 'redis://localhost:6379' });
+    await redisClient.connect();
+
     try {
+        const cacheKey = `soicau:mb:${moment().format('DD-MM-YYYY')}:${SOI_CAU_CONFIG.defaultDays}`;
+        const cached = await redisClient.get(cacheKey);
+        if (cached) {
+            await redisClient.disconnect();
+            return { props: JSON.parse(cached) };
+        }
+
         const currentTime = moment();
         const isAfterResultTime = currentTime.hour() >= 18 && currentTime.minute() >= 40;
-        let defaultDate;
-        if (isAfterResultTime) {
-            defaultDate = moment().add(1, 'days').format('DD/MM/YYYY');
-        } else {
-            defaultDate = moment().format('DD/MM/YYYY');
-        }
+        const defaultDate = isAfterResultTime
+            ? moment().add(1, 'days').format('DD/MM/YYYY')
+            : moment().format('DD/MM/YYYY');
         const lotteryDate = moment(defaultDate, 'DD/MM/YYYY').format('DD-MM-YYYY');
-        const defaultDays = 10;
+        const defaultDays = SOI_CAU_CONFIG.defaultDays;
 
-        let lotteryData = [];
-        if (!moment(defaultDate, 'DD/MM/YYYY').isSame(moment(), 'day') || isAfterResultTime) {
-            lotteryData = await apiMB.getLottery('xsmb', lotteryDate);
-        }
-        const soiCauData = await apiMB.getBachThuMB(defaultDate, defaultDays);
+        const [lotteryData, soiCauData] = await Promise.all([
+            moment(defaultDate, 'DD/MM/YYYY').isSame(moment(), 'day') && !isAfterResultTime
+                ? Promise.resolve([])
+                : apiMB.getLottery('xsmb', lotteryDate),
+            apiMB.getBachThuMB(defaultDate, defaultDays),
+        ]);
 
         const frequencies = (soiCauData.frequencies || []).slice(0, 10);
         const loKep = (soiCauData.numbers || []).filter(num => num[0] === num[1]);
         const loGan = Array.from({ length: 100 }, (_, i) => i.toString().padStart(2, '0'))
             .filter(num => !soiCauData.numbers?.includes(num));
 
-        return {
-            props: {
-                initialLotteryData: Array.isArray(lotteryData) ? lotteryData : lotteryData ? [lotteryData] : [],
-                initialSoiCauData: soiCauData || { predictions: [], combinedPrediction: '', additionalSuggestions: [], metadata: {}, dataRange: { days: defaultDays }, history: [], frequencies: [] },
-                initialDate: defaultDate,
-                initialHistory: soiCauData.history || [],
-                initialFrequencies: frequencies,
-                initialRelatedNumbers: { loKep, loGan },
-            },
+        const props = {
+            initialLotteryData: Array.isArray(lotteryData) ? lotteryData : lotteryData ? [lotteryData] : [],
+            initialSoiCauData: soiCauData || { predictions: [], combinedPrediction: '', additionalSuggestions: [], metadata: {}, dataRange: { days: defaultDays }, history: [], frequencies: [] },
+            initialDate: defaultDate,
+            initialHistory: soiCauData.history || [],
+            initialFrequencies: frequencies,
+            initialRelatedNumbers: { loKep, loGan },
         };
+
+        await redisClient.setEx(cacheKey, 3600, JSON.stringify(props));
+        await redisClient.disconnect();
+        return { props };
     } catch (error) {
         console.error('Error in getServerSideProps:', error.message);
+        await redisClient.disconnect();
         return {
             props: {
                 initialLotteryData: [],
-                initialSoiCauData: { predictions: [], combinedPrediction: '', additionalSuggestions: [], metadata: {}, dataRange: { days: 10 }, history: [], frequencies: [] },
+                initialSoiCauData: { predictions: [], combinedPrediction: '', additionalSuggestions: [], metadata: {}, dataRange: { days: SOI_CAU_CONFIG.defaultDays }, history: [], frequencies: [] },
                 initialDate: moment().format('DD/MM/YYYY'),
                 initialHistory: [],
                 initialFrequencies: [],
