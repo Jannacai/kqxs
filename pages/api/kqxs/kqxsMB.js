@@ -15,9 +15,8 @@ const getUserId = () => {
 };
 
 export const apiMB = {
-    getLottery: async (station, date, dayof, page = 1, limit = 3) => {
-        let url = `${API_BASE_URL}/api/kqxs/xsmb`;
-        const params = { page, limit };
+    getLottery: async (station, date, dayof) => {
+        let url = `${API_BASE_URL}/api/kqxs`;
 
         if (dayof) {
             if (!dayof || dayof.trim() === '') {
@@ -28,11 +27,13 @@ export const apiMB = {
             if (!station || !date || station.trim() === '' || date.trim() === '') {
                 throw new Error('Station and date cannot be empty');
             }
-            params.date = date;
+            url = `${API_BASE_URL}/api/kqxs/${station}-${date}`;
+        } else {
+            url = `${API_BASE_URL}/api/kqxs`;
         }
 
         try {
-            const response = await fetch(`${url}?${new URLSearchParams(params)}`, {
+            const response = await fetch(url, {
                 cache: 'no-store',
                 headers: {
                     'Cache-Control': 'no-cache',
@@ -51,33 +52,6 @@ export const apiMB = {
             throw new Error('Không thể tải dữ liệu xổ số, vui lòng thử lại sau');
         }
     },
-
-    getTotalRecords: async (station, date, dayof) => {
-        const params = { station: station || 'xsmb' };
-        if (date) params.date = date;
-        if (dayof) params.dayOfWeek = dayof;
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/kqxs/xsmb/total-records?${new URLSearchParams(params)}`, {
-                cache: 'no-store',
-                headers: {
-                    'Cache-Control': 'no-cache',
-                    'x-user-id': getUserId(),
-                },
-            });
-
-            if (!response.ok) {
-                throw new Error(`Lỗi khi gọi API: ${response.status} - ${response.statusText}`);
-            }
-
-            const data = await response.json();
-            return data || { total: 0 };
-        } catch (error) {
-            console.error('Lỗi khi lấy tổng số bản ghi:', error);
-            throw new Error('Không thể tải tổng số bản ghi, vui lòng thử lại sau');
-        }
-    },
-
     getLotteryTinh: async (station, tinh) => {
         let url = `${API_BASE_URL}/api/kqxs`;
 
@@ -107,7 +81,6 @@ export const apiMB = {
             throw new Error('Không thể tải dữ liệu xổ số, vui lòng thử lại sau');
         }
     },
-
     getLoGanStats: async (days) => {
         if (!days || !['6', '7', '14', '30', '60'].includes(days.toString())) {
             throw new Error('Invalid days parameter. Valid options are: 6, 7, 14, 30, 60.');
@@ -238,7 +211,7 @@ export const apiMB = {
             }
 
             const data = await response.json();
-            console.log('Dữ liệu từ API getSpecialStatsByWeek:', data);
+            console.log('Dữ liệu từ API getSpecialStatsByWeek:', data); // Log để kiểm tra dữ liệu
             return data;
         } catch (error) {
             console.error('Lỗi khi lấy thống kê giải đặc biệt theo tuần:', error);
