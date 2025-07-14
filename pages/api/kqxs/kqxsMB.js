@@ -15,22 +15,21 @@ const getUserId = () => {
 };
 
 export const apiMB = {
-    getLottery: async (station, date, dayof) => {
-        let url = `${API_BASE_URL}/api/kqxs`;
+    getLottery: async (station, date, dayof, page = 1, perPage = 3) => {
+        let url = `${API_BASE_URL}/api/kqxs/xsmb`;
+        const query = new URLSearchParams({ page, perPage });
 
+        if (date && /^\d{2}-\d{2}-\d{4}$/.test(date)) {
+            query.append('date', date);
+        }
         if (dayof) {
             if (!dayof || dayof.trim() === '') {
                 throw new Error('dayOfWeek cannot be empty');
             }
-            url = `${API_BASE_URL}/api/kqxs/xsmb/${dayof}`;
-        } else if (station && date) {
-            if (!station || !date || station.trim() === '' || date.trim() === '') {
-                throw new Error('Station and date cannot be empty');
-            }
-            url = `${API_BASE_URL}/api/kqxs/${station}-${date}`;
-        } else {
-            url = `${API_BASE_URL}/api/kqxs`;
+            query.append('dayof', dayof);
         }
+
+        url = `${url}?${query.toString()}`;
 
         try {
             const response = await fetch(url, {
@@ -42,14 +41,16 @@ export const apiMB = {
             });
 
             if (!response.ok) {
-                throw new Error(`Lỗi khi gọi API: ${response.status} - ${response.statusText}`);
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Lỗi khi gọi API: ${response.status} - ${response.statusText}`);
             }
 
             const data = await response.json();
-            return data || [];
+            // Đảm bảo trả về định dạng { data, total }
+            return data || { data: [], total: 0 };
         } catch (error) {
             console.error('Lỗi khi lấy dữ liệu xổ số:', error);
-            throw new Error('Không thể tải dữ liệu xổ số, vui lòng thử lại sau');
+            throw error;
         }
     },
     getLotteryTinh: async (station, tinh) => {
