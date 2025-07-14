@@ -306,7 +306,7 @@ export default function Register() {
                                 <div className={styles.formGroup}>
                                     <ReCAPTCHA
                                         ref={recaptchaRef}
-                                        sitekey={"your_recaptcha_site_key"}
+                                        sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}
                                         onChange={(token) => setCaptchaToken(token)}
                                     />
                                 </div>
