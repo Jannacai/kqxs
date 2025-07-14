@@ -9,7 +9,6 @@
 
 .digitContainer {
     display: inline-flex;
-    gap: 2px;
 }
 
 .digit {

@@ -177,7 +177,7 @@ const TableDate = () => {
                         <p className={styles.desc}>
                             Tường thuật trực tiếp KQXS {approachingRegion} lúc {approachingTime}
                         </p>
-                        <Link href={`/${approachingRegion === "Miền Nam" ? "xsmn" : approachingRegion === "Miền Trung" ? "xsmt" : "xsmb"}`} className={styles.action}>
+                        <Link href={`/${approachingRegion === "Miền Nam" ? "ket-qua-xo-so-mien-nam" : approachingRegion === "Miền Trung" ? "ket-qua-xo-so-mien-trung" : "ket-qua-xo-so-mien-bac"}`} className={styles.action}>
                             Xem Ngay
                         </Link>
                     </div>
