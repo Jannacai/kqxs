@@ -37,25 +37,39 @@ export default function ForgotPassword() {
         setMessage("");
 
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/forgot-password`, {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // Timeout 10s
+
+            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL3}/api/auth/forgot-password`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     "User-Agent": "ForgotPassword-Client",
                 },
                 body: JSON.stringify({ email: email.trim() }),
+                signal: controller.signal,
             });
+
+            clearTimeout(timeoutId);
 
             if (!res.ok) {
                 const errorData = await res.json();
                 throw new Error(errorData.error === "Email not found" ? "Email không tồn tại" :
-                    "Gửi yêu cầu thất bại");
+                    errorData.error === "Invalid email format" ? "Định dạng email không hợp lệ" :
+                        "Gửi yêu cầu thất bại");
             }
 
-            const data = await res.json();
-            setMessage("Link đặt lại mật khẩu đã được gửi tới email của bạn. Vui lòng kiểm tra hộp thư hoặc thư rác.");
+            setMessage("Link đặt lại mật khẩu đã được gửi tới email của bạn. Vui lòng kiểm tra hộp thư hoặc thư rác. Đang chuyển hướng...");
+            setTimeout(() => {
+                setIsModalOpen(false);
+                router.push("/login");
+            }, 3000); // Chuyển hướng sau 3 giây
         } catch (error) {
-            setError(error.message || "Đã có lỗi xảy ra khi gửi yêu cầu");
+            if (error.name === "AbortError") {
+                setError("Yêu cầu hết thời gian, vui lòng thử lại");
+            } else {
+                setError(error.message || "Đã có lỗi xảy ra khi gửi yêu cầu");
+            }
         } finally {
             setIsLoading(false);
         }
