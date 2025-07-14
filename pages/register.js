@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
-import { signIn, useSession } from "next-auth/react";
 import styles from "../styles/login.module.css";
 import Link from "next/link";
 import ReCAPTCHA from "react-google-recaptcha";
@@ -20,7 +19,6 @@ export default function Register() {
     const [captchaToken, setCaptchaToken] = useState(null);
     const [codeExpiry, setCodeExpiry] = useState(null);
     const router = useRouter();
-    const { data: session, status } = useSession();
     const emailInputRef = useRef(null);
     const codeInputRef = useRef(null);
     const usernameInputRef = useRef(null);
@@ -41,21 +39,13 @@ export default function Register() {
                     setMessage("");
                     setCodeExpiry(null);
                     setVerificationCode("");
+                    setCaptchaToken(null);
                     recaptchaRef.current?.reset();
                 }
             }, 1000);
             return () => clearInterval(timer);
         }
     }, [codeExpiry]);
-
-    if (status === "loading") {
-        return <div className={styles.loading}>Đang tải...</div>;
-    }
-
-    if (status === "authenticated") {
-        router.push("/dang-bai-viet");
-        return null;
-    }
 
     const validateEmail = () => {
         if (!email.match(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)) {
@@ -107,7 +97,7 @@ export default function Register() {
 
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000);
+            const timeoutId = setTimeout(() => controller.abort(), 30000);
 
             const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL3}/api/auth/send-verification-code`, {
                 method: "POST",
@@ -125,7 +115,8 @@ export default function Register() {
             if (!res.ok) {
                 const errorData = await res.json();
                 throw new Error(errorData.error === "Email already exists" ? "Email đã tồn tại" :
-                    "Gửi mã xác thực thất bại");
+                    errorData.error === "Invalid CAPTCHA token" ? "CAPTCHA không hợp lệ" :
+                        "Gửi mã xác thực thất bại");
             }
 
             setMessage(`Mã xác thực đã được gửi tới ${email}. Vui lòng kiểm tra hộp thư hoặc thư rác.`);
@@ -133,6 +124,7 @@ export default function Register() {
             codeInputRef.current?.focus();
         } catch (error) {
             setError(error.message || "Đã có lỗi xảy ra khi gửi mã xác thực");
+            setCaptchaToken(null);
             recaptchaRef.current?.reset();
         } finally {
             setIsLoading(false);
@@ -152,7 +144,7 @@ export default function Register() {
 
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000);
+            const timeoutId = setTimeout(() => controller.abort(), 30000);
 
             const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL3}/api/auth/verify-code`, {
                 method: "POST",
@@ -195,7 +187,7 @@ export default function Register() {
 
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000);
+            const timeoutId = setTimeout(() => controller.abort(), 30000);
 
             const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL3}/api/auth/register`, {
                 method: "POST",
@@ -211,28 +203,20 @@ export default function Register() {
 
             if (!res.ok) {
                 const errorData = await res.json();
-                throw new Error(errorData.error || "Đăng ký thất bại");
+                throw new Error(errorData.error === "Username already exists" ? "Tên người dùng đã tồn tại" :
+                    errorData.error === "Email already exists" ? "Email đã tồn tại" :
+                        "Đăng ký thất bại");
             }
 
             const { accessToken, refreshToken, user } = await res.json();
-
-            const result = await signIn("credentials", {
-                redirect: false,
-                username,
-                password,
-            });
-
-            if (result.error) {
-                throw new Error(result.error);
-            }
+            sessionStorage.setItem('userInfo', JSON.stringify(user));
+            sessionStorage.setItem('accessToken', accessToken);
+            sessionStorage.setItem('refreshToken', refreshToken);
 
             alert("Đăng ký thành công!");
-            sessionStorage.setItem('userInfo', JSON.stringify(user));
             router.push("/dang-bai-viet");
         } catch (error) {
-            setError(error.message === "Username already exists" ? "Tên người dùng đã tồn tại" :
-                error.message === "Email already exists" ? "Email đã tồn tại" :
-                    "Đã có lỗi xảy ra khi đăng ký. Vui lòng thử lại.");
+            setError(error.message || "Đã có lỗi xảy ra khi đăng ký. Vui lòng thử lại.");
         } finally {
             setIsLoading(false);
         }
