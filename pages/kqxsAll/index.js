@@ -9,6 +9,7 @@ import { useInView } from 'react-intersection-observer';
 import { useLottery } from '../../contexts/LotteryContext';
 
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // Cache 24 giờ
+const ITEMS_PER_PAGE = 3;
 
 const SkeletonLoading = () => (
     <div className={styles.skeleton}>
@@ -34,9 +35,10 @@ const KQXS = (props) => {
     const minute2 = 14; // Thời điểm kích hoạt scraper
 
     const router = useRouter();
-    const { dayof, data3: date, station = "xsmb" } = props;
+    const dayof = props.data4;
+    const station = props.station || "xsmb";
+    const date = props.data3;
 
-    const itemsPerPage = 3;
     const today = new Date().toLocaleDateString('vi-VN', {
         day: '2-digit',
         month: '2-digit',
@@ -44,6 +46,7 @@ const KQXS = (props) => {
     });
 
     const duration = 22 * 60 * 1000; // 22 phút cho khung giờ trực tiếp
+
     const CACHE_KEY = `xsmb_data_${station}_${date || 'null'}_${dayof || 'null'}_${currentPage}`;
 
     // Hàm kiểm tra ngày hợp lệ
@@ -55,6 +58,21 @@ const KQXS = (props) => {
         return parsedDate <= new Date();
     };
 
+    // Hàm lấy tổng số bản ghi
+    const fetchTotalRecords = useCallback(async () => {
+        try {
+            const totalRecords = await apiMB.getTotalRecords(station, date, dayof);
+            setTotalPages(Math.ceil(totalRecords.total / ITEMS_PER_PAGE));
+        } catch (error) {
+            console.error('Lỗi khi lấy tổng số bản ghi:', error);
+        }
+    }, [station, date, dayof]);
+
+    useEffect(() => {
+        fetchTotalRecords();
+    }, [fetchTotalRecords]);
+
+    // Logic kiểm tra khung giờ trực tiếp và scraper
     useEffect(() => {
         const checkTime = () => {
             const now = new Date();
@@ -102,8 +120,8 @@ const KQXS = (props) => {
     }, [hasTriggeredScraper, station, today]);
 
     const isLiveMode = useMemo(() => {
-        if (!date) return true;
-        if (date === today) return true;
+        if (!props.data3) return true;
+        if (props.data3 === today) return true;
         const dayMap = {
             'thu-2': 'Thứ Hai',
             'thu-3': 'Thứ Ba',
@@ -114,11 +132,11 @@ const KQXS = (props) => {
             'chu-nhat': 'Chủ Nhật'
         };
         const todayDayOfWeek = new Date().toLocaleString('vi-VN', { weekday: 'long' });
-        const inputDayOfWeek = dayMap[date?.toLowerCase()];
+        const inputDayOfWeek = dayMap[props.data3?.toLowerCase()];
         return inputDayOfWeek && inputDayOfWeek === todayDayOfWeek;
-    }, [date, today]);
+    }, [props.data3, today]);
 
-    const fetchData = useCallback(async (page = 1) => {
+    const fetchData = useCallback(async () => {
         try {
             const now = new Date();
             const isUpdateWindow = now.getHours() === 18 && now.getMinutes() >= 10 && now.getMinutes() <= 35;
@@ -138,9 +156,7 @@ const KQXS = (props) => {
 
             if (date === today && !isUpdateWindow && !isAfterUpdateWindow) {
                 if (cachedData) {
-                    const parsedData = JSON.parse(cachedData);
-                    setData(parsedData.data);
-                    setTotalPages(Math.ceil(parsedData.total / itemsPerPage));
+                    setData(JSON.parse(cachedData));
                     setLoading(false);
                 } else {
                     setData([]);
@@ -150,13 +166,14 @@ const KQXS = (props) => {
                 return;
             }
 
+            // Lấy dữ liệu từ API với phân trang
             if (isAfterUpdateWindow || !cachedData || cacheAge >= CACHE_DURATION) {
                 if (!isUpdateWindow || isAfterUpdateWindow) {
                     try {
-                        const result = await apiMB.getLottery(station, date, dayof, page, itemsPerPage);
-                        const { data: apiData, total } = result;
+                        const result = await apiMB.getLottery(station, date, dayof, currentPage, ITEMS_PER_PAGE);
+                        const dataArray = Array.isArray(result) ? result : [result];
 
-                        const formattedData = apiData.map(item => ({
+                        const formattedData = dataArray.map(item => ({
                             ...item,
                             drawDate: new Date(item.drawDate).toLocaleDateString('vi-VN', {
                                 day: '2-digit',
@@ -166,8 +183,7 @@ const KQXS = (props) => {
                         }));
 
                         setData(formattedData);
-                        setTotalPages(Math.ceil(total / itemsPerPage));
-                        localStorage.setItem(CACHE_KEY, JSON.stringify({ data: formattedData, total }));
+                        localStorage.setItem(CACHE_KEY, JSON.stringify(formattedData));
                         localStorage.setItem(`${CACHE_KEY}_time`, now.getTime().toString());
 
                         setFilterTypes(prevFilters => {
@@ -175,18 +191,21 @@ const KQXS = (props) => {
                                 acc[item.drawDate + item.station] = prevFilters[item.drawDate + item.station] || 'all';
                                 return acc;
                             }, {});
-                            return newFilters;
+                            if (JSON.stringify(prevFilters) !== JSON.stringify(newFilters)) {
+                                return newFilters;
+                            }
+                            return prevFilters;
                         });
 
                         setLoading(false);
                         setError(null);
                         return;
                     } catch (apiError) {
-                        if (apiError.response?.status === 404) {
+                        if (apiError.message.includes('404')) {
                             setData([]);
                             setLoading(false);
                             setError('Không tìm thấy kết quả xổ số cho ngày này.');
-                            localStorage.setItem(CACHE_KEY, JSON.stringify({ data: [], total: 0 }));
+                            localStorage.setItem(CACHE_KEY, JSON.stringify([]));
                             localStorage.setItem(`${CACHE_KEY}_time`, now.getTime().toString());
                             return;
                         }
@@ -195,10 +214,48 @@ const KQXS = (props) => {
                 }
             }
 
+            // Kiểm tra props.data
+            if (props.data && Array.isArray(props.data) && props.data.length > 0) {
+                const dayMap = {
+                    'thu-2': 'Thứ Hai',
+                    'thu-3': 'Thứ Ba',
+                    'thu-4': 'Thứ Tư',
+                    'thu-5': 'Thứ Năm',
+                    'thu-6': 'Thứ Sáu',
+                    'thu-7': 'Thứ Bảy',
+                    'chu-nhat': 'Chủ Nhật'
+                };
+                const isPropsDataValid = props.data.every(item => {
+                    const itemDate = new Date(item.drawDate).toLocaleDateString('vi-VN', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                    });
+                    const matchesStation = item.station === station;
+                    const matchesDate = !date || itemDate === date;
+                    const matchesDayOfWeek = !dayof || item.dayOfWeek.toLowerCase() === dayMap[dayof.toLowerCase()]?.toLowerCase();
+                    return matchesStation && matchesDate && matchesDayOfWeek;
+                });
+
+                if (isPropsDataValid) {
+                    const formattedData = props.data.slice(0, ITEMS_PER_PAGE).map(item => ({
+                        ...item,
+                        drawDate: new Date(item.drawDate).toLocaleDateString('vi-VN', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                        }),
+                    }));
+                    setData(formattedData);
+                    localStorage.setItem(CACHE_KEY, JSON.stringify(formattedData));
+                    localStorage.setItem(`${CACHE_KEY}_time`, now.getTime().toString());
+                    setLoading(false);
+                    return;
+                }
+            }
+
             if (cachedData && cacheAge < CACHE_DURATION) {
-                const parsedData = JSON.parse(cachedData);
-                setData(parsedData.data);
-                setTotalPages(Math.ceil(parsedData.total / itemsPerPage));
+                setData(JSON.parse(cachedData));
                 setLoading(false);
                 return;
             }
@@ -210,12 +267,13 @@ const KQXS = (props) => {
             setError('Không thể tải dữ liệu, vui lòng thử lại sau.');
             setLoading(false);
         }
-    }, [station, date, dayof, currentPage]);
+    }, [station, date, dayof, props.data, today, currentPage]);
 
     useEffect(() => {
-        fetchData(currentPage);
+        fetchData();
     }, [fetchData, currentPage]);
 
+    // Cập nhật cache khi liveData đầy đủ
     useEffect(() => {
         if (isLiveDataComplete && liveData && liveData.drawDate === today) {
             setData(prevData => {
@@ -248,8 +306,9 @@ const KQXS = (props) => {
                 };
                 const newData = [formattedLiveData, ...filteredData].sort((a, b) =>
                     new Date(b.drawDate.split('/').reverse().join('-')) - new Date(a.drawDate.split('/').reverse().join('-'))
-                );
-                localStorage.setItem(CACHE_KEY, JSON.stringify({ data: newData, total: newData.length }));
+                ).slice(0, ITEMS_PER_PAGE);
+                localStorage.setItem(CACHE_KEY, JSON.stringify(newData));
+                localStorage.setItem(`${CACHE_KEY}_time`, new Date().getTime().toString());
                 return newData;
             });
             setFilterTypes(prev => ({
