@@ -63,7 +63,7 @@ export default function ForgotPassword() {
             setTimeout(() => {
                 setIsModalOpen(false);
                 router.push("/login");
-            }, 3000); // Chuyển hướng sau 3 giây
+            }, 10000); // Chuyển hướng sau 3 giây
         } catch (error) {
             if (error.name === "AbortError") {
                 setError("Yêu cầu hết thời gian, vui lòng thử lại");

@@ -90,30 +90,32 @@ export default function UserInfoModal({ selectedUser, setSelectedUser, setShowMo
                     </div>
                 )}
                 <table className={styles.table}>
-                    <tr>
-                        <td><strong>Tên:</strong></td>
-                        <td>{userDetails.fullname || 'Người dùng ẩn danh'}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Vai trò:</strong></td>
-                        <td>{userDetails.role || 'USER'}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Danh hiệu:</strong></td>
-                        <td>{userDetails.titles?.length > 0 ? userDetails.titles.join(', ') : 'Chưa có danh hiệu'}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Cấp độ:</strong></td>
-                        <td>{userDetails.level || 1}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Số điểm:</strong></td>
-                        <td>{userDetails.points || 0}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Số lần trúng:</strong></td>
-                        <td>{userDetails.winCount || 0}</td>
-                    </tr>
+                    <tbody>
+                        <tr>
+                            <td><strong>Tên:</strong></td>
+                            <td>{userDetails.fullname || 'Người dùng ẩn danh'}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Vai trò:</strong></td>
+                            <td>{userDetails.role || 'USER'}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Danh hiệu:</strong></td>
+                            <td>{userDetails.titles?.length > 0 ? userDetails.titles.join(', ') : 'Chưa có danh hiệu'}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Cấp độ:</strong></td>
+                            <td>{userDetails.level || 1}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Số điểm:</strong></td>
+                            <td>{userDetails.points || 0}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Số lần trúng:</strong></td>
+                            <td>{userDetails.winCount || 0}</td>
+                        </tr>
+                    </tbody>
                 </table>
                 <div className={styles.modalButtons}>
                     <button

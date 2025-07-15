@@ -48,12 +48,12 @@ const ListPost = ({ posts }) => {
 
     // Log để debug dữ liệu đầu vào
     useEffect(() => {
-        console.log("ListPost posts:", JSON.stringify(allPosts, null, 2));
+        // console.log("ListPost posts:", JSON.stringify(allPosts, null, 2));
         allPosts?.forEach((post, index) => {
-            console.log(`Post ${index} (ID: ${post?._id}) mainContents:`, JSON.stringify(post?.mainContents, null, 2));
+            // console.log(`Post ${index} (ID: ${post?._id}) mainContents:`, JSON.stringify(post?.mainContents, null, 2));
             post?.mainContents?.forEach((content, contentIndex) => {
                 if (content?.img) {
-                    console.log(`Post ${post._id} content ${contentIndex} image URL: ${content.img}`);
+                    // console.log(`Post ${post._id} content ${contentIndex} image URL: ${content.img}`);
                 }
             });
         });
@@ -136,7 +136,7 @@ const ListPost = ({ posts }) => {
             return defaultImage;
         }
         const cleanedUrl = cleanImageUrl(validImage.img);
-        console.log(`Post ${post._id} selected image URL: ${cleanedUrl}`);
+        // console.log(`Post ${post._id} selected image URL: ${cleanedUrl}`);
         return cleanedUrl;
     };
 
