@@ -100,7 +100,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             }
 
             try {
-                const response = await fetch(`https://backendkqxs.onrender.com/api/kqxs/xsmb/sse/initial?station=${station}&date=${today}`);
+                const response = await fetch(`https://backendkqxs-1.onrender.com/api/kqxs/xsmb/sse/initial?station=${station}&date=${today}`);
                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                 const initialData = await response.json();
                 setLiveData(prev => {
@@ -136,7 +136,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                 console.warn('Không thể kết nối connect SSE: Invalid station or today');
                 return;
             }
-            eventSource = new EventSource(`https://backendkqxs.onrender.com/api/kqxs/xsmb/sse?station=${station}&date=${today}`);
+            eventSource = new EventSource(`https://backendkqxs-1.onrender.com/api/kqxs/xsmb/sse?station=${station}&date=${today}`);
 
             const prizeTypes = [
                 'maDB', 'specialPrize_0', 'firstPrize_0', 'secondPrize_0', 'secondPrize_1',
