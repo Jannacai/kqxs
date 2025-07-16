@@ -26,7 +26,7 @@ const KQXS = (props) => {
 
     const hour = 16;
     const minutes1 = 10;
-    const minutes2 = 13;
+    const minutes2 = 23;
 
     let dayof; // GIỮ NGUYÊN: Xử lý data3 như XSMN ban đầu
     const station = props.station || "xsmn";
