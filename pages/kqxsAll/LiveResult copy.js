@@ -1,7 +1,8 @@
-// mã này chưa chỉnh sửa nâng cao và áp dụng modal(12h30)
+// cần test thử để xem animating
 import { useState, useEffect, useMemo } from "react";
 import styles from '../../styles/LivekqxsMB.module.css';
 import { getFilteredNumber } from "../../library/utils/filterUtils";
+import { apiMB } from "../api/kqxs/kqxsMB";
 import React from 'react';
 import { useLottery } from '../../contexts/LotteryContext';
 
@@ -10,42 +11,13 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     const [isTodayLoading, setIsTodayLoading] = useState(true);
     const [error, setError] = useState(null);
     const [retryCount, setRetryCount] = useState(0);
-    const [animatingPrize, setAnimatingPrize] = useState(null);
+    const [animatingPrize, setAnimatingPrize] = useState(null); // Theo dõi prizeType đang animating
+    const [animatingNumbers, setAnimatingNumbers] = useState({}); // Lưu số animating
 
     const maxRetries = 50;
     const retryInterval = 10000;
     const fetchMaxRetries = 3;
     const fetchRetryInterval = 5000;
-
-    const prizeDigits = {
-        specialPrize_0: 5,
-        firstPrize_0: 5,
-        secondPrize_0: 5,
-        secondPrize_1: 5,
-        threePrizes_0: 5,
-        threePrizes_1: 5,
-        threePrizes_2: 5,
-        threePrizes_3: 5,
-        threePrizes_4: 5,
-        threePrizes_5: 5,
-        fourPrizes_0: 4,
-        fourPrizes_1: 4,
-        fourPrizes_2: 4,
-        fourPrizes_3: 4,
-        fivePrizes_0: 4,
-        fivePrizes_1: 4,
-        fivePrizes_2: 4,
-        fivePrizes_3: 4,
-        fivePrizes_4: 4,
-        fivePrizes_5: 4,
-        sixPrizes_0: 3,
-        sixPrizes_1: 3,
-        sixPrizes_2: 3,
-        sevenPrizes_0: 2,
-        sevenPrizes_1: 2,
-        sevenPrizes_2: 2,
-        sevenPrizes_3: 2,
-    };
 
     const emptyResult = useMemo(() => ({
         drawDate: today,
@@ -113,12 +85,11 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
         if (!isLiveWindow) {
             setRetryCount(0);
             setError(null);
-            setAnimatingPrize(null);
         }
     }, [isLiveWindow, emptyResult, station, today, setLiveData, setIsLiveDataComplete]);
 
     useEffect(() => {
-        let eventSource = null;
+        let eventSource;
 
         const fetchInitialData = async (retry = 0) => {
             if (!station || !today || !/^\d{2}-\d{2}-\d{4}$/.test(today)) {
@@ -129,7 +100,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             }
 
             try {
-                const response = await fetch(`http://localhost:5000/api/kqxs/xsmb/sse/initial?station=${station}&date=${today}`);
+                const response = await fetch(`https://backendkqxs-1.onrender.com/api/kqxs/xsmb/sse/initial?station=${station}&date=${today}`);
                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                 const initialData = await response.json();
                 setLiveData(prev => {
@@ -162,15 +133,11 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
 
         const connectSSE = () => {
             if (!station || !today) {
-                console.warn('Không thể kết nối SSE: Invalid station or today');
+                console.warn('Không thể kết nối connect SSE: Invalid station or today');
                 return;
             }
+            eventSource = new EventSource(`https://backendkqxs-1.onrender.com/api/kqxs/xsmb/sse?station=${station}&date=${today}`);
 
-            if (eventSource) {
-                eventSource.close();
-            }
-
-            eventSource = new EventSource(`http://localhost:5000/api/kqxs/xsmb/sse?station=${station}&date=${today}`);
             const prizeTypes = [
                 'maDB', 'specialPrize_0', 'firstPrize_0', 'secondPrize_0', 'secondPrize_1',
                 'threePrizes_0', 'threePrizes_1', 'threePrizes_2', 'threePrizes_3', 'threePrizes_4', 'threePrizes_5',
@@ -184,7 +151,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                 eventSource.addEventListener(prizeType, (event) => {
                     try {
                         const data = JSON.parse(event.data);
-                        console.log("SSE data:", data);
+                        console.log("data từ redis", data);
                         if (data && data[prizeType]) {
                             setLiveData(prev => {
                                 if (data[prizeType] === '...' && prev[prizeType] !== '...' && prev[prizeType] !== '***') {
@@ -238,17 +205,15 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
 
         return () => {
             if (eventSource) {
-                console.log('Đóng kết nối SSE trong cleanup...');
+                console.log('Đóng kết nối SSE...');
                 eventSource.close();
             }
         };
-    }, [isLiveWindow, station, retryCount, today, setLiveData, setIsLiveDataComplete]);
+    }, [isLiveWindow, station, retryCount, maxRetries, retryInterval, today, setLiveData, setIsLiveDataComplete]);
 
+    // Logic animating hoàn toàn tách biệt
     useEffect(() => {
-        if (!isLiveWindow || !liveData) {
-            setAnimatingPrize(null);
-            return;
-        }
+        if (!isLiveWindow || !liveData) return;
 
         const animationQueue = [
             'firstPrize_0',
@@ -258,9 +223,10 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             'fivePrizes_0', 'fivePrizes_1', 'fivePrizes_2', 'fivePrizes_3', 'fivePrizes_4', 'fivePrizes_5',
             'sixPrizes_0', 'sixPrizes_1', 'sixPrizes_2',
             'sevenPrizes_0', 'sevenPrizes_1', 'sevenPrizes_2', 'sevenPrizes_3',
-            'specialPrize_0',
+            'specialPrize_0'
         ];
 
+        // Tìm giải cần animating
         const findNextAnimatingPrize = () => {
             for (const prize of animationQueue) {
                 if (liveData[prize] === '...') {
@@ -270,10 +236,31 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             return null;
         };
 
+        // Khởi tạo hoặc cập nhật animatingPrize
         if (!animatingPrize || liveData[animatingPrize] !== '...') {
             const nextPrize = findNextAnimatingPrize();
             setAnimatingPrize(nextPrize);
         }
+
+        // Tạo số ngẫu nhiên cho giải đang animating
+        if (animatingPrize) {
+            const interval = setInterval(() => {
+                setAnimatingNumbers(prev => ({
+                    ...prev,
+                    [animatingPrize]: Math.floor(Math.random() * 100000).toString().padStart(5, '0')
+                }));
+            }, 100);
+
+            // Khởi tạo số ngẫu nhiên ban đầu
+            setAnimatingNumbers(prev => ({
+                ...prev,
+                [animatingPrize]: Math.floor(Math.random() * 100000).toString().padStart(5, '0')
+            }));
+
+            return () => clearInterval(interval);
+        }
+
+        return () => { };
     }, [isLiveWindow, liveData, animatingPrize]);
 
     if (!liveData) {
@@ -330,29 +317,23 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
 
     const renderPrizeValue = (prizeType, digits = 5) => {
         const isAnimating = animatingPrize === prizeType && liveData[prizeType] === '...';
-        const className = `${styles.running_number} ${styles[`running_${digits}`]}`;
+        const value = isAnimating ? animatingNumbers[prizeType] || '0'.repeat(digits) : liveData[prizeType];
+        const className = `${styles.running_number} ${styles[`running_${digits}`]} ${isAnimating ? styles[`running_number[data-status="animating"]`] : ''}`;
 
         return (
             <span className={className} data-status={isAnimating ? 'animating' : 'static'}>
                 {isAnimating ? (
                     <span className={styles.digit_container}>
-                        {Array.from({ length: digits }).map((_, i) => (
-                            <span key={i} className={styles.digit} data-status="animating" data-index={i}></span>
+                        {value.split('').map((digit, i) => (
+                            <span key={i} className={styles.digit}>
+                                {digit}
+                            </span>
                         ))}
                     </span>
                 ) : liveData[prizeType] === '...' ? (
                     <span className={styles.ellipsis}></span>
                 ) : (
-                    <span className={styles.digit_container}>
-                        {getFilteredNumber(liveData[prizeType], currentFilter)
-                            .padStart(digits, '0')
-                            .split('')
-                            .map((digit, i) => (
-                                <span key={i} data-status="static" data-index={i}>
-                                    {digit}
-                                </span>
-                            ))}
-                    </span>
+                    getFilteredNumber(liveData[prizeType], currentFilter)
                 )}
             </span>
         );
@@ -607,3 +588,4 @@ function isWithinLiveWindow() {
 }
 
 export default React.memo(LiveResult);
+// chạy ổn rồi, animating chưa chạy đúng(tất cả animating hiện tại đều 5 số)
