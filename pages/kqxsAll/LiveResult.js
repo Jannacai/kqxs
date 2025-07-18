@@ -1,8 +1,7 @@
-// cần test thử để xem animating
-import { useState, useEffect, useMemo } from "react";
+// Cần test thử cho ngày 17/07
+import { useState, useEffect, useMemo, useRef } from "react";
 import styles from '../../styles/LivekqxsMB.module.css';
 import { getFilteredNumber } from "../../library/utils/filterUtils";
-import { apiMB } from "../api/kqxs/kqxsMB";
 import React from 'react';
 import { useLottery } from '../../contexts/LotteryContext';
 
@@ -11,13 +10,46 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     const [isTodayLoading, setIsTodayLoading] = useState(true);
     const [error, setError] = useState(null);
     const [retryCount, setRetryCount] = useState(0);
-    const [animatingPrize, setAnimatingPrize] = useState(null); // Theo dõi prizeType đang animating
-    const [animatingNumbers, setAnimatingNumbers] = useState({}); // Lưu số animating
+    const [animatingPrize, setAnimatingPrize] = useState(null);
+    const mountedRef = useRef(false);
+    const sseRef = useRef(null);
 
     const maxRetries = 50;
-    const retryInterval = 10000;
+    const retryInterval = 2000; // 2 giây
     const fetchMaxRetries = 3;
     const fetchRetryInterval = 5000;
+    const pollingIntervalMs = 2000; // Polling 2 giây cho đến khi đầy đủ
+    const regularPollingIntervalMs = 10000; // Sau khi đầy đủ
+
+    const prizeDigits = {
+        specialPrize_0: 5,
+        firstPrize_0: 5,
+        secondPrize_0: 5,
+        secondPrize_1: 5,
+        threePrizes_0: 5,
+        threePrizes_1: 5,
+        threePrizes_2: 5,
+        threePrizes_3: 5,
+        threePrizes_4: 5,
+        threePrizes_5: 5,
+        fourPrizes_0: 4,
+        fourPrizes_1: 4,
+        fourPrizes_2: 4,
+        fourPrizes_3: 4,
+        fivePrizes_0: 4,
+        fivePrizes_1: 4,
+        fivePrizes_2: 4,
+        fivePrizes_3: 4,
+        fivePrizes_4: 4,
+        fivePrizes_5: 4,
+        sixPrizes_0: 3,
+        sixPrizes_1: 3,
+        sixPrizes_2: 3,
+        sevenPrizes_0: 2,
+        sevenPrizes_1: 2,
+        sevenPrizes_2: 2,
+        sevenPrizes_3: 2,
+    };
 
     const emptyResult = useMemo(() => ({
         drawDate: today,
@@ -55,88 +87,123 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
         sevenPrizes_1: "...",
         sevenPrizes_2: "...",
         sevenPrizes_3: "...",
+        lastUpdated: 0,
     }), [today, station]);
+
+    useEffect(() => {
+        mountedRef.current = true;
+        return () => {
+            mountedRef.current = false;
+            if (sseRef.current) {
+                console.log('Đóng kết nối SSE...');
+                sseRef.current.close();
+                sseRef.current = null;
+            }
+        };
+    }, []);
 
     useEffect(() => {
         if (!setLiveData || !setIsLiveDataComplete) return;
 
-        const cachedLiveData = localStorage.getItem(`liveData:${station}:${today}`);
-        if (cachedLiveData) {
-            try {
-                const parsedData = JSON.parse(cachedLiveData);
-                setLiveData(parsedData);
-                const isComplete = Object.values(parsedData).every(
-                    val => typeof val === 'string' && val !== '...' && val !== '***'
-                );
-                setIsLiveDataComplete(isComplete);
-                setIsTodayLoading(false);
-            } catch (error) {
-                console.error('Error parsing cachedLiveData:', error);
-                setLiveData(emptyResult);
-                setIsLiveDataComplete(false);
-                setIsTodayLoading(isLiveWindow ? true : false);
-            }
-        } else {
-            setLiveData(emptyResult);
-            setIsLiveDataComplete(false);
-            setIsTodayLoading(isLiveWindow ? true : false);
-        }
-
-        if (!isLiveWindow) {
-            setRetryCount(0);
-            setError(null);
-        }
-    }, [isLiveWindow, emptyResult, station, today, setLiveData, setIsLiveDataComplete]);
-
-    useEffect(() => {
-        let eventSource;
+        let pollingInterval;
 
         const fetchInitialData = async (retry = 0) => {
-            if (!station || !today || !/^\d{2}-\d{2}-\d{4}$/.test(today)) {
-                console.warn('Invalid station or today value:', { station, today });
-                setError('');
-                setIsTodayLoading(false);
-                return;
-            }
-
             try {
                 const response = await fetch(`https://backendkqxs-1.onrender.com/api/kqxs/xsmb/sse/initial?station=${station}&date=${today}`);
                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-                const initialData = await response.json();
-                setLiveData(prev => {
-                    const updatedData = { ...prev };
-                    for (const key in initialData) {
-                        if (!updatedData[key] || updatedData[key] === '...' || updatedData[key] === '***') {
-                            updatedData[key] = initialData[key];
+                const serverData = await response.json();
+                console.log('Dữ liệu từ /initial:', serverData);
+
+                const cachedLiveData = localStorage.getItem(`liveData:${station}:${today}`);
+                let initialData = cachedLiveData ? JSON.parse(cachedLiveData) : { ...emptyResult };
+
+                if (mountedRef.current) {
+                    const updatedData = { ...initialData };
+                    let shouldUpdate = !initialData.lastUpdated || serverData.lastUpdated > initialData.lastUpdated;
+                    for (const key in serverData) {
+                        if (serverData[key] !== '...' || !updatedData[key] || updatedData[key] === '...' || updatedData[key] === '***') {
+                            updatedData[key] = serverData[key];
+                            shouldUpdate = true;
                         }
                     }
-                    localStorage.setItem(`liveData:${station}:${today}`, JSON.stringify(updatedData));
-                    const isComplete = Object.values(updatedData).every(
-                        val => typeof val === 'string' && val !== '...' && val !== '***'
-                    );
-                    setIsLiveDataComplete(isComplete);
-                    setIsTodayLoading(false);
-                    return updatedData;
-                });
-                setRetryCount(0);
-                setError(null);
+                    if (shouldUpdate) {
+                        updatedData.lastUpdated = serverData.lastUpdated || Date.now();
+                        setLiveData(updatedData);
+                        localStorage.setItem(`liveData:${station}:${today}`, JSON.stringify(updatedData));
+                        const isComplete = Object.values(updatedData).every(
+                            val => typeof val === 'string' && val !== '...' && val !== '***'
+                        );
+                        setIsLiveDataComplete(isComplete);
+                        setIsTodayLoading(false);
+                        setRetryCount(0);
+                        setError(null);
+                        console.log('Đã cập nhật dữ liệu ban đầu:', updatedData);
+                    } else {
+                        setLiveData(initialData);
+                        setIsTodayLoading(false);
+                        console.log('Sử dụng dữ liệu localStorage:', initialData);
+                    }
+                }
             } catch (error) {
                 console.error(`Lỗi khi lấy dữ liệu khởi tạo từ Redis (lần ${retry + 1}):`, error.message);
                 if (retry < fetchMaxRetries) {
-                    setTimeout(() => fetchInitialData(retry + 1), fetchRetryInterval);
-                } else {
-                    setError('Không thể lấy dữ liệu ban đầu, đang dựa vào dữ liệu cục bộ...');
+                    setTimeout(() => {
+                        if (mountedRef.current) {
+                            fetchInitialData(retry + 1);
+                        }
+                    }, fetchRetryInterval);
+                } else if (mountedRef.current) {
+                    const cachedLiveData = localStorage.getItem(`liveData:${station}:${today}`);
+                    setLiveData(cachedLiveData ? JSON.parse(cachedLiveData) : emptyResult);
+                    setIsLiveDataComplete(false);
                     setIsTodayLoading(false);
+                    setError('Không thể lấy dữ liệu ban đầu, đang dựa vào dữ liệu cục bộ...');
                 }
             }
         };
 
         const connectSSE = () => {
-            if (!station || !today) {
-                console.warn('Không thể kết nối connect SSE: Invalid station or today');
+            if (!station || !today || !/^\d{2}-\d{2}-\d{4}$/.test(today)) {
+                console.warn('Invalid station or today value:', { station, today });
+                if (mountedRef.current) {
+                    setError('Dữ liệu không hợp lệ');
+                    setIsTodayLoading(false);
+                }
                 return;
             }
-            eventSource = new EventSource(`https://backendkqxs-1.onrender.com/api/kqxs/xsmb/sse?station=${station}&date=${today}`);
+
+            if (sseRef.current) {
+                sseRef.current.close();
+            }
+
+            sseRef.current = new EventSource(`https://backendkqxs-1.onrender.com/api/kqxs/xsmb/sse?station=${station}&date=${today}`);
+            console.log('Khởi tạo kết nối SSE cho ngày:', today);
+
+            sseRef.current.onopen = () => {
+                console.log('SSE connection opened');
+                if (mountedRef.current) {
+                    setError(null);
+                }
+            };
+
+            sseRef.current.onerror = () => {
+                console.log('SSE error, reconnecting... Retry count:', retryCount + 1);
+                if (mountedRef.current) {
+                    setError('Đang kết nối lại...');
+                }
+                sseRef.current.close();
+                sseRef.current = null;
+                if (retryCount < maxRetries) {
+                    setTimeout(() => {
+                        if (mountedRef.current) {
+                            setRetryCount(prev => prev + 1);
+                            connectSSE();
+                        }
+                    }, retryInterval);
+                } else if (mountedRef.current) {
+                    setError('Mất kết nối trực tiếp, đang sử dụng polling...');
+                }
+            };
 
             const prizeTypes = [
                 'maDB', 'specialPrize_0', 'firstPrize_0', 'secondPrize_0', 'secondPrize_1',
@@ -148,11 +215,11 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             ];
 
             prizeTypes.forEach(prizeType => {
-                eventSource.addEventListener(prizeType, (event) => {
+                sseRef.current.addEventListener(prizeType, (event) => {
                     try {
                         const data = JSON.parse(event.data);
-                        console.log("data từ redis", data);
-                        if (data && data[prizeType]) {
+                        console.log(`Nhận sự kiện SSE: ${prizeType} = ${data[prizeType]}`, data);
+                        if (data && data[prizeType] && mountedRef.current) {
                             setLiveData(prev => {
                                 if (data[prizeType] === '...' && prev[prizeType] !== '...' && prev[prizeType] !== '***') {
                                     console.warn(`Bỏ qua ${prizeType} = "..." vì đã có giá trị: ${prev[prizeType]}`);
@@ -165,17 +232,19 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                                     tinh: data.tinh || prev.tinh,
                                     year: data.year || prev.year,
                                     month: data.month || prev.month,
+                                    lastUpdated: data.lastUpdated || Date.now(),
                                 };
                                 localStorage.setItem(`liveData:${station}:${today}`, JSON.stringify(updatedData));
                                 const isComplete = Object.values(updatedData).every(
                                     val => typeof val === 'string' && val !== '...' && val !== '***'
                                 );
                                 setIsLiveDataComplete(isComplete);
+                                setIsTodayLoading(false);
+                                setRetryCount(0);
+                                setError(null);
+                                console.log('Cập nhật liveData từ SSE:', updatedData);
                                 return updatedData;
                             });
-                            setIsTodayLoading(false);
-                            setRetryCount(0);
-                            setError(null);
                         }
                     } catch (error) {
                         console.error(`Lỗi xử lý sự kiện ${prizeType}:`, error);
@@ -183,37 +252,119 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                 });
             });
 
-            eventSource.onerror = () => {
-                console.log('Lỗi SSE, đóng kết nối...');
-                eventSource.close();
-                if (retryCount < maxRetries) {
-                    setTimeout(() => {
-                        setRetryCount(prev => prev + 1);
-                    }, retryInterval);
-                } else {
-                    setError('Mất kết nối trực tiếp, đang tải dữ liệu thủ công...');
-                    setLiveData(emptyResult);
-                    setIsLiveDataComplete(false);
+            sseRef.current.addEventListener('full', (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('Nhận sự kiện SSE full:', data);
+                    if (data && mountedRef.current) {
+                        setLiveData(prev => {
+                            const updatedData = { ...prev };
+                            let shouldUpdate = false;
+                            for (const key in data) {
+                                if (data[key] !== '...' || !updatedData[key] || updatedData[key] === '...' || updatedData[key] === '***') {
+                                    updatedData[key] = data[key];
+                                    shouldUpdate = true;
+                                }
+                            }
+                            if (shouldUpdate) {
+                                updatedData.lastUpdated = data.lastUpdated || Date.now();
+                                localStorage.setItem(`liveData:${station}:${today}`, JSON.stringify(updatedData));
+                                const isComplete = Object.values(updatedData).every(
+                                    val => typeof val === 'string' && val !== '...' && val !== '***'
+                                );
+                                setIsLiveDataComplete(isComplete);
+                                console.log('Cập nhật liveData từ SSE full:', updatedData);
+                                return updatedData;
+                            }
+                            return prev;
+                        });
+                        setIsTodayLoading(false);
+                        setRetryCount(0);
+                        setError(null);
+                    }
+                } catch (error) {
+                    console.error('Lỗi xử lý sự kiện full:', error);
                 }
-            };
+            });
+
+            sseRef.current.addEventListener('canary', (event) => {
+                console.log('Received canary message:', event.data);
+            });
         };
 
-        if (isLiveWindow && retryCount <= maxRetries && setLiveData) {
-            fetchInitialData();
-            connectSSE();
-        }
+        const startPolling = () => {
+            const poll = () => {
+                const isIncomplete = Object.values(liveData || emptyResult).some(
+                    val => typeof val === 'string' && (val === '...' || val === '***')
+                );
+                const interval = isIncomplete ? pollingIntervalMs : regularPollingIntervalMs;
+
+                pollingInterval = setTimeout(async () => {
+                    try {
+                        const response = await fetch(`https://backendkqxs-1.onrender.com/api/kqxs/xsmb/sse/initial?station=${station}&date=${today}`);
+                        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                        const serverData = await response.json();
+                        console.log('Dữ liệu từ polling:', serverData);
+                        if (mountedRef.current) {
+                            setLiveData(prev => {
+                                const updatedData = { ...prev };
+                                let shouldUpdate = !prev.lastUpdated || serverData.lastUpdated > prev.lastUpdated;
+                                for (const key in serverData) {
+                                    if (serverData[key] !== '...' || !updatedData[key] || updatedData[key] === '...' || updatedData[key] === '***') {
+                                        updatedData[key] = serverData[key];
+                                        shouldUpdate = true;
+                                    }
+                                }
+                                if (shouldUpdate) {
+                                    updatedData.lastUpdated = serverData.lastUpdated || Date.now();
+                                    localStorage.setItem(`liveData:${station}:${today}`, JSON.stringify(updatedData));
+                                    const isComplete = Object.values(updatedData).every(
+                                        val => typeof val === 'string' && val !== '...' && val !== '***'
+                                    );
+                                    setIsLiveDataComplete(isComplete);
+                                    console.log('Cập nhật liveData từ polling:', updatedData);
+                                    return updatedData;
+                                }
+                                return prev;
+                            });
+                            setError(null);
+                        }
+                    } catch (error) {
+                        console.error('Lỗi khi polling dữ liệu:', error);
+                        if (mountedRef.current) {
+                            setError('Không thể lấy dữ liệu, đang thử lại...');
+                        }
+                    }
+                    if (mountedRef.current) {
+                        poll();
+                    }
+                }, interval);
+            };
+
+            poll();
+        };
+
+        fetchInitialData();
+        connectSSE();
+        startPolling();
 
         return () => {
-            if (eventSource) {
-                console.log('Đóng kết nối SSE...');
-                eventSource.close();
+            if (sseRef.current) {
+                console.log('Đóng kết nối SSE trong cleanup...');
+                sseRef.current.close();
+                sseRef.current = null;
+            }
+            if (pollingInterval) {
+                clearTimeout(pollingInterval);
             }
         };
-    }, [isLiveWindow, station, retryCount, maxRetries, retryInterval, today, setLiveData, setIsLiveDataComplete]);
+    }, [isLiveWindow, station, today, setLiveData, setIsLiveDataComplete]);
 
-    // Logic animating hoàn toàn tách biệt
     useEffect(() => {
-        if (!isLiveWindow || !liveData) return;
+        if (!liveData) {
+            setAnimatingPrize(null);
+            return;
+        }
 
         const animationQueue = [
             'firstPrize_0',
@@ -223,10 +374,9 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             'fivePrizes_0', 'fivePrizes_1', 'fivePrizes_2', 'fivePrizes_3', 'fivePrizes_4', 'fivePrizes_5',
             'sixPrizes_0', 'sixPrizes_1', 'sixPrizes_2',
             'sevenPrizes_0', 'sevenPrizes_1', 'sevenPrizes_2', 'sevenPrizes_3',
-            'specialPrize_0'
+            'specialPrize_0',
         ];
 
-        // Tìm giải cần animating
         const findNextAnimatingPrize = () => {
             for (const prize of animationQueue) {
                 if (liveData[prize] === '...') {
@@ -236,32 +386,11 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             return null;
         };
 
-        // Khởi tạo hoặc cập nhật animatingPrize
         if (!animatingPrize || liveData[animatingPrize] !== '...') {
             const nextPrize = findNextAnimatingPrize();
             setAnimatingPrize(nextPrize);
         }
-
-        // Tạo số ngẫu nhiên cho giải đang animating
-        if (animatingPrize) {
-            const interval = setInterval(() => {
-                setAnimatingNumbers(prev => ({
-                    ...prev,
-                    [animatingPrize]: Math.floor(Math.random() * 100000).toString().padStart(5, '0')
-                }));
-            }, 100);
-
-            // Khởi tạo số ngẫu nhiên ban đầu
-            setAnimatingNumbers(prev => ({
-                ...prev,
-                [animatingPrize]: Math.floor(Math.random() * 100000).toString().padStart(5, '0')
-            }));
-
-            return () => clearInterval(interval);
-        }
-
-        return () => { };
-    }, [isLiveWindow, liveData, animatingPrize]);
+    }, [liveData, animatingPrize]);
 
     if (!liveData) {
         return <div className={styles.error}>Đang tải dữ liệu...</div>;
@@ -317,23 +446,29 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
 
     const renderPrizeValue = (prizeType, digits = 5) => {
         const isAnimating = animatingPrize === prizeType && liveData[prizeType] === '...';
-        const value = isAnimating ? animatingNumbers[prizeType] || '0'.repeat(digits) : liveData[prizeType];
-        const className = `${styles.running_number} ${styles[`running_${digits}`]} ${isAnimating ? styles[`running_number[data-status="animating"]`] : ''}`;
+        const className = `${styles.running_number} ${styles[`running_${digits}`]}`;
 
         return (
             <span className={className} data-status={isAnimating ? 'animating' : 'static'}>
                 {isAnimating ? (
                     <span className={styles.digit_container}>
-                        {value.split('').map((digit, i) => (
-                            <span key={i} className={styles.digit}>
-                                {digit}
-                            </span>
+                        {Array.from({ length: digits }).map((_, i) => (
+                            <span key={i} className={styles.digit} data-status="animating" data-index={i}></span>
                         ))}
                     </span>
                 ) : liveData[prizeType] === '...' ? (
                     <span className={styles.ellipsis}></span>
                 ) : (
-                    getFilteredNumber(liveData[prizeType], currentFilter)
+                    <span className={styles.digit_container}>
+                        {getFilteredNumber(liveData[prizeType], currentFilter)
+                            .padStart(digits, '0')
+                            .split('')
+                            .map((digit, i) => (
+                                <span key={i} data-status="static" data-index={i}>
+                                    {digit}
+                                </span>
+                            ))}
+                    </span>
                 )}
             </span>
         );
@@ -588,4 +723,3 @@ function isWithinLiveWindow() {
 }
 
 export default React.memo(LiveResult);
-// chạy ổn rồi, animating chưa chạy đúng(tất cả animating hiện tại đều 5 số)

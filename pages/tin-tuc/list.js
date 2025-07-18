@@ -1,13 +1,10 @@
-"use client"; // Đảm bảo chạy phía client vì dùng Socket.IO
+"use client"; // Đảm bảo chạy phía client
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { getPosts } from "../api/post/index";
 import ListPost from "../../component/listPost";
 import styles from "../../styles/postList.module.css";
-import io from "socket.io-client";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 
 const PostList = () => {
     const router = useRouter();
@@ -33,47 +30,6 @@ const PostList = () => {
         };
         fetchPosts();
     }, [page]);
-
-    useEffect(() => {
-        const socket = io(process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000", {
-            query: { token: localStorage?.getItem("token") || "" },
-        });
-
-        socket.on("connect", () => {
-            console.log("Connected to Socket.IO server");
-        });
-
-        socket.on("newPostCreated", (newPost) => {
-            if (!newPost || !newPost._id) return;
-
-            setPosts((prevPosts) => {
-                // Tránh trùng lặp
-                if (prevPosts.some((post) => post._id === newPost._id)) {
-                    return prevPosts;
-                }
-                // Thêm bài viết mới vào đầu danh sách
-                const newPosts = [newPost, ...prevPosts].slice(0, 10); // Giới hạn 10 bài/trang
-                return newPosts;
-            });
-
-            // Cập nhật totalPages nếu cần
-            setTotalPages((prevTotal) => Math.ceil((prevTotal * 10 + 1) / 10));
-
-            // Thông báo bài viết mới
-            toast.info(`Bài viết mới: ${newPost.title}`, {
-                position: "top-right",
-                autoClose: 3000,
-            });
-        });
-
-        socket.on("connect_error", (err) => {
-            console.error("Socket.IO connection error:", err.message);
-        });
-
-        return () => {
-            socket.disconnect();
-        };
-    }, []);
 
     const handlePageChange = (newPage) => {
         if (newPage >= 1 && newPage <= totalPages) {
@@ -107,7 +63,6 @@ const PostList = () => {
 
     return (
         <div>
-            <ToastContainer />
             <ListPost posts={posts} />
             {/* <div className={styles.pagination}>
                 <button

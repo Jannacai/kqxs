@@ -1,16 +1,17 @@
-
 "use client";
 
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import { formatDistanceToNow } from 'date-fns';
+import { jwtDecode } from 'jwt-decode';
 import vi from 'date-fns/locale/vi';
 import Link from 'next/link';
 import axios from 'axios';
 import io from 'socket.io-client';
 import { FaGift } from 'react-icons/fa';
 import Image from 'next/image';
+import { toast } from 'react-toastify';
 import styles from '../styles/userAvatar.module.css';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
@@ -39,38 +40,85 @@ const UserAvatar = () => {
     // Lấy thông tin người dùng
     useEffect(() => {
         const fetchUserInfo = async () => {
-            if (!session?.accessToken) {
-                setFetchError('Không có access token');
+            if (!session?.accessToken || session?.error) {
+                setFetchError('Không có access token hoặc lỗi phiên');
                 return;
             }
+
+            // Kiểm tra thời gian hết hạn của token
+            try {
+                const decoded = jwtDecode(session.accessToken);
+                const now = Date.now() / 1000;
+                if (decoded.exp < now) {
+                    setFetchError('Token đã hết hạn');
+                    await signOut({ redirect: false });
+                    router.push('/login?error=SessionExpired');
+                    toast.error('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.', {
+                        position: 'top-center',
+                        autoClose: 5000,
+                    });
+                    return;
+                }
+            } catch (error) {
+                setFetchError('Token không hợp lệ');
+                await signOut({ redirect: false });
+                router.push('/login?error=SessionExpired');
+                toast.error('Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.', {
+                    position: 'top-center',
+                    autoClose: 5000,
+                });
+                return;
+            }
+
+            // Trì hoãn 1 giây để đảm bảo session được cập nhật
+            await new Promise(resolve => setTimeout(resolve, 1000));
 
             try {
                 const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
                     headers: {
-                        Authorization: `Bearer ${session.accessToken} `,
-                        "User-Agent": "UserAvatar-Client",
+                        Authorization: `Bearer ${session.accessToken}`,
+                        'User-Agent': 'UserAvatar-Client',
                     },
                 });
 
                 if (!res.ok) {
                     const errorText = await res.json();
-                    throw new Error(`Không thể lấy thông tin: ${errorText.error} `);
+                    if (errorText.error === 'Tài khoản bị khóa') {
+                        setFetchError('Tài khoản của bạn đã bị khóa. Vui lòng thử lại sau.');
+                    } else if (errorText.error.includes('Quá nhiều yêu cầu')) {
+                        setFetchError('Quá nhiều yêu cầu. Vui lòng thử lại sau 15 phút.');
+                    } else {
+                        setFetchError(`Không thể lấy thông tin: ${errorText.error}`);
+                    }
+                    if (res.status === 401 || errorText.error.includes('Invalid token')) {
+                        await signOut({ redirect: false });
+                        router.push('/login?error=SessionExpired');
+                        toast.error('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.', {
+                            position: 'top-center',
+                            autoClose: 5000,
+                        });
+                    }
+                    return;
                 }
 
                 const data = await res.json();
                 setUserInfo(data);
+                setFetchError(null);
             } catch (error) {
                 console.error('Error fetching user info:', error);
                 setFetchError(error.message);
-                if (error.message.includes("Invalid token") || session?.error === "RefreshTokenError") {
-                    signOut({ redirect: false });
+                if (error.message.includes('Invalid token') || session?.error === 'RefreshTokenError') {
+                    await signOut({ redirect: false });
                     router.push('/login?error=SessionExpired');
-                    alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+                    toast.error('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.', {
+                        position: 'top-center',
+                        autoClose: 5000,
+                    });
                 }
             }
         };
 
-        if (status === "authenticated") {
+        if (status === 'authenticated') {
             fetchUserInfo();
         }
     }, [status, session, router]);
@@ -86,7 +134,7 @@ const UserAvatar = () => {
             const params = { type: ['USER_REWARDED', 'NEW_EVENT'], page: 1, limit: 20 };
             const headers = {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${session.accessToken} `,
+                Authorization: `Bearer ${session.accessToken}`,
             };
             const res = await axios.get(`${API_BASE_URL}/api/notifications`, {
                 headers,
@@ -273,7 +321,10 @@ const UserAvatar = () => {
         if (!file) return;
 
         if (!session?.accessToken) {
-            alert("Không có access token. Vui lòng đăng nhập lại.");
+            toast.error('Không có access token. Vui lòng đăng nhập lại.', {
+                position: 'top-center',
+                autoClose: 5000,
+            });
             signOut({ redirect: false });
             router.push('/login?error=SessionExpired');
             return;
@@ -287,15 +338,18 @@ const UserAvatar = () => {
             const res = await fetch(`${API_BASE_URL}/api/users/upload-avatar`, {
                 method: 'POST',
                 headers: {
-                    Authorization: `Bearer ${session.accessToken} `,
-                    "User-Agent": "UserAvatar-Client",
+                    Authorization: `Bearer ${session.accessToken}`,
+                    'User-Agent': 'UserAvatar-Client',
                     'Cache-Control': 'no-cache',
                 },
                 body: formData,
             });
 
             if (res.status === 401) {
-                alert("Không thể xác thực người dùng. Vui lòng đăng nhập lại.");
+                toast.error('Không thể xác thực người dùng. Vui lòng đăng nhập lại.', {
+                    position: 'top-center',
+                    autoClose: 5000,
+                });
                 signOut({ redirect: false });
                 router.push('/login?error=SessionExpired');
                 return;
@@ -309,22 +363,28 @@ const UserAvatar = () => {
             const data = await res.json();
             setUserInfo(data.user);
             fileInputRef.current.value = null;
-            alert("Tải ảnh đại diện thành công!");
+            toast.success('Tải ảnh đại diện thành công!', {
+                position: 'top-center',
+                autoClose: 5000,
+            });
         } catch (error) {
             console.error('Error uploading avatar:', error);
             let errorMessage = error.message;
-            if (error.message.includes("Người dùng không tồn tại")) {
-                errorMessage = "Không tìm thấy người dùng. Vui lòng đăng nhập lại.";
+            if (error.message.includes('Người dùng không tồn tại')) {
+                errorMessage = 'Không tìm thấy người dùng. Vui lòng đăng nhập lại.';
                 signOut({ redirect: false });
                 router.push('/login?error=UserNotFound');
-            } else if (error.message.includes("Must supply api_key")) {
-                errorMessage = "Lỗi cấu hình server. Vui lòng liên hệ quản trị viên.";
-            } else if (error.message.includes("Không thể xác định người dùng")) {
-                errorMessage = "Lỗi xác thực. Vui lòng đăng nhập lại.";
+            } else if (error.message.includes('Must supply api_key')) {
+                errorMessage = 'Lỗi cấu hình server. Vui lòng liên hệ quản trị viên.';
+            } else if (error.message.includes('Không thể xác định người dùng')) {
+                errorMessage = 'Lỗi xác thực. Vui lòng đăng nhập lại.';
                 signOut({ redirect: false });
                 router.push('/login?error=AuthError');
             }
-            alert(errorMessage);
+            toast.error(errorMessage, {
+                position: 'top-center',
+                autoClose: 5000,
+            });
         } finally {
             setUploading(false);
         }
@@ -335,16 +395,19 @@ const UserAvatar = () => {
         if (!session?.refreshToken) {
             await signOut({ redirect: false });
             router.push('/login');
-            alert("Không có refresh token. Vui lòng đăng nhập lại.");
+            toast.error('Không có refresh token. Vui lòng đăng nhập lại.', {
+                position: 'top-center',
+                autoClose: 5000,
+            });
             return;
         }
 
         try {
             const res = await fetch(`${API_BASE_URL}/api/auth/logout`, {
-                method: "POST",
+                method: 'POST',
                 headers: {
-                    "Content-Type": "application/json",
-                    "User-Agent": "UserAvatar-Client",
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'UserAvatar-Client',
                 },
                 body: JSON.stringify({ refreshToken: session.refreshToken }),
             });
@@ -357,12 +420,18 @@ const UserAvatar = () => {
             router.push('/login');
             setUserInfo(null);
             setFetchError(null);
-            alert("Đăng xuất thành công!");
+            toast.success('Đăng xuất thành công!', {
+                position: 'top-center',
+                autoClose: 5000,
+            });
         } catch (error) {
             console.error('Logout error:', error.message);
             await signOut({ redirect: false });
             router.push('/login');
-            alert("Lỗi khi đăng xuất. Vui lòng thử lại.");
+            toast.error('Lỗi khi đăng xuất. Vui lòng thử lại.', {
+                position: 'top-center',
+                autoClose: 5000,
+            });
         }
         setIsSubmenuOpen(false);
     };
@@ -372,33 +441,43 @@ const UserAvatar = () => {
         if (!notification._id || notification._id.startsWith('temp_')) {
             console.error('Invalid or temporary notification ID:', notification._id);
             setNotificationError('Thông báo chưa được đồng bộ. Vui lòng chờ hoặc làm mới trang.');
+            toast.error('Thông báo chưa được đồng bộ. Vui lòng chờ hoặc làm mới trang.', {
+                position: 'top-center',
+                autoClose: 5000,
+            });
             return;
         }
 
         try {
             const res = await fetch(`${API_BASE_URL}/api/notifications/${notification._id}/read`, {
-                method: "POST",
+                method: 'POST',
                 headers: {
                     Authorization: `Bearer ${session.accessToken}`,
-                    "Content-Type": "application/json",
+                    'Content-Type': 'application/json',
                 },
             });
 
             if (res.status === 401) {
                 signOut({ redirect: false });
                 router.push('/login?error=SessionExpired');
-                alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+                toast.error('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.', {
+                    position: 'top-center',
+                    autoClose: 5000,
+                });
                 return;
             }
             if (!res.ok) {
                 const errorText = await res.json();
-                throw new Error(errorText.error || "Không thể đánh dấu đã đọc");
+                throw new Error(errorText.error || 'Không thể đánh dấu đã đọc');
             }
 
             setNotifications(prev => prev.map(n => n._id === notification._id ? { ...n, isRead: true } : n));
         } catch (error) {
             console.error('Error marking notification as read:', error);
-            alert(error.message || "Lỗi khi đánh dấu thông báo đã đọc.");
+            toast.error(error.message || 'Lỗi khi đánh dấu thông báo đã đọc.', {
+                position: 'top-center',
+                autoClose: 5000,
+            });
             return;
         }
 
@@ -407,6 +486,10 @@ const UserAvatar = () => {
             if (!eventId || typeof eventId !== 'string' || eventId === '[object Object]') {
                 console.error('Invalid eventId for navigation:', notification.eventId);
                 setNotificationError('ID sự kiện không hợp lệ. Vui lòng kiểm tra lại.');
+                toast.error('ID sự kiện không hợp lệ. Vui lòng kiểm tra lại.', {
+                    position: 'top-center',
+                    autoClose: 5000,
+                });
                 return;
             }
             console.log('Navigating to event details with eventId:', eventId);
@@ -419,29 +502,38 @@ const UserAvatar = () => {
     const handleMarkAllRead = async () => {
         try {
             const res = await fetch(`${API_BASE_URL}/api/notifications/read-all`, {
-                method: "POST",
+                method: 'POST',
                 headers: {
                     Authorization: `Bearer ${session.accessToken}`,
-                    "Content-Type": "application/json",
+                    'Content-Type': 'application/json',
                 },
             });
 
             if (res.status === 401) {
                 signOut({ redirect: false });
                 router.push('/login?error=SessionExpired');
-                alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+                toast.error('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.', {
+                    position: 'top-center',
+                    autoClose: 5000,
+                });
                 return;
             }
             if (!res.ok) {
                 const errorText = await res.json();
-                throw new Error(errorText.error || "Không thể đánh dấu tất cả đã đọc");
+                throw new Error(errorText.error || 'Không thể đánh dấu tất cả đã đọc');
             }
 
             setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-            alert("Đã đánh dấu tất cả thông báo đã đọc.");
+            toast.success('Đã đánh dấu tất cả thông báo đã đọc.', {
+                position: 'top-center',
+                autoClose: 5000,
+            });
         } catch (error) {
             console.error('Error marking all notifications as read:', error);
-            alert(error.message || "Lỗi khi đánh dấu tất cả thông báo đã đọc.");
+            toast.error(error.message || 'Lỗi khi đánh dấu tất cả thông báo đã đọc.', {
+                position: 'top-center',
+                autoClose: 5000,
+            });
         }
     };
 
@@ -450,35 +542,47 @@ const UserAvatar = () => {
         if (!notification._id || notification._id.startsWith('temp_')) {
             console.error('Invalid or temporary notification ID:', notification._id);
             setNotifications(prev => prev.filter(n => n._id !== notification._id));
-            alert("Thông báo tạm thời đã được xóa.");
+            toast.success('Thông báo tạm thời đã được xóa.', {
+                position: 'top-center',
+                autoClose: 5000,
+            });
             return;
         }
 
         try {
             const res = await fetch(`${API_BASE_URL}/api/notifications/${notification._id}`, {
-                method: "DELETE",
+                method: 'DELETE',
                 headers: {
                     Authorization: `Bearer ${session.accessToken}`,
-                    "Content-Type": "application/json",
+                    'Content-Type': 'application/json',
                 },
             });
 
             if (res.status === 401) {
                 signOut({ redirect: false });
                 router.push('/login?error=SessionExpired');
-                alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+                toast.error('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.', {
+                    position: 'top-center',
+                    autoClose: 5000,
+                });
                 return;
             }
             if (!res.ok) {
                 const errorText = await res.json();
-                throw new Error(errorText.error || "Không thể xóa thông báo");
+                throw new Error(errorText.error || 'Không thể xóa thông báo');
             }
 
             setNotifications(prev => prev.filter(n => n._id !== notification._id));
-            alert("Xóa thông báo thành công.");
+            toast.success('Xóa thông báo thành công.', {
+                position: 'top-center',
+                autoClose: 5000,
+            });
         } catch (error) {
             console.error('Error deleting notification:', error);
-            alert(error.message || "Lỗi khi xóa thông báo.");
+            toast.error(error.message || 'Lỗi khi xóa thông báo.', {
+                position: 'top-center',
+                autoClose: 5000,
+            });
         }
     };
 

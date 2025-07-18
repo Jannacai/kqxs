@@ -113,7 +113,6 @@ const CreatePost = () => {
                 ...prev,
                 [`mainContent-${index}`]: url || "",
             }));
-            // Kiểm tra URL có phải ảnh không
             if (url && !/\.(jpg|jpeg|png|gif)$/i.test(url)) {
                 toast.warn("URL hình ảnh không hợp lệ. Vui lòng nhập URL có định dạng jpg, jpeg, png hoặc gif.", {
                     position: "top-right",
@@ -141,7 +140,6 @@ const CreatePost = () => {
                         [`mainContent-${index}`]: fileUrl || "",
                     }));
                 } catch (error) {
-                    console.error("Lỗi khi nén ảnh:", error);
                     toast.error("Lỗi khi nén ảnh. Vui lòng thử lại.", {
                         position: "top-right",
                         autoClose: 5000,
@@ -171,8 +169,6 @@ const CreatePost = () => {
             },
         }));
         if (!mainContentFields[index]?.showH2) {
-            setValue(`mainContents[${index}].h2`, "");
-        } else {
             setValue(`mainContents[${index}].h2`, "");
         }
     };
@@ -225,7 +221,6 @@ const CreatePost = () => {
 
             const uploadPromises = data.mainContents.map(async (content, i) => {
                 let imgUrl = content.img;
-                // Ưu tiên ảnh từ file nếu URL không hợp lệ
                 if (content.imageSource === "upload" && content.imgFile) {
                     const formData = new FormData();
                     formData.append("file", content.imgFile);
@@ -239,7 +234,7 @@ const CreatePost = () => {
                         throw new Error(`Lỗi khi tải ảnh lên: ${error.message}`);
                     }
                 } else if (content.img && !/\.(jpg|jpeg|png|gif)$/i.test(content.img)) {
-                    imgUrl = ""; // Bỏ URL không hợp lệ
+                    imgUrl = "";
                     toast.warn(`URL hình ảnh ở nhóm nội dung ${i + 1} không hợp lệ, đã bỏ qua.`, {
                         position: "top-right",
                         autoClose: 5000,
@@ -256,7 +251,6 @@ const CreatePost = () => {
 
             postData.mainContents = await Promise.all(uploadPromises);
 
-            // Đảm bảo ít nhất một img hợp lệ trong mainContents
             if (!postData.mainContents.some(content => content.img && /\.(jpg|jpeg|png|gif)$/i.test(content.img))) {
                 toast.warn("Bài viết không có hình ảnh hợp lệ. Vui lòng thêm ít nhất một ảnh (jpg, jpeg, png, gif).", {
                     position: "top-right",
@@ -275,7 +269,6 @@ const CreatePost = () => {
             });
             router.push(`/tin-tuc/${response.slug}-${response._id}`);
         } catch (error) {
-            console.error("Lỗi khi đăng bài:", error);
             let errorMessage = "Lỗi không xác định. Vui lòng thử lại.";
             if (error.message.includes("Invalid token")) {
                 await signOut({ redirect: false });

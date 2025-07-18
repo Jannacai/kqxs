@@ -10,7 +10,7 @@
 
 .digit_container {
     display: inline-flex;
-    /* gap: 2px; */
+    gap: 2px;
     /* Khoảng cách giữa các chữ số */
 }
 
@@ -24,24 +24,90 @@
     border-radius: 50%;
     text-align: center;
     font-size: 22px;
-    transition: transform 0.1s ease-out;
+    position: relative;
 }
 
-.digit_container .digit[data-status="changing"] {
-    transform: translateY(-2px);
-    animation: spinDigit 0.1s ease-out;
+.digit_container .digit[data-status="animating"]::before {
+    content: "0";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: spinDigit 0.8s linear infinite;
+}
+
+.digit_container .digit[data-status="animating"][data-index="0"]::before {
+    animation-delay: 0s;
+}
+
+.digit_container .digit[data-status="animating"][data-index="1"]::before {
+    animation-delay: 0.1s;
+}
+
+.digit_container .digit[data-status="animating"][data-index="2"]::before {
+    animation-delay: 0.2s;
+}
+
+.digit_container .digit[data-status="animating"][data-index="3"]::before {
+    animation-delay: 0.3s;
+}
+
+.digit_container .digit[data-status="animating"][data-index="4"]::before {
+    animation-delay: 0.4s;
 }
 
 @keyframes spinDigit {
     0% {
-        transform: translateY(10px);
-        opacity: 0;
+        content: "0";
+    }
+
+    11.11% {
+        content: "1";
+    }
+
+    22.22% {
+        content: "2";
+    }
+
+    33.33% {
+        content: "3";
+    }
+
+    44.44% {
+        content: "4";
+    }
+
+    55.55% {
+        content: "5";
+    }
+
+    66.66% {
+        content: "6";
+    }
+
+    77.77% {
+        content: "7";
+    }
+
+    88.88% {
+        content: "8";
     }
 
     100% {
-        transform: translateY(-2px);
-        opacity: 1;
+        content: "9";
     }
+}
+
+.digit_container .digit[data-status="static"] {
+    transition: transform 0.1s ease-out;
+}
+
+.digit_container .digit[data-status="static"]:hover {
+    transform: translateY(-2px);
 }
 
 .running_number {
@@ -52,24 +118,23 @@
 
 .running_2 {
     min-width: 54px;
+    /* 2 * 25px + 2px gap */
 }
 
-/* 2 chữ số: 2 * 25px + 2px gap */
 .running_3 {
     min-width: 81px;
+    /* 3 * 25px + 2 * 2px gap */
 }
 
-/* 3 chữ số: 3 * 25px + 2 * 2px gap */
 .running_4 {
     min-width: 108px;
+    /* 4 * 25px + 3 * 2px gap */
 }
 
-/* 4 chữ số: 4 * 25px + 3 * 2px gap */
 .running_5 {
     min-width: 135px;
+    /* 5 * 25px + 4 * 2px gap */
 }
-
-/* 5 chữ số: 5 * 25px + 4 * 2px gap */
 
 .desc1 {
     margin-top: 20px;
@@ -579,25 +644,24 @@
     }
 
     .running_2 {
-        min-width: 44px;
+        min-width: 48px;
+        /* 2 * 22px + 4px gap */
     }
 
-    /* 2 * 22px + 2px gap */
     .running_3 {
-        min-width: 68px;
+        min-width: 72px;
+        /* 3 * 22px + 6px gap */
     }
 
-    /* 3 * 22px + 2 * 2px gap */
     .running_4 {
-        min-width: 92px;
+        min-width: 96px;
+        /* 4 * 22px + 8px gap */
     }
 
-    /* 4 * 22px + 3 * 2px gap */
     .running_5 {
-        min-width: 116px;
+        min-width: 120px;
+        /* 5 * 22px + 10px gap */
     }
-
-    /* 5 * 22px + 4 * 2px gap */
 
     .digit_container .digit {
         width: 22px;
@@ -738,25 +802,24 @@
     }
 
     .running_2 {
-        min-width: 34px;
+        min-width: 38px;
+        /* 2 * 16px + 6px gap */
     }
 
-    /* 2 * 16px + 2px gap */
     .running_3 {
-        min-width: 52px;
+        min-width: 57px;
+        /* 3 * 16px + 9px gap */
     }
 
-    /* 3 * 16px + 2 * 2px gap */
     .running_4 {
-        min-width: 70px;
+        min-width: 76px;
+        /* 4 * 16px + 12px gap */
     }
 
-    /* 4 * 16px + 3 * 2px gap */
     .running_5 {
-        min-width: 88px;
+        min-width: 95px;
+        /* 5 * 16px + 15px gap */
     }
-
-    /* 5 * 16px + 4 * 2px gap */
 
     .digit_container .digit {
         width: 23px;

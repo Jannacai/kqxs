@@ -261,6 +261,7 @@ export default function Register() {
                                         autoComplete="off"
                                         aria-describedby="email-error"
                                         disabled={isLoading}
+                                        placeholder="Email dùng để lấy lại mật khẩu khi quên."
                                     />
                                 </label>
                             </div>

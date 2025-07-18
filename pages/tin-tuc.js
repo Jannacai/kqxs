@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import Head from "next/head";
-import Image from "next/image"; // Thêm next/image
+import Image from "next/image";
 import { getPosts, getCategories } from "../pages/api/post";
 import styles from "../styles/tintuc.module.css";
 
@@ -18,7 +18,7 @@ const EnhancedNewsFeed = () => {
         loading: true,
         error: null,
     });
-    const postsPerCategory = 6; // Giảm từ 15 xuống 6
+    const postsPerCategory = 6;
     const displayPerCategory = 3;
     const defaultImage = "/facebook.png";
 
@@ -52,7 +52,7 @@ const EnhancedNewsFeed = () => {
         }
     }, []);
 
-    // Lấy bài viết (gộp yêu cầu)
+    // Lấy bài viết
     const fetchPosts = useCallback(async () => {
         setState((prev) => ({ ...prev, loading: true }));
         try {
@@ -119,51 +119,6 @@ const EnhancedNewsFeed = () => {
         }
     }, [state.selectedCategory, state.categories, deduplicatePosts]);
 
-    // Xử lý bài viết mới
-    const handleNewPost = useCallback(
-        (event) => {
-            const newPost = event.detail;
-            if (!newPost || !newPost._id || !newPost.title || !newPost.slug || !Array.isArray(newPost.category)) {
-                return;
-            }
-
-            setState((prev) => {
-                const updatedPostsByCategory = { ...prev.postsByCategory };
-                const updatedDisplayedPosts = { ...prev.displayedPostsByCategory };
-                const updatedIndices = { ...prev.rotationIndices };
-
-                newPost.category.forEach((category) => {
-                    if (prev.selectedCategory && category !== prev.selectedCategory) return;
-                    if (!updatedPostsByCategory[category]) updatedPostsByCategory[category] = [];
-                    let newPool = [...updatedPostsByCategory[category]];
-                    if (newPool.length >= postsPerCategory) {
-                        const oldestIndex = newPool.reduce(
-                            (maxIndex, item, index, arr) =>
-                                new Date(item.createdAt) < new Date(arr[maxIndex].createdAt) ? index : maxIndex,
-                            0
-                        );
-                        newPool[oldestIndex] = newPost;
-                    } else {
-                        newPool.push(newPost);
-                    }
-                    updatedPostsByCategory[category] = deduplicatePosts(newPool)
-                        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-                        .slice(0, postsPerCategory);
-                    updatedDisplayedPosts[category] = updatedPostsByCategory[category].slice(0, displayPerCategory);
-                    updatedIndices[category] = displayPerCategory;
-                });
-
-                return {
-                    ...prev,
-                    postsByCategory: updatedPostsByCategory,
-                    displayedPostsByCategory: updatedDisplayedPosts,
-                    rotationIndices: updatedIndices,
-                };
-            });
-        },
-        [deduplicatePosts]
-    );
-
     // Xoay vòng bài viết với IntersectionObserver
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -191,7 +146,7 @@ const EnhancedNewsFeed = () => {
                             });
                             return { ...prev, displayedPostsByCategory: updatedDisplayed };
                         });
-                    }, 30000); // Tăng interval lên 30 giây
+                    }, 30000);
                     return () => clearInterval(interval);
                 }
             },
@@ -212,11 +167,6 @@ const EnhancedNewsFeed = () => {
             fetchPosts();
         }
     }, [fetchPosts, state.categories]);
-
-    useEffect(() => {
-        window.addEventListener("newPostCreated", handleNewPost);
-        return () => window.removeEventListener("newPostCreated", handleNewPost);
-    }, [handleNewPost]);
 
     // Format ngày
     const formatDate = useCallback((createdAt) => {
@@ -271,7 +221,7 @@ const EnhancedNewsFeed = () => {
                 className={styles.heroImage}
                 width={800}
                 height={450}
-                priority // Thay loading="eager"
+                priority
             />
             <div className={styles.heroContent}>
                 <div className={styles.heroMeta}>
@@ -305,7 +255,7 @@ const EnhancedNewsFeed = () => {
                 loading="lazy"
             />
             <h3 className={styles.subHeroTitle}>{post.title}</h3>
-        </Link >
+        </Link>
     ));
 
     // Component FootballPost

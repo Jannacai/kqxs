@@ -26,45 +26,28 @@ const getCategoryColor = (category) => {
 // Hàm làm sạch URL hình ảnh, đồng bộ với DetailPost
 const cleanImageUrl = (url) => {
     if (!url || typeof url !== "string") {
-        console.warn(`Invalid image URL: ${url}, using fallback image`);
         return defaultImage;
     }
     try {
         const urlObj = new URL(url);
         if (!urlObj.protocol.startsWith("https") || !/\.(jpg|jpeg|png|gif)$/i.test(url)) {
-            console.warn(`Non-HTTPS or invalid image format: ${url}, using fallback image`);
             return defaultImage;
         }
         return urlObj.toString();
     } catch {
-        console.warn(`Failed to parse image URL: ${url}, using fallback image`);
         return defaultImage;
     }
 };
 
 const ListPost = ({ posts }) => {
     const router = useRouter();
-    const allPosts = posts; // Sửa từ props.appa thành posts
-
-    // Log để debug dữ liệu đầu vào
-    useEffect(() => {
-        // console.log("ListPost posts:", JSON.stringify(allPosts, null, 2));
-        allPosts?.forEach((post, index) => {
-            // console.log(`Post ${index} (ID: ${post?._id}) mainContents:`, JSON.stringify(post?.mainContents, null, 2));
-            post?.mainContents?.forEach((content, contentIndex) => {
-                if (content?.img) {
-                    // console.log(`Post ${post._id} content ${contentIndex} image URL: ${content.img}`);
-                }
-            });
-        });
-    }, [allPosts]);
+    const allPosts = posts;
 
     const displaySlots = 4;
     const timerDuration = 6000;
 
     const allRecentSortedPosts = useMemo(() => {
         if (!Array.isArray(allPosts) || allPosts.length === 0) {
-            console.warn("No posts available in props.posts");
             return [];
         }
         return allPosts;
@@ -127,17 +110,10 @@ const ListPost = ({ posts }) => {
     // Hàm lấy ảnh, đồng bộ với DetailPost
     const getPostImage = (post) => {
         if (!post || !post.mainContents || !Array.isArray(post.mainContents)) {
-            console.warn(`Post ${post?._id || "unknown"} has no valid mainContents, using fallback image`);
             return defaultImage;
         }
         const validImage = post.mainContents.find((content) => content?.img?.startsWith("https") && /\.(jpg|jpeg|png|gif)$/i.test(content.img));
-        if (!validImage) {
-            console.warn(`Post ${post?._id || "unknown"} has no valid HTTPS image in mainContents, using fallback image`);
-            return defaultImage;
-        }
-        const cleanedUrl = cleanImageUrl(validImage.img);
-        // console.log(`Post ${post._id} selected image URL: ${cleanedUrl}`);
-        return cleanedUrl;
+        return validImage ? cleanImageUrl(validImage.img) : defaultImage;
     };
 
     // Hàm lấy mô tả từ mainContents
@@ -222,7 +198,6 @@ const ListPost = ({ posts }) => {
                                         width={400}
                                         height={250}
                                         onError={(e) => {
-                                            console.warn(`Failed to load image for post ${post._id}: ${postImage}`);
                                             e.target.src = defaultImage;
                                         }}
                                         placeholder="blur"

@@ -1,10 +1,9 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Image from 'next/image';
 import { getCombinedPostData } from '../api/post/index';
 import Link from 'next/link';
-import io from 'socket.io-client';
 import styles from '../../styles/postDetail.module.css';
 
 export async function getServerSideProps(context) {
@@ -47,70 +46,6 @@ const PostDetail = ({ post, relatedPosts, footballPosts, error }) => {
 
     const defaultDescription = 'Đọc tin tức mới nhất tại XSMB.WIN - Cập nhật thông tin nhanh chóng, chính xác!';
     const defaultImage = 'https://xsmb.win/facebook.png';
-
-    const handleSocketNewPost = useCallback((newPost) => {
-        if (!newPost || !newPost._id || newPost._id === post?._id) return;
-
-        setState((prev) => {
-            let newRelatedPool = [...prev.relatedPostsPool];
-            let newFootballPool = [...prev.footballPostsPool];
-
-            if (Array.isArray(newPost.category) && newPost.category.some(cat => post?.category?.includes(cat))) {
-                if (newRelatedPool.length >= 15) {
-                    const oldestIndex = newRelatedPool.reduce(
-                        (maxIndex, item, index, arr) =>
-                            new Date(item.createdAt) < new Date(arr[maxIndex].createdAt) ? index : maxIndex,
-                        0
-                    );
-                    newRelatedPool[oldestIndex] = newPost;
-                } else {
-                    newRelatedPool.push(newPost);
-                }
-                newRelatedPool = newRelatedPool.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-            }
-
-            if (Array.isArray(newPost.category) && newPost.category.includes('Thể thao')) {
-                if (newFootballPool.length >= 15) {
-                    const oldestIndex = newFootballPool.reduce(
-                        (maxIndex, item, index, arr) =>
-                            new Date(item.createdAt) < new Date(arr[maxIndex].createdAt) ? index : maxIndex,
-                        0
-                    );
-                    newFootballPool[oldestIndex] = newPost;
-                } else {
-                    newFootballPool.push(newPost);
-                }
-                newFootballPool = newFootballPool.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-            }
-
-            return {
-                ...prev,
-                relatedPostsPool: newRelatedPool,
-                footballPostsPool: newFootballPool,
-                relatedPosts: newRelatedPool.slice(0, 4),
-                footballPosts: newFootballPool.slice(0, 3),
-            };
-        });
-    }, [post?.category, post?._id]);
-
-    useEffect(() => {
-        const socket = io(process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000', {
-            query: { token: typeof window !== 'undefined' ? localStorage?.getItem('token') || '' : '' },
-            reconnectionAttempts: 3,
-        });
-
-        socket.on('connect', () => {
-            console.log('Connected to Socket.IO server');
-        });
-
-        socket.on('newPostCreated', handleSocketNewPost);
-
-        socket.on('connect_error', (err) => {
-            console.error('Socket.IO connection error:', err.message);
-        });
-
-        return () => socket.disconnect();
-    }, [handleSocketNewPost]);
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -287,7 +222,7 @@ const PostDetail = ({ post, relatedPosts, footballPosts, error }) => {
                 <meta property="og:site_name" content="XSMB.WIN" />
                 <meta property="og:locale" content="vi_VN" />
                 <meta property="fb:app_id" content={process.env.FB_APP_ID || ''} />
-                {finalImageUrl && (
+                {finalImageUrl && post.mainContents?.[0]?.img === finalImageUrl && (
                     <>
                         <meta property="og:image" content={finalImageUrl} />
                         <meta property="og:image:secure_url" content={finalImageUrl} />
@@ -297,12 +232,12 @@ const PostDetail = ({ post, relatedPosts, footballPosts, error }) => {
                         <meta property="og:image:alt" content={post.title} />
                         <meta name="twitter:image" content={finalImageUrl} />
                         <meta name="twitter:image:alt" content={post.title} />
-                        <link rel="preload" href={finalImageUrl} as="image" />
+                        <link rel="preload" href={finalImageUrl} as="image" /> {/* Chỉ preload nếu hình ảnh là đầu tiên */}
                     </>
                 )}
                 <meta property="zalo:official_account_id" content={process.env.ZALO_OA_ID || ''} />
                 <meta property="zalo:share_url" content={canonicalUrl} />
-                {finalImageUrl && (
+                {finalImageUrl && post.mainContents?.[0]?.img === finalImageUrl && (
                     <>
                         <meta property="zalo-img" content={finalImageUrl} />
                         <meta property="zalo-img:width" content="600" />
