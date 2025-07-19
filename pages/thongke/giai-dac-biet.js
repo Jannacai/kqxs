@@ -289,12 +289,12 @@ const GiaiDacBiet = ({ initialStats, initialMetadata, initialDays, initialRegion
                         <Link className={`${styles.actionTK} ${router.pathname.startsWith('/thongke/giai-dac-biet-tuan') ? styles.active : ''}`} href="giai-dac-biet-tuan">Thống Kê Giải Đặc Biệt Tuần </Link>
 
                     </div>
-                    
+
                 </div>
-                <div className={styles.groupbanner3}>
+                <div className="groupbanner3">
                     <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
                         <video
-                            className={styles.banner3}
+                            className="banner3"
                             src='/banner3.mp4'
                             autoPlay
                             loop
@@ -316,7 +316,7 @@ const GiaiDacBiet = ({ initialStats, initialMetadata, initialDays, initialRegion
                             <label className={styles.options}>Chọn tỉnh: </label>
                             <select className={styles.select} onChange={handleRegionChange}
                                 aria-label="Chọn tỉnh để xem thống kê giải đặc biệt"
-                                >
+                            >
                                 <option value="Miền Bắc">Miền Bắc</option>
                                 <optgroup label="Miền Nam">
                                     {mienNamProvinces.map(province => (
@@ -339,7 +339,7 @@ const GiaiDacBiet = ({ initialStats, initialMetadata, initialDays, initialRegion
                             <label className={styles.options}>Chọn thời gian: </label>
                             <select className={styles.select} value={days} onChange={handleDaysChange}
                                 aria-label="Chọn thời gian để xem thống kê giải đặc biệt"
-                                >
+                            >
                                 <option value={10}>10 ngày</option>
                                 <option value={20}>20 ngày</option>
                                 <option value={30}>30 ngày</option>
@@ -422,8 +422,8 @@ const GiaiDacBiet = ({ initialStats, initialMetadata, initialDays, initialRegion
                                     </tbody>
                                 </table>
                             ) : (
-                                    <table className={styles.table}>
-                                        <caption className={styles.caption}>Thống kê Giải Đặc Biệt{region} {tinh ? `- ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh)}` : ''} trong {days} ngày</caption>
+                                <table className={styles.table}>
+                                    <caption className={styles.caption}>Thống kê Giải Đặc Biệt{region} {tinh ? `- ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh)}` : ''} trong {days} ngày</caption>
                                     <thead>
                                         <tr>
                                             <th>Giải Đặc Biệt</th>
@@ -489,10 +489,10 @@ const GiaiDacBiet = ({ initialStats, initialMetadata, initialDays, initialRegion
             <div>
                 <ThongKe region={region} tinh={tinh} />
                 <CongCuHot />
-                <div className={styles.banner1}>
+                <div className="banner1">
                     <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
                         <video
-                            className={styles.videobanner}
+                            className="videobanner"
                             src='/banner2.mp4'
                             autoPlay
                             loop

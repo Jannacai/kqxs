@@ -6,6 +6,7 @@
     font-family: "Roboto", sans-serif;
     font-weight: 800;
     margin: 0 auto;
+    margin-top: 10px;
 }
 
 .desc1 {
@@ -30,7 +31,7 @@
 
 .kqxs {
     width: 100%;
-    border: 2px solid #e80000;
+    border: 1px solid #e80000;
     border-radius: 8px;
     text-align: center;
     margin-bottom: 20px;
@@ -46,8 +47,8 @@
 }
 
 .kqxs__title {
-    color: #e80000;
-    font-size: 26px;
+    color: #000;
+    font-size: 22px;
     font-weight: 600;
     margin-bottom: 5px;
 }
@@ -70,7 +71,7 @@
     font-size: 20px;
     font-weight: 500;
     text-decoration: underline;
-    color: #2d3483;
+    color: #0029ad;
     transition: color 0.3s ease;
 }
 
@@ -98,7 +99,7 @@
 .tableXS tr:nth-child(4),
 .tableXS tr:nth-child(even),
 .tableXS tr:nth-child(7) {
-    background-color: #61c1d01f;
+    background-color: #cccccc29;
 }
 
 .tableXS tr:nth-child(5),
@@ -308,11 +309,10 @@
 
 /* Table Thống Kê */
 .TKe_content {
-    background-color: #f8f8f8;
+    /* background-color: #f8f8f8; */
     width: 100%;
     max-width: 656px;
     border: 1px solid #ccc;
-    border-right: 4px solid #ccc;
     margin: 0 auto 20px;
     /* Giảm margin-bottom */
     border-radius: 6px;
@@ -360,7 +360,7 @@
 }
 
 .tableKey th {
-    background-color: #f0f0f0;
+    background-color: #fff;
     font-size: 18px;
     color: #2d3483;
     text-transform: uppercase;
@@ -369,15 +369,15 @@
 .tableKey td.t_h {
     width: 50px;
     font-weight: 700;
-    background-color: #f0f0f0;
 }
 
 .tableKey td:not(.t_h) {
+    line-height: 1.2;
     font-size: 20px;
 }
 
 .tableKey tr:nth-child(even) {
-    background-color: #61c1d01f;
+    background-color: #cccccc29;
 }
 
 .tableKey td:not(.t_h) span {
@@ -467,7 +467,7 @@
 @media screen and (max-width: 991px) {
     .containerKQ {
         min-width: 320px;
-        padding: 10px;
+        /* padding: 10px; */
     }
 
     .kqxs {
@@ -477,7 +477,7 @@
     }
 
     .kqxs__title {
-        font-size: 21px;
+        font-size: 16px;
         line-height: 1.4;
         width: 100%;
         font-weight: 700;
@@ -534,7 +534,7 @@
 /* Mobile */
 @media screen and (max-width: 767px) {
     .containerKQ {
-        padding: 10px;
+        /* padding: 10px; */
         /* Giữ padding nhẹ */
     }
 
@@ -544,7 +544,7 @@
     }
 
     .kqxs__title {
-        font-size: 20px;
+        font-size: 16px;
         line-height: 1.4;
         padding: 0 10px;
     }
@@ -573,7 +573,7 @@
     .tableXS td.tdTitle {
         width: 40px;
         font-size: 18px;
-        padding: 4px;
+        padding: 12px;
     }
 
     .tableXS td.code {

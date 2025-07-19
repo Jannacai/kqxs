@@ -7,7 +7,7 @@ export default function Document() {
                 {/* Meta Tags Cơ Bản */}
                 <meta charSet="UTF-8" />
                 <meta name="robots" content="index, follow" />
-
+                <meta name="theme-color" content="#c80505" />
                 {/* Google Tag Manager */}
                 <script async src="https://www.googletagmanager.com/gtag/js?id=G-32BNFX1ZW5"></script>
                 <script>

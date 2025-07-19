@@ -87,14 +87,15 @@
 }
 
 .nav_itemLink {
-    font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+    font-family: "Roboto", sans-serif;
     padding: 0 10px;
     line-height: 50px;
     color: #ffffff;
-    font-weight: 600;
+    font-weight: 800;
     text-transform: uppercase;
     text-decoration: none;
     display: flex;
+    font-size: 17px;
     align-items: center;
     cursor: pointer;
 }

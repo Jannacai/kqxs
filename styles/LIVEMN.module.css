@@ -5,69 +5,163 @@
     font-family: "Roboto", sans-serif;
     font-weight: 500;
     margin: 0 auto;
-    margin-top: 10px;
 }
 
 .digitContainer {
     display: inline-flex;
-    gap: 2px;
 }
 
 .digitContainer .digit {
     display: inline-block;
-    background-color: #2d3483;
-    color: white;
+    width: 25px;
+    height: 25px;
+    line-height: 25px;
     text-align: center;
-    width: 24px;
-    height: 24px;
-    line-height: 24px;
-    border-radius: 50%;
     font-size: 22px;
-    transition: transform 0.1s ease-in-out;
+    font-weight: 800;
 }
 
 .digitContainer .digit[data-state="animating"] {
-    animation: spinDigit 0.1s ease-out;
+    background-image: linear-gradient(135deg, #FEC163 10%, #DE4313 100%);
+    color: white;
+    border-radius: 50%;
+    position: relative;
+}
+
+.digitContainer .digit[data-state="animating"]::before {
+    content: "0";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: spinDigit 0.8s linear infinite;
+}
+
+.digitContainer .digit[data-state="animating"][data-index="0"]::before {
+    animation-delay: 0s;
+}
+
+.digitContainer .digit[data-state="animating"][data-index="1"]::before {
+    animation-delay: 0.1s;
+}
+
+.digitContainer .digit[data-state="animating"][data-index="2"]::before {
+    animation-delay: 0.2s;
+}
+
+.digitContainer .digit[data-state="animating"][data-index="3"]::before {
+    animation-delay: 0.3s;
+}
+
+.digitContainer .digit[data-state="animating"][data-index="4"]::before {
+    animation-delay: 0.4s;
+}
+
+.digitContainer .digit[data-state="animating"][data-index="5"]::before {
+    animation-delay: 0.5s;
 }
 
 @keyframes spinDigit {
     0% {
-        transform: translateY(10px);
-        opacity: 0;
+        content: "0";
+    }
+
+    11.11% {
+        content: "1";
+    }
+
+    22.22% {
+        content: "2";
+    }
+
+    33.33% {
+        content: "3";
+    }
+
+    44.44% {
+        content: "4";
+    }
+
+    55.55% {
+        content: "5";
+    }
+
+    66.66% {
+        content: "6";
+    }
+
+    77.77% {
+        content: "7";
+    }
+
+    88.88% {
+        content: "8";
     }
 
     100% {
-        transform: translateY(0);
-        opacity: 1;
+        content: "9";
     }
+}
+
+.digitContainer .digit[data-state="static"] {
+    transition: transform 0.1s ease-out;
+}
+
+.digitContainer .digit[data-state="static"]:hover {
+    transform: translateY(-2px);
 }
 
 .runningNumber {
     display: inline-block;
     min-height: 28px;
+    padding: 8px 0;
     vertical-align: middle;
 }
 
 .running_2 {
-    width: 52px;
+    min-width: 54px;
 }
 
-/* 2 số: 2 * 24px + 2px gap */
 .running_3 {
-    width: 78px;
+    min-width: 81px;
 }
 
-/* 3 số: 3 * 24px + 2 * 2px gap */
 .running_4 {
-    width: 104px;
+    min-width: 108px;
 }
 
-/* 4 số: 4 * 24px + 3 * 2px gap */
 .running_5 {
-    width: 130px;
+    min-width: 135px;
 }
 
-/* 5 số: 5 * 24px + 4 * 2px gap */
+.running_6 {
+    min-width: 162px;
+}
+
+.spinner {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    border: 2px solid rgba(104, 93, 216, 0.3);
+    border-top: 2px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1.5s linear infinite;
+    vertical-align: middle;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
 
 .header {
     padding: 15px 0 10px 0;
@@ -81,7 +175,7 @@
 
 .kqxs {
     width: 100%;
-    border: 1px solid #e80000;
+    border: 2px solid #e80000;
     border-radius: 8px;
     text-align: center;
     margin-bottom: 30px;
@@ -89,9 +183,8 @@
 }
 
 .kqxs__title {
-    color: #000;
-    white-space: pre-wrap;
-    font-size: 22px;
+    color: #e80000;
+    font-size: 26px;
     font-weight: 600;
 }
 
@@ -107,7 +200,7 @@
     margin: 0 10px;
     font-weight: 500;
     text-decoration: underline;
-    color: #0029ad;
+    color: #2d3483;
     transition: color 0.3s ease;
 }
 
@@ -119,7 +212,6 @@
     color: red;
 }
 
-/* Style cho thông báo lỗi và đang tải */
 .error {
     background-color: #ffe6e6;
     color: #d32f2f;
@@ -144,25 +236,6 @@
     border: 1px solid #1565c0;
 }
 
-/* Style cho spinner xoay tròn khi dữ liệu đang chờ */
-.spinner {
-    display: inline-block;
-    width: 24px;
-    height: 24px;
-    border: 3px solid #ccc;
-    border-top-color: #2d3483;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    vertical-align: middle;
-}
-
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-/* Điều chỉnh bảng kết quả xổ số */
 .tableXS {
     border-collapse: collapse;
     text-align: center;
@@ -176,7 +249,6 @@
     font-weight: 700;
 }
 
-/* Định dạng hàng tên tỉnh trong thead */
 .tableXS th {
     background-color: #007bff21;
     font-size: 18px;
@@ -189,19 +261,16 @@
     word-break: break-word;
 }
 
-/* Định dạng ô trống trong thead (ô trên cột đại diện giải) */
 .tableXS th:first-child {
     width: 50px;
     background-color: #f0f0f0;
 }
 
-/* Định dạng các cột kết quả */
 .tableXS th:not(:first-child),
 .tableXS td:not(.tdTitle) {
     width: calc((100% - 60px) / var(--num-columns, 3));
 }
 
-/* Định dạng cột đại diện giải */
 .tableXS td.tdTitle {
     width: 60px;
     height: 30px;
@@ -214,7 +283,6 @@
     font-size: 24px;
 }
 
-/* Định dạng ô kết quả */
 .tableXS td.rowXS {
     transition: background-color 0.2s ease;
 }
@@ -223,15 +291,14 @@
     background-color: #fff4c3;
 }
 
-.tableXS tr:nth-child(even):not(:first-child) {
-    background-color: #cccccc29;
+.tableXS tr:nth-child(odd):not(:first-child) {
+    background-color: #61c1d01f;
 }
 
-/* Định dạng các số trong ô */
 .prizeNumber {
     display: block;
     font-weight: 700;
-    font-size: 26px;
+    font-size: 23px;
     text-align: center;
     line-height: 1.4;
 }
@@ -248,7 +315,6 @@
     font-size: 24px;
 }
 
-/* Bộ lọc */
 .action {
     display: flex;
     justify-content: center;
@@ -318,17 +384,17 @@
     background-color: var(--primary-color);
 }
 
-/* Container cho hai bảng Đầu và Đuôi */
 .TKe_container {
     display: flex;
     flex-direction: column;
 }
 
-/* Bảng thống kê lô tô */
 .TKe_content {
+    background-color: #f8f8f8;
     width: 100%;
     max-width: 1200px;
     border: 1px solid #ccc;
+    border-right: 4px solid #ccc;
     margin: 0 auto 20px;
     border-radius: 6px;
 }
@@ -385,8 +451,8 @@
     width: calc((100% - 60px) / var(--num-columns, 3));
 }
 
-.tableKey tr:nth-child(even) {
-    background-color: #cccccc29;
+.tableKey tr:nth-child(odd) {
+    background-color: #61c1d01f;
 }
 
 .tableKey td:first-child {
@@ -394,19 +460,17 @@
 }
 
 .tableKey .t_h {
-    width: 45px;
+    width: 60px;
     padding: 10px 0;
     font-weight: 700;
     background-color: #f0f0f0;
 }
 
-/* Style cho số của giải tám và đặc biệt trong bảng lô tô */
 .highlightPrize {
     color: red;
     font-weight: 700;
 }
 
-/* Phân trang */
 .pagination {
     display: flex;
     justify-content: center;
@@ -444,11 +508,16 @@
     outline-offset: 2px;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
     .containerKQ {
         min-width: 320px;
         font-size: 12px;
+        padding: 0 10px;
+    }
+
+    .kqxs {
+        border-radius: 3px;
+        border: 1px solid #e80000;
     }
 
     .kqxs__title span {
@@ -483,7 +552,7 @@
     }
 
     .kqxs__title {
-        font-size: 16px;
+        font-size: 20px;
         line-height: 1.4;
         width: 100%;
         font-weight: 700;
@@ -516,31 +585,30 @@
     }
 
     .running_2 {
-        width: 34px;
+        min-width: 38px;
     }
 
-    /* 2 * 16px + 2px gap */
     .running_3 {
-        width: 52px;
+        min-width: 57px;
     }
 
-    /* 3 * 16px + 2 * 2px gap */
     .running_4 {
-        width: 70px;
+        min-width: 76px;
     }
 
-    /* 4 * 16px + 3 * 2px gap */
     .running_5 {
-        width: 88px;
+        min-width: 95px;
     }
 
-    /* 5 * 16px + 4 * 2px gap */
+    .running_6 {
+        min-width: 114px;
+    }
 
     .digitContainer .digit {
-        width: 20px;
-        height: 20px;
-        line-height: 20px;
-        font-size: 20px;
+        width: 18px;
+        height: 18px;
+        line-height: 18px;
+        font-size: 16px;
     }
 
     .filter__options {
@@ -582,7 +650,6 @@
     .tableKey td {
         padding: 8px 4px;
         font-size: 20px;
-        line-height: 1.2;
         font-weight: 700;
     }
 

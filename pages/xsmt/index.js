@@ -428,7 +428,7 @@ const KQXS = (props) => {
                     <div key={tableKey}>
                         <div className={styles.kqxs}>
                             <div className={styles.header}>
-                                <h2 className={styles.kqxs__title}>Kết Quả Xổ Số Miền Trung - {dayData.drawDate}</h2>
+                                <h1 className={styles.kqxs__title}>XSMT - Kết quả Xổ số Miền Trung - SXMT {dayData.drawDate}</h1>
                                 <div className={styles.kqxs__action}>
                                     <a className={`${styles.kqxs__actionLink} `} href="#!">XSMT</a>
                                     <a className={`${styles.kqxs__actionLink} ${styles.dayOfWeek} `} href="#!">{dayData.dayOfWeek}</a>

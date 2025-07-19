@@ -404,10 +404,10 @@ const GiaiDacBietTheoTuan = ({ initialStats, initialMetadata, initialMonth, init
 
                     </div>
                 </div>
-                <div className={styles.groupbanner3}>
+                <div className="groupbanner3">
                     <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
                         <video
-                            className={styles.banner3}
+                            className="banner3"
                             src='/banner3.mp4'
                             autoPlay
                             loop
@@ -431,7 +431,7 @@ const GiaiDacBietTheoTuan = ({ initialStats, initialMetadata, initialMonth, init
                             <label className={styles.options}>Chọn miền: </label>
                             <select className={styles.select} onChange={handleRegionChange} value={region}
                                 aria-label="Chọn miền để xem thống kê giải đặc biệt tuần"
-                                    >
+                            >
                                 <option value="Miền Bắc">Miền Bắc</option>
                                 <option value="Miền Trung">Miền Trung</option>
                                 <option value="Miền Nam">Miền Nam</option>
@@ -471,7 +471,7 @@ const GiaiDacBietTheoTuan = ({ initialStats, initialMetadata, initialMonth, init
                             <label className={styles.options}>Chọn tháng: </label>
                             <select className={styles.select} value={month} onChange={handleMonthChange}
                                 aria-label="Chọn tháng để xem thống kê giải đặc biệt tuần"
-                                >
+                            >
                                 {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
                                     <option key={m} value={m}>{`Tháng ${m}`}</option>
                                 ))}
@@ -482,7 +482,7 @@ const GiaiDacBietTheoTuan = ({ initialStats, initialMetadata, initialMonth, init
                             <label className={styles.options}>Chọn năm: </label>
                             <select className={styles.select} value={year} onChange={handleYearChange}
                                 aria-label="Chọn năm để xem thống kê giải đặc biệt tuần"
-                                >
+                            >
                                 {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(y => (
                                     <option key={y} value={y}>{y}</option>
                                 ))}
@@ -576,10 +576,10 @@ const GiaiDacBietTheoTuan = ({ initialStats, initialMetadata, initialMonth, init
             <div>
                 <ThongKe region={region} tinh={tinh} />
                 <CongCuHot />
-                <div className={styles.banner1}>
+                <div className="banner1">
                     <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
                         <video
-                            className={styles.videobanner}
+                            className="videobanner"
                             src='/banner2.mp4'
                             autoPlay
                             loop

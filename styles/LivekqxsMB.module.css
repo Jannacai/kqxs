@@ -10,7 +10,7 @@
 
 .digit_container {
     display: inline-flex;
-    gap: 2px;
+    /* gap: 2px; */
     /* Khoảng cách giữa các chữ số */
 }
 

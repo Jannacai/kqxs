@@ -170,7 +170,7 @@ const TableDate = () => {
         <div className={styles.container}>
             <div className={styles.containerTB}>
                 <div className={styles.header}>
-                    <h1 className={styles.title}>Bảng kết quả xổ số XSMB.WIN - KQXS Hôm nay</h1>
+                    <h1 className={styles.title}>Xổ Số - Kết quả xổ số 3 Miền - KQXS Hôm nay</h1>
                 </div>
                 {approachingRegion && (
                     <div className={styles.group}>

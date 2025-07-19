@@ -473,7 +473,7 @@ const KQXS = (props) => {
                         <div className={styles.kqxs}>
                             <div className={styles.header}>
                                 <h1 className={styles.kqxs__title}>
-                                    Kết Quả Xổ Số - <span>{data2.station}</span> ({data2.tentinh})
+                                    XSMB - Kết quả Xổ số Miền Bắc - SXMB - <span></span> ({data2.tentinh})
                                 </h1>
                                 <div className={styles.kqxs__action}>
                                     <a className={styles.kqxs__actionLink} href="#!">{data2.station}</a>

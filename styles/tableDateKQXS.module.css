@@ -1,19 +1,28 @@
 .container {
-    font-family: "Roboto", sans-serif;
+    font-family: sans-serif;
+    font-size: 14px;
     width: 100%;
     max-width: 1200px;
     margin: 0 auto;
     border: 1px solid #ccc;
-    margin-bottom: 20px;
     border-radius: 3px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 5px 0 rgba(0, 0, 0, .16), 0 2px 10px 0 rgba(0, 0, 0, .12);
+    -webkit-box-shadow: 0 2px 5px 0 rgba(0, 0, 0, .16), 0 2px 10px 0 rgba(0, 0, 0, .12);
+    -moz-box-shadow: 0 2px 5px 0 rgba(0, 0, 0, .16), 0 2px 10px 0 rgba(0, 0, 0, .12);
 }
 
 .title {
-    margin-top: 15px;
+    display: block;
+    font-family: Arial, Helvetica, sans-serif;
+    height: 50px;
+    /* line-height: 50px; */
     font-size: 1.3rem;
     text-align: center;
-    font-weight: 600;
-    color: var(--primary-color);
+    font-weight: 700;
+    color: #000;
+    padding-top: 20px;
+    background-color: #ffeca0;
 }
 
 .group {
@@ -48,8 +57,7 @@
     width: 100%;
     max-width: 100%;
     /* Đảm bảo bảng không vượt quá container */
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    margin-top: 20px;
+    /* border: 1px solid #ccc; */
     border-collapse: separate;
     /* Đổi sang separate để tránh lỗi co bảng */
     border-spacing: 0;
@@ -57,13 +65,12 @@
 }
 
 .titleTable {
-    background-color: #0093e933;
     color: var(--primary-color);
     font-size: 1rem;
     font-weight: 600;
     padding: 10px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-    border-left: 1px solid rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    border-left: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .titleTable:first-child {
@@ -72,8 +79,8 @@
 
 .table td {
     padding: 10px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-    border-left: 1px solid rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid #ccc;
+    border-left: 1px solid #ccc;
     vertical-align: middle;
 }
 
@@ -113,8 +120,6 @@
 @media (max-width: 768px) {
     .container {
         min-width: 320px;
-        margin-bottom: 15px;
-        padding: 10px;
         border: none;
     }
 
@@ -125,11 +130,8 @@
     }
 
     .title {
-        margin-top: 10px;
         font-size: 1.1rem;
-        padding: 0 15px;
         font-weight: 700;
-        line-height: 1.4;
         text-align: center;
     }
 
@@ -159,7 +161,7 @@
     }
 
     .table {
-        margin-top: 15px;
+        /* margin-top: 15px; */
         width: 100%;
         max-width: 100%;
         border-collapse: separate;
@@ -195,7 +197,6 @@
 
     .time {
         padding: 3px 8px;
-        font-size: 0.85rem;
         border-radius: 10px;
     }
 
@@ -214,13 +215,11 @@
 /* Responsive cho mobile nhỏ (dưới 480px) */
 @media (max-width: 480px) {
     .container {
-        padding: 0px 13px;
         /* margin-bottom: 10px; */
     }
 
     .title {
         font-size: 1rem;
-        padding: 0 10px;
     }
 
     .group {
@@ -234,11 +233,11 @@
 
     .action {
         padding: 5px 10px;
-        font-size: 0.85rem;
+
     }
 
     .table {
-        margin-top: 10px;
+        /* margin-top: 10px; */
     }
 
     .titleTable {
@@ -256,7 +255,7 @@
     }
 
     .stationName {
-        font-size: 0.85rem;
+
         min-width: 60px;
     }
 
@@ -266,9 +265,7 @@
         border-radius: 8px;
     }
 
-    .check {
-        font-size: 0.85rem;
-    }
+    .check {}
 
     .timeCheckRow {
         gap: 5px;

@@ -225,10 +225,10 @@ const TanSuatLoCap = ({ initialStats, initialMetadata, initialDays, initialRegio
                         </Link>
                     </div>
                 </div>
-                <div className={styles.groupbanner3}>
+                <div className="groupbanner3">
                     <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
                         <video
-                            className={styles.banner3}
+                            className="banner3"
                             src='/banner3.mp4'
                             autoPlay
                             loop
@@ -393,10 +393,10 @@ const TanSuatLoCap = ({ initialStats, initialMetadata, initialDays, initialRegio
             <div>
                 <ThongKe />
                 <CongCuHot />
-                <div className={styles.banner1}>
+                <div className="banner1">
                     <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
                         <video
-                            className={styles.videobanner}
+                            className="videobanner"
                             src='/banner2.mp4'
                             autoPlay
                             loop

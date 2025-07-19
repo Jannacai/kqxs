@@ -26,7 +26,7 @@ const KQXS = (props) => {
 
     const hour = 16;
     const minutes1 = 10;
-    const minutes2 = 12;
+    const minutes2 = 15;
 
     let dayof; // GIỮ NGUYÊN: Xử lý data3 như XSMN ban đầu
     const station = props.station || "xsmn";
@@ -419,7 +419,7 @@ const KQXS = (props) => {
                     <div key={tableKey}>
                         <div className={styles.kqxs}>
                             <div className={styles.header}>
-                                <h2 className={styles.kqxs__title}>Kết Quả Xổ Số Miền Nam - {dayData.drawDate}</h2>
+                                <h1 className={styles.kqxs__title}>XSMN - Kết quả xổ số Miền Nam - SXMN - {dayData.drawDate}</h1>
                                 <div className={styles.kqxs__action}>
                                     <a className={`${styles.kqxs__actionLink} `} href="#!">XSMN</a>
                                     <a className={`${styles.kqxs__actionLink} ${styles.dayOfWeek} `} href="#!">{dayData.dayOfWeek}</a>
