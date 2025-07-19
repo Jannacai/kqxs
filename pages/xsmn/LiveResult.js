@@ -1,45 +1,18 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import styles from '../../styles/LIVEMN.module.css';
+import { useState, useEffect, useMemo, useCallback } from "react";
+import styles from '../../styles/kqxsMN.module.css';
 import { getFilteredNumber } from "../../library/utils/filterUtils";
 import React from 'react';
-import { useLottery } from '../../contexts/LotteryContext';
 
 const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange, filterTypes, isLiveWindow }) => {
-    const { liveData, setLiveData, setIsLiveDataComplete } = useLottery() || { liveData: null, setLiveData: null, setIsLiveDataComplete: null };
+    const [liveData, setLiveData] = useState([]);
     const [isTodayLoading, setIsTodayLoading] = useState(true);
     const [error, setError] = useState(null);
     const [retryCount, setRetryCount] = useState(0);
+    const [isDataReady, setIsDataReady] = useState(false);
     const [animatingPrizes, setAnimatingPrizes] = useState({}); // { tinh: prizeType }
-    const mountedRef = useRef(false);
-    const sseRefs = useRef({}); // { tinh: EventSource }
-
+    const [animatingNumbers, setAnimatingNumbers] = useState({}); // { tinh_prizeType: number }
     const maxRetries = 50;
-    const retryInterval = 1000; // Giảm từ 10000ms xuống 1000ms như XSMT
-    const fetchMaxRetries = 3;
-    const fetchRetryInterval = 5000;
-    const pollingIntervalMs = 1000; // Giảm từ 2000ms xuống 1000ms như XSMT
-    const regularPollingIntervalMs = 5000; // Giảm từ 10000ms xuống 5000ms như XSMT
-
-    const prizeDigits = {
-        specialPrize_0: 6,
-        firstPrize_0: 5,
-        secondPrize_0: 5,
-        threePrizes_0: 5,
-        threePrizes_1: 5,
-        fourPrizes_0: 5,
-        fourPrizes_1: 5,
-        fourPrizes_2: 5,
-        fourPrizes_3: 5,
-        fourPrizes_4: 5,
-        fourPrizes_5: 5,
-        fourPrizes_6: 5,
-        fivePrizes_0: 4,
-        sixPrizes_0: 4,
-        sixPrizes_1: 4,
-        sixPrizes_2: 4,
-        sevenPrizes_0: 3,
-        eightPrizes_0: 2,
-    };
+    const retryInterval = 10000;
 
     const provincesByDay = useMemo(() => ({
         0: [
@@ -109,341 +82,208 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             sixPrizes_2: '...',
             sevenPrizes_0: '...',
             eightPrizes_0: '...',
-            lastUpdated: 0,
         }));
     }, [today, station]);
 
-    useEffect(() => {
-        mountedRef.current = true;
-        return () => {
-            mountedRef.current = false;
-            Object.values(sseRefs.current).forEach(sse => {
-                console.log('Đóng kết nối SSE...');
-                sse.close();
-            });
-            sseRefs.current = {};
-        };
-    }, []);
-
-    useEffect(() => {
-        if (!setLiveData || !setIsLiveDataComplete || !isLiveWindow || !/^\d{2}-\d{2}-\d{4}$/.test(today)) {
-            setLiveData(emptyResult);
-            setIsTodayLoading(true);
-            setError('Dữ liệu không hợp lệ hoặc ngoài khung giờ trực tiếp');
-            return;
-        }
-
-        let pollingInterval;
-
-        const fetchInitialData = async (retry = 0) => {
-            try {
-                const dayOfWeekIndex = new Date().getDay();
-                const provinces = provincesByDay[dayOfWeekIndex] || provincesByDay[6];
-                const results = await Promise.all(
-                    provinces.map(async (province) => {
-                        const cachedData = localStorage.getItem(`liveData:${station}:${province.tinh}:${today}`);
-                        let initialData = cachedData ? JSON.parse(cachedData) : {
-                            ...emptyResult.find(item => item.tinh === province.tinh),
-                            lastUpdated: 0,
-                        };
-
-                        try {
-                            const response = await fetch(
-                                `https://backendkqxs-1.onrender.com/api/ketqua/xsmn/sse/initial?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
-                            );
-                            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-                            const serverData = await response.json();
-                            console.log(`Dữ liệu từ /initial cho ${province.tinh}:`, serverData);
-
-                            const updatedData = { ...initialData };
-                            let shouldUpdate = !initialData.lastUpdated || serverData.lastUpdated > initialData.lastUpdated;
-                            for (const key in serverData) {
-                                if (serverData[key] !== '...' || !updatedData[key] || updatedData[key] === '...' || updatedData[key] === '***') {
-                                    updatedData[key] = serverData[key];
-                                    shouldUpdate = true;
-                                }
-                            }
-                            if (shouldUpdate) {
-                                updatedData.lastUpdated = serverData.lastUpdated || Date.now();
-                                localStorage.setItem(`liveData:${station}:${province.tinh}:${today}`, JSON.stringify(updatedData));
-                            }
-                            return updatedData;
-                        } catch (err) {
-                            console.error(`Lỗi khi lấy dữ liệu ban đầu cho ${province.tinh} (lần ${retry + 1}):`, err.message);
-                            return initialData;
-                        }
-                    })
-                );
-
-                if (mountedRef.current) {
-                    setLiveData(results);
-                    const isComplete = results.every(item =>
-                        Object.values(item).every(val => typeof val === 'string' && val !== '...' && val !== '***')
-                    );
-                    setIsLiveDataComplete(isComplete);
-                    setIsTodayLoading(false);
-                    setRetryCount(0);
-                    setError(null);
-                    console.log('Đã cập nhật dữ liệu ban đầu:', results);
-                }
-            } catch (err) {
-                console.error('Lỗi khi lấy dữ liệu ban đầu:', err.message);
-                if (retry < fetchMaxRetries) {
-                    setTimeout(() => {
-                        if (mountedRef.current) {
-                            fetchInitialData(retry + 1);
-                        }
-                    }, fetchRetryInterval);
-                } else if (mountedRef.current) {
-                    const dayOfWeekIndex = new Date().getDay();
-                    const provinces = provincesByDay[dayOfWeekIndex] || provincesByDay[6];
-                    const results = provinces.map(province => {
-                        const cachedData = localStorage.getItem(`liveData:${station}:${province.tinh}:${today}`);
-                        return cachedData ? JSON.parse(cachedData) : emptyResult.find(item => item.tinh === province.tinh);
-                    });
-                    setLiveData(results);
-                    setIsLiveDataComplete(false);
-                    setIsTodayLoading(false);
-                    setError('Không thể lấy dữ liệu ban đầu, đang dựa vào dữ liệu cục bộ...');
-                }
-            }
-        };
-
-        const connectSSE = () => {
+    const fetchInitialData = async () => {
+        try {
             const dayOfWeekIndex = new Date().getDay();
             const provinces = provincesByDay[dayOfWeekIndex] || provincesByDay[6];
-
-            provinces.forEach(province => {
-                if (!station || !today || !/^\d{2}-\d{2}-\d{4}$/.test(today)) {
-                    console.warn('Invalid station or today value:', { station, today });
-                    if (mountedRef.current) {
-                        setError('Dữ liệu không hợp lệ');
-                        setIsTodayLoading(false);
-                    }
-                    return;
-                }
-
-                if (sseRefs.current[province.tinh]) {
-                    sseRefs.current[province.tinh].close();
-                }
-
-                sseRefs.current[province.tinh] = new EventSource(
-                    `https://backendkqxs-1.onrender.com/api/ketqua/xsmn/sse?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
-                );
-                console.log(`Khởi tạo kết nối SSE cho tỉnh ${province.tinh}, ngày: ${today}`);
-
-                sseRefs.current[province.tinh].onopen = () => {
-                    console.log(`SSE connection opened for ${province.tinh}`);
-                    if (mountedRef.current) {
-                        setError(null);
-                    }
-                };
-
-                sseRefs.current[province.tinh].onerror = () => {
-                    console.log(`SSE error for ${province.tinh}, reconnecting... Retry count: ${retryCount + 1}`);
-                    if (mountedRef.current) {
-                        setError('Đang kết nối lại...');
-                    }
-                    sseRefs.current[province.tinh].close();
-                    sseRefs.current[province.tinh] = null;
-                    if (retryCount < maxRetries) {
-                        setTimeout(() => {
-                            if (mountedRef.current) {
-                                setRetryCount(prev => prev + 1);
-                                connectSSE();
-                            }
-                        }, retryInterval);
-                    } else if (mountedRef.current) {
-                        setError('Mất kết nối trực tiếp, đang sử dụng polling...');
-                    }
-                };
-
-                const prizeTypes = [
-                    'specialPrize_0', 'firstPrize_0', 'secondPrize_0',
-                    'threePrizes_0', 'threePrizes_1',
-                    'fourPrizes_0', 'fourPrizes_1', 'fourPrizes_2', 'fourPrizes_3', 'fourPrizes_4', 'fourPrizes_5', 'fourPrizes_6',
-                    'fivePrizes_0',
-                    'sixPrizes_0', 'sixPrizes_1', 'sixPrizes_2',
-                    'sevenPrizes_0', 'eightPrizes_0'
-                ];
-
-                prizeTypes.forEach(prizeType => {
-                    sseRefs.current[province.tinh].addEventListener(prizeType, (event) => {
-                        try {
-                            const data = JSON.parse(event.data);
-                            console.log(`Nhận sự kiện SSE: ${prizeType} = ${data[prizeType]} (tỉnh ${province.tinh})`, data);
-                            if (data && data[prizeType] && mountedRef.current) {
-                                setLiveData(prev => {
-                                    const updatedData = prev.map(item => {
-                                        if (item.tinh !== province.tinh) return item;
-                                        if (data[prizeType] === '...' && item[prizeType] !== '...' && item[prizeType] !== '***') {
-                                            console.warn(`Bỏ qua ${prizeType} = "..." vì đã có giá trị: ${item[prizeType]}`);
-                                            return item;
-                                        }
-                                        const updatedItem = {
-                                            ...item,
-                                            [prizeType]: data[prizeType],
-                                            tentinh: data.tentinh || item.tentinh,
-                                            year: data.year || item.year,
-                                            month: data.month || item.month,
-                                            lastUpdated: data.lastUpdated || Date.now(),
-                                        };
-                                        localStorage.setItem(`liveData:${station}:${province.tinh}:${today}`, JSON.stringify(updatedItem));
-                                        return updatedItem;
-                                    });
-                                    const isComplete = updatedData.every(item =>
-                                        Object.values(item).every(val => typeof val === 'string' && val !== '...' && val !== '***')
-                                    );
-                                    setIsLiveDataComplete(isComplete);
-                                    setIsTodayLoading(false);
-                                    setRetryCount(0);
-                                    setError(null);
-                                    console.log('Cập nhật liveData từ SSE:', updatedData);
-                                    return updatedData;
-                                });
-                            }
-                        } catch (error) {
-                            console.error(`Lỗi xử lý sự kiện ${prizeType} (tỉnh ${province.tinh}):`, error);
-                        }
-                    });
-                });
-
-                sseRefs.current[province.tinh].addEventListener('full', (event) => {
+            const results = await Promise.all(
+                provinces.map(async (province) => {
                     try {
-                        const data = JSON.parse(event.data);
-                        console.log(`Nhận sự kiện SSE full (tỉnh ${province.tinh}):`, data);
-                        if (data && mountedRef.current) {
-                            setLiveData(prev => {
-                                const updatedData = prev.map(item => {
-                                    if (item.tinh !== province.tinh) return item;
-                                    const updatedItem = { ...item };
-                                    let shouldUpdate = false;
-                                    for (const key in data) {
-                                        if (data[key] !== '...' || !updatedItem[key] || updatedItem[key] === '...' || updatedItem[key] === '***') {
-                                            updatedItem[key] = data[key];
-                                            shouldUpdate = true;
-                                        }
-                                    }
-                                    if (shouldUpdate) {
-                                        updatedItem.lastUpdated = data.lastUpdated || Date.now();
-                                        localStorage.setItem(`liveData:${station}:${province.tinh}:${today}`, JSON.stringify(updatedItem));
-                                    }
-                                    return updatedItem;
-                                });
-                                const isComplete = updatedData.every(item =>
-                                    Object.values(item).every(val => typeof val === 'string' && val !== '...' && val !== '***')
-                                );
-                                setIsLiveDataComplete(isComplete);
-                                console.log('Cập nhật liveData từ SSE full:', updatedData);
-                                return updatedData;
-                            });
-                            setIsTodayLoading(false);
-                            setRetryCount(0);
-                            setError(null);
-                        }
-                    } catch (error) {
-                        console.error(`Lỗi xử lý sự kiện full (tỉnh ${province.tinh}):`, error);
-                    }
-                });
-
-                sseRefs.current[province.tinh].addEventListener('canary', (event) => {
-                    console.log(`Received canary message for ${province.tinh}:`, event.data);
-                });
-            });
-        };
-
-        const startPolling = () => {
-            const poll = () => {
-                const dayOfWeekIndex = new Date().getDay();
-                const provinces = provincesByDay[dayOfWeekIndex] || provincesByDay[6];
-                const isIncomplete = (liveData || emptyResult).some(item =>
-                    Object.values(item).some(val => typeof val === 'string' && (val === '...' || val === '***'))
-                );
-                const interval = isIncomplete ? pollingIntervalMs : regularPollingIntervalMs;
-
-                pollingInterval = setTimeout(async () => {
-                    try {
-                        const results = await Promise.all(
-                            provinces.map(async province => {
-                                const response = await fetch(
-                                    `https://backendkqxs-1.onrender.com/api/ketqua/xsmn/sse/initial?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
-                                );
-                                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-                                const serverData = await response.json();
-                                console.log(`Dữ liệu từ polling cho ${province.tinh}:`, serverData);
-                                return { province: province.tinh, data: serverData };
-                            })
+                        const response = await fetch(
+                            `http://localhost:5000/api/ketqua/xsmn/sse/initial?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
                         );
-
-                        if (mountedRef.current) {
-                            setLiveData(prev => {
-                                const currentData = Array.isArray(prev) && prev.length > 0 ? prev : emptyResult;
-                                const updatedData = currentData.map(item => {
-                                    const serverData = results.find(r => r.province === item.tinh)?.data;
-                                    if (!serverData) return item;
-                                    const updatedItem = { ...item };
-                                    let shouldUpdate = !item.lastUpdated || serverData.lastUpdated > item.lastUpdated;
-                                    for (const key in serverData) {
-                                        if (serverData[key] !== '...' || !updatedItem[key] || updatedItem[key] === '...' || updatedItem[key] === '***') {
-                                            updatedItem[key] = serverData[key];
-                                            shouldUpdate = true;
-                                        }
-                                    }
-                                    if (shouldUpdate) {
-                                        updatedItem.lastUpdated = serverData.lastUpdated || Date.now();
-                                        localStorage.setItem(`liveData:${station}:${item.tinh}:${today}`, JSON.stringify(updatedItem));
-                                    }
-                                    return updatedItem;
-                                });
-                                const isComplete = updatedData.every(item =>
-                                    Object.values(item).every(val => typeof val === 'string' && val !== '...' && val !== '***')
-                                );
-                                setIsLiveDataComplete(isComplete);
-                                console.log('Cập nhật liveData từ polling:', updatedData);
-                                return updatedData;
-                            });
-                            setError(null);
+                        const data = await response.json();
+                        if (response.status !== 200) {
+                            throw new Error(data.error || 'Lỗi khi lấy dữ liệu ban đầu');
                         }
-                    } catch (error) {
-                        console.error('Lỗi khi polling dữ liệu:', error);
-                        if (mountedRef.current) {
-                            setError('Không thể lấy dữ liệu, đang thử lại...');
-                        }
+                        return {
+                            drawDate: data.drawDate,
+                            station: data.station,
+                            dayOfWeek: data.dayOfWeek,
+                            tentinh: data.tentinh,
+                            tinh: data.tinh,
+                            year: data.year,
+                            month: data.month,
+                            specialPrize_0: data.specialPrize_0 || '...',
+                            firstPrize_0: data.firstPrize_0 || '...',
+                            secondPrize_0: data.secondPrize_0 || '...',
+                            threePrizes_0: data.threePrizes_0 || '...',
+                            threePrizes_1: data.threePrizes_1 || '...',
+                            fourPrizes_0: data.fourPrizes_0 || '...',
+                            fourPrizes_1: data.fourPrizes_1 || '...',
+                            fourPrizes_2: data.fourPrizes_2 || '...',
+                            fourPrizes_3: data.fourPrizes_3 || '...',
+                            fourPrizes_4: data.fourPrizes_4 || '...',
+                            fourPrizes_5: data.fourPrizes_5 || '...',
+                            fourPrizes_6: data.fourPrizes_6 || '...',
+                            fivePrizes_0: data.fivePrizes_0 || '...',
+                            sixPrizes_0: data.sixPrizes_0 || '...',
+                            sixPrizes_1: data.sixPrizes_1 || '...',
+                            sixPrizes_2: data.sixPrizes_2 || '...',
+                            sevenPrizes_0: data.sevenPrizes_0 || '...',
+                            eightPrizes_0: data.eightPrizes_0 || '...',
+                        };
+                    } catch (err) {
+                        console.error(`Lỗi khi lấy dữ liệu ban đầu cho tỉnh ${province.tinh}:`, err.message);
+                        return {
+                            drawDate: today,
+                            station: station,
+                            dayOfWeek: new Date().toLocaleString('vi-VN', { weekday: 'long' }),
+                            tentinh: province.tentinh,
+                            tinh: province.tinh,
+                            year: new Date().getFullYear(),
+                            month: new Date().getMonth() + 1,
+                            specialPrize_0: '...',
+                            firstPrize_0: '...',
+                            secondPrize_0: '...',
+                            threePrizes_0: '...',
+                            threePrizes_1: '...',
+                            fourPrizes_0: '...',
+                            fourPrizes_1: '...',
+                            fourPrizes_2: '...',
+                            fourPrizes_3: '...',
+                            fourPrizes_4: '...',
+                            fourPrizes_5: '...',
+                            fourPrizes_6: '...',
+                            fivePrizes_0: '...',
+                            sixPrizes_0: '...',
+                            sixPrizes_1: '...',
+                            sixPrizes_2: '...',
+                            sevenPrizes_0: '...',
+                            eightPrizes_0: '...',
+                        };
                     }
-                    if (mountedRef.current) {
-                        poll();
-                    }
-                }, interval);
-            };
-
-            poll();
-        };
-
-        if (!Array.isArray(liveData)) {
+                })
+            );
+            setLiveData(results);
+            setIsTodayLoading(false);
+            setError(null);
+            setIsDataReady(results.some(item => item.specialPrize_0 !== '...' || item.firstPrize_0 !== '...'));
+        } catch (err) {
+            console.error('Lỗi khi lấy dữ liệu ban đầu:', err.message);
             setLiveData(emptyResult);
+            setIsTodayLoading(false);
+            setError('Không có dữ liệu cho ngày hôm nay, đang chờ kết quả trực tiếp...');
+            setIsDataReady(false);
         }
-
-        fetchInitialData();
-        connectSSE();
-        startPolling();
-
-        return () => {
-            Object.values(sseRefs.current).forEach(sse => {
-                console.log('Đóng kết nối SSE trong cleanup...');
-                sse.close();
-            });
-            sseRefs.current = {};
-            if (pollingInterval) {
-                clearTimeout(pollingInterval);
-            }
-        };
-    }, [isLiveWindow, station, today, setLiveData, setIsLiveDataComplete, provincesByDay, emptyResult]);
+    };
 
     useEffect(() => {
-        if (!liveData || !liveData.length) {
-            setAnimatingPrizes({});
+        if (isLiveWindow) {
+            fetchInitialData();
+        } else {
+            setLiveData([]);
+            setIsTodayLoading(true);
+            setRetryCount(0);
+            setError(null);
+            setIsDataReady(false);
+        }
+    }, [isLiveWindow, emptyResult, today, station]);
+
+    useEffect(() => {
+        if (!isLiveWindow) {
+            setLiveData([]);
+            setIsTodayLoading(true);
+            setRetryCount(0);
+            setError(null);
+            setIsDataReady(false);
             return;
         }
+
+        const dayOfWeekIndex = new Date().getDay();
+        const provinces = provincesByDay[dayOfWeekIndex] || provincesByDay[6];
+        const eventSources = [];
+        let pendingUpdates = {};
+        let debounceTimeout = null;
+
+        const updateLiveData = () => {
+            setLiveData(prev => {
+                const updatedData = prev.map(item => ({
+                    ...item,
+                    ...pendingUpdates[item.tinh],
+                }));
+                pendingUpdates = {};
+                const hasRealData = updatedData.some(
+                    item => item.specialPrize_0 !== '...' || item.firstPrize_0 !== '...'
+                );
+                if (hasRealData) setIsDataReady(true);
+                return updatedData;
+            });
+            setIsTodayLoading(false);
+            setRetryCount(0);
+            setError(null);
+        };
+
+        const connectSSE = (tinh) => {
+            console.log(`Kết nối SSE cho tỉnh ${tinh}... (Thử lần ${retryCount + 1}/${maxRetries + 1})`);
+            const eventSource = new EventSource(
+                `http://localhost:5000/api/ketqua/xsmn/sse?station=${station}&tinh=${tinh}&date=${today.replace(/\//g, '-')}`
+            );
+            eventSources.push(eventSource);
+
+            const prizeTypes = [
+                'specialPrize_0', 'firstPrize_0', 'secondPrize_0',
+                'threePrizes_0', 'threePrizes_1',
+                'fourPrizes_0', 'fourPrizes_1', 'fourPrizes_2', 'fourPrizes_3', 'fourPrizes_4', 'fourPrizes_5', 'fourPrizes_6',
+                'fivePrizes_0',
+                'sixPrizes_0', 'sixPrizes_1', 'sixPrizes_2',
+                'sevenPrizes_0', 'eightPrizes_0'
+            ];
+
+            prizeTypes.forEach(prizeType => {
+                eventSource.addEventListener(prizeType, (event) => {
+                    console.log(`Nhận sự kiện SSE cho ${prizeType} (tỉnh ${tinh}):`, event.data);
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data && data[prizeType] && data.tinh) {
+                            pendingUpdates = {
+                                ...pendingUpdates,
+                                [data.tinh]: {
+                                    ...pendingUpdates[data.tinh],
+                                    [prizeType]: data[prizeType],
+                                    tentinh: data.tentinh || data.tentinh,
+                                    year: data.year || data.year,
+                                    month: data.month || data.month,
+                                },
+                            };
+
+                            clearTimeout(debounceTimeout);
+                            debounceTimeout = setTimeout(updateLiveData, 50); // Debounce 50ms
+                        }
+                    } catch (error) {
+                        console.error(`Lỗi xử lý sự kiện SSE ${prizeType} (tỉnh ${tinh}):`, error);
+                    }
+                });
+            });
+
+            eventSource.onerror = () => {
+                console.log(`Lỗi SSE cho tỉnh ${tinh}, đóng kết nối...`);
+                eventSource.close();
+                if (retryCount < maxRetries) {
+                    setTimeout(() => {
+                        setRetryCount(prev => prev + 1);
+                    }, retryInterval);
+                } else {
+                    setError('Mất kết nối trực tiếp, đang tải dữ liệu thủ công...');
+                    fetchInitialData();
+                }
+            };
+        };
+
+        provinces.forEach(province => connectSSE(province.tinh));
+
+        return () => {
+            console.log('Đóng tất cả kết nối SSE...');
+            eventSources.forEach(eventSource => eventSource.close());
+            clearTimeout(debounceTimeout);
+        };
+    }, [isLiveWindow, station, today, retryCount, maxRetries, retryInterval, provincesByDay]);
+
+    useEffect(() => {
+        if (!isLiveWindow || !liveData.length) return;
 
         const animationQueue = [
             'eightPrizes_0', 'sevenPrizes_0',
@@ -454,72 +294,95 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             'secondPrize_0', 'firstPrize_0', 'specialPrize_0'
         ];
 
+        const findNextPrize = (stationData) => {
+            return animationQueue.find(prize => stationData[prize] === '...') || null;
+        };
+
         liveData.forEach(stationData => {
             const currentPrize = animatingPrizes[stationData.tinh];
             if (!currentPrize || stationData[currentPrize] !== '...') {
-                const nextPrize = animationQueue.find(prize => stationData[prize] === '...') || null;
+                const nextPrize = findNextPrize(stationData);
                 setAnimatingPrizes(prev => ({
                     ...prev,
                     [stationData.tinh]: nextPrize
                 }));
+                if (currentPrize && stationData[currentPrize] !== '...') {
+                    setAnimatingNumbers(prev => {
+                        const newNumbers = { ...prev };
+                        delete newNumbers[`${stationData.tinh}_${currentPrize}`];
+                        return newNumbers;
+                    });
+                }
             }
         });
-    }, [liveData, animatingPrizes]);
+
+        const intervalId = setInterval(() => {
+            setAnimatingNumbers(prev => {
+                const newNumbers = { ...prev };
+                liveData.forEach(stationData => {
+                    const prizeType = animatingPrizes[stationData.tinh];
+                    if (prizeType && stationData[prizeType] === '...') {
+                        const digits = prizeType === 'eightPrizes_0' ? 2 :
+                            prizeType === 'sevenPrizes_0' ? 3 :
+                                prizeType === 'specialPrize_0' ? 6 : 5;
+                        newNumbers[`${stationData.tinh}_${prizeType}`] = Math.floor(Math.random() * Math.pow(10, digits))
+                            .toString()
+                            .padStart(digits, '0');
+                    }
+                });
+                return newNumbers;
+            });
+        }, 100); // Tăng interval lên 100ms
+
+        return () => clearInterval(intervalId);
+    }, [isLiveWindow, liveData, animatingPrizes]);
 
     const renderPrizeNumber = useCallback((tinh, prizeType, digits = 5) => {
         const isAnimating = animatingPrizes[tinh] === prizeType && liveData.find(item => item.tinh === tinh)?.[prizeType] === '...';
+        const value = isAnimating ? animatingNumbers[`${tinh}_${prizeType}`] || '0'.repeat(digits) : liveData.find(item => item.tinh === tinh)?.[prizeType] || '...';
         const className = `${styles.runningNumber} ${styles[`running_${digits}`]}`;
 
         return (
             <span className={className} data-state={isAnimating ? 'animating' : 'static'}>
                 {isAnimating ? (
                     <span className={styles.digitContainer}>
-                        {Array.from({ length: digits }).map((_, idx) => (
-                            <span key={idx} className={styles.digit} data-state="animating" data-index={idx}></span>
+                        {value.split('').slice(-digits).map((digit, idx) => (
+                            <span key={idx} className={styles.digit} data-state="animating">
+                                {digit}
+                            </span>
                         ))}
                     </span>
-                ) : liveData.find(item => item.tinh === tinh)?.[prizeType] === '...' ? (
+                ) : value === '...' ? (
                     <span className={styles.spinner}></span>
                 ) : (
-                    <span className={styles.digitContainer}>
-                        {getFilteredNumber(liveData.find(item => item.tinh === tinh)?.[prizeType] || '...', filterTypes[today + station] || 'all')
-                            .padStart(digits, '0')
-                            .split('')
-                            .map((digit, idx) => (
-                                <span key={idx} data-state="static" data-index={idx}>
-                                    {digit}
-                                </span>
-                            ))}
-                    </span>
+                    getFilteredNumber(value, filterTypes[today + station] || 'all') || '-'
                 )}
             </span>
         );
-    }, [animatingPrizes, liveData, filterTypes, today, station]);
+    }, [animatingPrizes, animatingNumbers, liveData, filterTypes, today, station]);
 
-    if (!liveData || !liveData.length) {
-        return <div className={styles.error}>Đang tải dữ liệu...</div>;
-    }
+    if (!liveData.length) return null;
 
     const allHeads = Array(10).fill().map(() => []);
     const allTails = Array(10).fill().map(() => []);
     const stationsData = liveData.map(stationData => {
         const lastTwoNumbers = [];
-        const addNumber = (num, isSpecial = false, isEighth = false) => {
+        const addNumber = (num) => {
             if (num && num !== '...' && num !== '***' && /^\d+$/.test(num)) {
                 const last2 = num.slice(-2).padStart(2, '0');
-                lastTwoNumbers.push({ num: last2, isSpecial, isEighth });
+                lastTwoNumbers.push({ num: last2, isSpecial: num === stationData.specialPrize_0, isEighth: num === stationData.eightPrizes_0 });
             }
         };
 
-        addNumber(stationData.specialPrize_0, true);
+        addNumber(stationData.specialPrize_0);
         addNumber(stationData.firstPrize_0);
         addNumber(stationData.secondPrize_0);
-        for (let i = 0; i < 2; i++) addNumber(stationData[`threePrizes_${i}`]);
-        for (let i = 0; i < 7; i++) addNumber(stationData[`fourPrizes_${i}`]);
+        [0, 1].forEach(i => addNumber(stationData[`threePrizes_${i}`]));
+        [0, 1, 2, 3, 4, 5, 6].forEach(i => addNumber(stationData[`fourPrizes_${i}`]));
         addNumber(stationData.fivePrizes_0);
-        for (let i = 0; i < 3; i++) addNumber(stationData[`sixPrizes_${i}`]);
+        [0, 1, 2].forEach(i => addNumber(stationData[`sixPrizes_${i}`]));
         addNumber(stationData.sevenPrizes_0);
-        addNumber(stationData.eightPrizes_0, false, true);
+        addNumber(stationData.eightPrizes_0);
 
         const heads = Array(10).fill().map(() => []);
         const tails = Array(10).fill().map(() => []);
@@ -675,7 +538,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                     </tbody>
                 </table>
                 <div className={styles.action}>
-                    <div aria-label="Tùy chọn lọc số" className={styles.filter__options} role="radiogroup">
+                    <div aria-label="default" className={styles.filter__options} role="radiogroup">
                         <div className={styles.optionInput}>
                             <input
                                 id={`filterAll-${today + station}`}
@@ -734,17 +597,15 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                                     <td className={styles.t_h}>{idx}</td>
                                     {allHeads[idx].map((headNumbers, index) => (
                                         <td key={index}>
-                                            {headNumbers.length > 0 ? (
-                                                headNumbers.map((item, numIdx) => (
-                                                    <span
-                                                        key={numIdx}
-                                                        className={item.isEighth || item.isSpecial ? styles.highlightPrize : ''}
-                                                    >
-                                                        {item.num}
-                                                        {numIdx < headNumbers.length - 1 && ', '}
-                                                    </span>
-                                                ))
-                                            ) : '-'}
+                                            {headNumbers.map((item, numIdx) => (
+                                                <span
+                                                    key={numIdx}
+                                                    className={item.isEighth || item.isSpecial ? styles.highlightPrize : ''}
+                                                >
+                                                    {item.num}
+                                                    {numIdx < headNumbers.length - 1 && ', '}
+                                                </span>
+                                            ))}
                                         </td>
                                     ))}
                                 </tr>
@@ -773,17 +634,15 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                                     <td className={styles.t_h}>{idx}</td>
                                     {allTails[idx].map((tailNumbers, index) => (
                                         <td key={index}>
-                                            {tailNumbers.length > 0 ? (
-                                                tailNumbers.map((item, numIdx) => (
-                                                    <span
-                                                        key={numIdx}
-                                                        className={item.isEighth || item.isSpecial ? styles.highlightPrize : ''}
-                                                    >
-                                                        {item.num}
-                                                        {numIdx < tailNumbers.length - 1 && ', '}
-                                                    </span>
-                                                ))
-                                            ) : '-'}
+                                            {tailNumbers.map((item, numIdx) => (
+                                                <span
+                                                    key={numIdx}
+                                                    className={item.isEighth || item.isSpecial ? styles.highlightPrize : ''}
+                                                >
+                                                    {item.num}
+                                                    {numIdx < tailNumbers.length - 1 && ', '}
+                                                </span>
+                                            ))}
                                         </td>
                                     ))}
                                 </tr>
@@ -797,3 +656,4 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
 };
 
 export default React.memo(LiveResult);
+// ss

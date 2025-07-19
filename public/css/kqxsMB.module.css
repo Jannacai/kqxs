@@ -60,6 +60,7 @@
 .kqxs__action {
     display: flex;
     justify-content: center;
+    align-items: center;
     flex-wrap: wrap;
     /* Hỗ trợ wrap trên mobile */
     gap: 10px;
@@ -376,6 +377,10 @@
     font-size: 20px;
 }
 
+.tentinhs {
+    font-size: 20px;
+}
+
 .tableKey tr:nth-child(even) {
     background-color: #cccccc29;
 }
@@ -538,14 +543,18 @@
         /* Giữ padding nhẹ */
     }
 
+    .tentinhs {
+        font-size: 16px;
+    }
+
     .kqxs {
         margin-bottom: 20px;
-        font-size: 28px;
+        font-size: 26px;
     }
 
     .kqxs__title {
-        font-size: 16px;
-        line-height: 1.4;
+        font-size: 18px;
+        /* line-height: 1.4; */
         padding: 0 10px;
     }
 

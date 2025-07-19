@@ -1180,7 +1180,7 @@ const NavBar = () => {
                                         <i
                                             className={`fa-solid ${status === 'authenticated' ? 'fa-pen-to-square' : 'fa-user-plus'
                                                 }`}
-                                        ></i> Đăng nhập
+                                        ></i>
                                     </span>
                                     {status === 'authenticated' ? 'Đăng bài' : ''}
                                 </Link>

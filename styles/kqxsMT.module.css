@@ -245,7 +245,7 @@
 }
 
 .prizeNumber.g3 {
-    font-size: 24px;
+    /* font-size: 24px; */
 }
 
 /* Bộ lọc */
@@ -483,8 +483,7 @@
     }
 
     .kqxs__title {
-        font-size: 16px;
-        line-height: 1.4;
+        font-size: 18px;
         width: 100%;
         font-weight: 700;
     }
@@ -562,7 +561,7 @@
         display: inline-block;
         width: 14px;
         height: 14px;
-        top: 1px;
+        top: 0px;
         left: -25.5px;
         border-radius: 50%;
         background-color: var(--primary-color);
@@ -581,7 +580,7 @@
     .tableKey th,
     .tableKey td {
         padding: 8px 4px;
-        font-size: 20px;
+        font-size: 16px;
         line-height: 1.2;
         font-weight: 700;
     }

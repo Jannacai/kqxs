@@ -473,12 +473,14 @@ const KQXS = (props) => {
                         <div className={styles.kqxs}>
                             <div className={styles.header}>
                                 <h1 className={styles.kqxs__title}>
-                                    XSMB - Kết quả Xổ số Miền Bắc - SXMB - <span></span> ({data2.tentinh})
+                                    XSMB - Kết quả Xổ số Miền Bắc - SXMB
                                 </h1>
                                 <div className={styles.kqxs__action}>
                                     <a className={styles.kqxs__actionLink} href="#!">{data2.station}</a>
                                     <a className={`${styles.kqxs__actionLink} ${styles.dayOfWeek}`} href="#!">{data2.dayOfWeek}</a>
                                     <a className={styles.kqxs__actionLink} href="#!">{data2.drawDate}</a>
+                                    <span className={styles.tentinhs}>({data2.tentinh})</span>
+
                                 </div>
                             </div>
                             <table className={styles.tableXS}>

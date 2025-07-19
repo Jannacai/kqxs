@@ -116,6 +116,7 @@
 }
 
 .running_number {
+    font-size: 26px;
     display: inline-block;
     min-height: 28px;
     padding: 8px 0;
@@ -323,7 +324,7 @@
 }
 
 .prizeNumber.g3 {
-    font-size: 24px;
+    /* font-size: 24px; */
 }
 
 .action {
@@ -524,6 +525,10 @@
         font-size: 12px;
     }
 
+    .running_number {
+        font-size: 24px;
+    }
+
     .kqxs__title span {
         font-weight: 700;
     }
@@ -653,7 +658,7 @@
     .tableKey th,
     .tableKey td {
         padding: 8px 4px;
-        font-size: 20px;
+        font-size: 16px;
         font-weight: 700;
         line-height: 1.2;
     }

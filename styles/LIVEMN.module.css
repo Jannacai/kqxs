@@ -7,11 +7,11 @@
     margin: 0 auto;
 }
 
-.digitContainer {
+.digit_container {
     display: inline-flex;
 }
 
-.digitContainer .digit {
+.digit_container .digit {
     display: inline-block;
     width: 25px;
     height: 25px;
@@ -21,14 +21,14 @@
     font-weight: 800;
 }
 
-.digitContainer .digit[data-state="animating"] {
+.digit_container .digit[data-status="animating"] {
     background-image: linear-gradient(135deg, #FEC163 10%, #DE4313 100%);
     color: white;
     border-radius: 50%;
     position: relative;
 }
 
-.digitContainer .digit[data-state="animating"]::before {
+.digit_container .digit[data-status="animating"]::before {
     content: "0";
     position: absolute;
     top: 0;
@@ -41,27 +41,27 @@
     animation: spinDigit 0.8s linear infinite;
 }
 
-.digitContainer .digit[data-state="animating"][data-index="0"]::before {
+.digit_container .digit[data-status="animating"][data-index="0"]::before {
     animation-delay: 0s;
 }
 
-.digitContainer .digit[data-state="animating"][data-index="1"]::before {
+.digit_container .digit[data-status="animating"][data-index="1"]::before {
     animation-delay: 0.1s;
 }
 
-.digitContainer .digit[data-state="animating"][data-index="2"]::before {
+.digit_container .digit[data-status="animating"][data-index="2"]::before {
     animation-delay: 0.2s;
 }
 
-.digitContainer .digit[data-state="animating"][data-index="3"]::before {
+.digit_container .digit[data-status="animating"][data-index="3"]::before {
     animation-delay: 0.3s;
 }
 
-.digitContainer .digit[data-state="animating"][data-index="4"]::before {
+.digit_container .digit[data-status="animating"][data-index="4"]::before {
     animation-delay: 0.4s;
 }
 
-.digitContainer .digit[data-state="animating"][data-index="5"]::before {
+.digit_container .digit[data-status="animating"][data-index="5"]::before {
     animation-delay: 0.5s;
 }
 
@@ -107,15 +107,15 @@
     }
 }
 
-.digitContainer .digit[data-state="static"] {
+.digit_container .digit[data-status="static"] {
     transition: transform 0.1s ease-out;
 }
 
-.digitContainer .digit[data-state="static"]:hover {
+.digit_container .digit[data-status="static"]:hover {
     transform: translateY(-2px);
 }
 
-.runningNumber {
+.running_number {
     display: inline-block;
     min-height: 28px;
     padding: 8px 0;
@@ -142,24 +142,35 @@
     min-width: 162px;
 }
 
-.spinner {
+.ellipsis {
     display: inline-block;
+    width: 40px;
+    height: 13px;
+    vertical-align: middle;
+    position: relative;
+}
+
+.ellipsis::after {
+    content: "";
     width: 24px;
     height: 24px;
     border: 2px solid rgba(104, 93, 216, 0.3);
     border-top: 2px solid var(--primary-color);
     border-radius: 50%;
     animation: spin 1.5s linear infinite;
-    vertical-align: middle;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
 @keyframes spin {
     0% {
-        transform: rotate(0deg);
+        transform: translate(-50%, -50%) rotate(0deg);
     }
 
     100% {
-        transform: rotate(360deg);
+        transform: translate(-50%, -50%) rotate(360deg);
     }
 }
 
@@ -578,12 +589,6 @@
         font-size: 21px;
     }
 
-    .spinner {
-        width: 20px;
-        height: 20px;
-        border-width: 2px;
-    }
-
     .running_2 {
         min-width: 38px;
     }
@@ -604,7 +609,7 @@
         min-width: 114px;
     }
 
-    .digitContainer .digit {
+    .digit_container .digit {
         width: 18px;
         height: 18px;
         line-height: 18px;
@@ -649,7 +654,7 @@
     .tableKey th,
     .tableKey td {
         padding: 8px 4px;
-        font-size: 20px;
+        font-size: 16px;
         font-weight: 700;
     }
 
