@@ -4,6 +4,7 @@ import styles from '../../styles/LivekqxsMB.module.css';
 import { getFilteredNumber } from "../../library/utils/filterUtils";
 import React from 'react';
 import { useLottery } from '../../contexts/LotteryContext';
+import ViewCounter from "../views/ViewCounter";
 
 const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange, filterTypes, isLiveWindow }) => {
     const { liveData, setLiveData, setIsLiveDataComplete } = useLottery() || {};
@@ -166,7 +167,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             if (!station || !today || !/^\d{2}-\d{2}-\d{4}$/.test(today)) {
                 console.warn('Invalid station or today value:', { station, today });
                 if (mountedRef.current) {
-                    setError('Dữ liệu không hợp lệ');
+                    setError('Dữ liệu đang tải...');
                     setIsTodayLoading(false);
                 }
                 return;
@@ -482,7 +483,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             )}
             <div className={styles.kqxs}>
                 <div className={styles.header}>
-                    <span className={styles.kqxs__title1}>Tường thuật trực tiếp...</span>
+                    <div className={styles.tructiep}><span className={styles.kqxs__title1}>Tường thuật trực tiếp...</span><ViewCounter /></div>
                     <h1 className={styles.kqxs__title}>
                         Trực Tiếp XSMB - Kết quả Xổ số Miền Bắc - SXMB
                     </h1>

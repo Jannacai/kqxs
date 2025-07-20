@@ -117,6 +117,7 @@
 
 .running_number {
     display: inline-block;
+    font-size: 26px;
     min-height: 28px;
     padding: 8px 0;
     vertical-align: middle;
@@ -197,6 +198,13 @@
     color: #000;
     font-size: 22px;
     font-weight: 600;
+}
+
+.tructiep {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
 }
 
 .kqxs__title1 {
@@ -565,6 +573,34 @@
     .kqxs {
         border-radius: 3px;
         border: 1px solid #e80000;
+    }
+
+    .kqxs__title1 {
+        color: red;
+        position: relative;
+        font-size: 16px;
+        font-weight: 600;
+        line-height: 1.4;
+        animation: blink 1s ease-in-out infinite;
+        /* Thêm hiệu ứng nhấp nháy */
+    }
+
+    .kqxs__title1::before {
+        content: "";
+        display: block;
+        position: absolute;
+        background-color: red;
+        left: -15px;
+        top: 9px;
+        border-radius: 50%;
+        width: 5px;
+        height: 5px;
+        animation: blink 1s ease-in-out infinite;
+        /* Thêm hiệu ứng nhấp nháy cho dấu chấm */
+    }
+
+    .running_number {
+        font-size: 24px;
     }
 
     .kqxs__title span {

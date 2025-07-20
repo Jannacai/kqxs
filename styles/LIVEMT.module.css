@@ -200,6 +200,13 @@
     font-weight: 600;
 }
 
+.tructiep {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
 .kqxs__title1 {
     color: red;
     position: relative;
@@ -586,6 +593,30 @@
     .header {
         padding: 15px 0 10px 0;
         background-color: #ffeca0;
+    }
+
+    .kqxs__title1 {
+        color: red;
+        position: relative;
+        font-size: 16px;
+        font-weight: 600;
+        line-height: 1.4;
+        animation: blink 1s ease-in-out infinite;
+        /* Thêm hiệu ứng nhấp nháy */
+    }
+
+    .kqxs__title1::before {
+        content: "";
+        display: block;
+        position: absolute;
+        background-color: red;
+        left: -15px;
+        top: 9px;
+        border-radius: 50%;
+        width: 5px;
+        height: 5px;
+        animation: blink 1s ease-in-out infinite;
+        /* Thêm hiệu ứng nhấp nháy cho dấu chấm */
     }
 
     .action {

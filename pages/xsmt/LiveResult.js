@@ -4,6 +4,7 @@ import styles from '../../styles/LIVEMT.module.css';
 import { getFilteredNumber } from "../../library/utils/filterUtils";
 import React from 'react';
 import { useLottery } from '../../contexts/LotteryContext';
+import ViewCounter from "../views/ViewCounter";
 
 const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange, filterTypes, isLiveWindow }) => {
     const { liveData, setLiveData, setIsLiveDataComplete } = useLottery() || { liveData: null, setLiveData: null, setIsLiveDataComplete: null };
@@ -145,7 +146,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
 
                         try {
                             const response = await fetch(
-                                `http://localhost:5000/api/ketquaxs/xsmt/sse/initial?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
+                                `https://backendkqxs-1.onrender.com/api/ketquaxs/xsmt/sse/initial?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
                             );
                             if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                             const serverData = await response.json();
@@ -213,7 +214,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                 if (!station || !today || !/^\d{2}-\d{2}-\d{4}$/.test(today)) {
                     console.warn('Invalid station or today value:', { station, today });
                     if (mountedRef.current) {
-                        setError('Dữ liệu không hợp lệ');
+                        setError('Dữ liệu đang tải...');
                         setIsTodayLoading(false);
                     }
                     return;
@@ -224,7 +225,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                 }
 
                 sseRefs.current[province.tinh] = new EventSource(
-                    `http://localhost:5000/api/ketquaxs/xsmt/sse?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
+                    `https://backendkqxs-1.onrender.com/api/ketquaxs/xsmt/sse?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
                 );
                 console.log(`Khởi tạo kết nối SSE cho tỉnh ${province.tinh}, ngày: ${today}`);
 
@@ -363,7 +364,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                         const results = await Promise.all(
                             provinces.map(async province => {
                                 const response = await fetch(
-                                    `http://localhost:5000/api/ketquaxs/xsmt/sse/initial?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
+                                    `https://backendkqxs-1.onrender.com/api/ketquaxs/xsmt/sse/initial?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
                                 );
                                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                                 const serverData = await response.json();
@@ -558,7 +559,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             )}
             <div className={styles.kqxs} style={{ '--num-columns': liveData.length }}>
                 <div className={styles.header}>
-                    <span className={styles.kqxs__title1}>Tường thuật trực tiếp...</span>
+                    <div className={styles.tructiep}><span className={styles.kqxs__title1}>Tường thuật trực tiếp...</span><ViewCounter /></div>
                     <h1 className={styles.kqxs__title}>XSMT - Kết quả Xổ số Miền Trung - SXMT {today}</h1>
                     <div className={styles.kqxs__action}>
                         <a className={styles.kqxs__actionLink} href="#!">XSMT</a>

@@ -1,0 +1,58 @@
+/* LivekqxsMB.module.css */
+
+/* Container chính của ViewCounter */
+.viewCounter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* Khoảng cách giữa biểu tượng và số lượt xem */
+    font-size: 1rem;
+    /* Kích thước font tương tự các phần tử trong LIVEMT.module.css */
+    font-weight: 500;
+    color: #333;
+    /* Màu chữ chính, có thể điều chỉnh để khớp với LIVEMT.module.css */
+    padding: 8px 12px;
+}
+
+/* Style cho số lượt xem */
+.viewCount {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Biểu tượng lượt xem (sử dụng Font Awesome) */
+.viewCount::before {
+    content: '\f06e';
+    /* Biểu tượng con mắt */
+    font-family: 'Font Awesome 6 Free';
+    /* Font Awesome */
+    font-weight: 900;
+    /* Đảm bảo biểu tượng hiển thị đúng */
+    color: #007bff;
+    /* Màu biểu tượng, có thể điều chỉnh */
+    font-size: 1.2rem;
+    /* Kích thước biểu tượng */
+}
+
+/* Style cho thông báo lỗi */
+.error {
+    color: #dc3545;
+    /* Màu đỏ, tương tự LIVEMT.module.css .error */
+    font-size: 0.9rem;
+    margin-right: 8px;
+    /* Khoảng cách với số lượt xem */
+    font-weight: 400;
+}
+
+/* Responsive: Điều chỉnh cho màn hình nhỏ */
+@media (max-width: 768px) {
+    .viewCounter {
+        font-size: 0.9rem;
+        padding: 6px 10px;
+    }
+
+    .viewCount::before {
+        font-size: 1rem;
+    }
+}

@@ -236,7 +236,7 @@ export const apiMT = {
             throw new Error('Date and station cannot be empty');
         }
 
-        const url = `http://localhost:4000/api/scraperMT/scrapeMT`;
+        const url = `${API_BASE_URL2}/api/scraperMT/scrapeMT`;
 
         try {
             const response = await fetch(url, {
