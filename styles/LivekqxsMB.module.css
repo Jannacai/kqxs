@@ -159,7 +159,7 @@
 .kqxs {
     background-color: #f9f9f9;
     width: 100%;
-    border: 2px solid #e80000;
+    border: 1px solid #e80000;
     border-radius: 8px;
     text-align: center;
     margin-bottom: 20px;
@@ -174,10 +174,46 @@
 }
 
 .kqxs__title {
-    color: #e80000;
-    font-size: 26px;
+    color: #000;
+    font-size: 22px;
     font-weight: 600;
     margin-bottom: 5px;
+}
+
+.kqxs__title1 {
+    color: red;
+    position: relative;
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.4;
+    animation: blink 1s ease-in-out infinite;
+    /* Thêm hiệu ứng nhấp nháy */
+}
+
+.kqxs__title1::before {
+    content: "";
+    display: block;
+    position: absolute;
+    background-color: red;
+    left: -20px;
+    top: 7px;
+    border-radius: 50%;
+    width: 10px;
+    height: 10px;
+    animation: blink 1s ease-in-out infinite;
+    /* Thêm hiệu ứng nhấp nháy cho dấu chấm */
+}
+
+@keyframes blink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.3;
+    }
 }
 
 .kqxs__title span {
@@ -187,6 +223,7 @@
 .kqxs__action {
     display: flex;
     justify-content: center;
+    align-items: center;
     flex-wrap: wrap;
     gap: 10px;
 }
@@ -591,7 +628,7 @@
     }
 
     .kqxs__title {
-        font-size: 21px;
+        font-size: 18px;
         line-height: 1.4;
         width: 100%;
         font-weight: 700;
@@ -683,7 +720,7 @@
     }
 
     .kqxs__title {
-        font-size: 20px;
+        font-size: 18px;
         line-height: 1.4;
         padding: 0 10px;
     }

@@ -227,7 +227,7 @@ a {
 
 /* Authentication */
 .authenticated {
-    color: #0056b3;
+    color: var(--primary-color);
     min-height: 100vh;
 }
 

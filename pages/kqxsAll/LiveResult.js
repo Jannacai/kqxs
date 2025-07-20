@@ -482,13 +482,15 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             )}
             <div className={styles.kqxs}>
                 <div className={styles.header}>
-                    <h2 className={styles.kqxs__title}>
-                        Kết Quả Xổ Số - <span>{liveData.station}</span> ({liveData.tentinh})
-                    </h2>
+                    <span className={styles.kqxs__title1}>Tường thuật trực tiếp...</span>
+                    <h1 className={styles.kqxs__title}>
+                        Trực Tiếp XSMB - Kết quả Xổ số Miền Bắc - SXMB
+                    </h1>
                     <div className={styles.kqxs__action}>
                         <a className={styles.kqxs__actionLink} href="#!">{liveData.station}</a>
                         <a className={`${styles.kqxs__actionLink} ${styles.dayOfWeek}`} href="#!">{liveData.dayOfWeek}</a>
                         <a className={styles.kqxs__actionLink} href="#!">{liveData.drawDate}</a>
+                        <a className={styles.kqxs__actionLink} href="#!"> ({liveData.tentinh})</a>
                     </div>
                 </div>
                 <table className={styles.tableXS}>

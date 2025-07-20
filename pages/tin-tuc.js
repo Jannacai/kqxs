@@ -433,10 +433,10 @@ const EnhancedNewsFeed = () => {
                                 ))
                             )}
                         </div>
-                        <div className={styles.bannerContainer}>
+                        <div className="banner1">
                             <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
                                 <video
-                                    className={styles.bannervideo}
+                                    className="videobanner"
                                     src='/banner2.mp4'
                                     autoPlay
                                     loop

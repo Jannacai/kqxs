@@ -18,7 +18,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     const retryInterval = 2000;
     const fetchMaxRetries = 3;
     const fetchRetryInterval = 5000;
-    const pollingIntervalMs = 1000;
+    const pollingIntervalMs = 2000;
     const regularPollingIntervalMs = 7000;
 
     const prizeDigits = {
@@ -558,6 +558,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             )}
             <div className={styles.kqxs} style={{ '--num-columns': liveData.length }}>
                 <div className={styles.header}>
+                    <span className={styles.kqxs__title1}>Tường thuật trực tiếp...</span>
                     <h1 className={styles.kqxs__title}>XSMT - Kết quả Xổ số Miền Trung - SXMT {today}</h1>
                     <div className={styles.kqxs__action}>
                         <a className={styles.kqxs__actionLink} href="#!">XSMT</a>

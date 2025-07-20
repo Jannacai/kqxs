@@ -25,8 +25,8 @@ const KQXS = (props) => {
     const router = useRouter();
 
     const hour = 16;
-    const minutes1 = 35;
-    const minutes2 = 15;
+    const minutes1 = 10;
+    const minutes2 = 13;
 
     let dayof; // GIỮ NGUYÊN: Xử lý data3 như XSMN ban đầu
     const station = props.station || "xsmn";
