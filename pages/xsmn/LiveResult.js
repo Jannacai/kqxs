@@ -542,7 +542,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             .padStart(digits, '0')
                             .split('')
                             .map((digit, i) => (
-                                <span key={i} data-status="static" data-index={i}>
+                                <span key={i} className={`${styles.digit12} ${isSpecialOrEighth ? styles.highlight1 : ''}`} data-status="static" data-index={i}>
                                     {digit}
                                 </span>
                             ))}

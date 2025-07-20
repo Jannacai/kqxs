@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo, useRef } from "react";
 import styles from '../../styles/LIVEMT.module.css';
 import { getFilteredNumber } from "../../library/utils/filterUtils";
@@ -146,7 +145,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
 
                         try {
                             const response = await fetch(
-                                `https://backendkqxs-1.onrender.com/api/ketquaxs/xsmt/sse/initial?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
+                                `http://localhost:5000/api/ketquaxs/xsmt/sse/initial?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
                             );
                             if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                             const serverData = await response.json();
@@ -225,7 +224,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                 }
 
                 sseRefs.current[province.tinh] = new EventSource(
-                    `https://backendkqxs-1.onrender.com/api/ketquaxs/xsmt/sse?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
+                    `http://localhost:5000/api/ketquaxs/xsmt/sse?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
                 );
                 console.log(`Khởi tạo kết nối SSE cho tỉnh ${province.tinh}, ngày: ${today}`);
 
@@ -353,7 +352,6 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             const poll = () => {
                 const dayOfWeekIndex = new Date().getDay();
                 const provinces = provincesByDay[dayOfWeekIndex] || provincesByDay[6];
-                // Sử dụng liveData || emptyResult để tránh lỗi khi liveData là null
                 const isIncomplete = (liveData || emptyResult).some(item =>
                     Object.values(item).some(val => typeof val === 'string' && (val === '...' || val === '***'))
                 );
@@ -364,7 +362,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                         const results = await Promise.all(
                             provinces.map(async province => {
                                 const response = await fetch(
-                                    `https://backendkqxs-1.onrender.com/api/ketquaxs/xsmt/sse/initial?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
+                                    `http://localhost:5000/api/ketquaxs/xsmt/sse/initial?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
                                 );
                                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                                 const serverData = await response.json();
@@ -375,7 +373,6 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
 
                         if (mountedRef.current) {
                             setLiveData(prev => {
-                                // Nếu prev không phải mảng, sử dụng emptyResult
                                 const currentData = Array.isArray(prev) && prev.length > 0 ? prev : emptyResult;
                                 const updatedData = currentData.map(item => {
                                     const serverData = results.find(r => r.province === item.tinh)?.data;
@@ -418,7 +415,6 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             poll();
         };
 
-        // Khởi tạo liveData ngay lập tức nếu chưa có
         if (!Array.isArray(liveData)) {
             setLiveData(emptyResult);
         }
@@ -524,24 +520,28 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     const renderPrizeValue = (tinh, prizeType, digits = 5) => {
         const isAnimating = animatingPrizes[tinh] === prizeType && liveData.find(item => item.tinh === tinh)?.[prizeType] === '...';
         const className = `${styles.running_number} ${styles[`running_${digits}`]}`;
+        const prizeValue = liveData.find(item => item.tinh === tinh)?.[prizeType] || '...';
+        const filteredValue = getFilteredNumber(prizeValue, currentFilter);
+        const displayDigits = currentFilter === 'last2' ? 2 : currentFilter === 'last3' ? 3 : digits;
+        const isSpecialOrEighth = prizeType === 'specialPrize_0' || prizeType === 'eightPrizes_0';
 
         return (
-            <span className={className} data-status={isAnimating ? 'animating' : 'static'}>
+            <span className={`${className} ${isSpecialOrEighth ? styles.highlight : ''}`} data-status={isAnimating ? 'animating' : 'static'}>
                 {isAnimating ? (
                     <span className={styles.digit_container}>
-                        {Array.from({ length: digits }).map((_, i) => (
+                        {Array.from({ length: displayDigits }).map((_, i) => (
                             <span key={i} className={styles.digit} data-status="animating" data-index={i}></span>
                         ))}
                     </span>
-                ) : liveData.find(item => item.tinh === tinh)?.[prizeType] === '...' ? (
+                ) : prizeValue === '...' ? (
                     <span className={styles.ellipsis}></span>
                 ) : (
                     <span className={styles.digit_container}>
-                        {getFilteredNumber(liveData.find(item => item.tinh === tinh)?.[prizeType] || '...', currentFilter)
-                            .padStart(digits, '0')
+                        {filteredValue
+                            .padStart(displayDigits, '0')
                             .split('')
                             .map((digit, i) => (
-                                <span key={i} data-status="static" data-index={i}>
+                                <span key={i} className={`${styles.digit12} ${isSpecialOrEighth ? styles.highlight1 : ''}`} data-status="static" data-index={i}>
                                     {digit}
                                 </span>
                             ))}

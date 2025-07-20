@@ -25,8 +25,8 @@ const KQXS = (props) => {
     const router = useRouter();
 
     const hour = 17;
-    const minutes1 = 10;
-    const minutes2 = 14;
+    const minutes1 = 35;
+    const minutes2 = 16;
 
     const dayof = props.dayofMT;
     const station = props.station || "xsmt";
@@ -35,7 +35,7 @@ const KQXS = (props) => {
 
     const startHour = hour;
     const startMinute = minutes1;
-    const duration = 21 * 60 * 1000;
+    const duration = 30 * 60 * 1000;
 
     const today = new Date().toLocaleDateString('vi-VN', {
         day: '2-digit',

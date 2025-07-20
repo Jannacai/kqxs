@@ -33,12 +33,6 @@ export default function LotteryRegistrationFeed() {
     const [isAtBottom, setIsAtBottom] = useState(true);
 
     const fetchRegistrations = async () => {
-        if (status !== 'authenticated' || !session?.accessToken) {
-            setError('Vui lòng đăng nhập để xem thông báo.');
-            router.push('/login?error=SessionRequired');
-            return;
-        }
-
         try {
             const params = { page: 1, limit: 50 };
             if (filterType !== 'all') {
@@ -52,9 +46,13 @@ export default function LotteryRegistrationFeed() {
             console.log('Fetching registrations with params:', params);
             const headers = {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${session.accessToken} `,
+                ...(session?.accessToken && { Authorization: `Bearer ${session.accessToken}` }),
             };
-            const res = await axios.get(`${API_BASE_URL}/api/lottery/registrations`, {
+            // Sử dụng endpoint công khai cho người dùng chưa đăng nhập
+            const endpoint = session?.accessToken
+                ? `${API_BASE_URL}/api/lottery/registrations`
+                : `${API_BASE_URL}/api/lottery/public-registrations`;
+            const res = await axios.get(endpoint, {
                 headers,
                 params,
             });
@@ -68,13 +66,11 @@ export default function LotteryRegistrationFeed() {
             setError('');
         } catch (err) {
             console.error('Error fetching registrations:', err.response?.data || err.message);
-            if (err.response?.status === 401) {
-                setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
-                signOut({ redirect: false });
-                router.push('/login?error=SessionExpired');
-            } else {
-                setError(err.response?.data?.message || 'Đã có lỗi khi lấy danh sách đăng ký');
-            }
+            setError(
+                err.response?.status === 401
+                    ? 'Không thể tải danh sách thông báo do thiếu quyền. Vui lòng thử lại sau.'
+                    : err.response?.data?.message || 'Đã có lỗi khi lấy danh sách đăng ký. Vui lòng thử lại.'
+            );
         }
     };
 
@@ -82,7 +78,7 @@ export default function LotteryRegistrationFeed() {
         try {
             const headers = {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${session.accessToken} `,
+                ...(session?.accessToken && { Authorization: `Bearer ${session.accessToken}` }),
             };
             const res = await axios.get(`${API_BASE_URL}/api/lottery/events`, {
                 headers,
@@ -96,21 +92,13 @@ export default function LotteryRegistrationFeed() {
     };
 
     useEffect(() => {
-        if (status === 'loading') return;
-        if (status === 'unauthenticated') {
-            setError('Vui lòng đăng nhập để xem thông báo.');
-            router.push('/login?error=SessionRequired');
-            return;
-        }
         fetchRegistrations();
-    }, [status, filterType]);
+    }, [filterType]);
 
     useEffect(() => {
-        if (status !== 'authenticated' || !session?.accessToken) return;
-
         console.log('Initializing Socket.IO with URL:', API_BASE_URL);
         const socket = io(API_BASE_URL, {
-            query: { token: session.accessToken },
+            query: { token: session?.accessToken || '' },
             reconnectionAttempts: 5,
             reconnectionDelay: 5000,
         });
@@ -120,7 +108,9 @@ export default function LotteryRegistrationFeed() {
             console.log('Socket.IO connected successfully:', socket.id);
             socket.emit('joinLotteryFeed');
             socket.emit('join', 'leaderboard');
-            socket.emit('joinPrivateRoom', session.user?._id || session.user?.id);
+            if (session?.user?._id || session?.user?.id) {
+                socket.emit('joinPrivateRoom', session.user?._id || session.user?.id);
+            }
             setError('');
         });
 
@@ -256,13 +246,11 @@ export default function LotteryRegistrationFeed() {
 
         socket.on('connect_error', (err) => {
             console.error('Socket.IO connection error:', err.message);
-            if (err.message.includes('Authentication error')) {
-                setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
-                signOut({ redirect: false });
-                router.push('/login?error=SessionExpired');
-            } else {
-                setError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
-            }
+            setError(
+                err.message.includes('Authentication error')
+                    ? 'Không thể kết nối thời gian thực do thiếu quyền. Một số thông báo có thể không cập nhật.'
+                    : 'Mất kết nối thời gian thực. Vui lòng làm mới trang.'
+            );
         });
 
         socket.on('reconnect_attempt', (attempt) => {
@@ -273,7 +261,9 @@ export default function LotteryRegistrationFeed() {
             console.log('Reconnected to Socket.IO');
             socket.emit('joinLotteryFeed');
             socket.emit('join', 'leaderboard');
-            socket.emit('joinPrivateRoom', session.user?._id || session.user?.id);
+            if (session?.user?._id || session?.user?.id) {
+                socket.emit('joinPrivateRoom', session.user?._id || session.user?.id);
+            }
         });
 
         socket.on('disconnect', (reason) => {
@@ -284,7 +274,7 @@ export default function LotteryRegistrationFeed() {
             console.log('Cleaning up Socket.IO connection');
             socket.disconnect();
         };
-    }, [status, session]);
+    }, [filterType, session]);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -304,10 +294,6 @@ export default function LotteryRegistrationFeed() {
     };
 
     const handleEventClick = (eventId) => {
-        if (status !== 'authenticated') {
-            router.push('/login?error=SessionRequired');
-            return;
-        }
         if (!eventId || typeof eventId !== 'string' || eventId === '[object Object]') {
             console.error('Invalid eventId for navigation:', eventId);
             setError('ID sự kiện không hợp lệ. Vui lòng thử lại.');
@@ -322,7 +308,7 @@ export default function LotteryRegistrationFeed() {
             setError('Vui lòng đăng nhập để mở chat riêng');
             return;
         }
-        const isCurrentUserAdmin = session.user.role?.toLowerCase() === 'admin';
+        const isCurrentUserAdmin = session.user?.role?.toLowerCase() === 'admin';
         const isTargetAdmin = user.role?.toLowerCase() === 'admin';
         if (!isCurrentUserAdmin && !isTargetAdmin) {
             setError('Bạn chỉ có thể chat riêng với admin');
@@ -493,7 +479,6 @@ export default function LotteryRegistrationFeed() {
     return (
         <div className={styles.container}>
             {error && <p className={styles.error}>{error}</p>}
-            {status === 'loading' && <p className={styles.loading}>Đang tải...</p>}
             <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Lọc theo loại thông báo</label>
                 <select

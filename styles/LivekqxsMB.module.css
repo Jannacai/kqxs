@@ -236,7 +236,7 @@
 }
 
 .kqxs__actionLink {
-    text-transform: uppercase;
+    /* text-transform: uppercase; */
     font-size: 20px;
     font-weight: 500;
     text-decoration: underline;
@@ -673,6 +673,14 @@
         /* Thêm hiệu ứng nhấp nháy */
     }
 
+    .kqxs__action {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0px;
+    }
+
     .kqxs__title1::before {
         content: "";
         display: block;
@@ -745,6 +753,13 @@
         padding: 10px;
     }
 
+    .kqxs__action {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0px;
+    }
+
     .kqxs {
         margin-bottom: 20px;
         font-size: 28px;
@@ -780,10 +795,7 @@
         padding: 0 10px;
     }
 
-    .kqxs__action {
-        flex-wrap: wrap;
-        padding: 0;
-    }
+
 
     .kqxs__actionLink {
         font-size: 16px;
