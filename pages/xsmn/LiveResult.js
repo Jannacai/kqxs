@@ -525,6 +525,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     const renderPrizeValue = (tinh, prizeType, digits = 5) => {
         const isAnimating = animatingPrizes[tinh] === prizeType && liveData.find(item => item.tinh === tinh)?.[prizeType] === '...';
         const className = `${styles.running_number} ${styles[`running_${digits}`]}`;
+        const isSpecialOrEighth = prizeType === 'specialPrize_0' || prizeType === 'eightPrizes_0';
 
         return (
             <span className={className} data-status={isAnimating ? 'animating' : 'static'}>

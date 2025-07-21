@@ -46,7 +46,8 @@ export default function EventHotNewsDetail() {
         bachThuLo: '',
         songThuLo: '',
         threeCL: '',
-        cham: ''
+        cham: '',
+        danDe: ''
     });
     const modalRef = useRef(null);
 
@@ -164,7 +165,7 @@ export default function EventHotNewsDetail() {
                 setShowLotteryModal(false);
                 setShowRegistrationsModal(false);
                 setEditingRegistration(null);
-                setEditFormData({ bachThuLo: '', songThuLo: '', threeCL: '', cham: '' });
+                setEditFormData({ bachThuLo: '', songThuLo: '', threeCL: '', cham: '', danDe: '' });
                 setError('');
             }
         };
@@ -205,18 +206,42 @@ export default function EventHotNewsDetail() {
         fetchRegistrations();
     }, [showRegistrationsModal, session, id, router.isReady]);
 
+    const checkRegistrationTime = (region) => {
+        const now = moment().tz('Asia/Ho_Chi_Minh');
+        const currentTimeInMinutes = now.hours() * 60 + now.minutes();
+        const timeLimits = {
+            Nam: 16 * 60 + 10,
+            Trung: 17 * 60 + 10,
+            Bac: 18 * 60 + 10,
+            reset: 18 * 60 + 40
+        };
+        return currentTimeInMinutes > timeLimits.reset || currentTimeInMinutes < timeLimits[region];
+    };
+
     const handleEdit = (registration) => {
+        const now = moment().tz('Asia/Ho_Chi_Minh');
+        if (item.endTime && now.isAfter(moment(item.endTime))) {
+            setError('Sự kiện đã kết thúc, không thể chỉnh sửa đăng ký.');
+            alert('Sự kiện đã kết thúc, không thể chỉnh sửa đăng ký.');
+            return;
+        }
+        if (!checkRegistrationTime(registration.region)) {
+            setError(`Thời gian chỉnh sửa cho miền ${registration.region} đã đóng.`);
+            alert(`Thời gian chỉnh sửa cho miền ${registration.region} đã đóng.`);
+            return;
+        }
         setEditingRegistration(registration);
         setEditFormData({
             bachThuLo: registration.numbers.bachThuLo || '',
             songThuLo: registration.numbers.songThuLo.join(',') || '',
             threeCL: registration.numbers.threeCL || '',
-            cham: registration.numbers.cham || ''
+            cham: registration.numbers.cham || '',
+            danDe: registration.numbers.danDe?.join(',') || ''
         });
     };
 
     const validateEditForm = () => {
-        const { bachThuLo, songThuLo, threeCL, cham } = editFormData;
+        const { bachThuLo, songThuLo, threeCL, cham, danDe } = editFormData;
 
         if (item?.lotteryFields?.bachThuLo && bachThuLo && !/^\d{2}$/.test(bachThuLo)) {
             return 'Bạch thủ lô phải là số 2 chữ số (00-99)';
@@ -234,11 +259,23 @@ export default function EventHotNewsDetail() {
             return 'Chạm phải là số 1 chữ số (0-9)';
         }
 
+        if (item?.lotteryFields?.danDe && danDe) {
+            const numbers = danDe.split(',').map(num => num.trim()).filter(num => num);
+            const expectedCount = parseInt(item.lotteryFields.danDeType.replace('x', '')) * 10;
+            if (!numbers.every(num => /^\d{2}$/.test(num))) {
+                return 'Dàn đề phải chứa các số 2 chữ số, cách nhau bởi dấu phẩy (ví dụ: 12,34,56)';
+            }
+            if (numbers.length !== expectedCount) {
+                return `Dàn đề ${item.lotteryFields.danDeType} phải chứa đúng ${expectedCount} số`;
+            }
+        }
+
         if (
             (item?.lotteryFields?.bachThuLo && !bachThuLo) &&
             (item?.lotteryFields?.songThuLo && !songThuLo) &&
             (item?.lotteryFields?.threeCL && !threeCL) &&
-            (item?.lotteryFields?.cham && !cham)
+            (item?.lotteryFields?.cham && !cham) &&
+            (item?.lotteryFields?.danDe && !danDe)
         ) {
             return 'Vui lòng nhập ít nhất một số để chỉnh sửa';
         }
@@ -258,6 +295,18 @@ export default function EventHotNewsDetail() {
             return;
         }
 
+        const now = moment().tz('Asia/Ho_Chi_Minh');
+        if (item.endTime && now.isAfter(moment(item.endTime))) {
+            setError('Sự kiện đã kết thúc, không thể chỉnh sửa đăng ký.');
+            alert('Sự kiện đã kết thúc, không thể chỉnh sửa đăng ký.');
+            return;
+        }
+        if (!checkRegistrationTime(editingRegistration.region)) {
+            setError(`Thời gian chỉnh sửa cho miền ${editingRegistration.region} đã đóng.`);
+            alert(`Thời gian chỉnh sửa cho miền ${editingRegistration.region} đã đóng.`);
+            return;
+        }
+
         const validationError = validateEditForm();
         if (validationError) {
             setError(validationError);
@@ -272,7 +321,9 @@ export default function EventHotNewsDetail() {
                     bachThuLo: item?.lotteryFields?.bachThuLo ? editFormData.bachThuLo || null : null,
                     songThuLo: item?.lotteryFields?.songThuLo ? (editFormData.songThuLo ? editFormData.songThuLo.split(',') : []) : [],
                     threeCL: item?.lotteryFields?.threeCL ? editFormData.threeCL || null : null,
-                    cham: item?.lotteryFields?.cham ? editFormData.cham || null : null
+                    cham: item?.lotteryFields?.cham ? editFormData.cham || null : null,
+                    danDe: item?.lotteryFields?.danDe ? (editFormData.danDe ? editFormData.danDe.split(',').map(num => num.trim()) : []) : [],
+                    danDeType: item?.lotteryFields?.danDe ? item.lotteryFields.danDeType || null : null
                 }
             };
             const res = await axios.put(`${API_BASE_URL}/api/lottery/update/${editingRegistration._id}`, payload, {
@@ -283,7 +334,7 @@ export default function EventHotNewsDetail() {
             });
             console.log('Update registration response:', res.data);
             alert(`Chỉnh sửa đăng ký thành công cho miền ${editingRegistration.region}!`);
-            setEditFormData({ bachThuLo: '', songThuLo: '', threeCL: '', cham: '' });
+            setEditFormData({ bachThuLo: '', songThuLo: '', threeCL: '', cham: '', danDe: '' });
             setEditingRegistration(null);
             setError('');
             const fetchRegistrations = async () => {
@@ -318,7 +369,7 @@ export default function EventHotNewsDetail() {
 
     const handleEditInputChange = (e) => {
         const { name, value } = e.target;
-        if (name === 'songThuLo') {
+        if (name === 'songThuLo' || name === 'danDe') {
             if (/^[\d,]*$/.test(value)) {
                 setEditFormData({ ...editFormData, [name]: value });
             }
@@ -326,18 +377,6 @@ export default function EventHotNewsDetail() {
             setEditFormData({ ...editFormData, [name]: value });
         }
         setError('');
-    };
-
-    const checkRegistrationTime = (region) => {
-        const now = moment().tz('Asia/Ho_Chi_Minh');
-        const currentTimeInMinutes = now.hours() * 60 + now.minutes();
-        const timeLimits = {
-            Nam: 16 * 60 + 10,
-            Trung: 17 * 60 + 10,
-            Bac: 18 * 60 + 10,
-            reset: 18 * 60 + 40
-        };
-        return currentTimeInMinutes > timeLimits.reset || currentTimeInMinutes < timeLimits[region];
     };
 
     if (isLoading) {
@@ -425,11 +464,12 @@ export default function EventHotNewsDetail() {
                                 {renderTextContent(item.rewards)}
                             </div>
                         )}
-                        {item.lotteryFields && (item.lotteryFields.bachThuLo || item.lotteryFields.songThuLo || item.lotteryFields.threeCL || item.lotteryFields.cham) && (
+                        {item.lotteryFields && (item.lotteryFields.bachThuLo || item.lotteryFields.songThuLo || item.lotteryFields.threeCL || item.lotteryFields.cham || item.lotteryFields.danDe) && (
                             <div className={styles.lotterySection}>
                                 <button
                                     className={styles.registerButton}
                                     onClick={() => setShowLotteryModal(true)}
+                                    disabled={item.endTime && moment().tz('Asia/Ho_Chi_Minh').isAfter(moment(item.endTime))}
                                 >
                                     👉  Đăng Ký Tham Gia
                                 </button>
@@ -442,6 +482,9 @@ export default function EventHotNewsDetail() {
                                         Xem và Chỉnh sửa Đăng ký
                                     </button>
                                 )}
+                                {item.endTime && moment().tz('Asia/Ho_Chi_Minh').isAfter(moment(item.endTime)) && (
+                                    <p className={styles.warning}>Sự kiện đã kết thúc, không thể đăng ký.</p>
+                                )}
                             </div>
                         )}
                         {showLotteryModal && (
@@ -450,6 +493,7 @@ export default function EventHotNewsDetail() {
                                     <LotteryRegistration
                                         lotteryFields={item.lotteryFields}
                                         eventId={id}
+                                        endTime={item.endTime}
                                         onRegistrationSuccess={() => {
                                             const fetchRegistrations = async () => {
                                                 try {
@@ -541,6 +585,8 @@ export default function EventHotNewsDetail() {
                                                     <p><strong>Song thủ lô:</strong> {reg.numbers.songThuLo.length > 0 ? reg.numbers.songThuLo.join(', ') : 'Không có'}</p>
                                                     <p><strong>3CL:</strong> {reg.numbers.threeCL || 'Không có'}</p>
                                                     <p><strong>Chạm:</strong> {reg.numbers.cham || 'Không có'}</p>
+                                                    <p><strong>Dàn đề:</strong> {reg.numbers.danDe?.length > 0 ? reg.numbers.danDe.join(', ') : 'Không có'}</p>
+                                                    <p><strong>Loại dàn đề:</strong> {reg.numbers.danDeType || 'Không có'}</p>
                                                     <p><strong>Lần chỉnh sửa:</strong> {reg.updatedCount || 0}</p>
                                                     {reg.result.isChecked ? (
                                                         <p><strong>Kết quả:</strong> {reg.result.isWin ? 'Trúng' : 'Trượt'}</p>
@@ -551,13 +597,14 @@ export default function EventHotNewsDetail() {
                                                         <div>
                                                             <p><strong>Số trúng:</strong></p>
                                                             {reg.result.winningNumbers.bachThuLo && <p>- Bạch thủ lô: {reg.numbers.bachThuLo}</p>}
-                                                            {reg.result.winningNumbers.songThuLo.length > 0 && <p>- Song thủ lô: {reg.result.winningNumbers.songThuLo.join(', ')}</p>}
+                                                            {reg.result.winningNumbers.songThuLo.length > 0 && <p>- Song thủ lô: {reg.numbers.songThuLo.join(', ')}</p>}
                                                             {reg.result.winningNumbers.threeCL && <p>- 3CL: {reg.numbers.threeCL}</p>}
                                                             {reg.result.winningNumbers.cham && <p>- Chạm: {reg.numbers.cham}</p>}
+                                                            {reg.result.winningNumbers.danDe?.length > 0 && <p>- Dàn đề: {reg.numbers.danDe.join(', ')}</p>}
                                                             <p><strong>Giải trúng:</strong> {reg.result.matchedPrizes.join(', ')}</p>
                                                         </div>
                                                     )}
-                                                    {checkRegistrationTime(reg.region) && (reg.updatedCount || 0) < 1 ? (
+                                                    {checkRegistrationTime(reg.region) && (reg.updatedCount || 0) < 1 && (!item.endTime || moment().tz('Asia/Ho_Chi_Minh').isSameOrBefore(moment(item.endTime))) ? (
                                                         <button
                                                             className={styles.editButton}
                                                             onClick={() => handleEdit(reg)}
@@ -566,9 +613,11 @@ export default function EventHotNewsDetail() {
                                                         </button>
                                                     ) : (
                                                         <p className={styles.warning}>
-                                                            {reg.updatedCount >= 1
-                                                                ? 'Bạn đã chỉnh sửa đăng ký này.'
-                                                                : `Thời gian chỉnh sửa cho miền ${reg.region} đã đóng.`}
+                                                            {item.endTime && moment().tz('Asia/Ho_Chi_Minh').isAfter(moment(item.endTime))
+                                                                ? 'Sự kiện đã kết thúc, không thể chỉnh sửa.'
+                                                                : reg.updatedCount >= 1
+                                                                    ? 'Bạn đã chỉnh sửa đăng ký này.'
+                                                                    : `Thời gian chỉnh sửa cho miền ${reg.region} đã đóng.`}
                                                         </p>
                                                     )}
                                                 </div>
@@ -627,10 +676,24 @@ export default function EventHotNewsDetail() {
                                                         type="text"
                                                         name="cham"
                                                         value={editFormData.cham}
-                                                        onChange={handleEditInputChange}
+                                                        onChange={handleInputChange}
                                                         placeholder="Nhập số 1 chữ số"
                                                         className={styles.input}
                                                         maxLength={1}
+                                                    />
+                                                </div>
+                                            )}
+                                            {item.lotteryFields.danDe && (
+                                                <div className={styles.formGroup}>
+                                                    <label className={styles.formLabel}>Dàn đề ({item.lotteryFields.danDeType}, ví dụ: 12,34,56)</label>
+                                                    <input
+                                                        type="text"
+                                                        name="danDe"
+                                                        value={editFormData.danDe}
+                                                        onChange={handleEditInputChange}
+                                                        placeholder={`Nhập ${parseInt(item.lotteryFields.danDeType.replace('x', '')) * 10} số 2 chữ số, cách nhau bởi dấu phẩy`}
+                                                        className={styles.input}
+                                                        maxLength={parseInt(item.lotteryFields.danDeType.replace('x', '')) * 10 * 3 - 1}
                                                     />
                                                 </div>
                                             )}
@@ -643,7 +706,7 @@ export default function EventHotNewsDetail() {
                                                     className={styles.cancelButton}
                                                     onClick={() => {
                                                         setEditingRegistration(null);
-                                                        setEditFormData({ bachThuLo: '', songThuLo: '', threeCL: '', cham: '' });
+                                                        setEditFormData({ bachThuLo: '', songThuLo: '', threeCL: '', cham: '', danDe: '' });
                                                         setError('');
                                                     }}
                                                 >
@@ -657,7 +720,7 @@ export default function EventHotNewsDetail() {
                                         onClick={() => {
                                             setShowRegistrationsModal(false);
                                             setEditingRegistration(null);
-                                            setEditFormData({ bachThuLo: '', songThuLo: '', threeCL: '', cham: '' });
+                                            setEditFormData({ bachThuLo: '', songThuLo: '', threeCL: '', cham: '', danDe: '' });
                                             setError('');
                                         }}
                                     >
