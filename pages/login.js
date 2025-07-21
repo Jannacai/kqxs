@@ -32,7 +32,7 @@ export default function Login() {
     }
 
     if (status === "authenticated") {
-        router.push("/");
+        router.push("/diendan");
         return null;
     }
 

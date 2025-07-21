@@ -3,7 +3,7 @@ import styles from '../../styles/LIVEMN.module.css';
 import { getFilteredNumber } from "../../library/utils/filterUtils";
 import React from 'react';
 import { useLottery } from '../../contexts/LotteryContext';
-import ViewCounter from "../views/ViewCounter";
+
 
 const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange, filterTypes, isLiveWindow }) => {
     const { liveData, setLiveData, setIsLiveDataComplete } = useLottery() || { liveData: null, setLiveData: null, setIsLiveDataComplete: null };
@@ -560,7 +560,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             )}
             <div className={styles.kqxs} style={{ '--num-columns': liveData.length }}>
                 <div className={styles.header}>
-                    <div className={styles.tructiep}><span className={styles.kqxs__title1}>Tường thuật trực tiếp...</span><ViewCounter /></div>
+                    <div className={styles.tructiep}><span className={styles.kqxs__title1}>Tường thuật trực tiếp...</span></div>
                     <h1 className={styles.kqxs__title}>XSMN - Kết quả Xổ số Miền Nam - SXMN {today}</h1>
                     <div className={styles.kqxs__action}>
                         <a className={styles.kqxs__actionLink} href="#!">XSMN</a>

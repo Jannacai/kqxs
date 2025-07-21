@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -29,7 +28,9 @@ export default function PostEvent() {
         bachThuLo: false,
         songThuLo: false,
         threeCL: false,
-        cham: false
+        cham: false,
+        danDe: false,
+        danDeType: '1x' // Giá trị mặc định cho select box
     });
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -56,6 +57,11 @@ export default function PostEvent() {
             alert('Tiêu đề và nội dung là bắt buộc');
             return;
         }
+        if (type !== 'discussion' && !formData.endTime) {
+            setError('Thời gian kết thúc là bắt buộc cho sự kiện hoặc tin hot');
+            alert('Thời gian kết thúc là bắt buộc cho sự kiện hoặc tin hot');
+            return;
+        }
         if (type !== 'discussion' && formData.startTime && formData.endTime && moment(formData.endTime).isBefore(formData.startTime)) {
             setError('Thời gian kết thúc phải sau thời gian bắt đầu');
             alert('Thời gian kết thúc phải sau thời gian bắt đầu');
@@ -67,8 +73,15 @@ export default function PostEvent() {
                 content: formData.content,
                 type,
                 ...(type !== 'discussion' && {
-                    lotteryFields,
-                    startTime: formData.startTime ? moment(formData.startTime).tz('Asia/Ho_Chi_Minh').toISOString() : undefined,
+                    lotteryFields: {
+                        bachThuLo: lotteryFields.bachThuLo,
+                        songThuLo: lotteryFields.songThuLo,
+                        threeCL: lotteryFields.threeCL,
+                        cham: lotteryFields.cham,
+                        danDe: lotteryFields.danDe,
+                        ...(lotteryFields.danDe && { danDeType: lotteryFields.danDeType })
+                    },
+                    startTime: formData.startTime ? moment(formData.startTime).tz('Asia/Ho_Chi_Minh').toISOString() : moment().tz('Asia/Ho_Chi_Minh').toISOString(),
                     endTime: formData.endTime ? moment(formData.endTime).tz('Asia/Ho_Chi_Minh').toISOString() : undefined,
                     rules: formData.rules.trim() || undefined,
                     rewards: formData.rewards.trim() || undefined,
@@ -79,7 +92,7 @@ export default function PostEvent() {
             const res = await axios.post(
                 `${API_BASE_URL}/api/events`,
                 payload,
-                { headers: { Authorization: `Bearer ${session?.accessToken} ` } }
+                { headers: { Authorization: `Bearer ${session?.accessToken}` } }
             );
             setSuccess(`Đăng thành công lúc ${moment().tz('Asia/Ho_Chi_Minh').format('HH:mm:ss DD/MM/YYYY')} !`);
             alert(`Đăng thành công lúc ${moment().tz('Asia/Ho_Chi_Minh').format('HH:mm:ss DD/MM/YYYY')} !`);
@@ -93,7 +106,14 @@ export default function PostEvent() {
                 scoringMethod: '',
                 notes: ''
             });
-            setLotteryFields({ bachThuLo: false, songThuLo: false, threeCL: false, cham: false });
+            setLotteryFields({
+                bachThuLo: false,
+                songThuLo: false,
+                threeCL: false,
+                cham: false,
+                danDe: false,
+                danDeType: '1x'
+            });
             setError('');
             setTimeout(() => setSuccess(''), 3000);
         } catch (err) {
@@ -113,12 +133,19 @@ export default function PostEvent() {
         setLotteryFields({ ...lotteryFields, [name]: checked });
     };
 
+    const handleDanDeTypeChange = (e) => {
+        setLotteryFields({ ...lotteryFields, danDeType: e.target.value });
+    };
+
     // Danh sách tùy chọn loại bài đăng
     const typeOptions = [
         { value: 'event', label: 'Sự kiện', adminOnly: true },
         { value: 'hot_news', label: 'Tin hot', adminOnly: true },
         { value: 'discussion', label: 'Thảo luận', adminOnly: false }
     ].filter(option => !option.adminOnly || session?.user?.role === 'ADMIN');
+
+    // Danh sách tùy chọn cho dàn đề
+    const danDeOptions = ['1x', '2x', '3x', '4x', '5x', '6x'];
 
     return (
         <div className={styles.container}>
@@ -165,7 +192,7 @@ export default function PostEvent() {
                 {type !== 'discussion' && (
                     <>
                         <div className={styles.formGroup}>
-                            <label className={styles.formLabel}>Thời gian bắt đầu</label>
+                            <label className={styles.formLabel}>Thời gian bắt đầu (tùy chọn)</label>
                             <input
                                 type="datetime-local"
                                 name="startTime"
@@ -175,13 +202,14 @@ export default function PostEvent() {
                             />
                         </div>
                         <div className={styles.formGroup}>
-                            <label className={styles.formLabel}>Thời gian kết thúc</label>
+                            <label className={styles.formLabel}>Thời gian kết thúc (bắt buộc)</label>
                             <input
                                 type="datetime-local"
                                 name="endTime"
                                 value={formData.endTime}
                                 onChange={handleInputChange}
                                 className={styles.input}
+                                required
                             />
                         </div>
                         <div className={styles.formGroup}>
@@ -263,6 +291,29 @@ export default function PostEvent() {
                                     />
                                     Chạm
                                 </label>
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        name="danDe"
+                                        checked={lotteryFields.danDe}
+                                        onChange={handleCheckboxChange}
+                                    />
+                                    Dàn đề
+                                </label>
+                                {lotteryFields.danDe && (
+                                    <select
+                                        name="danDeType"
+                                        value={lotteryFields.danDeType}
+                                        onChange={handleDanDeTypeChange}
+                                        className={styles.select}
+                                    >
+                                        {danDeOptions.map(option => (
+                                            <option key={option} value={option}>
+                                                {option}
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
                             </div>
                         </div>
                     </>

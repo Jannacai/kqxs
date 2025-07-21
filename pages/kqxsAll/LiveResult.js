@@ -1,4 +1,3 @@
-// Cần test thử cho ngày 17/07
 import { useState, useEffect, useMemo, useRef } from "react";
 import styles from '../../styles/LivekqxsMB.module.css';
 import { getFilteredNumber } from "../../library/utils/filterUtils";
@@ -178,6 +177,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             }
 
             sseRef.current = new EventSource(`https://backendkqxs-1.onrender.com/api/kqxs/xsmb/sse?station=${station}&date=${today}`);
+            console
             console.log('Khởi tạo kết nối SSE cho ngày:', today);
 
             sseRef.current.onopen = () => {
@@ -449,11 +449,19 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
         const isAnimating = animatingPrize === prizeType && liveData[prizeType] === '...';
         const className = `${styles.running_number} ${styles[`running_${digits}`]}`;
 
+        // Xác định số chữ số cần hiển thị dựa trên bộ lọc
+        let displayDigits = digits;
+        if (currentFilter === 'last2') {
+            displayDigits = 2;
+        } else if (currentFilter === 'last3') {
+            displayDigits = Math.min(digits, 3); // Giới hạn tối đa 3 số
+        }
+
         return (
             <span className={className} data-status={isAnimating ? 'animating' : 'static'}>
                 {isAnimating ? (
                     <span className={styles.digit_container}>
-                        {Array.from({ length: digits }).map((_, i) => (
+                        {Array.from({ length: displayDigits }).map((_, i) => (
                             <span key={i} className={styles.digit} data-status="animating" data-index={i}></span>
                         ))}
                     </span>
@@ -462,7 +470,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                 ) : (
                     <span className={styles.digit_container}>
                         {getFilteredNumber(liveData[prizeType], currentFilter)
-                            .padStart(digits, '0')
+                            .padStart(displayDigits, '0')
                             .split('')
                             .map((digit, i) => (
                                 <span key={i} data-status="static" data-index={i}>
@@ -485,7 +493,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                 <div className={styles.header}>
                     <div className={styles.tructiep}><span className={styles.kqxs__title1}>Tường thuật trực tiếp...</span></div>
                     <h1 className={styles.kqxs__title}>
-                        Trực Tiếp XSMB - Kết quả Xổ số Miền Bắc - SXMB
+                        XSMB - Kết quả Xổ số Miền Bắc - SXMB
                     </h1>
                     <div className={styles.kqxs__action}>
                         <a className={styles.kqxs__actionLink} href="#!">{liveData.station}</a>

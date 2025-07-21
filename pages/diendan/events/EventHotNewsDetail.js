@@ -10,7 +10,7 @@ import 'moment-timezone';
 import LotteryRegistration from '../dangkyquayso';
 import CommentSection from './CommentSection';
 import styles from '../../../styles/detaiEventHot.module.css';
-import Thongbao from '../thongbao';
+import EventRegistrationsList from './detaillichsudangky';
 import EventHotNew from '../events/index';
 import NavBarDienDan from '../navbarDiendan'
 
@@ -161,7 +161,7 @@ export default function EventHotNewsDetail() {
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (modalRef.current && !modalRef.current.contains(event.target)) {
-                setShowLOTteryModal(false);
+                setShowLotteryModal(false);
                 setShowRegistrationsModal(false);
                 setEditingRegistration(null);
                 setEditFormData({ bachThuLo: '', songThuLo: '', threeCL: '', cham: '' });
@@ -378,9 +378,8 @@ export default function EventHotNewsDetail() {
         <div>
             <NavBarDienDan />
             <div className='container'>
-                <div className={styles.group}>
-                    <Thongbao></Thongbao>
-                    {/* <EventHotNew /> */}
+                <div>
+                    <EventRegistrationsList eventId={id} />
                 </div>
                 <div>
                     <div className={styles.container}>

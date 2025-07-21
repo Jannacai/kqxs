@@ -1,12 +1,41 @@
 .background {
     /* background-color: #e2c198; */
     font-family: "Roboto", sans-serif;
+    background-color: #f8f4d5;
+}
+
+.container {
+    margin-top: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 15px;
+    width: 1300px;
+    max-width: calc(100vw - 48px);
+    margin: 0 auto;
 }
 
 .NavBarDienDan {
     font-family: "Roboto", sans-serif;
-    margin-bottom: 20px;
+
+}
+
+.dangnhap {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-top: 20px;
+    margin-bottom: 50px;
+}
+
+.item1 {
+    font-size: 18px;
+    background-color: var(--background-color);
+    padding: 10px 5px;
+    color: #000;
+    font-weight: 600;
+    border: 3px solid #e8c895;
+    border-radius: 9px;
 }
 
 .navListDienDan {
@@ -72,6 +101,7 @@
     background-color: #1e857a;
     padding: 20px 0;
     position: relative;
+    box-shadow: rgba(0, 0, 0, 0.25) 0px 14px 28px, rgba(0, 0, 0, 0.22) 0px 10px 10px;
 }
 
 .navBar::before {
@@ -121,10 +151,27 @@
     cursor: pointer;
 }
 
+.group {
+    margin-top: 10px;
+    position: relative;
+}
+
+.group::before {
+    content: "";
+    position: absolute;
+    display: block;
+    width: 100%;
+    height: 1px;
+    background: var(--primary-color);
+    top: -15px;
+}
+
 .group1 {
     position: relative;
     padding: 40px 0;
 }
+
+
 
 .group1::after {
     content: "";
@@ -136,14 +183,14 @@
     bottom: 10px;
 }
 
-.group1::before {
+.group1::after {
     content: "";
     position: absolute;
     display: block;
     width: 100%;
     height: 1px;
     background: #e5e5e5;
-    top: 20px;
+    bottom: 10px;
 }
 
 .group2 {
@@ -164,12 +211,13 @@
     padding: 10px 0;
     padding-left: 50px;
     margin-bottom: 5px;
-    border-right: 10px solid red;
+    border-right: 10px solid #2d3748;
+    text-transform: uppercase;
 }
 
 .h2 {
     position: relative;
-    background-image: linear-gradient(135deg, #43CBFF 10%, #664533 100%);
+    /* background-image: linear-gradient(135deg, #43CBFF 10%, #664533 100%); */
 }
 
 .h2::before {
@@ -180,13 +228,13 @@
     left: -0px;
     height: 36px;
     display: block;
-    background-color: #664533;
+    background-color: #e5e7eb;
     clip-path: polygon(75% 0%, 100% 50%, 75% 100%, 0% 100%, 25% 50%, 0% 0%);
 }
 
 .h3 {
     position: relative;
-    background-image: linear-gradient(135deg, #ABDCFF 10%, #0396FF 100%);
+    /* background-image: linear-gradient(135deg, #ABDCFF 10%, #0396FF 100%); */
 }
 
 .h3::before {
@@ -197,13 +245,13 @@
     left: -0px;
     height: 36px;
     display: block;
-    background-color: #0396ffad;
+    background-color: #e5e7eb;
     clip-path: polygon(75% 0%, 100% 50%, 75% 100%, 0% 100%, 25% 50%, 0% 0%);
 }
 
 .h4 {
     position: relative;
-    background-image: linear-gradient(135deg, #FDD819 10%, #E80505 100%);
+    /* background-image: linear-gradient(135deg, #FDD819 10%, #E80505 100%); */
 }
 
 .h4::before {
@@ -214,14 +262,14 @@
     left: -0px;
     height: 36px;
     display: block;
-    background-color: #e80505c2;
+    background-color: #e5e7eb;
     clip-path: polygon(75% 0%, 100% 50%, 75% 100%, 0% 100%, 25% 50%, 0% 0%);
 }
 
 .h5 {
     margin-top: 10px;
     position: relative;
-    background-image: linear-gradient(135deg, #70F570 10%, #49C628 100%);
+    /* background-image: linear-gradient(135deg, #70F570 10%, #49C628 100%); */
 }
 
 .h5::before {
@@ -232,7 +280,7 @@
     left: -0px;
     height: 36px;
     display: block;
-    background-color: #e80505c2;
+    background-color: #e5e7eb;
     clip-path: polygon(75% 0%, 100% 50%, 75% 100%, 0% 100%, 25% 50%, 0% 0%);
 }
 
@@ -242,11 +290,11 @@
 .h5,
 .h6,
 .h7 {
-    color: #000;
+    color: #fff;
     font-size: 18px;
     margin-top: 10px;
     position: relative;
-    background-image: linear-gradient(135deg, #a6a6a680 10%, #a6a6a6 100%);
+    background-color: #2b6cb0;
 }
 
 .h6::before {
@@ -257,7 +305,7 @@
     left: -0px;
     height: 38px;
     display: block;
-    background-color: #000000b3;
+    background-color: #e5e7eb;
     clip-path: polygon(75% 0%, 100% 50%, 75% 100%, 0% 100%, 25% 50%, 0% 0%);
 }
 
@@ -270,7 +318,7 @@
     left: -0px;
     height: 38px;
     display: block;
-    background-color: #000000b3;
+    background-color: #e5e7eb;
     clip-path: polygon(75% 0%, 100% 50%, 75% 100%, 0% 100%, 25% 50%, 0% 0%);
 }
 
@@ -291,7 +339,6 @@
     font-size: 2.5rem;
     text-align: center;
     color: #4a90e2;
-    margin-bottom: 20px;
     font-weight: 600;
     height: 60px;
     line-height: 60px;
@@ -304,15 +351,15 @@
 }
 
 
-.group0::after {
+/* .group0::after {
     content: "";
     position: absolute;
     display: block;
     width: 100%;
     height: 1px;
-    background: #e5e5e5;
+    background: var(--primary-color);
     bottom: 20px;
-}
+} */
 
 .group0::before {
     content: "";
@@ -320,7 +367,7 @@
     display: block;
     width: 100%;
     height: 1px;
-    background: #e5e5e5;
+    background: var(--primary-color);
     top: 20px;
 }
 
@@ -335,7 +382,7 @@
     display: block;
     width: 100%;
     height: 1px;
-    background: #e5e5e5;
+    background: var(--primary-color);
     bottom: 20px;
 }
 
@@ -345,41 +392,42 @@
     display: block;
     width: 100%;
     height: 1px;
-    background: #e5e5e5;
+    background: var(--primary-color);
     top: 20px;
 }
 
 .tinhot {
     position: relative;
+    padding: 30px 0;
 }
 
 .sukienmoi {
     position: relative;
 }
 
-.sukienmoi::after {
+.sukienmoi::before {
     content: "";
     display: block;
     position: absolute;
     width: 1px;
     height: 100%;
     right: -10px;
-    top: 10px;
-    background: #e5e5e5;
+    top: 0px;
+    background: var(--primary-color);
 }
 
 .tinhot::before {
-    content: "";
+    /* content: "";
     display: block;
     position: absolute;
     width: 1px;
     height: 100%;
     left: -10px;
     top: 10px;
-    background: #e5e5e5;
+    background: #e5e5e5; */
 }
 
-.tinhot::after {
+/* .tinhot::after {
     content: "";
     display: block;
     position: absolute;
@@ -388,7 +436,7 @@
     right: -10px;
     top: 10px;
     background: #e5e5e5;
-}
+} */
 
 .quydinh {
     position: relative;
@@ -402,7 +450,7 @@
     height: 100%;
     right: -10px;
     top: 10px;
-    background: #e5e5e5;
+    /* background: var(--primary-color); */
 }
 
 .vinhdanh {
@@ -417,7 +465,7 @@
     height: 100%;
     right: -10px;
     top: 10px;
-    background: #e5e5e5;
+    background: var(--primary-color);
 }
 
 .buttonWrapper {

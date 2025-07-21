@@ -214,7 +214,7 @@ export default function Register() {
             sessionStorage.setItem('refreshToken', refreshToken);
 
             alert("Đăng ký thành công!");
-            router.push("/dang-bai-viet");
+            router.push("/diendan");
         } catch (error) {
             setError(error.message || "Đã có lỗi xảy ra khi đăng ký. Vui lòng thử lại.");
         } finally {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import moment from 'moment';
 import 'moment-timezone';
@@ -10,7 +10,7 @@ import styles from '../../styles/dangkyquayso.module.css';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
 
-export default function LotteryRegistration({ lotteryFields, onRegistrationSuccess, eventId }) {
+export default function LotteryRegistration({ lotteryFields, onRegistrationSuccess, eventId, endTime }) {
     const { data: session, status } = useSession();
     const router = useRouter();
     const [region, setRegion] = useState('Nam');
@@ -18,7 +18,8 @@ export default function LotteryRegistration({ lotteryFields, onRegistrationSucce
         bachThuLo: '',
         songThuLo: '',
         threeCL: '',
-        cham: ''
+        cham: '',
+        danDe: ''
     });
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -93,7 +94,7 @@ export default function LotteryRegistration({ lotteryFields, onRegistrationSucce
     }, [status, session, eventId]);
 
     const validateForm = () => {
-        const { bachThuLo, songThuLo, threeCL, cham } = formData;
+        const { bachThuLo, songThuLo, threeCL, cham, danDe } = formData;
 
         if (lotteryFields?.bachThuLo && bachThuLo && !/^\d{2}$/.test(bachThuLo)) {
             return 'Bạch thủ lô phải là số 2 chữ số (00-99)';
@@ -111,11 +112,23 @@ export default function LotteryRegistration({ lotteryFields, onRegistrationSucce
             return 'Chạm phải là số 1 chữ số (0-9)';
         }
 
+        if (lotteryFields?.danDe && danDe) {
+            const numbers = danDe.split(',').map(num => num.trim()).filter(num => num);
+            const expectedCount = parseInt(lotteryFields.danDeType.replace('x', '')) * 10;
+            if (!numbers.every(num => /^\d{2}$/.test(num))) {
+                return 'Dàn đề phải chứa các số 2 chữ số, cách nhau bởi dấu phẩy (ví dụ: 12,34,56)';
+            }
+            if (numbers.length !== expectedCount) {
+                return `Dàn đề ${lotteryFields.danDeType} phải chứa đúng ${expectedCount} số`;
+            }
+        }
+
         if (
             (lotteryFields?.bachThuLo && !bachThuLo) &&
             (lotteryFields?.songThuLo && !songThuLo) &&
             (lotteryFields?.threeCL && !threeCL) &&
-            (lotteryFields?.cham && !cham)
+            (lotteryFields?.cham && !cham) &&
+            (lotteryFields?.danDe && !danDe)
         ) {
             return 'Vui lòng nhập ít nhất một số để đăng ký';
         }
@@ -129,6 +142,12 @@ export default function LotteryRegistration({ lotteryFields, onRegistrationSucce
         if (!session) {
             router.push('/login');
             alert('Vui lòng đăng nhập để đăng ký quay số.');
+            return;
+        }
+
+        if (endTime && moment().tz('Asia/Ho_Chi_Minh').isAfter(moment(endTime))) {
+            setError('Sự kiện đã kết thúc, không thể đăng ký.');
+            alert('Sự kiện đã kết thúc, không thể đăng ký.');
             return;
         }
 
@@ -159,7 +178,9 @@ export default function LotteryRegistration({ lotteryFields, onRegistrationSucce
                     bachThuLo: lotteryFields?.bachThuLo ? formData.bachThuLo || null : null,
                     songThuLo: lotteryFields?.songThuLo ? (formData.songThuLo ? formData.songThuLo.split(',') : []) : [],
                     threeCL: lotteryFields?.threeCL ? formData.threeCL || null : null,
-                    cham: lotteryFields?.cham ? formData.cham || null : null
+                    cham: lotteryFields?.cham ? formData.cham || null : null,
+                    danDe: lotteryFields?.danDe ? (formData.danDe ? formData.danDe.split(',').map(num => num.trim()) : []) : [],
+                    danDeType: lotteryFields?.danDe ? lotteryFields.danDeType || null : null
                 }
             };
 
@@ -172,7 +193,7 @@ export default function LotteryRegistration({ lotteryFields, onRegistrationSucce
 
             setSuccess(`Đăng ký thành công cho miền ${region} lúc ${moment().tz('Asia/Ho_Chi_Minh').format('HH:mm:ss DD/MM/YYYY')} !`);
             alert(`Đăng ký thành công cho miền ${region} lúc ${moment().tz('Asia/Ho_Chi_Minh').format('HH:mm:ss DD/MM/YYYY')} ! Bạn được cộng 10 điểm.`);
-            setFormData({ bachThuLo: '', songThuLo: '', threeCL: '', cham: '' });
+            setFormData({ bachThuLo: '', songThuLo: '', threeCL: '', cham: '', danDe: '' });
             setError('');
             setHasRegisteredToday({ ...hasRegisteredToday, [region]: true });
             setTimeout(() => setSuccess(''), 3000);
@@ -188,7 +209,7 @@ export default function LotteryRegistration({ lotteryFields, onRegistrationSucce
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        if (name === 'songThuLo') {
+        if (name === 'songThuLo' || name === 'danDe') {
             if (/^[\d,]*$/.test(value)) {
                 setFormData({ ...formData, [name]: value });
             }
@@ -203,7 +224,7 @@ export default function LotteryRegistration({ lotteryFields, onRegistrationSucce
     return (
         <div className={styles.container}>
             <h3 className={styles.title}>Đăng ký quay số</h3>
-            <p className={styles.time}><i class="fa-solid fa-clock"></i> Thời gian hiện tại: {currentTime}</p>
+            <p className={styles.time}><i className="fa-solid fa-clock"></i> Thời gian hiện tại: {currentTime}</p>
             {success && <p className={styles.success}>{success}</p>}
             {error && <p className={styles.error}>{error}</p>}
             {hasRegisteredToday[region] && (
@@ -216,7 +237,7 @@ export default function LotteryRegistration({ lotteryFields, onRegistrationSucce
                         <select
                             value={region}
                             onChange={(e) => setRegion(e.target.value)}
-                            className={styles.select} // Thay đổi từ styles.input thành styles.select
+                            className={styles.select}
                         >
                             <option value="Nam">Miền Nam</option>
                             <option value="Trung">Miền Trung</option>
@@ -285,6 +306,21 @@ export default function LotteryRegistration({ lotteryFields, onRegistrationSucce
                                 placeholder="Nhập số 1 chữ số"
                                 className={styles.input}
                                 maxLength={1}
+                                disabled={!isRegistrationOpen[region] || hasRegisteredToday[region]}
+                            />
+                        </div>
+                    )}
+                    {lotteryFields?.danDe && (
+                        <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Dàn đề ({lotteryFields.danDeType}, ví dụ: 12,34,56)</label>
+                            <input
+                                type="text"
+                                name="danDe"
+                                value={formData.danDe}
+                                onChange={handleInputChange}
+                                placeholder={`Nhập ${parseInt(lotteryFields.danDeType.replace('x', '')) * 10} số 2 chữ số, cách nhau bởi dấu phẩy`}
+                                className={styles.input}
+                                maxLength={parseInt(lotteryFields.danDeType.replace('x', '')) * 10 * 3 - 1}
                                 disabled={!isRegistrationOpen[region] || hasRegisteredToday[region]}
                             />
                         </div>

@@ -11,7 +11,7 @@
     height: 620px;
     border: 2px solid #ccc;
     width: 100%;
-    max-width: 560px;
+    max-width: 100%;
 }
 
 .container:hover {
@@ -118,14 +118,14 @@
     padding: 10px;
     border: 1px solid #e5e7eb;
     border-radius: 12px;
-    background-color: #f8f4d5;
+    background-color: #fff;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
 .item:hover {
-    background-color: #f3f4f6;
+    background-color: #d1d5db;
     transform: translateY(-4px);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
@@ -204,7 +204,6 @@ color: #ffffff;
 .itemTitle {
     display: block;
     font-size: 18px;
-    width: 420px;
     font-weight: 600;
     color: #1f2937;
     line-height: 1.4;
