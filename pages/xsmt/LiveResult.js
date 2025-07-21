@@ -1,9 +1,8 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import styles from '../../styles/LIVEMT.module.css';
 import { getFilteredNumber } from "../../library/utils/filterUtils";
 import React from 'react';
 import { useLottery } from '../../contexts/LotteryContext';
-// import ViewCounter from "../views/ViewCounter";
 
 const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange, filterTypes, isLiveWindow }) => {
     const { liveData, setLiveData, setIsLiveDataComplete } = useLottery() || { liveData: null, setLiveData: null, setIsLiveDataComplete: null };
@@ -13,6 +12,8 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     const [animatingPrizes, setAnimatingPrizes] = useState({}); // { tinh: prizeType }
     const mountedRef = useRef(false);
     const sseRefs = useRef({}); // { tinh: EventSource }
+    const pollingTimeoutRef = useRef(null); // Lưu ID setTimeout
+    const isTabActiveRef = useRef(true); // Theo dõi trạng thái tab
 
     const maxRetries = 50;
     const retryInterval = 2000;
@@ -109,27 +110,138 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
         }));
     }, [today, station]);
 
-    useEffect(() => {
-        mountedRef.current = true;
-        return () => {
-            mountedRef.current = false;
-            Object.values(sseRefs.current).forEach(sse => {
-                console.log('Đóng kết nối SSE...');
-                sse.close();
-            });
-            sseRefs.current = {};
+    // Di chuyển useCallback lên đầu
+    const getPrizeNumbers = useCallback((stationData) => {
+        const lastTwoNumbers = [];
+        const addNumber = (num, isSpecial = false, isEighth = false) => {
+            if (num && num !== '...' && num !== '***' && /^\d+$/.test(num)) {
+                const last2 = num.slice(-2).padStart(2, '0');
+                lastTwoNumbers.push({ num: last2, isSpecial, isEighth });
+            }
         };
+
+        addNumber(stationData.specialPrize_0, true);
+        addNumber(stationData.firstPrize_0);
+        addNumber(stationData.secondPrize_0);
+        for (let i = 0; i < 2; i++) addNumber(stationData[`threePrizes_${i}`]);
+        for (let i = 0; i < 7; i++) addNumber(stationData[`fourPrizes_${i}`]);
+        addNumber(stationData.fivePrizes_0);
+        for (let i = 0; i < 3; i++) addNumber(stationData[`sixPrizes_${i}`]);
+        addNumber(stationData.sevenPrizes_0);
+        addNumber(stationData.eightPrizes_0, false, true);
+
+        const heads = Array(10).fill().map(() => []);
+        const tails = Array(10).fill().map(() => []);
+
+        lastTwoNumbers.forEach(item => {
+            const last2 = item.num;
+            if (last2.length === 2) {
+                const head = parseInt(last2[0], 10);
+                const tail = parseInt(last2[1], 10);
+                if (!isNaN(head) && !isNaN(tail)) {
+                    heads[head].push(item);
+                    tails[tail].push(item);
+                }
+            }
+        });
+
+        return { heads, tails };
+    }, []);
+
+    const renderPrizeValue = useCallback((tinh, prizeType, digits = 5) => {
+        const isAnimating = animatingPrizes[tinh] === prizeType && liveData.find(item => item.tinh === tinh)?.[prizeType] === '...';
+        const className = `${styles.running_number} ${styles[`running_${digits}`]}`;
+        const prizeValue = liveData.find(item => item.tinh === tinh)?.[prizeType] || '...';
+        const filteredValue = getFilteredNumber(prizeValue, filterTypes[today + station] || 'all');
+        const displayDigits = filterTypes[today + station] === 'last2' ? 2 : filterTypes[today + station] === 'last3' ? 3 : digits;
+        const isSpecialOrEighth = prizeType === 'specialPrize_0' || prizeType === 'eightPrizes_0';
+
+        return (
+            <span className={`${className} ${isSpecialOrEighth ? styles.highlight : ''}`} data-status={isAnimating ? 'animating' : 'static'}>
+                {isAnimating ? (
+                    <span className={styles.digit_container}>
+                        {Array.from({ length: displayDigits }).map((_, i) => (
+                            <span key={i} className={styles.digit} data-status="animating" data-index={i}></span>
+                        ))}
+                    </span>
+                ) : prizeValue === '...' ? (
+                    <span className={styles.ellipsis}></span>
+                ) : (
+                    <span className={styles.digit_container}>
+                        {filteredValue
+                            .padStart(displayDigits, '0')
+                            .split('')
+                            .map((digit, i) => (
+                                <span key={i} className={`${styles.digit12} ${isSpecialOrEighth ? styles.highlight1 : ''}`} data-status="static" data-index={i}>
+                                    {digit}
+                                </span>
+                            ))}
+                    </span>
+                )}
+            </span>
+        );
+    }, [animatingPrizes, liveData, filterTypes, today, station]);
+
+    // Hàm đóng tất cả kết nối SSE
+    const closeAllSSE = useCallback(() => {
+        console.log('Đóng tất cả kết nối SSE...');
+        Object.values(sseRefs.current).forEach(sse => {
+            try {
+                sse.close();
+            } catch (error) {
+                console.error('Lỗi khi đóng SSE:', error);
+            }
+        });
+        sseRefs.current = {};
+    }, []);
+
+    // Hàm hủy polling
+    const cancelPolling = useCallback(() => {
+        if (pollingTimeoutRef.current) {
+            console.log('Hủy polling...');
+            clearTimeout(pollingTimeoutRef.current);
+            pollingTimeoutRef.current = null;
+        }
     }, []);
 
     useEffect(() => {
-        if (!setLiveData || !setIsLiveDataComplete || !isLiveWindow) {
+        mountedRef.current = true;
+
+        // Xử lý visibilitychange để tạm dừng/khôi phục SSE và polling
+        const handleVisibilityChange = () => {
+            isTabActiveRef.current = document.visibilityState === 'visible';
+            if (!isTabActiveRef.current) {
+                console.log('Tab ẩn, tạm dừng SSE và polling...');
+                closeAllSSE();
+                cancelPolling();
+            } else if (isLiveWindow && mountedRef.current) {
+                console.log('Tab hiển thị, khôi phục SSE và polling...');
+                fetchInitialData();
+                connectSSE();
+                startPolling();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            mountedRef.current = false;
+            console.log('Cleanup LiveResult...');
+            closeAllSSE();
+            cancelPolling();
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [closeAllSSE, cancelPolling, isLiveWindow]);
+
+    useEffect(() => {
+        if (!setLiveData || !setIsLiveDataComplete || !isLiveWindow || !isTabActiveRef.current) {
             setLiveData(emptyResult);
             setIsTodayLoading(true);
             setError(null);
+            closeAllSSE();
+            cancelPolling();
             return;
         }
-
-        let pollingInterval;
 
         const fetchInitialData = async (retry = 0) => {
             try {
@@ -137,7 +249,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                 const provinces = provincesByDay[dayOfWeekIndex] || provincesByDay[6];
                 const results = await Promise.all(
                     provinces.map(async (province) => {
-                        const cachedData = localStorage.getItem(`liveData:${station}:${province.tinh}:${today} `);
+                        const cachedData = localStorage.getItem(`liveData:${station}:${province.tinh}:${today}`);
                         let initialData = cachedData ? JSON.parse(cachedData) : {
                             ...emptyResult.find(item => item.tinh === province.tinh),
                             lastUpdated: 0,
@@ -184,9 +296,9 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                 }
             } catch (err) {
                 console.error('Lỗi khi lấy dữ liệu ban đầu:', err.message);
-                if (retry < fetchMaxRetries) {
+                if (retry < fetchMaxRetries && mountedRef.current) {
                     setTimeout(() => {
-                        if (mountedRef.current) {
+                        if (mountedRef.current && isTabActiveRef.current) {
                             fetchInitialData(retry + 1);
                         }
                     }, fetchRetryInterval);
@@ -242,9 +354,9 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                     }
                     sseRefs.current[province.tinh].close();
                     sseRefs.current[province.tinh] = null;
-                    if (retryCount < maxRetries) {
+                    if (retryCount < maxRetries && isTabActiveRef.current) {
                         setTimeout(() => {
-                            if (mountedRef.current) {
+                            if (mountedRef.current && isTabActiveRef.current) {
                                 setRetryCount(prev => prev + 1);
                                 connectSSE();
                             }
@@ -265,10 +377,11 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
 
                 prizeTypes.forEach(prizeType => {
                     sseRefs.current[province.tinh].addEventListener(prizeType, (event) => {
+                        if (!mountedRef.current || !isTabActiveRef.current) return;
                         try {
                             const data = JSON.parse(event.data);
                             console.log(`Nhận sự kiện SSE: ${prizeType} = ${data[prizeType]} (tỉnh ${province.tinh})`, data);
-                            if (data && data[prizeType] && mountedRef.current) {
+                            if (data && data[prizeType]) {
                                 setLiveData(prev => {
                                     const updatedData = prev.map(item => {
                                         if (item.tinh !== province.tinh) return item;
@@ -305,10 +418,11 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                 });
 
                 sseRefs.current[province.tinh].addEventListener('full', (event) => {
+                    if (!mountedRef.current || !isTabActiveRef.current) return;
                     try {
                         const data = JSON.parse(event.data);
                         console.log(`Nhận sự kiện SSE full (tỉnh ${province.tinh}):`, data);
-                        if (data && mountedRef.current) {
+                        if (data) {
                             setLiveData(prev => {
                                 const updatedData = prev.map(item => {
                                     if (item.tinh !== province.tinh) return item;
@@ -322,7 +436,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                                     }
                                     if (shouldUpdate) {
                                         updatedItem.lastUpdated = data.lastUpdated || Date.now();
-                                        localStorage.setItem(`liveData:${station}:${province.tinh}:${today}`, JSON.stringify(updatedItem));
+                                        localStorage.setItem(`liveData:${station}:${item.tinh}:${today}`, JSON.stringify(updatedItem));
                                     }
                                     return updatedItem;
                                 });
@@ -350,6 +464,10 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
 
         const startPolling = () => {
             const poll = () => {
+                if (!mountedRef.current || !isTabActiveRef.current) {
+                    cancelPolling();
+                    return;
+                }
                 const dayOfWeekIndex = new Date().getDay();
                 const provinces = provincesByDay[dayOfWeekIndex] || provincesByDay[6];
                 const isIncomplete = (liveData || emptyResult).some(item =>
@@ -357,7 +475,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                 );
                 const interval = isIncomplete ? pollingIntervalMs : regularPollingIntervalMs;
 
-                pollingInterval = setTimeout(async () => {
+                pollingTimeoutRef.current = setTimeout(async () => {
                     try {
                         const results = await Promise.all(
                             provinces.map(async province => {
@@ -371,7 +489,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             })
                         );
 
-                        if (mountedRef.current) {
+                        if (mountedRef.current && isTabActiveRef.current) {
                             setLiveData(prev => {
                                 const currentData = Array.isArray(prev) && prev.length > 0 ? prev : emptyResult;
                                 const updatedData = currentData.map(item => {
@@ -402,12 +520,12 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                         }
                     } catch (error) {
                         console.error('Lỗi khi polling dữ liệu:', error);
-                        if (mountedRef.current) {
+                        if (mountedRef.current && isTabActiveRef.current) {
                             setError('Không thể lấy dữ liệu, đang thử lại...');
                         }
                     }
-                    if (mountedRef.current) {
-                        poll();
+                    if (mountedRef.current && isTabActiveRef.current) {
+                        startPolling();
                     }
                 }, interval);
             };
@@ -424,16 +542,11 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
         startPolling();
 
         return () => {
-            Object.values(sseRefs.current).forEach(sse => {
-                console.log('Đóng kết nối SSE trong cleanup...');
-                sse.close();
-            });
-            sseRefs.current = {};
-            if (pollingInterval) {
-                clearTimeout(pollingInterval);
-            }
+            console.log('Cleanup polling và SSE trong useEffect...');
+            closeAllSSE();
+            cancelPolling();
         };
-    }, [isLiveWindow, station, today, setLiveData, setIsLiveDataComplete, provincesByDay, emptyResult]);
+    }, [isLiveWindow, station, today, setLiveData, setIsLiveDataComplete, provincesByDay, emptyResult, closeAllSSE, cancelPolling]);
 
     useEffect(() => {
         if (!liveData || !liveData.length) {
@@ -462,343 +575,277 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
         });
     }, [liveData, animatingPrizes]);
 
-    if (!liveData || !liveData.length) {
-        return <div className={styles.error}>Đang tải dữ liệu...</div>;
-    }
+    // Tách logic render
+    const renderContent = () => {
+        if (!liveData || !liveData.length) {
+            return <div className={styles.error}>Đang tải dữ liệu...</div>;
+        }
 
-    const tableKey = today + station;
-    const currentFilter = filterTypes[tableKey] || 'all';
+        const tableKey = today + station;
+        const currentFilter = filterTypes[tableKey] || 'all';
 
-    const getPrizeNumbers = (stationData) => {
-        const lastTwoNumbers = [];
-        const addNumber = (num, isSpecial = false, isEighth = false) => {
-            if (num && num !== '...' && num !== '***' && /^\d+$/.test(num)) {
-                const last2 = num.slice(-2).padStart(2, '0');
-                lastTwoNumbers.push({ num: last2, isSpecial, isEighth });
+        const allHeads = Array(10).fill().map(() => []);
+        const allTails = Array(10).fill().map(() => []);
+        const stationsData = liveData.map(stationData => {
+            const { heads, tails } = getPrizeNumbers(stationData);
+            for (let i = 0; i < 10; i++) {
+                allHeads[i].push(heads[i]);
+                allTails[i].push(tails[i]);
             }
-        };
-
-        addNumber(stationData.specialPrize_0, true);
-        addNumber(stationData.firstPrize_0);
-        addNumber(stationData.secondPrize_0);
-        for (let i = 0; i < 2; i++) addNumber(stationData[`threePrizes_${i}`]);
-        for (let i = 0; i < 7; i++) addNumber(stationData[`fourPrizes_${i}`]);
-        addNumber(stationData.fivePrizes_0);
-        for (let i = 0; i < 3; i++) addNumber(stationData[`sixPrizes_${i}`]);
-        addNumber(stationData.sevenPrizes_0);
-        addNumber(stationData.eightPrizes_0, false, true);
-
-        const heads = Array(10).fill().map(() => []);
-        const tails = Array(10).fill().map(() => []);
-
-        lastTwoNumbers.forEach(item => {
-            const last2 = item.num;
-            if (last2.length === 2) {
-                const head = parseInt(last2[0], 10);
-                const tail = parseInt(last2[1], 10);
-                if (!isNaN(head) && !isNaN(tail)) {
-                    heads[head].push(item);
-                    tails[tail].push(item);
-                }
-            }
+            return { tentinh: stationData.tentinh, station: stationData.station, tinh: stationData.tinh };
         });
 
-        return { heads, tails };
-    };
-
-    const allHeads = Array(10).fill().map(() => []);
-    const allTails = Array(10).fill().map(() => []);
-    const stationsData = liveData.map(stationData => {
-        const { heads, tails } = getPrizeNumbers(stationData);
-        for (let i = 0; i < 10; i++) {
-            allHeads[i].push(heads[i]);
-            allTails[i].push(tails[i]);
-        }
-        return { tentinh: stationData.tentinh, station: stationData.station, tinh: stationData.tinh };
-    });
-
-    const renderPrizeValue = (tinh, prizeType, digits = 5) => {
-        const isAnimating = animatingPrizes[tinh] === prizeType && liveData.find(item => item.tinh === tinh)?.[prizeType] === '...';
-        const className = `${styles.running_number} ${styles[`running_${digits}`]}`;
-        const prizeValue = liveData.find(item => item.tinh === tinh)?.[prizeType] || '...';
-        const filteredValue = getFilteredNumber(prizeValue, currentFilter);
-        const displayDigits = currentFilter === 'last2' ? 2 : currentFilter === 'last3' ? 3 : digits;
-        const isSpecialOrEighth = prizeType === 'specialPrize_0' || prizeType === 'eightPrizes_0';
-
         return (
-            <span className={`${className} ${isSpecialOrEighth ? styles.highlight : ''}`} data-status={isAnimating ? 'animating' : 'static'}>
-                {isAnimating ? (
-                    <span className={styles.digit_container}>
-                        {Array.from({ length: displayDigits }).map((_, i) => (
-                            <span key={i} className={styles.digit} data-status="animating" data-index={i}></span>
-                        ))}
-                    </span>
-                ) : prizeValue === '...' ? (
-                    <span className={styles.ellipsis}></span>
-                ) : (
-                    <span className={styles.digit_container}>
-                        {filteredValue
-                            .padStart(displayDigits, '0')
-                            .split('')
-                            .map((digit, i) => (
-                                <span key={i} className={`${styles.digit12} ${isSpecialOrEighth ? styles.highlight1 : ''}`} data-status="static" data-index={i}>
-                                    {digit}
-                                </span>
-                            ))}
-                    </span>
+            <div className={styles.containerKQs}>
+                {error && <div className={styles.error}>{error}</div>}
+                {isTodayLoading && (
+                    <div className={styles.loading}>Đang chờ kết quả ngày {today}...</div>
                 )}
-            </span>
+                <div className={styles.kqxs} style={{ '--num-columns': liveData.length }}>
+                    <div className={styles.header}>
+                        <div className={styles.tructiep}><span className={styles.kqxs__title1}>Tường thuật trực tiếp...</span></div>
+                        <h1 className={styles.kqxs__title}>XSMT - Kết quả Xổ số Miền Trung - SXMT {today}</h1>
+                        <div className={styles.kqxs__action}>
+                            <a className={styles.kqxs__actionLink} href="#!">XSMT</a>
+                            <a className={`${styles.kqxs__actionLink} ${styles.dayOfWeek}`} href="#!">{liveData[0]?.dayOfWeek}</a>
+                            <a className={styles.kqxs__actionLink} href="#!">{today}</a>
+                        </div>
+                    </div>
+                    <table className={styles.tableXS}>
+                        <thead>
+                            <tr>
+                                <th></th>
+                                {liveData.map(stationData => (
+                                    <th key={stationData.tinh} className={styles.stationName}>
+                                        {stationData.tentinh}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td className={`${styles.tdTitle} ${styles.highlight}`}>G8</td>
+                                {liveData.map(item => (
+                                    <td key={item.tinh} className={styles.rowXS}>
+                                        <span className={`${styles.span4} ${styles.highlight}`}>
+                                            {renderPrizeValue(item.tinh, 'eightPrizes_0', 2)}
+                                        </span>
+                                    </td>
+                                ))}
+                            </tr>
+                            <tr>
+                                <td className={styles.tdTitle}>G7</td>
+                                {liveData.map(item => (
+                                    <td key={item.tinh} className={styles.rowXS}>
+                                        <span className={styles.span4}>
+                                            {renderPrizeValue(item.tinh, 'sevenPrizes_0', 3)}
+                                        </span>
+                                    </td>
+                                ))}
+                            </tr>
+                            <tr>
+                                <td className={styles.tdTitle}>G6</td>
+                                {liveData.map(item => (
+                                    <td key={item.tinh} className={styles.rowXS}>
+                                        {[0, 1, 2].map(idx => (
+                                            <span key={idx} className={styles.span3}>
+                                                {renderPrizeValue(item.tinh, `sixPrizes_${idx}`, 4)}
+                                            </span>
+                                        ))}
+                                    </td>
+                                ))}
+                            </tr>
+                            <tr>
+                                <td className={`${styles.tdTitle} ${styles.g3}`}>G5</td>
+                                {liveData.map(item => (
+                                    <td key={item.tinh} className={styles.rowXS}>
+                                        <span className={`${styles.span3} ${styles.g3}`}>
+                                            {renderPrizeValue(item.tinh, 'fivePrizes_0', 4)}
+                                        </span>
+                                    </td>
+                                ))}
+                            </tr>
+                            <tr>
+                                <td className={styles.tdTitle}>G4</td>
+                                {liveData.map(item => (
+                                    <td key={item.tinh} className={styles.rowXS}>
+                                        {[0, 1, 2, 3, 4, 5, 6].map(idx => (
+                                            <span key={idx} className={styles.span4}>
+                                                {renderPrizeValue(item.tinh, `fourPrizes_${idx}`, 5)}
+                                            </span>
+                                        ))}
+                                    </td>
+                                ))}
+                            </tr>
+                            <tr>
+                                <td className={`${styles.tdTitle} ${styles.g3}`}>G3</td>
+                                {liveData.map(item => (
+                                    <td key={item.tinh} className={styles.rowXS}>
+                                        {[0, 1].map(idx => (
+                                            <span key={idx} className={`${styles.span3} ${styles.g3}`}>
+                                                {renderPrizeValue(item.tinh, `threePrizes_${idx}`, 5)}
+                                            </span>
+                                        ))}
+                                    </td>
+                                ))}
+                            </tr>
+                            <tr>
+                                <td className={styles.tdTitle}>G2</td>
+                                {liveData.map(item => (
+                                    <td key={item.tinh} className={styles.rowXS}>
+                                        <span className={styles.span1}>
+                                            {renderPrizeValue(item.tinh, 'secondPrize_0', 5)}
+                                        </span>
+                                    </td>
+                                ))}
+                            </tr>
+                            <tr>
+                                <td className={styles.tdTitle}>G1</td>
+                                {liveData.map(item => (
+                                    <td key={item.tinh} className={styles.rowXS}>
+                                        <span className={styles.span1}>
+                                            {renderPrizeValue(item.tinh, 'firstPrize_0', 5)}
+                                        </span>
+                                    </td>
+                                ))}
+                            </tr>
+                            <tr>
+                                <td className={`${styles.tdTitle} ${styles.highlight}`}>ĐB</td>
+                                {liveData.map(item => (
+                                    <td key={item.tinh} className={styles.rowXS}>
+                                        <span className={`${styles.span1} ${styles.highlight} ${styles.gdb}`}>
+                                            {renderPrizeValue(item.tinh, 'specialPrize_0', 6)}
+                                        </span>
+                                    </td>
+                                ))}
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div className={styles.action}>
+                        <div aria-label="Tùy chọn lọc số" className={styles.filter__options} role="radiogroup">
+                            <div className={styles.optionInput}>
+                                <input
+                                    id={`filterAll-${tableKey}`}
+                                    type="radio"
+                                    name={`filterOption-${tableKey}`}
+                                    value="all"
+                                    checked={currentFilter === 'all'}
+                                    onChange={() => handleFilterChange(tableKey, 'all')}
+                                />
+                                <label htmlFor={`filterAll-${tableKey}`}>Đầy Đủ</label>
+                            </div>
+                            <div className={styles.optionInput}>
+                                <input
+                                    id={`filterTwo-${tableKey}`}
+                                    type="radio"
+                                    name={`filterOption-${tableKey}`}
+                                    value="last2"
+                                    checked={currentFilter === 'last2'}
+                                    onChange={() => handleFilterChange(tableKey, 'last2')}
+                                />
+                                <label htmlFor={`filterTwo-${tableKey}`}>2 Số Đuôi</label>
+                            </div>
+                            <div className={styles.optionInput}>
+                                <input
+                                    id={`filterThree-${tableKey}`}
+                                    type="radio"
+                                    name={`filterOption-${tableKey}`}
+                                    value="last3"
+                                    checked={currentFilter === 'last3'}
+                                    onChange={() => handleFilterChange(tableKey, 'last3')}
+                                />
+                                <label htmlFor={`filterThree-${tableKey}`}>3 Số Đuôi</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div className={styles.TKe_container}>
+                    <div className={styles.TKe_content}>
+                        <div className={styles.TKe_contentTitle}>
+                            <span className={styles.title}>Bảng Lô Tô - </span>
+                            <span className={styles.desc}>Miền Trung</span>
+                            <span className={styles.dayOfWeek}>{`${liveData[0]?.dayOfWeek} - `}</span>
+                            <span className={styles.desc}>{today}</span>
+                        </div>
+                        <table className={styles.tableKey} style={{ '--num-columns': liveData.length }}>
+                            <thead>
+                                <tr>
+                                    <th className={styles.t_h}>Đầu</th>
+                                    {stationsData.map(station => (
+                                        <th key={station.tinh}>{station.tentinh}</th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {Array.from({ length: 10 }, (_, idx) => (
+                                    <tr key={idx}>
+                                        <td className={styles.t_h}>{idx}</td>
+                                        {allHeads[idx].map((headNumbers, index) => (
+                                            <td key={index}>
+                                                {headNumbers.length > 0 ? (
+                                                    headNumbers.map((item, numIdx) => (
+                                                        <span
+                                                            key={numIdx}
+                                                            className={item.isEighth || item.isSpecial ? styles.highlight1 : ''}
+                                                        >
+                                                            {item.num}
+                                                            {numIdx < headNumbers.length - 1 && ', '}
+                                                        </span>
+                                                    ))
+                                                ) : '-'}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className={styles.TKe_content}>
+                        <div className={styles.TKe_contentTitle}>
+                            <span className={styles.title}>Bảng Lô Tô - </span>
+                            <span className={styles.desc}>Miền Trung</span>
+                            <span className={styles.dayOfWeek}>{`${liveData[0]?.dayOfWeek} - `}</span>
+                            <span className={styles.desc}>{today}</span>
+                        </div>
+                        <table className={styles.tableKey} style={{ '--num-columns': liveData.length }}>
+                            <thead>
+                                <tr>
+                                    <th className={styles.t_h}>Đuôi</th>
+                                    {stationsData.map(station => (
+                                        <th key={station.tinh}>{station.tentinh}</th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {Array.from({ length: 10 }, (_, idx) => (
+                                    <tr key={idx}>
+                                        <td className={styles.t_h}>{idx}</td>
+                                        {allTails[idx].map((tailNumbers, index) => (
+                                            <td key={index}>
+                                                {tailNumbers.length > 0 ? (
+                                                    tailNumbers.map((item, numIdx) => (
+                                                        <span
+                                                            key={numIdx}
+                                                            className={item.isEighth || item.isSpecial ? styles.highlight1 : ''}
+                                                        >
+                                                            {item.num}
+                                                            {numIdx < tailNumbers.length - 1 && ', '}
+                                                        </span>
+                                                    ))
+                                                ) : '-'}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         );
     };
 
-    return (
-        <div className={styles.containerKQs}>
-            {error && <div className={styles.error}>{error}</div>}
-            {isTodayLoading && (
-                <div className={styles.loading}>Đang chờ kết quả ngày {today}...</div>
-            )}
-            <div className={styles.kqxs} style={{ '--num-columns': liveData.length }}>
-                <div className={styles.header}>
-                    <div className={styles.tructiep}><span className={styles.kqxs__title1}>Tường thuật trực tiếp...</span></div>
-                    <h1 className={styles.kqxs__title}>XSMT - Kết quả Xổ số Miền Trung - SXMT {today}</h1>
-                    <div className={styles.kqxs__action}>
-                        <a className={styles.kqxs__actionLink} href="#!">XSMT</a>
-                        <a className={`${styles.kqxs__actionLink} ${styles.dayOfWeek}`} href="#!">{liveData[0]?.dayOfWeek}</a>
-                        <a className={styles.kqxs__actionLink} href="#!">{today}</a>
-                    </div>
-                </div>
-                <table className={styles.tableXS}>
-                    <thead>
-                        <tr>
-                            <th></th>
-                            {liveData.map(stationData => (
-                                <th key={stationData.tinh} className={styles.stationName}>
-                                    {stationData.tentinh}
-                                </th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td className={`${styles.tdTitle} ${styles.highlight}`}>G8</td>
-                            {liveData.map(item => (
-                                <td key={item.tinh} className={styles.rowXS}>
-                                    <span className={`${styles.span4} ${styles.highlight}`}>
-                                        {renderPrizeValue(item.tinh, 'eightPrizes_0', 2)}
-                                    </span>
-                                </td>
-                            ))}
-                        </tr>
-                        <tr>
-                            <td className={styles.tdTitle}>G7</td>
-                            {liveData.map(item => (
-                                <td key={item.tinh} className={styles.rowXS}>
-                                    <span className={styles.span4}>
-                                        {renderPrizeValue(item.tinh, 'sevenPrizes_0', 3)}
-                                    </span>
-                                </td>
-                            ))}
-                        </tr>
-                        <tr>
-                            <td className={styles.tdTitle}>G6</td>
-                            {liveData.map(item => (
-                                <td key={item.tinh} className={styles.rowXS}>
-                                    {[0, 1, 2].map(idx => (
-                                        <span key={idx} className={styles.span3}>
-                                            {renderPrizeValue(item.tinh, `sixPrizes_${idx}`, 4)}
-                                        </span>
-                                    ))}
-                                </td>
-                            ))}
-                        </tr>
-                        <tr>
-                            <td className={`${styles.tdTitle} ${styles.g3}`}>G5</td>
-                            {liveData.map(item => (
-                                <td key={item.tinh} className={styles.rowXS}>
-                                    <span className={`${styles.span3} ${styles.g3}`}>
-                                        {renderPrizeValue(item.tinh, 'fivePrizes_0', 4)}
-                                    </span>
-                                </td>
-                            ))}
-                        </tr>
-                        <tr>
-                            <td className={styles.tdTitle}>G4</td>
-                            {liveData.map(item => (
-                                <td key={item.tinh} className={styles.rowXS}>
-                                    {[0, 1, 2, 3, 4, 5, 6].map(idx => (
-                                        <span key={idx} className={styles.span4}>
-                                            {renderPrizeValue(item.tinh, `fourPrizes_${idx}`, 5)}
-                                        </span>
-                                    ))}
-                                </td>
-                            ))}
-                        </tr>
-                        <tr>
-                            <td className={`${styles.tdTitle} ${styles.g3}`}>G3</td>
-                            {liveData.map(item => (
-                                <td key={item.tinh} className={styles.rowXS}>
-                                    {[0, 1].map(idx => (
-                                        <span key={idx} className={`${styles.span3} ${styles.g3}`}>
-                                            {renderPrizeValue(item.tinh, `threePrizes_${idx}`, 5)}
-                                        </span>
-                                    ))}
-                                </td>
-                            ))}
-                        </tr>
-                        <tr>
-                            <td className={styles.tdTitle}>G2</td>
-                            {liveData.map(item => (
-                                <td key={item.tinh} className={styles.rowXS}>
-                                    <span className={styles.span1}>
-                                        {renderPrizeValue(item.tinh, 'secondPrize_0', 5)}
-                                    </span>
-                                </td>
-                            ))}
-                        </tr>
-                        <tr>
-                            <td className={styles.tdTitle}>G1</td>
-                            {liveData.map(item => (
-                                <td key={item.tinh} className={styles.rowXS}>
-                                    <span className={styles.span1}>
-                                        {renderPrizeValue(item.tinh, 'firstPrize_0', 5)}
-                                    </span>
-                                </td>
-                            ))}
-                        </tr>
-                        <tr>
-                            <td className={`${styles.tdTitle} ${styles.highlight}`}>ĐB</td>
-                            {liveData.map(item => (
-                                <td key={item.tinh} className={styles.rowXS}>
-                                    <span className={`${styles.span1} ${styles.highlight} ${styles.gdb}`}>
-                                        {renderPrizeValue(item.tinh, 'specialPrize_0', 6)}
-                                    </span>
-                                </td>
-                            ))}
-                        </tr>
-                    </tbody>
-                </table>
-                <div className={styles.action}>
-                    <div aria-label="Tùy chọn lọc số" className={styles.filter__options} role="radiogroup">
-                        <div className={styles.optionInput}>
-                            <input
-                                id={`filterAll-${tableKey}`}
-                                type="radio"
-                                name={`filterOption-${tableKey}`}
-                                value="all"
-                                checked={currentFilter === 'all'}
-                                onChange={() => handleFilterChange(tableKey, 'all')}
-                            />
-                            <label htmlFor={`filterAll-${tableKey}`}>Đầy Đủ</label>
-                        </div>
-                        <div className={styles.optionInput}>
-                            <input
-                                id={`filterTwo-${tableKey}`}
-                                type="radio"
-                                name={`filterOption-${tableKey}`}
-                                value="last2"
-                                checked={currentFilter === 'last2'}
-                                onChange={() => handleFilterChange(tableKey, 'last2')}
-                            />
-                            <label htmlFor={`filterTwo-${tableKey}`}>2 Số Đuôi</label>
-                        </div>
-                        <div className={styles.optionInput}>
-                            <input
-                                id={`filterThree-${tableKey}`}
-                                type="radio"
-                                name={`filterOption-${tableKey}`}
-                                value="last3"
-                                checked={currentFilter === 'last3'}
-                                onChange={() => handleFilterChange(tableKey, 'last3')}
-                            />
-                            <label htmlFor={`filterThree-${tableKey}`}>3 Số Đuôi</label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div className={styles.TKe_container}>
-                <div className={styles.TKe_content}>
-                    <div className={styles.TKe_contentTitle}>
-                        <span className={styles.title}>Bảng Lô Tô - </span>
-                        <span className={styles.desc}>Miền Trung</span>
-                        <span className={styles.dayOfWeek}>{`${liveData[0]?.dayOfWeek} - `}</span>
-                        <span className={styles.desc}>{today}</span>
-                    </div>
-                    <table className={styles.tableKey} style={{ '--num-columns': liveData.length }}>
-                        <thead>
-                            <tr>
-                                <th className={styles.t_h}>Đầu</th>
-                                {stationsData.map(station => (
-                                    <th key={station.tinh}>{station.tentinh}</th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {Array.from({ length: 10 }, (_, idx) => (
-                                <tr key={idx}>
-                                    <td className={styles.t_h}>{idx}</td>
-                                    {allHeads[idx].map((headNumbers, index) => (
-                                        <td key={index}>
-                                            {headNumbers.length > 0 ? (
-                                                headNumbers.map((item, numIdx) => (
-                                                    <span
-                                                        key={numIdx}
-                                                        className={item.isEighth || item.isSpecial ? styles.highlight1 : ''}
-                                                    >
-                                                        {item.num}
-                                                        {numIdx < headNumbers.length - 1 && ', '}
-                                                    </span>
-                                                ))
-                                            ) : '-'}
-                                        </td>
-                                    ))}
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-                <div className={styles.TKe_content}>
-                    <div className={styles.TKe_contentTitle}>
-                        <span className={styles.title}>Bảng Lô Tô - </span>
-                        <span className={styles.desc}>Miền Trung</span>
-                        <span className={styles.dayOfWeek}>{`${liveData[0]?.dayOfWeek} - `}</span>
-                        <span className={styles.desc}>{today}</span>
-                    </div>
-                    <table className={styles.tableKey} style={{ '--num-columns': liveData.length }}>
-                        <thead>
-                            <tr>
-                                <th className={styles.t_h}>Đuôi</th>
-                                {stationsData.map(station => (
-                                    <th key={station.tinh}>{station.tentinh}</th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {Array.from({ length: 10 }, (_, idx) => (
-                                <tr key={idx}>
-                                    <td className={styles.t_h}>{idx}</td>
-                                    {allTails[idx].map((tailNumbers, index) => (
-                                        <td key={index}>
-                                            {tailNumbers.length > 0 ? (
-                                                tailNumbers.map((item, numIdx) => (
-                                                    <span
-                                                        key={numIdx}
-                                                        className={item.isEighth || item.isSpecial ? styles.highlight1 : ''}
-                                                    >
-                                                        {item.num}
-                                                        {numIdx < tailNumbers.length - 1 && ', '}
-                                                    </span>
-                                                ))
-                                            ) : '-'}
-                                        </td>
-                                    ))}
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    );
+    return renderContent();
 };
 
 export default React.memo(LiveResult);
