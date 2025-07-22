@@ -247,7 +247,7 @@
     padding: 5px;
     border: 2px solid #3b82f6;
     border-radius: 8px;
-    background-color: #cccccc45;
+    background-color: #ffeead;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
@@ -256,7 +256,7 @@
     border: 1px solid #ccc;
     min-height: 50px;
     font-size: 15px;
-    background-color: #ffff001f;
+    background-color: #fff;
     padding: 5px;
     border-radius: 8px;
     color: #000000;

@@ -8,8 +8,17 @@ export default function Document() {
                 <meta charSet="UTF-8" />
                 <meta name="robots" content="index, follow" />
                 <meta name="theme-color" content="#c80505" />
-                {/* Google Tag Manager */}
-                <script async src="https://www.googletagmanager.com/gtag/js?id=G-32BNFX1ZW5"></script>
+
+                {/* Preconnect và DNS Prefetch */}
+                <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+                <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+                <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com" />
+                <link rel="preconnect" href="https://fonts.googleapis.com" crossOrigin="anonymous" />
+                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+                <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossOrigin="anonymous" />
+
+                {/* Google Tag Manager với defer */}
+                <script async defer src="https://www.googletagmanager.com/gtag/js?id=G-32BNFX1ZW5"></script>
                 <script>
                     {`window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
@@ -43,24 +52,14 @@ export default function Document() {
                     })}
                 </script>
 
-                {/* Font và Icon */}
-                <link rel="preconnect" href="https://fonts.googleapis.com" crossOrigin="anonymous" />
-                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-                <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossOrigin="anonymous" />
-
-
-
+                {/* Font với font-display: swap (giảm số lượng font) */}
                 <link
-                    href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Sora:wght@400;600&display=swap"
+                    href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Sora:wght@400;600&display=swap"
                     rel="stylesheet"
                 />
                 <link
                     rel="stylesheet"
                     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
-                />
-                <link
-                    href="https://fonts.googleapis.com/css2?family=Merriweather:ital,opsz,wght@0,18..144,300..900;1,18..144,300..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap"
-                    rel="stylesheet"
                 />
 
                 {/* Favicon */}

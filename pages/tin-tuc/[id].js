@@ -232,7 +232,7 @@ const PostDetail = ({ post, relatedPosts, footballPosts, error }) => {
                         <meta property="og:image:alt" content={post.title} />
                         <meta name="twitter:image" content={finalImageUrl} />
                         <meta name="twitter:image:alt" content={post.title} />
-                        <link rel="preload" href={finalImageUrl} as="image" /> {/* Chỉ preload nếu hình ảnh là đầu tiên */}
+                        <link href={finalImageUrl} /> {/* Chỉ preload nếu hình ảnh là đầu tiên */}
                     </>
                 )}
                 <meta property="zalo:official_account_id" content={process.env.ZALO_OA_ID || ''} />

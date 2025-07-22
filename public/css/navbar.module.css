@@ -87,11 +87,11 @@
 }
 
 .nav_itemLink {
-    font-family: "Roboto", sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     padding: 0 10px;
     line-height: 50px;
     color: #ffffff;
-    font-weight: 800;
+    font-weight: 700;
     text-transform: uppercase;
     text-decoration: none;
     display: flex;

@@ -116,8 +116,8 @@
 }
 
 .running_number {
-    font-size: 26px;
     display: inline-block;
+    font-size: 26px;
     min-height: 28px;
     padding: 8px 0;
     vertical-align: middle;
@@ -128,19 +128,19 @@
 }
 
 .running_3 {
-    min-width: 81px;
+    min-width: 200px;
 }
 
 .running_4 {
-    min-width: 108px;
+    min-width: 200px;
 }
 
 .running_5 {
-    min-width: 135px;
+    min-width: 200px;
 }
 
 .running_6 {
-    min-width: 162px;
+    min-width: 200px;
 }
 
 .ellipsis {
@@ -214,6 +214,7 @@
     font-weight: 600;
     line-height: 1.4;
     animation: blink 1s ease-in-out infinite;
+    /* Thêm hiệu ứng nhấp nháy */
 }
 
 .kqxs__title1::before {
@@ -227,6 +228,7 @@
     width: 10px;
     height: 10px;
     animation: blink 1s ease-in-out infinite;
+    /* Thêm hiệu ứng nhấp nháy cho dấu chấm */
 }
 
 @keyframes blink {
@@ -247,18 +249,13 @@
     padding: 5px 0;
 }
 
-.highlight1 {
-    color: red !important;
-    font-weight: 700;
-}
-
 .kqxs__actionLink {
     text-transform: uppercase;
     font-size: 18px;
     margin: 0 10px;
     font-weight: 500;
     text-decoration: underline;
-    color: #0029ad;
+    color: #2d3483;
     transition: color 0.3s ease;
 }
 
@@ -349,14 +346,14 @@
     background-color: #fff4c3;
 }
 
-.tableXS tr:nth-child(even):not(:first-child) {
-    background-color: #cccccc29;
+.tableXS tr:nth-child(odd):not(:first-child) {
+    background-color: #61c1d01f;
 }
 
 .prizeNumber {
     display: block;
     font-weight: 700;
-    font-size: 26px;
+    font-size: 23px;
     text-align: center;
     line-height: 1.4;
 }
@@ -370,7 +367,7 @@
 }
 
 .prizeNumber.g3 {
-    /* font-size: 24px; */
+    font-size: 24px;
 }
 
 .action {
@@ -448,9 +445,11 @@
 }
 
 .TKe_content {
+    background-color: #f8f8f8;
     width: 100%;
     max-width: 1200px;
     border: 1px solid #ccc;
+    border-right: 4px solid #ccc;
     margin: 0 auto 20px;
     border-radius: 6px;
 }
@@ -507,8 +506,8 @@
     width: calc((100% - 60px) / var(--num-columns, 3));
 }
 
-.tableKey tr:nth-child(even) {
-    background-color: #cccccc29;
+.tableKey tr:nth-child(odd) {
+    background-color: #61c1d01f;
 }
 
 .tableKey td:first-child {
@@ -516,7 +515,7 @@
 }
 
 .tableKey .t_h {
-    width: 45px;
+    width: 60px;
     padding: 10px 0;
     font-weight: 700;
     background-color: #f0f0f0;
@@ -567,8 +566,37 @@
 @media (max-width: 768px) {
     .containerKQ {
         min-width: 320px;
-        padding: 0 10px;
         font-size: 12px;
+        padding: 0 10px;
+    }
+
+    .kqxs {
+        border-radius: 3px;
+        border: 1px solid #e80000;
+    }
+
+    .kqxs__title1 {
+        color: red;
+        position: relative;
+        font-size: 16px;
+        font-weight: 600;
+        line-height: 1.4;
+        animation: blink 1s ease-in-out infinite;
+        /* Thêm hiệu ứng nhấp nháy */
+    }
+
+    .kqxs__title1::before {
+        content: "";
+        display: block;
+        position: absolute;
+        background-color: red;
+        left: -15px;
+        top: 9px;
+        border-radius: 50%;
+        width: 5px;
+        height: 5px;
+        animation: blink 1s ease-in-out infinite;
+        /* Thêm hiệu ứng nhấp nháy cho dấu chấm */
     }
 
     .running_number {
@@ -598,28 +626,6 @@
         background-color: #ffeca0;
     }
 
-    .kqxs__title1 {
-        color: red;
-        position: relative;
-        font-size: 16px;
-        font-weight: 600;
-        line-height: 1.4;
-        animation: blink 1s ease-in-out infinite;
-    }
-
-    .kqxs__title1::before {
-        content: "";
-        display: block;
-        position: absolute;
-        background-color: red;
-        left: -15px;
-        top: 9px;
-        border-radius: 50%;
-        width: 5px;
-        height: 5px;
-        animation: blink 1s ease-in-out infinite;
-    }
-
     .action {
         margin-left: 20px;
         display: flex;
@@ -629,7 +635,7 @@
     }
 
     .kqxs__title {
-        font-size: 16px;
+        font-size: 20px;
         line-height: 1.4;
         width: 100%;
         font-weight: 700;
@@ -655,26 +661,20 @@
         font-size: 21px;
     }
 
-    .spinner {
-        width: 20px;
-        height: 20px;
-        border-width: 2px;
-    }
-
     .running_2 {
         min-width: 38px;
     }
 
     .running_3 {
-        min-width: 57px;
+        min-width: 100px;
     }
 
     .running_4 {
-        min-width: 76px;
+        min-width: 100px;
     }
 
     .running_5 {
-        min-width: 95px;
+        min-width: 100px;
     }
 
     .running_6 {
@@ -739,10 +739,5 @@
     .paginationButton {
         padding: 0.375rem 0.75rem;
         font-size: 0.875rem;
-    }
-
-    .highlight1 {
-        color: red !important;
-        font-weight: 700;
     }
 }

@@ -401,7 +401,7 @@
 
 .registrationItem p {
     font-size: 15px;
-    color: #4b5563;
+    /* color: #4b5563; */
     margin-bottom: 10px;
 }
 
@@ -429,6 +429,7 @@
     font-size: 14px;
     color: #dc2626;
     margin-top: 12px;
+    font-weight: 700;
 }
 
 .noRegistrations {
