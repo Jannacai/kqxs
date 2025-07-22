@@ -145,7 +145,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
 
                         try {
                             const response = await fetch(
-                                `http://localhost:5000/api/ketquaxs/xsmt/sse/initial?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
+                                `https://backendkqxs-1.onrender.com/api/ketquaxs/xsmt/sse/initial?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
                             );
                             if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                             const serverData = await response.json();
@@ -224,7 +224,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                 }
 
                 sseRefs.current[province.tinh] = new EventSource(
-                    `http://localhost:5000/api/ketquaxs/xsmt/sse?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
+                    `https://backendkqxs-1.onrender.com/api/ketquaxs/xsmt/sse?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
                 );
                 console.log(`Khởi tạo kết nối SSE cho tỉnh ${province.tinh}, ngày: ${today}`);
 
@@ -362,7 +362,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                         const results = await Promise.all(
                             provinces.map(async province => {
                                 const response = await fetch(
-                                    `http://localhost:5000/api/ketquaxs/xsmt/sse/initial?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
+                                    `https://backendkqxs-1.onrender.com/api/ketquaxs/xsmt/sse/initial?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
                                 );
                                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                                 const serverData = await response.json();

@@ -13,7 +13,7 @@ import Chat from './chat/chat';
 
 export async function getStaticProps() {
     const now = new Date();
-    const isUpdateWindow = now.getHours() === 14 && now.getMinutes() >= 11 && now.getMinutes() <= 34;
+    const isUpdateWindow = now.getHours() === 17 && now.getMinutes() >= 11 && now.getMinutes() <= 32;
     const revalidateTime = isUpdateWindow ? 10 : 21600; // 10 giây trong khung giờ cập nhật, 6 giờ ngoài khung giờ
     const drawDate = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()}`;
 

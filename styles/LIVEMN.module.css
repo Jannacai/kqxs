@@ -683,9 +683,9 @@
 
     .digit_container .digit {
         width: 18px;
-        height: 18px;
+        /* height: 18px; */
         line-height: 18px;
-        font-size: 16px;
+        font-size: 20px;
     }
 
     .filter__options {
