@@ -31,9 +31,11 @@ const SkeletonTable = () => (
             </tr>
         </thead>
         <tbody>
-            {Array(5).fill().map((_, index) => <SkeletonRow key={index} />)}
+            {Array(5).fill().map((_, index) => (
+                <SkeletonRow key={`skeleton-${index}`} />
+            ))}
         </tbody>
-    </table >
+    </table>
 );
 
 // Province to slug mapping
@@ -83,7 +85,7 @@ const mienNamProvinces = [
 
 // Central provinces
 const mienTrungProvinces = [
-    "Huế", "Phú Yên", "Đắk Lắc", "Quảng Nam", "Khánh Hòa", "Đà Nẵng", "Bình Định", "Quảng Trị",
+    "Huế", "Phú Yên", "Đắk Lắk", "Quảng Nam", "Khánh Hòa", "Đà Nẵng", "Bình Định", "Quảng Trị",
     "Ninh Thuận", "Gia Lai", "Quảng Ngãi", "Đắk Nông", "Kon Tum"
 ];
 
@@ -151,16 +153,34 @@ const Logan = ({ initialStats, initialMetadata, initialDays, initialRegion, init
 
     // Memoize bảng dữ liệu
     const tableData = useMemo(() => {
-        return stats.map(stat => ({
-            number: stat.number,
-            lastAppeared: stat.lastAppeared,
-            gapDraws: stat.gapDraws,
-            maxGap: stat.maxGap,
-        }));
+        const seenNumbers = new Set();
+        const data = stats
+            .filter(stat => {
+                if (stat.number === undefined || stat.number === null) {
+                    console.warn('Invalid stat.number:', stat);
+                    return false;
+                }
+                if (seenNumbers.has(stat.number)) {
+                    console.warn('Duplicate stat.number:', stat.number);
+                    return false;
+                }
+                seenNumbers.add(stat.number);
+                return true;
+            })
+            .map((stat, index) => ({
+                number: stat.number,
+                lastAppeared: stat.lastAppeared,
+                gapDraws: stat.gapDraws,
+                maxGap: stat.maxGap,
+                id: `${stat.number}-${index}`, // Thêm ID duy nhất
+            }));
+        console.log('Filtered tableData:', data); // Debug dữ liệu
+        return data;
     }, [stats]);
 
     useEffect(() => {
         fetchLoGanStats(days, region, tinh);
+        console.log('Client-side stats:', stats); // Debug dữ liệu client
         return () => fetchLoGanStats.cancel(); // Hủy debounce khi unmount
     }, [days, region, tinh, fetchLoGanStats]);
 
@@ -298,7 +318,6 @@ const Logan = ({ initialStats, initialMetadata, initialDays, initialRegion, init
                                 onChange={handleTinhChange}
                                 value={tinh || 'Miền Bắc'}
                                 aria-label="Chọn tỉnh để xem thống kê lô gan"
-
                             >
                                 <option value="Miền Bắc">Miền Bắc</option>
                                 <optgroup label="Miền Nam">
@@ -325,7 +344,6 @@ const Logan = ({ initialStats, initialMetadata, initialDays, initialRegion, init
                                 value={days}
                                 onChange={handleDaysChange}
                                 aria-label="Chọn thời gian để xem thống kê lô gan"
-
                             >
                                 <option value={6}>6 ngày</option>
                                 <option value={7}>7 đến 14 ngày</option>
@@ -349,7 +367,9 @@ const Logan = ({ initialStats, initialMetadata, initialDays, initialRegion, init
                     {error && <p className={styles.error}>{error}</p>}
                     {!loading && !error && tableData.length > 0 && (
                         <table className={styles.tableLoGan}>
-                            <caption className={styles.caption}>Thống kê lô gan {region} {tinh ? `- ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh)}` : ''} trong {days} ngày</caption>
+                            <caption className={styles.caption}>
+                                Thống kê lô gan {region} {tinh ? `- ${Object.keys(provinceSlugs).find(key => provinceSlugs[key] === tinh)}` : ''} trong {days} ngày
+                            </caption>
                             <thead>
                                 <tr>
                                     <th>Số</th>
@@ -359,8 +379,8 @@ const Logan = ({ initialStats, initialMetadata, initialDays, initialRegion, init
                                 </tr>
                             </thead>
                             <tbody>
-                                {tableData.map((stat, index) => (
-                                    <tr key={index}>
+                                {tableData.map((stat) => (
+                                    <tr key={stat.id}>
                                         <td className={`${styles.number} ${styles.highlight}`}>
                                             {stat.number}
                                         </td>
@@ -391,7 +411,6 @@ const Logan = ({ initialStats, initialMetadata, initialDays, initialRegion, init
                         <Suspense fallback={<div>Loading...</div>}>
                             <DescriptionContent />
                         </Suspense>
-
                     )}
                     <button
                         className={styles.toggleBtn}
@@ -430,7 +449,7 @@ const Logan = ({ initialStats, initialMetadata, initialDays, initialRegion, init
                     </a>
                 </div>
             </div>
-        </div >
+        </div>
     );
 };
 
@@ -449,6 +468,7 @@ export async function getServerSideProps() {
             data = await apiMN.getLoGanStats(days, tinh);
         }
 
+        console.log('Server-side stats:', data.statistics); // Debug dữ liệu server
         return {
             props: {
                 initialStats: data.statistics || [],

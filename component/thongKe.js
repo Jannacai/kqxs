@@ -17,7 +17,6 @@ const ThongKe = () => {
         { title: "Tần suất Lô Cặp", href: "/thongke/Tan-Suat-Lo-Cap" },
         { title: "Tần suất Lô Rơi", href: "#" },
         { title: "Tần suất Giải Đặc Biệt", href: "#" },
-
     ];
 
     return (
@@ -30,11 +29,12 @@ const ThongKe = () => {
                 </h3>
                 <ul className={styles.list}>
                     {items.map((item, index) => (
-                        <li key={index} className={styles.item}>
+                        <li key={item.title} className={styles.item}>
                             <Link
                                 href={item.href}
                                 className={`${styles.action_Link} ${router.pathname === item.href ? styles.active : ""}`}
                                 title={item.title}
+                                onClick={(e) => item.href === '#' && e.preventDefault()}
                             >
                                 {item.title}
                             </Link>
@@ -42,7 +42,7 @@ const ThongKe = () => {
                     ))}
                 </ul>
             </div>
-        </div >
+        </div>
     );
 };
 

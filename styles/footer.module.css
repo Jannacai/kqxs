@@ -5,6 +5,7 @@
     box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
     color: #4b5563;
     width: 100%;
+    min-height: 200px;
     /* Container footer chiếm toàn màn hình */
 }
 
@@ -81,7 +82,7 @@
 
 .endFooter::before {
     content: "";
-     position: absolute;
+    position: absolute;
     display: block;
     top: -10px;
     width: 100%;

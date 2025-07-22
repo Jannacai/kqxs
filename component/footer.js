@@ -2,7 +2,8 @@
 import styles from '../styles/footer.module.css';
 import Image from 'next/image';
 import logo from '../pages/asset/img/LOGOxsmn_win.png';
-
+import { AiFillFacebook } from "react-icons/ai";
+import { BsTelegram, BsYoutube, BsLinkedin, BsFacebook } from "react-icons/bs";
 const Footer = () => {
 
     return (
@@ -61,10 +62,10 @@ const Footer = () => {
                 </div>
                 <div className={styles.contact}>
                     <div className={styles.groupIcon}>
-                        <span className={styles.icon}><i class="fa-brands fa-facebook"></i></span>
-                        <span className={styles.icon}><i class="fa-brands fa-telegram"></i></span>
-                        <span className={styles.icon}><i class="fa-brands fa-youtube"></i></span>
-                        <span className={styles.icon}><i class="fa-brands fa-linkedin"></i></span>
+                        <span className={styles.icon}><BsFacebook /></span>
+                        <span className={styles.icon}><BsTelegram /></span>
+                        <span className={styles.icon}><BsYoutube /></span>
+                        <span className={styles.icon}><BsLinkedin /> </span>
                     </div>
                     <strong>Copyright © 2025 XSMB.WIN.Com</strong>
                 </div>

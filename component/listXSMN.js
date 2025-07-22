@@ -7,9 +7,9 @@ const ListXSMN = () => {
     return (
         <div id="list" className={styles.container}>
             <h3 className={styles.title}>
-                <span className={styles.icon}><i class="fa-solid fa-landmark"></i></span>
+                {/* <span className={styles.icon}><i class="fa-solid fa-landmark"></i></span> */}
                 Xổ Số Miền Nam
-                <span className={styles.iconDown}><i class="fa-solid fa-circle-chevron-left"></i></span>
+                {/* <span className={styles.iconDown}><i class="fa-solid fa-circle-chevron-left"></i></span> */}
             </h3>
             <ul className={styles.list}>
                 <li className={styles.item}>

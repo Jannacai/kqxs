@@ -1,6 +1,6 @@
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
-
+import Image from 'next/image';
 // Dynamic imports
 const Calendar = dynamic(() => import('../component/caledar'), { ssr: false });
 const ThongKe = dynamic(() => import('../component/thongKe'), { ssr: false });

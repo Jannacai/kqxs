@@ -1,8 +1,13 @@
 /** @type {import('next').NextConfig} */
-module.exports = {
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+    enabled: process.env.ANALYZE === 'true',
+});
+
+module.exports = withBundleAnalyzer({
     reactStrictMode: true,
     experimental: {
         allowedDevOrigins: ['https://xsmb.win'],
+        browsersListForSwc: ['defaults', 'not IE 11'], // Loại bỏ polyfills
     },
     env: {
         BACKEND_URL: process.env.BACKEND_URL,
@@ -12,29 +17,41 @@ module.exports = {
             {
                 protocol: 'https',
                 hostname: 'drive.google.com',
-                port: '',
                 pathname: '/**',
             },
             {
                 protocol: 'https',
                 hostname: 'i1-vnexpress.vnecdn.net',
-                port: '',
                 pathname: '/**',
             },
             {
                 protocol: 'https',
                 hostname: 'th.bing.com',
-                port: '',
                 pathname: '/**',
             },
             {
                 protocol: 'https',
-                hostname: '**',
-                port: '',
+                hostname: 'xsmb.win',
                 pathname: '/**',
             },
+            {
+                protocol: 'https',
+                hostname: 'res.cloudinary.com',
+                pathname: '/**',
+            },
+            {
+                protocol: 'https',
+                hostname: 'media.npr.org', // Thêm hostname media.npr.org
+                pathname: '/assets/img/**',
+            },
         ],
-        domains: [],
+        formats: ['image/avif', 'image/webp'],
+        minimumCacheTTL: 60,
+    },
+    compiler: {
+        removeConsole: {
+            exclude: ['error'],
+        },
     },
     async redirects() {
         return [
@@ -56,4 +73,4 @@ module.exports = {
             { source: '/thongke/dauduoi', destination: '/thongke/dau-duoi', permanent: true },
         ];
     },
-};
+});

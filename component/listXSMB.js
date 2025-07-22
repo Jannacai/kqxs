@@ -3,13 +3,12 @@ import styles from "../styles/listXSMB.module.css"
 import Link from "next/link";
 const ListXSMB = () => {
 
-
     return (
         <div id="list" className={styles.container}>
             <h3 className={styles.title}>
-                <span className={styles.icon}><i className="fa-solid fa-chart-simple"></i></span>
+                {/* <span className={styles.icon}><i className="fa-solid fa-chart-simple"></i></span> */}
                 Xổ Số Miền Bắc
-                <span className={styles.iconDown}><i class="fa-solid fa-circle-chevron-down"></i></span>
+                {/* <span className={styles.iconDown}><i class="fa-solid fa-circle-chevron-down"></i></span> */}
             </h3>
             <ul className={styles.list}>
                 <li className={styles.item}>

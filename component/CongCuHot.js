@@ -23,16 +23,17 @@ const CongCuHot = () => {
             {/* <Image className={styles.hot} src={logo} alt='xổ số bắc trung nam' /> */}
             <div className={styles.container}>
                 <h3 className={styles.title}>
-                    <span className={styles.icon}><i class="fa-solid fa-fire"></i></span>
+                    <span className={styles.icon}><i className="fa-solid fa-fire"></i></span>
                     Công Cụ Hot
                 </h3>
                 <ul className={styles.list}>
-                    {items.map((item, index) => (
-                        <li key={index} className={styles.item}>
+                    {items.map((item) => (
+                        <li key={item.title} className={styles.item}>
                             <Link
                                 href={item.href}
                                 className={`${styles.action_Link} ${router.pathname === item.href ? styles.active : ""}`}
                                 title={item.title}
+                                onClick={(e) => item.href === '#' && e.preventDefault()}
                             >
                                 {item.title}
                             </Link>
@@ -40,7 +41,7 @@ const CongCuHot = () => {
                     ))}
                 </ul>
             </div>
-        </div >
+        </div>
     );
 };
 
