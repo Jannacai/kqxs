@@ -208,7 +208,7 @@ const XSMB = ({ initialData, drawDate }) => {
                         ) : (
                             <span>Đang tải kết quả...</span>
                         )}
-                        <div className="desc1">
+                        <div className="desc1" style={{ minHeight: '200px' }}>
                             <h1 className='heading'>XSMB.WIN | Kết Quả Xổ Số Miền Bắc Nhanh Nhất - Chính Xác Nhất</h1>
                             <p>
                                 Cập nhật kết quả xổ số Miền Bắc (XSMB) ngày {drawDate} lúc 18h15 trực tiếp từ trường quay. Xem chi tiết giải đặc biệt, lô tô, đầu đuôi và thống kê nhanh chóng tại xsmb.win. Khám phá thêm <a href="/ket-qua-xo-so-mien-trung">XSMT</a>, <a href="/ket-qua-xo-so-mien-nam">XSMN</a>, và <a href="/thong-ke-xsmb">thống kê XSMB</a> để phân tích chi tiết!

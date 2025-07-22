@@ -203,7 +203,7 @@ const XSMN = ({ initialData, drawDate }) => {
                         ) : (
                             <span>Đang tải kết quả...</span>
                         )}
-                        <div className="desc1">
+                        <div className="desc1" style={{ minHeight: '200px' }}>
                             <h1 className='heading'>XSMN.WIN | Kết Quả Xổ Số Miền Nam Nhanh Nhất - Chính Xác Nhất</h1>
                             <p>
                                 Cập nhật kết quả xổ số Miền Nam (XSMN) ngày {drawDate} lúc 16h10 trực tiếp từ trường quay các tỉnh. Xem chi tiết giải đặc biệt, lô tô, đầu đuôi và thống kê nhanh chóng tại xsmb.win. Khám phá thêm <a href="/ket-qua-xo-so-mien-bac">XSMB</a>, <a href="/ket-qua-xo-so-mien-trung">XSMT</a>, và <a href="/thong-ke-xsmn">thống kê XSMN</a> để phân tích chi tiết!

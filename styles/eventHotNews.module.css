@@ -1,9 +1,7 @@
 .container {
-    /* max-width: 960px; */
     margin: 0 auto;
     padding: 12px;
     background-color: #ccc;
-    /* border-radius: 12px; */
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     box-shadow: rgba(0, 0, 0, 0.19) 0px 10px 20px, rgba(0, 0, 0, 0.23) 0px 6px 6px;
     transition: box-shadow 0.3s ease;
@@ -39,18 +37,13 @@
     margin-bottom: 32px;
     background: linear-gradient(135deg, #FDD819 10%, #e8050569 100%);
     padding: 10px 0;
-    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
-.title::before {
-    content: '\f0a1';
-    /* Font Awesome icon: bullhorn */
-    font-family: 'Font Awesome 6 Free';
-    font-weight: 900;
-    position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
+.titleIcon {
     color: #3b82f6;
     font-size: 28px;
 }
@@ -63,8 +56,7 @@
 }
 
 .tab {
-    padding: 12px 0px;
-    /* Extra padding for icon */
+    padding: 12px 16px;
     border: none;
     background-color: #fff;
     color: #374151;
@@ -73,30 +65,22 @@
     cursor: pointer;
     border-radius: 8px;
     transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
-    position: relative;
     max-width: 150px;
     width: 150px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.tab::before {
-    font-family: 'Font Awesome 6 Free';
-    font-weight: 900;
-    position: absolute;
-    left: 16px;
-    top: 50%;
-    transform: translateY(-50%);
+.tabIcon {
     font-size: 14px;
 }
 
-.tab[data-tab="event"]::before {
-    content: '\f073';
-    /* Font Awesome icon: calendar */
+.tab[data-tab="event"] .tabIcon {
     color: #10b981;
 }
 
-.tab[data-tab="hot_news"]::before {
-    content: '\f0e7';
-    /* Font Awesome icon: bolt */
+.tab[data-tab="hot_news"] .tabIcon {
     color: #ef4444;
 }
 
@@ -106,7 +90,7 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-.tab.active::before {
+.tab.active .tabIcon {
     color: #ffffff;
 }
 
@@ -154,52 +138,32 @@
 }
 
 .itemLabel {
-    display: block;
-    width: 120px;
+    display: flex;
     align-items: center;
-    padding: 10px 10px;
+    gap: 8px;
+    width: 130px;
+    padding: 10px;
     font-size: 17px;
     font-weight: 600;
     color: #ffffff;
     background-color: #3b82f6;
     border-radius: 6px;
     transition: background-color 0.2s ease;
-    /* position: relative; */
 }
 
-/* .itemLabel::before {
-    font-family: 'Font Awesome 6 Free';
-    font-weight: 900;
-    position: absolute;
-    left: 8px;
-    top: 50%;
-    transform: translateY(-50%);
+.itemLabelIcon {
+    display: flex;
+    align-items: center;
     font-size: 12px;
-} */
+    color: #ffffff;
+}
 
 .itemLabel[data-type="hot_news"] {
-    background-color: #10b981;
+    background-color: #ef4444;
 }
 
-.itemLabel[data-type="hot_news"]::before {
-    content: '‼️';
-    color: #ffffff;
-}
-
-/* .itemLabel[data-type="discussion"]::before {
-    content: '♻️';
-color: #ffffff;
-}
-
-*/
 .itemLabel[data-type="event"] {
-    background-color: #dc2626;
-}
-
-.itemLabel[data-type="event"]::before {
-    content: '⚜️';
-    /* Font Awesome icon: calendar */
-    color: #ffffff;
+    background-color: orangered;
 }
 
 .item:hover .itemLabel {
@@ -230,35 +194,16 @@ color: #ffffff;
     color: #4b5563;
     margin-bottom: 8px;
     font-weight: 500;
-    position: relative;
-    padding-left: 24px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.viewCount::before,
-.commentCount::before,
-.registrationCount::before {
-    font-family: 'Font Awesome 6 Free';
-    font-weight: 900;
-    position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
+.viewCountIcon,
+.registrationCountIcon,
+.commentCountIcon {
     font-size: 14px;
     color: #4b5563;
-}
-
-.viewCount::before {
-    content: '\f06e';
-    /* Font Awesome icon: eye */
-}
-
-.registrationCount::before {
-    content: '\f234';
-    /* Font Awesome icon: user-plus */
-}
-
-.commentCount::before {
-    content: '\f135';
 }
 
 .itemMeta {
@@ -266,19 +211,12 @@ color: #ffffff;
     color: #6b7280;
     font-style: italic;
     margin-top: 8px;
-    position: relative;
-    padding-left: 24px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.itemMeta::before {
-    content: '\f017';
-    /* Font Awesome icon: clock */
-    font-family: 'Font Awesome 6 Free';
-    font-weight: 900;
-    position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
+.itemMetaIcon {
     font-size: 14px;
     color: #6b7280;
 }
@@ -291,19 +229,12 @@ color: #ffffff;
     background-color: #fef2f2;
     padding: 12px;
     border-radius: 6px;
-    position: relative;
-    padding-left: 36px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.error::before {
-    content: '\f071';
-    /* Font Awesome icon: exclamation-triangle */
-    font-family: 'Font Awesome 6 Free';
-    font-weight: 900;
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
+.errorIcon {
     font-size: 14px;
     color: #dc2626;
 }
@@ -317,8 +248,6 @@ color: #ffffff;
 }
 
 .pagination button {
-    /* padding: 12px 22px; */
-    /* Extra padding for icon */
     height: 35px;
     background: linear-gradient(135deg, #3b82f6, #60a5fa);
     color: #ffffff;
@@ -330,31 +259,18 @@ color: #ffffff;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     animation: pulse 2s infinite ease-in-out;
     transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
-    position: relative;
     line-height: 35px;
     width: 150px;
     min-width: 100px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
 }
 
-.pagination button::before {
-    font-family: 'Font Awesome 6 Free';
-    font-weight: 900;
-    position: absolute;
-    left: 5px;
-    top: 50%;
-    transform: translateY(-50%);
+.paginationIcon {
     font-size: 14px;
     color: #ffffff;
-}
-
-.pagination button:nth-child(1)::before {
-    content: '\f060';
-    /* Font Awesome icon: arrow-left */
-}
-
-.pagination button:nth-child(3)::before {
-    content: '\f061';
-    /* Font Awesome icon: arrow-right */
 }
 
 .pagination button:disabled {
@@ -365,7 +281,7 @@ color: #ffffff;
     box-shadow: none;
 }
 
-.pagination button:disabled::before {
+.pagination button:disabled .paginationIcon {
     color: #9ca3af;
 }
 
@@ -386,19 +302,13 @@ color: #ffffff;
     font-size: 18px;
     color: #374151;
     padding: 32px;
-    position: relative;
-    padding-left: 48px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
 }
 
-.loading::before {
-    content: '\f1ce';
-    /* Font Awesome icon: spinner */
-    font-family: 'Font Awesome 6 Free';
-    font-weight: 900;
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
+.loadingIcon {
     font-size: 18px;
     color: #374151;
     animation: spin 1s linear infinite;
@@ -419,7 +329,7 @@ color: #ffffff;
         -webkit-text-fill-color: transparent;
     }
 
-    .title::before {
+    .titleIcon {
         color: #3b82f6;
     }
 
@@ -460,12 +370,14 @@ color: #ffffff;
     }
 
     .viewCount,
-    .registrationCount {
+    .registrationCount,
+    .commentCount {
         color: #d1d5db;
     }
 
-    .viewCount::before,
-    .registrationCount::before {
+    .viewCountIcon,
+    .registrationCountIcon,
+    .commentCountIcon {
         color: #d1d5db;
     }
 
@@ -473,7 +385,7 @@ color: #ffffff;
         color: #9ca3af;
     }
 
-    .itemMeta::before {
+    .itemMetaIcon {
         color: #9ca3af;
     }
 
@@ -482,7 +394,7 @@ color: #ffffff;
         background-color: #7f1d1d;
     }
 
-    .error::before {
+    .errorIcon {
         color: #f87171;
     }
 
@@ -495,7 +407,7 @@ color: #ffffff;
         color: #6b7280;
     }
 
-    .pagination button:disabled::before {
+    .pagination button:disabled .paginationIcon {
         color: #6b7280;
     }
 
@@ -511,7 +423,7 @@ color: #ffffff;
         color: #d1d5db;
     }
 
-    .loading::before {
+    .loadingIcon {
         color: #d1d5db;
     }
 }
@@ -533,10 +445,10 @@ color: #ffffff;
 
 @keyframes spin {
     0% {
-        transform: translateY(-50%) rotate(0deg);
+        transform: rotate(0deg);
     }
 
     100% {
-        transform: translateY(-50%) rotate(360deg);
+        transform: rotate(360deg);
     }
 }

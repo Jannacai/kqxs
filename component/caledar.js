@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import styles from '../public/css/calenda.module.css';
+import { FaChevronCircleLeft, FaChevronCircleRight } from 'react-icons/fa';
 
 const formatNumber = (num) => {
     return num < 10 ? `0${num}` : num;
@@ -18,7 +19,7 @@ const Calendar = ({ onDateChange }) => {
     ];
     const daysOfWeek = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
     const minYear = 2020;
-    const maxYear = new Date().getFullYear(); // Giới hạn năm tối đa là năm hiện tại
+    const maxYear = new Date().getFullYear();
 
     const today = new Date();
     const [currentYear, setCurrentYear] = useState(today.getFullYear());
@@ -40,7 +41,6 @@ const Calendar = ({ onDateChange }) => {
                 setCurrentYear(dateFromSlug.getFullYear());
             } else {
                 console.warn('Invalid or future date from slug:', slug);
-                // Chuyển hướng về ngày hiện tại
                 const dayFormatted = formatNumber(today.getDate());
                 const monthFormatted = formatNumber(today.getMonth() + 1);
                 const defaultSlug = `${dayFormatted}-${monthFormatted}-${today.getFullYear()}`;
@@ -68,7 +68,7 @@ const Calendar = ({ onDateChange }) => {
 
     const years = Array.from({ length: maxYear - minYear + 1 }, (_, i) => minYear + i);
 
-    const handlePrevMonth = () => {
+    const handlePrevMonth = useCallback(() => {
         let newMonth = currentMonth - 1;
         let newYear = currentYear;
         if (newMonth < 0) {
@@ -78,30 +78,36 @@ const Calendar = ({ onDateChange }) => {
         if (newYear < minYear) return;
         setCurrentMonth(newMonth);
         setCurrentYear(newYear);
-    };
+    }, [currentMonth, currentYear, minYear]);
 
-    const handleNextMonth = () => {
+    const handleNextMonth = useCallback(() => {
         let newMonth = currentMonth + 1;
         let newYear = currentYear;
         if (newMonth > 11) {
             newMonth = 0;
             newYear++;
         }
-        // Không cho phép chọn tháng trong tương lai
         if (newYear > maxYear || (newYear === maxYear && newMonth > today.getMonth())) return;
         setCurrentMonth(newMonth);
         setCurrentYear(newYear);
-    };
+    }, [currentMonth, currentYear, maxYear, today]);
 
-    const handleDateClick = (day) => {
-        const newDate = new Date(currentYear, currentMonth, day);
-        if (newDate > today) return; // Không cho phép chọn ngày trong tương lai
-        setSelectedDate(newDate);
-        const dayFormatted = formatNumber(day);
-        const monthFormatted = formatNumber(currentMonth + 1);
-        const slug = `${dayFormatted}-${monthFormatted}-${currentYear}`;
-        router.push(`/xsmb/${slug}`);
-    };
+    const handleDateClick = useCallback(
+        (day) => {
+            const newDate = new Date(currentYear, currentMonth, day);
+            if (newDate > today) return;
+            setSelectedDate(newDate);
+            const dayFormatted = formatNumber(day);
+            const monthFormatted = formatNumber(currentMonth + 1);
+            const slug = `${dayFormatted}-${monthFormatted}-${currentYear}`;
+            router.push(`/xsmb/${slug}`);
+        },
+        [currentYear, currentMonth, today, router]
+    );
+
+    const toggleMenu = useCallback(() => {
+        setIsMenuOpen(true);
+    }, []);
 
     const renderCalendar = () => {
         const firstDay = new Date(currentYear, currentMonth, 1).getDay();
@@ -132,10 +138,6 @@ const Calendar = ({ onDateChange }) => {
         return days;
     };
 
-    const toggleMenu = () => {
-        setIsMenuOpen(true);
-    };
-
     return (
         <div className={styles.calendarContainer}>
             <div className={styles.calendarHeader}>
@@ -144,7 +146,7 @@ const Calendar = ({ onDateChange }) => {
                     disabled={currentYear === minYear && currentMonth === 0}
                     className={styles.navButton}
                 >
-                    <i className="iconLeft fa-solid fa-circle-chevron-left"></i>
+                    <FaChevronCircleLeft className="iconLeft" />
                 </button>
                 <div className={styles.selectContainer}>
                     <select
@@ -175,7 +177,7 @@ const Calendar = ({ onDateChange }) => {
                     disabled={currentYear === maxYear && currentMonth === today.getMonth()}
                     className={styles.navButton}
                 >
-                    <i className="iconRight fa-solid fa-circle-chevron-right"></i>
+                    <FaChevronCircleRight className="iconRight" />
                 </button>
             </div>
             <div className={styles.calendarDays}>

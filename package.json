@@ -51,5 +51,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start"
+  },
+  "devDependencies": {
+    "clean-css": "^5.3.3",
+    "critical": "^7.2.1"
   }
 }

@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
@@ -9,6 +9,19 @@ import moment from 'moment';
 import 'moment-timezone';
 import styles from '../../../styles/eventHotNews.module.css';
 import EditPostModal from '../../../component/EditPostModal';
+import {
+    FaBullhorn,
+    FaCalendar,
+    FaBolt,
+    FaEye,
+    FaUserPlus,
+    FaRocket,
+    FaClock,
+    FaExclamationTriangle,
+    FaArrowLeft,
+    FaArrowRight,
+    FaSpinner
+} from 'react-icons/fa';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
 const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
@@ -145,7 +158,7 @@ export default function EventHotNews() {
         fetchItems();
     }, [tab, page]);
 
-    const fetchItems = async () => {
+    const fetchItems = useCallback(async () => {
         try {
             const res = await axios.get(`${API_BASE_URL}/api/events`, {
                 params: { type: tab, page, limit: 20 },
@@ -158,21 +171,21 @@ export default function EventHotNews() {
             setError(err.response?.data?.message || 'Đã có lỗi khi lấy danh sách');
             console.error('Error fetching items:', err.message);
         }
-    };
+    }, [tab, page, session]);
 
-    const handleItemClick = (id) => {
+    const handleItemClick = useCallback((id) => {
         router.push(`/diendan/events/${id} `);
-    };
+    }, [router]);
 
-    const handlePostDiscussion = () => {
+    const handlePostDiscussion = useCallback(() => {
         router.push('/diendan/postthaoluan');
-    };
+    }, [router]);
 
-    const handleEdit = (item) => {
+    const handleEdit = useCallback((item) => {
         setEditItem(item);
-    };
+    }, []);
 
-    const handleDelete = async (id) => {
+    const handleDelete = useCallback(async (id) => {
         if (!confirm('Bạn có chắc muốn xóa bài viết này?')) return;
         try {
             await axios.delete(`${API_BASE_URL}/api/events/${id} `, {
@@ -183,33 +196,50 @@ export default function EventHotNews() {
             setError(err.response?.data?.message || 'Đã có lỗi khi xóa bài viết');
             alert(err.response?.data?.message || 'Đã có lỗi khi xóa bài viết');
         }
-    };
+    }, [session]);
 
-    const handleCloseModal = () => {
+    const handleCloseModal = useCallback(() => {
         setEditItem(null);
-    };
+    }, []);
 
-    if (status === 'loading') return <div className={styles.loading}>Đang tải...</div>;
+    if (status === 'loading') {
+        return (
+            <div className={styles.loading}>
+                <FaSpinner className={styles.loadingIcon} />
+                Đang tải...
+            </div>
+        );
+    }
 
     return (
         <div className={styles.container}>
+            <h1 className={styles.title}>
+                <FaBullhorn className={styles.titleIcon} />
+                Tin Tức & Sự Kiện
+            </h1>
             <div className={styles.tabContainer}>
                 <button
-                    className={`${styles.tab} ${tab === 'event' ? styles.active : ''} `}
+                    className={`${styles.tab} ${tab === 'event' ? styles.active : ''}`}
+                    data-tab="event"
                     onClick={() => { setTab('event'); setPage(1); }}
                 >
+                    <FaCalendar className={styles.tabIcon} />
                     Sự kiện
                 </button>
                 <button
-                    className={`${styles.tab} ${tab === 'hot_news' ? styles.active : ''} `}
+                    className={`${styles.tab} ${tab === 'hot_news' ? styles.active : ''}`}
+                    data-tab="hot_news"
                     onClick={() => { setTab('hot_news'); setPage(1); }}
                 >
+                    <FaBolt className={styles.tabIcon} />
                     Tin hot
                 </button>
                 <button
-                    className={`${styles.tab} ${tab === 'discussion' ? styles.active : ''} `}
+                    className={`${styles.tab} ${tab === 'discussion' ? styles.active : ''}`}
+                    data-tab="discussion"
                     onClick={() => { setTab('discussion'); setPage(1); }}
                 >
+                    <span className={styles.tabIcon}>♻️</span>
                     Thảo luận
                 </button>
                 {status === 'authenticated' && tab === 'discussion' && (
@@ -222,7 +252,12 @@ export default function EventHotNews() {
                 )}
             </div>
             <div className={styles.listContainer}>
-                {error && <p className={styles.error}>{error}</p>}
+                {error && (
+                    <p className={styles.error}>
+                        <FaExclamationTriangle className={styles.errorIcon} />
+                        {error}
+                    </p>
+                )}
                 {items.length === 0 ? (
                     <p>Không có bài viết nào</p>
                 ) : (
@@ -236,23 +271,34 @@ export default function EventHotNews() {
                                 onClick={() => handleItemClick(item._id)}
                             >
                                 <h3>
-                                    <span className={styles.itemLabel} data-type={item.type}>
+                                    <span
+                                        className={styles.itemLabel}
+                                        data-type={item.type}
+                                    >
+                                        {item.type === 'hot_news' && <span className={styles.itemLabelIcon}>                    <FaBolt className={styles.tabIcon} />
+                                        </span>}
+                                        {item.type === 'event' && <span className={styles.itemLabelIcon}>⚜️</span>}
+                                        {item.type === 'discussion' && <span className={styles.itemLabelIcon}>♻️</span>}
                                         {item.type === 'hot_news' ? 'Tin hot' : item.type === 'event' ? 'Sự kiện' : 'Thảo luận'}
                                     </span>
                                     <span className={styles.itemTitle}>{item.title}</span>
                                 </h3>
                                 <p className={styles.viewCount}>
+                                    <FaEye className={styles.viewCountIcon} />
                                     Số người xem: {item.viewCount || 0}
                                 </p>
                                 {item.type === 'event' && (
                                     <p className={styles.registrationCount}>
+                                        <FaUserPlus className={styles.registrationCountIcon} />
                                         Số người tham gia: {item.registrationCount || 0}
                                     </p>
                                 )}
                                 <p className={styles.commentCount}>
+                                    <FaRocket className={styles.commentCountIcon} />
                                     Số bình luận: {item.commentCount || 0}
                                 </p>
                                 <p className={styles.itemMeta}>
+                                    <FaClock className={styles.itemMetaIcon} />
                                     Đăng bởi: {item.createdBy?.fullname || 'Ẩn danh'} |{' '}
                                     {moment.tz(item.createdAt, 'Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm:ss')}
                                 </p>
@@ -282,6 +328,7 @@ export default function EventHotNews() {
                     disabled={page === 1}
                     onClick={() => setPage(page - 1)}
                 >
+                    <FaArrowLeft className={styles.paginationIcon} />
                     Trang trước
                 </button>
                 <span>Trang {page}</span>
@@ -289,6 +336,7 @@ export default function EventHotNews() {
                     disabled={page * 20 >= total}
                     onClick={() => setPage(page + 1)}
                 >
+                    <FaArrowRight className={styles.paginationIcon} />
                     Trang sau
                 </button>
             </div>

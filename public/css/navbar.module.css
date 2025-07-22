@@ -13,6 +13,11 @@
     padding: 0 20px;
 }
 
+.icon {
+    display: flex;
+    align-items: center;
+}
+
 .nav_list {
     display: flex;
     flex-wrap: wrap;
@@ -343,8 +348,8 @@
 
     .iconNav {
         display: inline-block;
-        padding: 10px 20px 10px 5px;
-        background-color: #EA5455;
+        padding: 7px 20px 10px 7px;
+        background-color: #f1c40fa3;
         width: 30px;
         height: 30px;
         border-radius: 50%;
