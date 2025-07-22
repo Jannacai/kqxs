@@ -1,16 +1,10 @@
-
-import styles from "../styles/listXSMN.module.css"
+import styles from "../styles/listXSMN.module.css";
 import Link from "next/link";
+
 const ListXSMN = () => {
-
-
     return (
         <div id="list" className={styles.container}>
-            <h3 className={styles.title}>
-                {/* <span className={styles.icon}><i class="fa-solid fa-landmark"></i></span> */}
-                Xổ Số Miền Nam
-                {/* <span className={styles.iconDown}><i class="fa-solid fa-circle-chevron-left"></i></span> */}
-            </h3>
+            <h2 className={styles.title}>Xổ Số Miền Nam</h2>
             <ul className={styles.list}>
                 <li className={styles.item}>
                     <Link title="Xổ Số Miền Nam - Vũng Tàu" href="/xsmn/tinh/vung-tau" className={styles.action_Link}>Vũng Tàu</Link>
@@ -22,7 +16,7 @@ const ListXSMN = () => {
                     <Link title="Xổ Số Miền Nam - Đồng Tháp" href="/xsmn/tinh/dong-thap" className={styles.action_Link}>Đồng Tháp</Link>
                 </li>
                 <li className={styles.item}>
-                    <Link title="Xổ Số Miền Nam - TP.Hồ Chí Minh" href="/xsmn/tinh/tphcm" className={styles.action_Link}>TP.Hồ Chí Minh </Link>
+                    <Link title="Xổ Số Miền Nam - TP.Hồ Chí Minh" href="/xsmn/tinh/tphcm" className={styles.action_Link}>TP.Hồ Chí Minh</Link>
                 </li>
                 <li className={styles.item}>
                     <Link title="Xổ Số Miền Nam - Cà Mau" href="/xsmn/tinh/ca-mau" className={styles.action_Link}>Cà Mau</Link>
@@ -45,19 +39,15 @@ const ListXSMN = () => {
                 <li className={styles.item}>
                     <Link title="Xổ Số Miền Nam - Tây Ninh" href="/xsmn/tinh/tay-ninh" className={styles.action_Link}>Tây Ninh</Link>
                 </li>
-
                 <li className={styles.item}>
                     <Link title="Xổ Số Miền Nam - Bình Thuận" href="/xsmn/tinh/binh-thuan" className={styles.action_Link}>Bình Thuận</Link>
                 </li>
-
                 <li className={styles.item}>
                     <Link title="Xổ Số Miền Nam - Vĩnh Long" href="/xsmn/tinh/vinh-long" className={styles.action_Link}>Vĩnh Long</Link>
                 </li>
-
                 <li className={styles.item}>
                     <Link title="Xổ Số Miền Nam - Bình Dương" href="/xsmn/tinh/binh-duong" className={styles.action_Link}>Bình Dương</Link>
                 </li>
-
                 <li className={styles.item}>
                     <Link title="Xổ Số Miền Nam - Trà Vinh" href="/xsmn/tinh/tra-vinh" className={styles.action_Link}>Trà Vinh</Link>
                 </li>
@@ -81,6 +71,7 @@ const ListXSMN = () => {
                 </li>
             </ul>
         </div>
-    )
-}
+    );
+};
+
 export default ListXSMN;

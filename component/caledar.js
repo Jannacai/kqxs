@@ -27,7 +27,6 @@ const Calendar = ({ onDateChange }) => {
     const [selectedDate, setSelectedDate] = useState(new Date(today));
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-    // Đồng bộ selectedDate với slug từ URL
     useEffect(() => {
         if (!router.isReady) return;
 
@@ -40,14 +39,12 @@ const Calendar = ({ onDateChange }) => {
                 setCurrentMonth(dateFromSlug.getMonth());
                 setCurrentYear(dateFromSlug.getFullYear());
             } else {
-                console.warn('Invalid or future date from slug:', slug);
                 const dayFormatted = formatNumber(today.getDate());
                 const monthFormatted = formatNumber(today.getMonth() + 1);
                 const defaultSlug = `${dayFormatted}-${monthFormatted}-${today.getFullYear()}`;
                 router.replace(`/xsmb/${defaultSlug}`);
             }
         } else {
-            console.warn('No valid slug found, using default date (today)');
             const dayFormatted = formatNumber(today.getDate());
             const monthFormatted = formatNumber(today.getMonth() + 1);
             const defaultSlug = `${dayFormatted}-${monthFormatted}-${today.getFullYear()}`;
@@ -55,7 +52,6 @@ const Calendar = ({ onDateChange }) => {
         }
     }, [router.isReady, pathname, router, today]);
 
-    // Gọi onDateChange khi selectedDate thay đổi
     useEffect(() => {
         if (selectedDate) {
             const day = formatNumber(selectedDate.getDate());
@@ -105,10 +101,6 @@ const Calendar = ({ onDateChange }) => {
         [currentYear, currentMonth, today, router]
     );
 
-    const toggleMenu = useCallback(() => {
-        setIsMenuOpen(true);
-    }, []);
-
     const renderCalendar = () => {
         const firstDay = new Date(currentYear, currentMonth, 1).getDay();
         const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
@@ -129,6 +121,8 @@ const Calendar = ({ onDateChange }) => {
                     key={day}
                     className={`${styles.day} ${isToday ? styles.today : ''} ${isSelected ? styles.selected : ''} ${isFuture ? styles.disabled : ''}`}
                     onClick={() => !isFuture && handleDateClick(day)}
+                    role="button"
+                    aria-label={`Chọn ngày ${day} tháng ${currentMonth + 1} năm ${currentYear}`}
                 >
                     {day}
                 </div>
@@ -145,14 +139,18 @@ const Calendar = ({ onDateChange }) => {
                     onClick={handlePrevMonth}
                     disabled={currentYear === minYear && currentMonth === 0}
                     className={styles.navButton}
+                    aria-label="Chuyển đến tháng trước"
                 >
                     <FaChevronCircleLeft className="iconLeft" />
                 </button>
                 <div className={styles.selectContainer}>
+                    <label htmlFor="monthSelect" className="sr-only"></label>
                     <select
+                        id="monthSelect"
                         value={currentMonth}
                         onChange={(e) => setCurrentMonth(parseInt(e.target.value))}
                         className={styles.select}
+                        aria-label="Chọn tháng"
                     >
                         {months.map((month, index) => (
                             <option className={styles.optionMoth} key={index} value={index}>
@@ -160,10 +158,13 @@ const Calendar = ({ onDateChange }) => {
                             </option>
                         ))}
                     </select>
+                    <label htmlFor="yearSelect" className="sr-only"></label>
                     <select
+                        id="yearSelect"
                         value={currentYear}
                         onChange={(e) => setCurrentYear(parseInt(e.target.value))}
                         className={styles.select}
+                        aria-label="Chọn năm"
                     >
                         {years.map((year) => (
                             <option key={year} value={year}>
@@ -176,6 +177,7 @@ const Calendar = ({ onDateChange }) => {
                     onClick={handleNextMonth}
                     disabled={currentYear === maxYear && currentMonth === today.getMonth()}
                     className={styles.navButton}
+                    aria-label="Chuyển đến tháng sau"
                 >
                     <FaChevronCircleRight className="iconRight" />
                 </button>
@@ -194,9 +196,28 @@ const Calendar = ({ onDateChange }) => {
                     <Link
                         href={`/xsmb/${formatNumber(selectedDate.getDate())}-${formatNumber(selectedDate.getMonth() + 1)}-${selectedDate.getFullYear()}`}
                         className={styles.slugLink}
+                        title={`Kết quả xổ số Miền Bắc ngày ${formatNumber(selectedDate.getDate())}-${formatNumber(selectedDate.getMonth() + 1)}-${selectedDate.getFullYear()}`}
                     >
                         {`${formatNumber(selectedDate.getDate())}-${formatNumber(selectedDate.getMonth() + 1)}-${selectedDate.getFullYear()}`}
                     </Link>
+                    <script
+                        type="application/ld+json"
+                        dangerouslySetInnerHTML={{
+                            __html: JSON.stringify({
+                                '@context': 'https://schema.org',
+                                '@type': 'Event',
+                                name: `Kết quả xổ số Miền Bắc ngày ${formatNumber(selectedDate.getDate())}-${formatNumber(selectedDate.getMonth() + 1)}-${selectedDate.getFullYear()}`,
+                                startDate: `${selectedDate.getFullYear()}-${formatNumber(selectedDate.getMonth() + 1)}-${formatNumber(selectedDate.getDate())}`,
+                                eventAttendanceMode: 'https://schema.org/OnlineEventAttendanceMode',
+                                eventStatus: 'https://schema.org/EventScheduled',
+                                organizer: {
+                                    '@type': 'Organization',
+                                    name: 'XSMB',
+                                    url: 'https://xsmb.win',
+                                },
+                            }),
+                        }}
+                    />
                 </div>
             )}
         </div>

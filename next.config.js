@@ -2,12 +2,12 @@
 const withBundleAnalyzer = require('@next/bundle-analyzer')({
     enabled: process.env.ANALYZE === 'true',
 });
-
 module.exports = withBundleAnalyzer({
     reactStrictMode: true,
+    swcMinify: true, // Bật minify với SWC
     experimental: {
         allowedDevOrigins: ['https://xsmb.win'],
-        browsersListForSwc: ['defaults', 'not IE 11'], // Loại bỏ polyfills
+        browsersListForSwc: ['defaults', 'not IE 11'],
     },
     env: {
         BACKEND_URL: process.env.BACKEND_URL,
@@ -41,7 +41,7 @@ module.exports = withBundleAnalyzer({
             },
             {
                 protocol: 'https',
-                hostname: 'media.npr.org', // Thêm hostname media.npr.org
+                hostname: 'media.npr.org',
                 pathname: '/assets/img/**',
             },
         ],

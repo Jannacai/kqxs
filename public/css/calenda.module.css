@@ -45,7 +45,8 @@
 
 .selectContainer {
     display: flex;
-    gap: 8px;
+    align-items: center;
+    gap: 2px;
 }
 
 .select {

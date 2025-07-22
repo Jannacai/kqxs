@@ -28,7 +28,6 @@ const CalendarMobile = ({ onDateChange }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const calendarRef = useRef(null);
 
-    // Đồng bộ selectedDate với slug từ URL
     useEffect(() => {
         if (!router.isReady) return;
 
@@ -41,14 +40,12 @@ const CalendarMobile = ({ onDateChange }) => {
                 setCurrentMonth(dateFromSlug.getMonth());
                 setCurrentYear(dateFromSlug.getFullYear());
             } else {
-                console.warn('Invalid or future date from slug:', slug);
                 const dayFormatted = formatNumber(today.getDate());
                 const monthFormatted = formatNumber(today.getMonth() + 1);
                 const defaultSlug = `${dayFormatted}-${monthFormatted}-${today.getFullYear()}`;
                 router.replace(`/xsmb/${defaultSlug}`);
             }
         } else {
-            console.warn('No valid slug found, using default date (today)');
             const dayFormatted = formatNumber(today.getDate());
             const monthFormatted = formatNumber(today.getMonth() + 1);
             const defaultSlug = `${dayFormatted}-${monthFormatted}-${today.getFullYear()}`;
@@ -56,7 +53,6 @@ const CalendarMobile = ({ onDateChange }) => {
         }
     }, [router.isReady, pathname, router, today]);
 
-    // Gọi onDateChange khi selectedDate thay đổi
     useEffect(() => {
         if (selectedDate) {
             const day = formatNumber(selectedDate.getDate());
@@ -67,7 +63,6 @@ const CalendarMobile = ({ onDateChange }) => {
         }
     }, [selectedDate, onDateChange]);
 
-    // Xử lý click ngoài modal để đóng
     const handleClickOutside = useCallback((event) => {
         if (calendarRef.current && !calendarRef.current.contains(event.target)) {
             setIsMenuOpen(false);
@@ -147,6 +142,8 @@ const CalendarMobile = ({ onDateChange }) => {
                     key={day}
                     className={`${styles.day} ${isToday ? styles.today : ''} ${isSelected ? styles.selected : ''} ${isFuture ? styles.disabled : ''}`}
                     onClick={() => !isFuture && handleDateClick(day)}
+                    role="button"
+                    aria-label={`Chọn ngày ${day} tháng ${currentMonth + 1} năm ${currentYear}`}
                 >
                     {day}
                 </div>
@@ -158,7 +155,7 @@ const CalendarMobile = ({ onDateChange }) => {
 
     return (
         <div>
-            <span className={styles.iconMenu} onClick={toggleMenu}>
+            <span className={styles.iconMenu} onClick={toggleMenu} role="button" aria-label="Mở lịch chọn ngày">
                 <FaCalendarDay />
             </span>
             {isMenuOpen && <div className={styles.overlay}></div>}
@@ -168,14 +165,18 @@ const CalendarMobile = ({ onDateChange }) => {
                         onClick={handlePrevMonth}
                         disabled={currentYear === minYear && currentMonth === 0}
                         className={styles.navButton}
+                        aria-label="Chuyển đến tháng trước"
                     >
                         <FaChevronCircleLeft className="iconLeft" />
                     </button>
                     <div className={styles.selectContainer}>
+                        <label htmlFor="monthSelectMobile" className="sr-only"></label>
                         <select
+                            id="monthSelectMobile"
                             value={currentMonth}
                             onChange={(e) => setCurrentMonth(parseInt(e.target.value))}
                             className={styles.select}
+                            aria-label="Chọn tháng"
                         >
                             {months.map((month, index) => (
                                 <option className={styles.optionMoth} key={index} value={index}>
@@ -183,10 +184,13 @@ const CalendarMobile = ({ onDateChange }) => {
                                 </option>
                             ))}
                         </select>
+                        <label htmlFor="yearSelectMobile" className="sr-only"></label>
                         <select
+                            id="yearSelectMobile"
                             value={currentYear}
                             onChange={(e) => setCurrentYear(parseInt(e.target.value))}
                             className={styles.select}
+                            aria-label="Chọn năm"
                         >
                             {years.map((year) => (
                                 <option key={year} value={year}>
@@ -199,6 +203,7 @@ const CalendarMobile = ({ onDateChange }) => {
                         onClick={handleNextMonth}
                         disabled={currentYear === maxYear && currentMonth === today.getMonth()}
                         className={styles.navButton}
+                        aria-label="Chuyển đến tháng sau"
                     >
                         <FaChevronCircleRight className="iconRight" />
                     </button>
@@ -217,6 +222,7 @@ const CalendarMobile = ({ onDateChange }) => {
                         <Link
                             href={`/xsmb/${formatNumber(selectedDate.getDate())}-${formatNumber(selectedDate.getMonth() + 1)}-${selectedDate.getFullYear()}`}
                             className={styles.slugLink}
+                            title={`Kết quả xổ số Miền Bắc ngày ${formatNumber(selectedDate.getDate())}-${formatNumber(selectedDate.getMonth() + 1)}-${selectedDate.getFullYear()}`}
                         >
                             {`${formatNumber(selectedDate.getDate())}-${formatNumber(selectedDate.getMonth() + 1)}-${selectedDate.getFullYear()}`}
                         </Link>

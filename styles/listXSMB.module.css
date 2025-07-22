@@ -9,22 +9,6 @@
     background-color: #f9f9f9;
 }
 
-.icon {
-    margin-right: 5px;
-    font-size: 20px;
-}
-
-.iconDown {
-    position: absolute;
-    right: 20px;
-}
-
-.iconDown i {
-    border-radius: 50%;
-    font-size: 30px;
-    background-color: #ed1c25;
-}
-
 .title {
     position: relative;
     display: flex;
@@ -32,57 +16,54 @@
     margin: 10px;
     border-radius: 8px;
     font-weight: 500;
-    color: var(--color-white);
+    color: #ffffff;
     width: 280px;
     padding: 15px;
-    background: #ed1c25;
+    background: #b91c1c;
 }
 
-
-
-.container:hover .list {
-    transition: ease 0.6;
+.list {
+    display: flex;
+    flex-direction: column;
+    /* gap: 8px; */
 }
 
 .item {
-    padding: 13px 10px;
+    /* padding: 13px 10px; */
     border-bottom: 1px solid #cccccc8f;
+    border-left: 4px solid transparent;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
 }
 
 .item:hover {
     border-left: 4px solid #ed1c25;
-    background-color: antiquewhite;
+    background-color: #f5f5dc;
     cursor: pointer;
 }
 
 .action_Link {
     display: block;
     width: 100%;
-    color: #000;
+    color: #1a1a1a;
+    padding: 8px;
+    min-height: 48px;
+    line-height: 32px;
+    text-decoration: none;
+}
+
+.action_Link:hover {
+    text-decoration: underline;
 }
 
 /* Responsive Styles */
-
-/* PC */
 @media screen and (min-width: 992px) {
-    
+    /* Không cần thay đổi */
 }
 
-
-
-/*Tablet and mobile */
 @media screen and (max-width: 991px) {
     .container {
         display: none;
     }
-
-}
-
-/* Tablet */
-@media screen and (min-width: 768px) and (max-width:991.98px) {
-    
-}
-/* Mobile */
-@media screen and (max-width: 767px) {
-    
 }
