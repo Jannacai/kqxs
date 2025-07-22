@@ -1,19 +1,26 @@
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import KQXS from './kqxsAll/index';
 import Calendar from '../component/caledar';
-import ListXSMT from '../component/listXSMT';
 import ListXSMB from '../component/listXSMB';
+import ListXSMT from '../component/listXSMT';
 import ListXSMN from '../component/listXSMN';
 import TableDate from '../component/tableDateKQXS';
 import CongCuHot from '../component/CongCuHot';
+import OverlayLoading from '../component/OverlayLoading';
 import { apiMB } from './api/kqxs/kqxsMB';
 import styles from '../public/css/kqxsMB.module.css';
-import Chat from './chat/chat';
 
 // Lazy load components
-const PostList = dynamic(() => import('./tin-tuc/list.js'), { ssr: false });
-const ThongKe = dynamic(() => import('../component/thongKe.js'), { ssr: true });
+const PostList = dynamic(() => import('./tin-tuc/list.js'), {
+    ssr: false,
+    loading: () => <OverlayLoading />,
+});
+const ThongKe = dynamic(() => import('../component/thongKe.js'), {
+    ssr: true,
+    loading: () => <OverlayLoading />,
+});
 
 export async function getStaticProps() {
     const now = new Date();
@@ -43,9 +50,25 @@ export async function getStaticProps() {
 }
 
 const XSMB = ({ initialData, drawDate }) => {
+    const [isLoading, setIsLoading] = useState(true); // Bắt đầu với isLoading = true
     const canonicalUrl = 'https://www.xsmb.win/ket-qua-xo-so-mien-bac';
     const title = `XSMB - Kết Quả Xổ Số Miền Bắc - KQXSMB Hôm Nay ${drawDate}`;
     const description = `XSMB - Xem kết quả xổ số Miền Bắc ngày ${drawDate} nhanh và chính xác, tường thuật SXMB lúc 18h15 trực tiếp từ trường quay. Xem giải đặc biệt, lô tô, đầu đuôi tại xsmb.win!`;
+
+    useEffect(() => {
+        // Đặt độ trễ tối thiểu 500ms để hiển thị overlay
+        const timer = setTimeout(() => {
+            if (initialData && initialData.length > 0) {
+                setIsLoading(false);
+            }
+        }, 200); // Độ trễ tối thiểu 500ms
+
+        return () => clearTimeout(timer); // Dọn dẹp timer
+    }, [initialData]);
+
+    if (isLoading) {
+        return <OverlayLoading />;
+    }
 
     if (!Array.isArray(initialData) || initialData.length === 0) {
         return (
@@ -69,8 +92,6 @@ const XSMB = ({ initialData, drawDate }) => {
                     content="xổ số miền bắc, xsmb, kqxs, kết quả xổ số miền bắc, xổ số hôm nay, kqxsmb, sxmb, lô tô, đầu đuôi, soi cầu xsmb"
                 />
                 <meta name="robots" content="index, follow" />
-
-                {/* Open Graph Tags */}
                 <meta property="og:title" content={title} />
                 <meta property="og:description" content={description} />
                 <meta property="og:type" content="website" />
@@ -84,16 +105,12 @@ const XSMB = ({ initialData, drawDate }) => {
                 <meta property="og:site_name" content="XSMB" />
                 <meta property="og:locale" content="vi_VN" />
                 <meta property="fb:app_id" content={process.env.FB_APP_ID || ''} />
-
-                {/* Zalo */}
                 <meta property="og:app_id" content={process.env.ZALO_APP_ID || ''} />
                 <meta property="zalo:official_account_id" content={process.env.ZALO_OA_ID || ''} />
                 <meta property="zalo:share_url" content={canonicalUrl} />
                 <meta property="zalo:og:image" content="https://xsmb.win/zalotelegram.png" />
                 <meta property="zalo:og:image:width" content="600" />
                 <meta property="zalo:og:image:height" content="600" />
-
-                {/* Telegram */}
                 <meta name="telegram:channel" content={process.env.TELEGRAM_CHANNEL || '@YourChannel'} />
                 <meta name="telegram:share_url" content={canonicalUrl} />
                 <meta
@@ -101,18 +118,13 @@ const XSMB = ({ initialData, drawDate }) => {
                     content={`Cập nhật XSMB nhanh nhất ngày ${drawDate} tại ${process.env.TELEGRAM_CHANNEL || '@YourChannel'}!`}
                 />
                 <meta name="telegram:og:image" content="https://xsmb.win/zalotelegram.png" />
-
-                {/* Twitter Cards */}
                 <meta name="twitter:card" content="summary_large_image" />
                 <meta name="twitter:title" content={title} />
                 <meta name="twitter:description" content={description} />
                 <meta name="twitter:image" content="https://xsmb.win/XSMB.png" />
                 <meta name="twitter:image:alt" content={`Kết quả xổ số miền Bắc ${drawDate}`} />
-
                 <link rel="canonical" href={canonicalUrl} />
                 <link rel="alternate" hrefLang="vi" href={canonicalUrl} />
-
-                {/* JSON-LD Schema */}
                 <script type="application/ld+json">
                     {JSON.stringify([
                         {
@@ -203,11 +215,7 @@ const XSMB = ({ initialData, drawDate }) => {
                                 />
                             </a>
                         </div>
-                        {initialData ? (
-                            <KQXS data={initialData} station="xsmb">Miền Bắc</KQXS>
-                        ) : (
-                            <span>Đang tải kết quả...</span>
-                        )}
+                        <KQXS data={initialData} station="xsmb">Miền Bắc</KQXS>
                         <div className="desc1" style={{ minHeight: '200px' }}>
                             <h1 className='heading'>XSMB.WIN | Kết Quả Xổ Số Miền Bắc Nhanh Nhất - Chính Xác Nhất</h1>
                             <p>
@@ -219,7 +227,6 @@ const XSMB = ({ initialData, drawDate }) => {
                     </div>
                     <div>
                         <ThongKe />
-                        {/* <Chat /> */}
                         <CongCuHot />
                         <div className='banner1'>
                             <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
@@ -239,7 +246,7 @@ const XSMB = ({ initialData, drawDate }) => {
                     </div>
                 </div>
                 <div className="container">
-                    {/* <PostList /> */}
+                    <PostList />
                 </div>
             </div>
         </>

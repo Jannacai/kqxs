@@ -10,6 +10,8 @@
     border: 2px solid #ccc;
     width: 100%;
     max-width: 100%;
+    padding-bottom: 40px;
+    margin-bottom: 70px;
 }
 
 .container:hover {
@@ -33,9 +35,9 @@
     text-align: center;
     font-size: 32px;
     font-weight: 700;
-    color: #1f2937;
+    color: #000;
     margin-bottom: 32px;
-    background: linear-gradient(135deg, #FDD819 10%, #e8050569 100%);
+    background: linear-gradient(135deg, #FDD819 10%, #f1c40f 100%);
     padding: 10px 0;
     display: flex;
     align-items: center;
@@ -44,7 +46,6 @@
 }
 
 .titleIcon {
-    color: #3b82f6;
     font-size: 28px;
 }
 
@@ -107,7 +108,7 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
-    height: 500px;
+    height: 460px;
     overflow-y: auto;
 }
 

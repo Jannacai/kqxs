@@ -4,7 +4,7 @@
     max-width: 1200px;
     min-width: 320px;
     font-family: "Roboto", sans-serif;
-    font-weight: 800;
+    font-weight: 700;
     margin: 0 auto;
     margin-top: 10px;
 }
@@ -148,13 +148,18 @@
     flex-direction: column;
     gap: 10px;
     padding: 20px;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 .skeletonRow {
-    height: 30px;
+    height: 40px;
+    /* Tăng chiều cao để giống hàng trong bảng */
     background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
     background-size: 200% 100%;
     animation: loading 1.5s infinite;
+    border-radius: 4px;
 }
 
 @keyframes loading {
@@ -186,7 +191,7 @@
 
 .prizeNumber {
     display: inline-flex;
-    font-weight: 800;
+    font-weight: 700;
     font-size: 24px;
     text-align: center;
     line-height: 1.6;
