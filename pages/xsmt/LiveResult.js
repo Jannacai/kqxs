@@ -15,10 +15,10 @@ const LiveResult = ({ station, today, handleFilterChange, filterTypes, isLiveWin
     const debounceRef = useRef(null);
 
     const maxRetries = 10;
-    const retryInterval = 2000; // Tăng từ 2000ms lên 5000ms
+    const retryInterval = 5000; // Tăng lên 5000ms
     const fetchMaxRetries = 3;
-    const fetchRetryInterval = 2000;
-    const pollingIntervalMs = 5000;
+    const fetchRetryInterval = 5000;
+    const pollingIntervalMs = 10000;
     const regularPollingIntervalMs = 30000;
 
     console.log('Dependencies useEffect:', { isLiveWindow, station, today, setLiveData, setIsLiveDataComplete, isLiveDataComplete });
