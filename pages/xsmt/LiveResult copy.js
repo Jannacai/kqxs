@@ -235,7 +235,7 @@ const LiveResult = ({ station, today, handleFilterChange, filterTypes, isLiveWin
 
                         try {
                             const response = await fetch(
-                                `https://backendkqxs-1.onrender.com/api/ketquaxs/xsmt/sse/initial?station=${province.tinh}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
+                                `http://localhost:5000/api/ketquaxs/xsmt/sse/initial?station=${province.tinh}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
                             );
                             if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                             const serverData = await response.json();
@@ -315,7 +315,7 @@ const LiveResult = ({ station, today, handleFilterChange, filterTypes, isLiveWin
             const dayOfWeekIndex = new Date().getDay();
             const provinces = provincesByDay[dayOfWeekIndex] || provincesByDay[6];
             sseRef.current = new EventSource(
-                `https://backendkqxs-1.onrender.com/api/ketquaxs/xsmt/sse/all?station=xsmt&date=${today.replace(/\//g, '-')}`
+                `http://localhost:5000/api/ketquaxs/xsmt/sse/all?station=xsmt&date=${today.replace(/\//g, '-')}`
             );
             console.log(`Khởi tạo kết nối SSE tổng hợp, ngày: ${today}, tỉnh: ${provinces.map(p => p.tinh).join(', ')}`);
 
@@ -461,7 +461,7 @@ const LiveResult = ({ station, today, handleFilterChange, filterTypes, isLiveWin
                         const results = await Promise.all(
                             provinces.map(async province => {
                                 const response = await fetch(
-                                    `https://backendkqxs-1.onrender.com/api/ketquaxs/xsmt/sse/initial?station=${province.tinh}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
+                                    `http://localhost:5000/api/ketquaxs/xsmt/sse/initial?station=${province.tinh}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
                                 );
                                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                                 const serverData = await response.json();
