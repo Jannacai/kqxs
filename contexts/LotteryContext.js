@@ -3,7 +3,7 @@ import { createContext, useContext, useState } from 'react';
 const LotteryContext = createContext();
 
 export const LotteryProvider = ({ children }) => {
-    const [liveData, setLiveData] = useState(null);
+    const [liveData, setLiveData] = useState([]); // Khởi tạo liveData là mảng rỗng
     const [isLiveDataComplete, setIsLiveDataComplete] = useState(false);
 
     return (

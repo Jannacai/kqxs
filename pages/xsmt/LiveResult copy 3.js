@@ -4,25 +4,6 @@ import { getFilteredNumber } from "../../library/utils/filterUtils";
 import React from 'react';
 import { useLottery } from '../../contexts/LotteryContext';
 
-// Singleton EventSource
-let globalSSE = null;
-const getSharedSSE = (station, date, sessionId) => {
-    if (!globalSSE || globalSSE.readyState === 2) {
-        globalSSE = new EventSource(
-            `http://localhost:5000/api/ketquaxs/xsmt/sse?station=${station}&date=${date}&clientId=${sessionId}`
-        );
-    }
-    return globalSSE;
-};
-
-// PrizeCell không dùng React.memo
-const PrizeCell = ({ tinh, prizeType, digits, renderPrizeValue }) => (
-    <span className={styles.span4}>
-        {renderPrizeValue(tinh, prizeType, digits)}
-    </span>
-);
-
-// Main component
 const LiveResult = React.memo(({ getHeadAndTailNumbers, handleFilterChange, filterTypes, isLiveWindow }) => {
     const lotteryContext = useLottery();
     if (!lotteryContext) {
@@ -33,7 +14,7 @@ const LiveResult = React.memo(({ getHeadAndTailNumbers, handleFilterChange, filt
     const [isTodayLoading, setIsTodayLoading] = useState(true);
     const [error, setError] = useState(null);
     const [retryCount, setRetryCount] = useState(0);
-    const [animatingPrizes, setAnimatingPrizes] = useState({});
+    const [animatingPrizes, setAnimatingPrizes] = useState({}); // { tinh: prizeType }
     const mountedRef = useRef(false);
     const sseRef = useRef(null);
     const lastDataRef = useRef(null);
@@ -41,7 +22,6 @@ const LiveResult = React.memo(({ getHeadAndTailNumbers, handleFilterChange, filt
     const pollingIntervalRef = useRef(null);
     const closeConnectionTimeoutRef = useRef(null);
     const sessionIdRef = useRef(null);
-    const animationFrameRef = useRef(null);
     const station = 'xsmt';
     const today = new Date().toLocaleDateString('vi-VN', {
         day: '2-digit',
@@ -104,6 +84,10 @@ const LiveResult = React.memo(({ getHeadAndTailNumbers, handleFilterChange, filt
             { tinh: 'quang-tri', tentinh: 'Quảng Trị' },
             { tinh: 'quang-binh', tentinh: 'Quảng Bình' },
         ],
+        // 5: [
+        //     { tinh: 'gia-lai', tentinh: 'Gia Lai' },
+        //     { tinh: 'ninh-thuan', tentinh: 'Ninh Thuận' },
+        // ],
         6: [
             { tinh: 'da-nang', tentinh: 'Đà Nẵng' },
             { tinh: 'quang-ngai', tentinh: 'Quảng Ngãi' },
@@ -145,29 +129,6 @@ const LiveResult = React.memo(({ getHeadAndTailNumbers, handleFilterChange, filt
     }, [today, station]);
 
     useEffect(() => {
-        const cachedData = emptyResult.map(item => {
-            const cached = sessionStorage.getItem(`xsmt_${item.tinh}_${today}`);
-            if (cached) {
-                const parsed = JSON.parse(cached);
-                if (parsed.lastUpdated && Date.now() - parsed.lastUpdated < 24 * 60 * 60 * 1000) {
-                    return { ...item, ...parsed };
-                }
-            }
-            return item;
-        });
-        setLiveData(cachedData);
-        lastDataRef.current = cachedData;
-        setIsTodayLoading(false);
-        const initialAnimatingPrizes = cachedData.reduce((acc, item) => {
-            const nextPrize = animationQueue.find(prize => item[prize] === '...') || null;
-            acc[item.tinh] = nextPrize;
-            return acc;
-        }, {});
-        setAnimatingPrizes(initialAnimatingPrizes);
-        console.log('Initial animatingPrizes:', initialAnimatingPrizes);
-    }, [today, station, setLiveData, emptyResult]);
-
-    useEffect(() => {
         mountedRef.current = true;
         let sessionData = JSON.parse(sessionStorage.getItem(`sseSession:${station}:${today}`));
         if (!sessionData || !sessionData.sessionId || !sessionData.lastConnected || (Date.now() - sessionData.lastConnected > sseKeepAliveTimeout)) {
@@ -199,30 +160,29 @@ const LiveResult = React.memo(({ getHeadAndTailNumbers, handleFilterChange, filt
                         console.log(`Closing SSE connection after ${sseKeepAliveTimeout / 1000}s for session ${sessionIdRef.current}`);
                         sseRef.current.close();
                         sseRef.current = null;
-                        globalSSE = null;
                         sessionStorage.removeItem(`sseSession:${station}:${today}`);
-                        Object.keys(sessionStorage).forEach(key => {
-                            if (key.startsWith('xsmt_') && Date.now() - JSON.parse(sessionStorage.getItem(key))?.lastUpdated > 24 * 60 * 60 * 1000) {
-                                sessionStorage.removeItem(key);
-                            }
-                        });
                     }
                 }, sseKeepAliveTimeout);
-            }
-            if (animationFrameRef.current) {
-                cancelAnimationFrame(animationFrameRef.current);
             }
         };
     }, [station, today]);
 
     useEffect(() => {
-        if (!mountedRef.current || !isLiveWindow) return;
+        if (!mountedRef.current) return;
+
+        // Kiểm tra context và liveData
+        if (!setLiveData || !setIsLiveDataComplete || !isLiveWindow) {
+            setLiveData(emptyResult);
+            setIsTodayLoading(true);
+            setError(null);
+            lastDataRef.current = emptyResult;
+            return;
+        }
 
         const fetchInitialData = async (retry = 0) => {
             try {
                 const response = await fetch(
-                    `http://localhost:5000/api/ketquaxs/xsmt/sse/initial?station=${station}&date=${today.replace(/\//g, '-')}`,
-                    { mode: 'cors' }
+                    `http://localhost:5000/api/ketquaxs/xsmt/sse/initial?station=${station}&date=${today.replace(/\//g, '-')}`
                 );
                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                 const serverData = await response.json();
@@ -241,7 +201,7 @@ const LiveResult = React.memo(({ getHeadAndTailNumbers, handleFilterChange, filt
                     if (shouldUpdate) {
                         updatedItem.lastUpdated = serverItem.lastUpdated || Date.now();
                         lastUpdatedRef.current[item.tinh] = updatedItem.lastUpdated;
-                        sessionStorage.setItem(`xsmt_${item.tinh}_${today}`, JSON.stringify(updatedItem));
+                        localStorage.setItem(`liveData:${station}:${item.tinh}:${today}`, JSON.stringify(updatedItem));
                     }
                     return updatedItem;
                 });
@@ -286,7 +246,21 @@ const LiveResult = React.memo(({ getHeadAndTailNumbers, handleFilterChange, filt
                 return;
             }
 
-            sseRef.current = getSharedSSE(station, today, sessionIdRef.current);
+            const sessionData = JSON.parse(sessionStorage.getItem(`sseSession:${station}:${today}`));
+            if (sessionData && sseRef.current && Date.now() - sessionData.lastConnected < sseKeepAliveTimeout) {
+                console.log(`Reusing existing SSE connection for session ${sessionIdRef.current}`);
+                return;
+            }
+
+            if (sseRef.current) {
+                console.log(`Closing existing SSE connection for session ${sessionIdRef.current}`);
+                sseRef.current.close();
+                sseRef.current = null;
+            }
+
+            sseRef.current = new EventSource(
+                `http://localhost:5000/api/ketquaxs/xsmt/sse?station=${station}&date=${today.replace(/\//g, '-')}`
+            );
             console.log(`SSE connection initiated for session ${sessionIdRef.current}, date ${today}`);
 
             sseRef.current.onopen = () => {
@@ -313,7 +287,6 @@ const LiveResult = React.memo(({ getHeadAndTailNumbers, handleFilterChange, filt
                 }
                 sseRef.current.close();
                 sseRef.current = null;
-                globalSSE = null;
                 if (retryCount < maxRetries) {
                     setTimeout(() => {
                         if (mountedRef.current && !pollingIntervalRef.current) {
@@ -346,11 +319,11 @@ const LiveResult = React.memo(({ getHeadAndTailNumbers, handleFilterChange, filt
                                     drawDate: data.drawDate || item.drawDate,
                                     lastUpdated: data.lastUpdated || Date.now(),
                                 };
-                                sessionStorage.setItem(`xsmt_${item.tinh}_${today}`, JSON.stringify(updatedItem));
                                 return updatedItem;
                             });
                             lastDataRef.current = updatedData;
                             lastUpdatedRef.current[data.tinh] = data.lastUpdated || Date.now();
+                            localStorage.setItem(`liveData:${station}:${data.tinh}:${today}`, JSON.stringify(updatedData.find(item => item.tinh === data.tinh)));
                             const isComplete = updatedData.every(item =>
                                 Object.keys(prizeDigits).every(key => item[key] !== '...' && item[key] !== '***')
                             );
@@ -396,8 +369,7 @@ const LiveResult = React.memo(({ getHeadAndTailNumbers, handleFilterChange, filt
             pollingIntervalRef.current = setInterval(async () => {
                 try {
                     const response = await fetch(
-                        `http://localhost:5000/api/ketquaxs/xsmt/sse/initial?station=${station}&date=${today.replace(/\//g, '-')}`,
-                        { mode: 'cors' }
+                        `http://localhost:5000/api/ketquaxs/xsmt/sse/initial?station=${station}&date=${today.replace(/\//g, '-')}`
                     );
                     if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                     const serverData = await response.json();
@@ -417,18 +389,18 @@ const LiveResult = React.memo(({ getHeadAndTailNumbers, handleFilterChange, filt
                                         }
                                         return acc;
                                     }, {}),
-                                    tentinh: serverItem.tentinh || item.tentinh,
+                                    tentinh: serverItem.tentinh || item.tinh,
                                     year: serverItem.year || item.year,
                                     month: serverItem.month || item.month,
                                     drawDate: serverItem.drawDate || item.drawDate,
                                     lastUpdated: serverItem.lastUpdated || Date.now(),
                                 };
-                                sessionStorage.setItem(`xsmt_${item.tinh}_${today}`, JSON.stringify(updatedItem));
                                 return updatedItem;
                             });
                             lastDataRef.current = updatedData;
                             serverData.forEach(item => {
                                 lastUpdatedRef.current[item.tinh] = item.lastUpdated || Date.now();
+                                localStorage.setItem(`liveData:${station}:${item.tinh}:${today}`, JSON.stringify(updatedData.find(d => d.tinh === item.tinh)));
                             });
                             const isComplete = updatedData.every(item =>
                                 Object.keys(prizeDigits).every(key => item[key] !== '...' && item[key] !== '***')
@@ -462,10 +434,12 @@ const LiveResult = React.memo(({ getHeadAndTailNumbers, handleFilterChange, filt
         return () => {
             console.log(`Cleaning up useEffect for session ${sessionIdRef.current}, isLiveWindow: ${isLiveWindow}`);
             if (closeConnectionTimeoutRef.current) {
+                console.log(`Canceling scheduled SSE close for session ${sessionIdRef.current}`);
                 clearTimeout(closeConnectionTimeoutRef.current);
                 closeConnectionTimeoutRef.current = null;
             }
             if (pollingIntervalRef.current) {
+                console.log(`Clearing polling interval during cleanup for session ${sessionIdRef.current}`);
                 clearInterval(pollingIntervalRef.current);
                 pollingIntervalRef.current = null;
             }
@@ -482,25 +456,26 @@ const LiveResult = React.memo(({ getHeadAndTailNumbers, handleFilterChange, filt
     ], []);
 
     useEffect(() => {
-        if (!mountedRef.current || !contextLiveData?.length) return;
-
         const newAnimatingPrizes = { ...animatingPrizes };
         let hasChanges = false;
 
-        contextLiveData.forEach(stationData => {
-            const currentPrize = animatingPrizes[stationData.tinh];
-            const nextPrize = animationQueue.find(prize => stationData[prize] === '...') || null;
-            if (currentPrize !== nextPrize) {
-                newAnimatingPrizes[stationData.tinh] = nextPrize;
-                hasChanges = true;
-            }
-        });
+        if (Array.isArray(contextLiveData) && contextLiveData.length > 0) {
+            contextLiveData.forEach(stationData => {
+                const currentPrize = animatingPrizes[stationData.tinh];
+                if (!currentPrize || stationData[currentPrize] !== '...') {
+                    const nextPrize = animationQueue.find(prize => stationData[prize] === '...') || null;
+                    if (newAnimatingPrizes[stationData.tinh] !== nextPrize) {
+                        newAnimatingPrizes[stationData.tinh] = nextPrize;
+                        hasChanges = true;
+                    }
+                }
+            });
+        }
 
         if (hasChanges) {
             setAnimatingPrizes(newAnimatingPrizes);
-            console.log('Updated animatingPrizes:', newAnimatingPrizes);
         }
-    }, [contextLiveData, animationQueue]);
+    }, [contextLiveData, animationQueue, animatingPrizes]);
 
     const renderPrizeValue = useMemo(() => {
         return (tinh, prizeType, digits = 5) => {
@@ -511,43 +486,12 @@ const LiveResult = React.memo(({ getHeadAndTailNumbers, handleFilterChange, filt
             const displayDigits = filterTypes[today + station] === 'last2' ? 2 : filterTypes[today + station] === 'last3' ? 3 : digits;
             const isSpecialOrEighth = prizeType === 'specialPrize_0' || prizeType === 'eightPrizes_0';
 
-            console.log(`Rendering prize for ${tinh}, ${prizeType}: isAnimating=${isAnimating}, prizeValue=${prizeValue}`);
-
-            if (isAnimating) {
-                const animate = () => {
-                    if (!mountedRef.current) {
-                        cancelAnimationFrame(animationFrameRef.current);
-                        return;
-                    }
-                    const elements = document.querySelectorAll(
-                        `.${styles.digit}[data-status="animating"][data-tinh="${tinh}"][data-prize="${prizeType}"]`
-                    );
-                    elements.forEach(el => {
-                        el.classList.add(styles.animate);
-                    });
-                    animationFrameRef.current = requestAnimationFrame(animate);
-                };
-                if (!animationFrameRef.current) {
-                    animationFrameRef.current = requestAnimationFrame(animate);
-                }
-            } else if (animationFrameRef.current) {
-                cancelAnimationFrame(animationFrameRef.current);
-                animationFrameRef.current = null;
-            }
-
             return (
                 <span className={`${className} ${isSpecialOrEighth ? styles.highlight : ''}`} data-status={isAnimating ? 'animating' : 'static'}>
                     {isAnimating ? (
                         <span className={styles.digit_container}>
                             {Array.from({ length: displayDigits }).map((_, i) => (
-                                <span
-                                    key={i}
-                                    className={`${styles.digit} ${isAnimating ? styles.animate : ''}`}
-                                    data-status={isAnimating ? 'animating' : 'static'}
-                                    data-tinh={tinh}
-                                    data-prize={prizeType}
-                                    data-index={i}
-                                ></span>
+                                <span key={i} className={styles.digit} data-status="animating" data-index={i}></span>
                             ))}
                         </span>
                     ) : prizeValue === '...' ? (
@@ -558,14 +502,7 @@ const LiveResult = React.memo(({ getHeadAndTailNumbers, handleFilterChange, filt
                                 .padStart(displayDigits, '0')
                                 .split('')
                                 .map((digit, i) => (
-                                    <span
-                                        key={i}
-                                        className={`${styles.digit12} ${isSpecialOrEighth ? styles.highlight1 : ''}`}
-                                        data-status="static"
-                                        data-tinh={tinh}
-                                        data-prize={prizeType}
-                                        data-index={i}
-                                    >
+                                    <span key={i} className={`${styles.digit12} ${isSpecialOrEighth ? styles.highlight1 : ''}`} data-status="static" data-index={i}>
                                         {digit}
                                     </span>
                                 ))}
@@ -665,7 +602,9 @@ const LiveResult = React.memo(({ getHeadAndTailNumbers, handleFilterChange, filt
                             <td className={`${styles.tdTitle} ${styles.highlight}`}>G8</td>
                             {contextLiveData.map(item => (
                                 <td key={item.tinh} className={styles.rowXS}>
-                                    <PrizeCell tinh={item.tinh} prizeType="eightPrizes_0" digits={2} renderPrizeValue={renderPrizeValue} />
+                                    <span className={`${styles.span4} ${styles.highlight}`}>
+                                        {renderPrizeValue(item.tinh, 'eightPrizes_0', 2)}
+                                    </span>
                                 </td>
                             ))}
                         </tr>
@@ -673,7 +612,9 @@ const LiveResult = React.memo(({ getHeadAndTailNumbers, handleFilterChange, filt
                             <td className={styles.tdTitle}>G7</td>
                             {contextLiveData.map(item => (
                                 <td key={item.tinh} className={styles.rowXS}>
-                                    <PrizeCell tinh={item.tinh} prizeType="sevenPrizes_0" digits={3} renderPrizeValue={renderPrizeValue} />
+                                    <span className={styles.span4}>
+                                        {renderPrizeValue(item.tinh, 'sevenPrizes_0', 3)}
+                                    </span>
                                 </td>
                             ))}
                         </tr>
@@ -682,7 +623,9 @@ const LiveResult = React.memo(({ getHeadAndTailNumbers, handleFilterChange, filt
                             {contextLiveData.map(item => (
                                 <td key={item.tinh} className={styles.rowXS}>
                                     {[0, 1, 2].map(idx => (
-                                        <PrizeCell key={idx} tinh={item.tinh} prizeType={`sixPrizes_${idx}`} digits={4} renderPrizeValue={renderPrizeValue} />
+                                        <span key={idx} className={styles.span3}>
+                                            {renderPrizeValue(item.tinh, `sixPrizes_${idx}`, 4)}
+                                        </span>
                                     ))}
                                 </td>
                             ))}
@@ -691,7 +634,9 @@ const LiveResult = React.memo(({ getHeadAndTailNumbers, handleFilterChange, filt
                             <td className={`${styles.tdTitle} ${styles.g3}`}>G5</td>
                             {contextLiveData.map(item => (
                                 <td key={item.tinh} className={styles.rowXS}>
-                                    <PrizeCell tinh={item.tinh} prizeType="fivePrizes_0" digits={4} renderPrizeValue={renderPrizeValue} />
+                                    <span className={`${styles.span3} ${styles.g3}`}>
+                                        {renderPrizeValue(item.tinh, 'fivePrizes_0', 4)}
+                                    </span>
                                 </td>
                             ))}
                         </tr>
@@ -700,7 +645,9 @@ const LiveResult = React.memo(({ getHeadAndTailNumbers, handleFilterChange, filt
                             {contextLiveData.map(item => (
                                 <td key={item.tinh} className={styles.rowXS}>
                                     {[0, 1, 2, 3, 4, 5, 6].map(idx => (
-                                        <PrizeCell key={idx} tinh={item.tinh} prizeType={`fourPrizes_${idx}`} digits={5} renderPrizeValue={renderPrizeValue} />
+                                        <span key={idx} className={styles.span4}>
+                                            {renderPrizeValue(item.tinh, `fourPrizes_${idx}`, 5)}
+                                        </span>
                                     ))}
                                 </td>
                             ))}
@@ -710,7 +657,9 @@ const LiveResult = React.memo(({ getHeadAndTailNumbers, handleFilterChange, filt
                             {contextLiveData.map(item => (
                                 <td key={item.tinh} className={styles.rowXS}>
                                     {[0, 1].map(idx => (
-                                        <PrizeCell key={idx} tinh={item.tinh} prizeType={`threePrizes_${idx}`} digits={5} renderPrizeValue={renderPrizeValue} />
+                                        <span key={idx} className={`${styles.span3} ${styles.g3}`}>
+                                            {renderPrizeValue(item.tinh, `threePrizes_${idx}`, 5)}
+                                        </span>
                                     ))}
                                 </td>
                             ))}
@@ -719,7 +668,9 @@ const LiveResult = React.memo(({ getHeadAndTailNumbers, handleFilterChange, filt
                             <td className={styles.tdTitle}>G2</td>
                             {contextLiveData.map(item => (
                                 <td key={item.tinh} className={styles.rowXS}>
-                                    <PrizeCell tinh={item.tinh} prizeType="secondPrize_0" digits={5} renderPrizeValue={renderPrizeValue} />
+                                    <span className={styles.span1}>
+                                        {renderPrizeValue(item.tinh, 'secondPrize_0', 5)}
+                                    </span>
                                 </td>
                             ))}
                         </tr>
@@ -727,7 +678,9 @@ const LiveResult = React.memo(({ getHeadAndTailNumbers, handleFilterChange, filt
                             <td className={styles.tdTitle}>G1</td>
                             {contextLiveData.map(item => (
                                 <td key={item.tinh} className={styles.rowXS}>
-                                    <PrizeCell tinh={item.tinh} prizeType="firstPrize_0" digits={5} renderPrizeValue={renderPrizeValue} />
+                                    <span className={styles.span1}>
+                                        {renderPrizeValue(item.tinh, 'firstPrize_0', 5)}
+                                    </span>
                                 </td>
                             ))}
                         </tr>
@@ -735,7 +688,9 @@ const LiveResult = React.memo(({ getHeadAndTailNumbers, handleFilterChange, filt
                             <td className={`${styles.tdTitle} ${styles.highlight}`}>ĐB</td>
                             {contextLiveData.map(item => (
                                 <td key={item.tinh} className={styles.rowXS}>
-                                    <PrizeCell tinh={item.tinh} prizeType="specialPrize_0" digits={6} renderPrizeValue={renderPrizeValue} />
+                                    <span className={`${styles.span1} ${styles.highlight} ${styles.gdb}`}>
+                                        {renderPrizeValue(item.tinh, 'specialPrize_0', 6)}
+                                    </span>
                                 </td>
                             ))}
                         </tr>
@@ -866,4 +821,4 @@ const LiveResult = React.memo(({ getHeadAndTailNumbers, handleFilterChange, filt
 });
 
 export default LiveResult;
-// test 2
+// Cần test cho 25/7
