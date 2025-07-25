@@ -24,9 +24,9 @@ const KQXS = (props) => {
     const tableRef = useRef(null);
     const router = useRouter();
 
-    const hour = 16;
-    const minutes1 = 40;
-    const minutes2 = 41;
+    const hour = 17;
+    const minutes1 = 32;
+    const minutes2 = 33;
 
     const dayof = props.dayofMT;
     const station = props.station || "xsmt";
@@ -277,14 +277,9 @@ const KQXS = (props) => {
                     { tinh: 'quang-binh', tentinh: 'Quảng Bình' },
                 ],
                 5: [
-                    { tinh: 'binh-dinh', tentinh: 'Bình Định' },
-                    { tinh: 'quang-tri', tentinh: 'Quảng Trị' },
-                    { tinh: 'quang-binh', tentinh: 'Quảng Bình' },
+                    { tinh: 'gia-lai', tentinh: 'Gia Lai' },
+                    { tinh: 'ninh-thuan', tentinh: 'Ninh Thuận' },
                 ],
-                // 5: [
-                //     { tinh: 'gia-lai', tentinh: 'Gia Lai' },
-                //     { tinh: 'ninh-thuan', tentinh: 'Ninh Thuận' },
-                // ],
                 6: [
                     { tinh: 'da-nang', tentinh: 'Đà Nẵng' },
                     { tinh: 'quang-ngai', tentinh: 'Quảng Ngãi' },
