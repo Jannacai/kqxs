@@ -6,6 +6,7 @@ import Head from 'next/head';
 import { useEffect, useState, useMemo } from 'react';
 import { SessionProvider, useSession } from "next-auth/react";
 import { LotteryProvider } from '../contexts/LotteryContext';
+import { FilterProvider } from '../contexts/FilterContext'; // Thêm import
 import logo from './asset/img/LOGOxsmn_win.png';
 
 // Dynamic imports
@@ -24,28 +25,30 @@ const App = ({ Component, pageProps: { session, ...pageProps } }) => {
     return (
         <SessionProvider session={session}>
             <LotteryProvider>
-                <AppWithTheme setTheme={setTheme}>
-                    <Head>
-                        <link rel="preconnect" href="https://backendkqxs-1.onrender.com" />
-                    </Head>
-                    <div className={rootClassName}>
-                        <div className='header'>
-                            <Clock />
-                            <div className='header__logo'>
-                                <a href='/' tabIndex={-1}>
-                                    <Image className='header__logo--img' src={logo} alt='xổ số bắc trung nam' priority />
-                                </a>
+                <FilterProvider> {/* Thêm FilterProvider */}
+                    <AppWithTheme setTheme={setTheme}>
+                        <Head>
+                            <link rel="preconnect" href="https://backendkqxs-1.onrender.com" />
+                        </Head>
+                        <div className={rootClassName}>
+                            <div className='header'>
+                                <Clock />
+                                <div className='header__logo'>
+                                    <a href='/' tabIndex={-1}>
+                                        <Image className='header__logo--img' src={logo} alt='xổ số bắc trung nam' priority />
+                                    </a>
+                                </div>
+                                <NavBar />
+                                <CalendarMobile />
                             </div>
-                            <NavBar />
-                            <CalendarMobile />
+                            <div className='container'>
+                                <Component {...pageProps} />
+                            </div>
+                            <PostList />
+                            <Footer />
                         </div>
-                        <div className='container'>
-                            <Component {...pageProps} />
-                        </div>
-                        <PostList />
-                        <Footer />
-                    </div>
-                </AppWithTheme>
+                    </AppWithTheme>
+                </FilterProvider>
             </LotteryProvider>
         </SessionProvider>
     );

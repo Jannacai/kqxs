@@ -24,9 +24,9 @@ const KQXS = (props) => {
     const tableRef = useRef(null);
     const router = useRouter();
 
-    const hour = 18;
-    const minutes1 = 3;
-    const minutes2 = 5;
+    const hour = 17;
+    const minutes1 = 10;
+    const minutes2 = 14;
 
     const dayof = props.dayofMT;
     const station = props.station || "xsmt";
@@ -81,8 +81,8 @@ const KQXS = (props) => {
             const vietnamTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
             const vietnamHours = vietnamTime.getHours();
             const vietnamMinutes = vietnamTime.getMinutes();
-            const isUpdateWindow = vietnamHours === 17 && vietnamMinutes >= 10 && vietnamMinutes <= 35;
-            const isPostLiveWindow = vietnamHours > 17 || (vietnamHours === 17 && vietnamMinutes > 35);
+            const isUpdateWindow = vietnamHours === 17 && vietnamMinutes >= 10 && vietnamMinutes <= 59;
+            const isPostLiveWindow = vietnamHours > 17 || (vietnamHours === 17 && vietnamMinutes > 59);
             const hasUpdatedToday = localStorage.getItem(UPDATE_KEY);
 
             const cachedData = localStorage.getItem(CACHE_KEY);
