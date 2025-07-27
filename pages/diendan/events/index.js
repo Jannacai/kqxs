@@ -202,6 +202,13 @@ export default function EventHotNews() {
         setEditItem(null);
     }, []);
 
+    // Kiểm tra xem item có được đăng trong ngày hiện tại không
+    const isNewItem = (createdAt) => {
+        const today = moment.tz('Asia/Ho_Chi_Minh').startOf('day');
+        const itemDate = moment.tz(createdAt, 'Asia/Ho_Chi_Minh').startOf('day');
+        return today.isSame(itemDate);
+    };
+
     if (status === 'loading') {
         return (
             <div className={styles.loading}>
@@ -277,6 +284,9 @@ export default function EventHotNews() {
                                     >
                                         {item.label}
                                     </span>
+                                    {isNewItem(item.createdAt) && (
+                                        <span className={styles.newLabel}>HOT NEW</span>
+                                    )}
                                     <span className={styles.itemTitle}>{item.title}</span>
                                 </h3>
                                 <p className={styles.viewCount}>
