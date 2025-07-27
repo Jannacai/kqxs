@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
@@ -224,7 +224,7 @@ export default function EventHotNews() {
                     onClick={() => { setTab('event'); setPage(1); }}
                 >
                     <FaCalendar className={styles.tabIcon} />
-                    Sự kiện
+                    Sự kiện VIP
                 </button>
                 <button
                     className={`${styles.tab} ${tab === 'hot_news' ? styles.active : ''}`}
@@ -273,13 +273,9 @@ export default function EventHotNews() {
                                 <h3>
                                     <span
                                         className={styles.itemLabel}
-                                        data-type={item.type}
+                                        data-label={item.label}
                                     >
-                                        {item.type === 'hot_news' && <span className={styles.itemLabelIcon}>                    <FaBolt className={styles.tabIcon} />
-                                        </span>}
-                                        {item.type === 'event' && <span className={styles.itemLabelIcon}>⚜️</span>}
-                                        {item.type === 'discussion' && <span className={styles.itemLabelIcon}>♻️</span>}
-                                        {item.type === 'hot_news' ? 'Tin hot' : item.type === 'event' ? 'Sự kiện' : 'Thảo luận'}
+                                        {item.label}
                                     </span>
                                     <span className={styles.itemTitle}>{item.title}</span>
                                 </h3>

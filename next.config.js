@@ -48,11 +48,11 @@ module.exports = withBundleAnalyzer({
         formats: ['image/avif', 'image/webp'],
         minimumCacheTTL: 60,
     },
-    // compiler: {
-    //     removeConsole: {
-    //         exclude: ['error'],
-    //     },
-    // },
+    compiler: {
+        removeConsole: {
+            exclude: ['error'],
+        },
+    },
     async redirects() {
         return [
             {

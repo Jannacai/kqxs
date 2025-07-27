@@ -14,6 +14,7 @@ export default function EditPostModal({ item, onClose, onSuccess }) {
     const [formData, setFormData] = useState({
         title: item.title || '',
         content: item.content || '',
+        label: item.label || '',
         startTime: item.startTime ? moment(item.startTime).tz('Asia/Ho_Chi_Minh').format('YYYY-MM-DDTHH:mm') : '',
         endTime: item.endTime ? moment(item.endTime).tz('Asia/Ho_Chi_Minh').format('YYYY-MM-DDTHH:mm') : '',
         rules: item.rules || '',
@@ -25,7 +26,9 @@ export default function EditPostModal({ item, onClose, onSuccess }) {
         bachThuLo: item.lotteryFields?.bachThuLo || false,
         songThuLo: item.lotteryFields?.songThuLo || false,
         threeCL: item.lotteryFields?.threeCL || false,
-        cham: item.lotteryFields?.cham || false
+        cham: item.lotteryFields?.cham || false,
+        danDe: item.lotteryFields?.danDe || false,
+        danDeType: item.lotteryFields?.danDeType || '1x'
     });
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -33,9 +36,14 @@ export default function EditPostModal({ item, onClose, onSuccess }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!formData.title.trim() || !formData.content.trim()) {
-            setError('Tiêu đề và nội dung là bắt buộc');
-            alert('Tiêu đề và nội dung là bắt buộc');
+        if (!formData.title.trim() || !formData.content.trim() || !formData.label.trim()) {
+            setError('Tiêu đề, nội dung và nhãn là bắt buộc');
+            alert('Tiêu đề, nội dung và nhãn là bắt buộc');
+            return;
+        }
+        if (item.type !== 'discussion' && !formData.endTime) {
+            setError('Thời gian kết thúc là bắt buộc cho sự kiện hoặc tin hot');
+            alert('Thời gian kết thúc là bắt buộc cho sự kiện hoặc tin hot');
             return;
         }
         if (item.type !== 'discussion' && formData.startTime && formData.endTime && moment(formData.endTime).isBefore(formData.startTime)) {
@@ -47,6 +55,7 @@ export default function EditPostModal({ item, onClose, onSuccess }) {
             const payload = {
                 title: formData.title,
                 content: formData.content,
+                label: formData.label,
                 type: item.type,
                 ...(item.type !== 'discussion' && {
                     lotteryFields,
@@ -88,6 +97,15 @@ export default function EditPostModal({ item, onClose, onSuccess }) {
         setLotteryFields({ ...lotteryFields, [name]: checked });
     };
 
+    const handleDanDeTypeChange = (e) => {
+        setLotteryFields({ ...lotteryFields, danDeType: e.target.value });
+    };
+
+    const handleLabelSelect = (e) => {
+        setFormData({ ...formData, label: e.target.value });
+        setError('');
+    };
+
     const handleOverlayClick = (e) => {
         if (modalRef.current && !modalRef.current.contains(e.target)) {
             onClose();
@@ -101,6 +119,18 @@ export default function EditPostModal({ item, onClose, onSuccess }) {
         };
     }, []);
 
+    const labelOptions = [
+        { value: '', label: 'Chọn nhãn' },
+        { value: 'Cầu kèo', label: 'Cầu kèo' },
+        { value: 'Đặc biệt', label: 'Đặc biệt' },
+        { value: 'Mở bát', label: 'Mở bát' },
+        { value: 'Thi đấu', label: 'Thi đấu' },
+        { value: 'Thông báo', label: 'Thông báo' },
+        { value: 'Boxloto', label: 'Boxloto' }
+    ];
+
+    const danDeOptions = ['1x', '2x', '3x', '4x', '5x', '6x'];
+
     return (
         <div className={styles.modalOverlay} onClick={handleOverlayClick}>
             <div className={styles.modal} ref={modalRef}>
@@ -108,6 +138,32 @@ export default function EditPostModal({ item, onClose, onSuccess }) {
                 {success && <p className={styles.success}>{success}</p>}
                 {error && <p className={styles.error}>{error}</p>}
                 <form onSubmit={handleSubmit} className={styles.form}>
+                    <div className={styles.formGroup}>
+                        <label className={styles.formLabel}>Nhãn</label>
+                        <select
+                            value={formData.label}
+                            onChange={handleLabelSelect}
+                            className={styles.select}
+                        >
+                            {labelOptions.map(option => (
+                                <option key={option.value} value={option.value}>
+                                    {option.label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className={styles.formGroup}>
+                        <label className={styles.formLabel}>Nhãn tùy chỉnh (nếu muốn)</label>
+                        <input
+                            type="text"
+                            name="label"
+                            value={formData.label}
+                            onChange={handleInputChange}
+                            placeholder="Nhập nhãn tùy chỉnh"
+                            className={styles.input}
+                            maxLength={50}
+                        />
+                    </div>
                     <div className={styles.formGroup}>
                         <label className={styles.formLabel}>Tiêu đề</label>
                         <input
@@ -150,6 +206,7 @@ export default function EditPostModal({ item, onClose, onSuccess }) {
                                     value={formData.endTime}
                                     onChange={handleInputChange}
                                     className={styles.input}
+                                    required
                                 />
                             </div>
                             <div className={styles.formGroup}>
@@ -231,6 +288,29 @@ export default function EditPostModal({ item, onClose, onSuccess }) {
                                         />
                                         Chạm
                                     </label>
+                                    <label>
+                                        <input
+                                            type="checkbox"
+                                            name="danDe"
+                                            checked={lotteryFields.danDe}
+                                            onChange={handleCheckboxChange}
+                                        />
+                                        Dàn đề
+                                    </label>
+                                    {lotteryFields.danDe && (
+                                        <select
+                                            name="danDeType"
+                                            value={lotteryFields.danDeType}
+                                            onChange={handleDanDeTypeChange}
+                                            className={styles.select}
+                                        >
+                                            {danDeOptions.map(option => (
+                                                <option key={option} value={option}>
+                                                    {option}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    )}
                                 </div>
                             </div>
                         </>

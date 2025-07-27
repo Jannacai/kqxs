@@ -146,37 +146,59 @@
     padding: 10px;
     font-size: 17px;
     font-weight: 600;
-    color: #ffffff;
+    color: #000;
     background-color: #3b82f6;
+    text-transform: uppercase;
     border-radius: 6px;
     transition: background-color 0.2s ease;
 }
 
-.itemLabelIcon {
-    display: flex;
-    align-items: center;
-    font-size: 12px;
-    color: #ffffff;
-}
-
-.itemLabel[data-type="hot_news"] {
-    background-color: #ef4444;
-}
-
-.itemLabel[data-type="event"] {
-    background-color: orangered;
-}
-
-.item:hover .itemLabel {
-    background-color: #2563eb;
-}
-
-.item:hover .itemLabel[data-type="hot_news"] {
+.itemLabel[data-label="Cầu kèo"] {
     background-color: #10b981;
 }
 
-.item:hover .itemLabel[data-type="event"] {
+.itemLabel[data-label="Đặc biệt"] {
+    background-color: #ef4444;
+}
+
+.itemLabel[data-label="Mở bát"] {
+    background-color: #f97316;
+}
+
+.itemLabel[data-label="Thi đấu"] {
+    background-color: #7c3aed;
+}
+
+.itemLabel[data-label="Thông báo"] {
+    background-color: #facc15;
+}
+
+.itemLabel[data-label="Boxloto"] {
+    background-color: #3b82f6;
+}
+
+.item:hover .itemLabel[data-label="Cầu kèo"] {
     background-color: #059669;
+}
+
+.item:hover .itemLabel[data-label="Đặc biệt"] {
+    background-color: #dc2626;
+}
+
+.item:hover .itemLabel[data-label="Mở bát"] {
+    background-color: #ea580c;
+}
+
+.item:hover .itemLabel[data-label="Thi đấu"] {
+    background-color: #6d28d9;
+}
+
+.item:hover .itemLabel[data-label="Thông báo"] {
+    background-color: #eab308;
+}
+
+.item:hover .itemLabel[data-label="Boxloto"] {
+    background-color: #2563eb;
 }
 
 .itemTitle {

@@ -13,7 +13,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5
 export default function LotteryRegistration({ lotteryFields, onRegistrationSuccess, eventId, endTime }) {
     const { data: session, status } = useSession();
     const router = useRouter();
-    const [region, setRegion] = useState('Nam');
+    const [region, setRegion] = useState('Bac');
     const [formData, setFormData] = useState({
         bachThuLo: '',
         songThuLo: '',

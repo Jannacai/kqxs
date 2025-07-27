@@ -17,6 +17,7 @@ export default function PostEvent() {
     const [formData, setFormData] = useState({
         title: '',
         content: '',
+        label: '',
         startTime: '',
         endTime: '',
         rules: '',
@@ -30,7 +31,7 @@ export default function PostEvent() {
         threeCL: false,
         cham: false,
         danDe: false,
-        danDeType: '1x' // Giá trị mặc định cho select box
+        danDeType: '1x'
     });
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -52,9 +53,9 @@ export default function PostEvent() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!formData.title.trim() || !formData.content.trim()) {
-            setError('Tiêu đề và nội dung là bắt buộc');
-            alert('Tiêu đề và nội dung là bắt buộc');
+        if (!formData.title.trim() || !formData.content.trim() || !formData.label.trim()) {
+            setError('Tiêu đề, nội dung và nhãn là bắt buộc');
+            alert('Tiêu đề, nội dung và nhãn là bắt buộc');
             return;
         }
         if (type !== 'discussion' && !formData.endTime) {
@@ -72,6 +73,7 @@ export default function PostEvent() {
                 title: formData.title,
                 content: formData.content,
                 type,
+                label: formData.label,
                 ...(type !== 'discussion' && {
                     lotteryFields: {
                         bachThuLo: lotteryFields.bachThuLo,
@@ -99,6 +101,7 @@ export default function PostEvent() {
             setFormData({
                 title: '',
                 content: '',
+                label: '',
                 startTime: '',
                 endTime: '',
                 rules: '',
@@ -137,14 +140,27 @@ export default function PostEvent() {
         setLotteryFields({ ...lotteryFields, danDeType: e.target.value });
     };
 
-    // Danh sách tùy chọn loại bài đăng
+    const handleLabelSelect = (e) => {
+        setFormData({ ...formData, label: e.target.value });
+        setError('');
+    };
+
     const typeOptions = [
         { value: 'event', label: 'Sự kiện', adminOnly: true },
         { value: 'hot_news', label: 'Tin hot', adminOnly: true },
         { value: 'discussion', label: 'Thảo luận', adminOnly: false }
     ].filter(option => !option.adminOnly || session?.user?.role === 'ADMIN');
 
-    // Danh sách tùy chọn cho dàn đề
+    const labelOptions = [
+        { value: '', label: 'Chọn nhãn' },
+        { value: 'Cầu kèo', label: 'Cầu kèo' },
+        { value: 'Đặc biệt', label: 'Đặc biệt' },
+        { value: 'Mở bát', label: 'Mở bát' },
+        { value: 'Thi đấu', label: 'Thi đấu' },
+        { value: 'Thông báo', label: 'Thông báo' },
+        { value: 'Box-Loto', label: 'Box-loto' }
+    ];
+
     const danDeOptions = ['1x', '2x', '3x', '4x', '5x', '6x'];
 
     return (
@@ -166,6 +182,32 @@ export default function PostEvent() {
                             </option>
                         ))}
                     </select>
+                </div>
+                <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Nhãn</label>
+                    <select
+                        value={formData.label}
+                        onChange={handleLabelSelect}
+                        className={styles.select}
+                    >
+                        {labelOptions.map(option => (
+                            <option key={option.value} value={option.value}>
+                                {option.label}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Nhãn tùy chỉnh (nếu muốn)</label>
+                    <input
+                        type="text"
+                        name="label"
+                        value={formData.label}
+                        onChange={handleInputChange}
+                        placeholder="Nhập nhãn tùy chỉnh"
+                        className={styles.input}
+                        maxLength={50}
+                    />
                 </div>
                 <div className={styles.formGroup}>
                     <label className={styles.formLabel}>Tiêu đề</label>

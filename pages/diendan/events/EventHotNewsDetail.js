@@ -11,8 +11,7 @@ import LotteryRegistration from '../dangkyquayso';
 import CommentSection from './CommentSection';
 import styles from '../../../styles/detaiEventHot.module.css';
 import EventRegistrationsList from './detaillichsudangky';
-import EventHotNew from '../events/index';
-import NavBarDienDan from '../navbarDiendan'
+import NavBarDienDan from '../navbarDiendan';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
 const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
@@ -413,6 +412,19 @@ export default function EventHotNewsDetail() {
         );
     }
 
+    const getTypeLabel = (type) => {
+        switch (type) {
+            case 'hot_news':
+                return 'Tin hot';
+            case 'event':
+                return 'Sự kiện VIP';
+            case 'discussion':
+                return 'Hỏi Đáp - Thảo luận';
+            default:
+                return type;
+        }
+    };
+
     return (
         <div>
             <NavBarDienDan />
@@ -422,13 +434,12 @@ export default function EventHotNewsDetail() {
                 </div>
                 <div>
                     <div className={styles.container}>
-
                         <div className={styles.headerWrapper}>
                             <button className={styles.backButton} onClick={() => router.push('/diendan')}>
                                 Quay lại
                             </button>
-                            <span className={styles.itemLabel} data-type={item.type}>
-                                {item.type === 'hot_news' ? 'Tin hot' : item.type === 'event' ? 'Sự kiện Event' : 'Hỏi Đáp - Thảo luận'}
+                            <span className={styles.itemLabel} data-label={item.label}>
+                                {getTypeLabel(item.type)}: {item.label}
                             </span>
                             <div className={styles.stats}>
                                 <span className={styles.viewCount}>👀 Lượt xem: {item.viewCount || 0}</span>
@@ -439,28 +450,29 @@ export default function EventHotNewsDetail() {
                             </div>
                         </div>
                         <h2 className={styles.itemTitle}>💥{item.title}</h2>
-                        <div className={styles.contentWrapper}>
-                            {renderTextContent(item.content)}
-                        </div>
                         {item.startTime && (
-                            <p className={styles.itemMeta}>
+                            <p className={styles.itemMeta1}>
                                 Thời gian bắt đầu: {moment.tz(item.startTime, 'Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm:ss')}
                             </p>
                         )}
                         {item.endTime && (
-                            <p className={styles.itemMeta}>
+                            <p className={styles.itemMeta2}>
                                 Thời gian kết thúc: {moment.tz(item.endTime, 'Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm:ss')}
                             </p>
                         )}
+                        <div className={styles.contentWrapperContent}>
+                            <p className={styles.itemMeta}><strong>1. Nội dung sự kiện</strong></p>
+                            {renderTextContent(item.content)}
+                        </div>
                         {item.rules && (
                             <div className={styles.contentWrapper}>
-                                <p className={styles.itemMeta}><strong>Quy định:</strong></p>
+                                <p className={styles.itemMeta}><strong>2. Quy định:</strong></p>
                                 {renderTextContent(item.rules)}
                             </div>
                         )}
                         {item.rewards && (
                             <div className={styles.contentWrapper}>
-                                <p className={styles.itemMeta}><strong>Phần thưởng:</strong></p>
+                                <p className={styles.itemMeta}><strong>3. Phần thưởng:</strong></p>
                                 {renderTextContent(item.rewards)}
                             </div>
                         )}
@@ -471,7 +483,7 @@ export default function EventHotNewsDetail() {
                                     onClick={() => setShowLotteryModal(true)}
                                     disabled={item.endTime && moment().tz('Asia/Ho_Chi_Minh').isAfter(moment(item.endTime))}
                                 >
-                                    👉  Đăng Ký Tham Gia
+                                    👉 Đăng Ký Tham Gia
                                 </button>
                                 {hasRegistered && (
                                     <button
@@ -554,13 +566,13 @@ export default function EventHotNewsDetail() {
                         )}
                         {item.scoringMethod && (
                             <div className={styles.contentWrapper}>
-                                <p className={styles.itemMeta}><strong>Cách tính điểm:</strong></p>
+                                <p className={styles.itemMeta}><strong>4. Cách tính điểm:</strong></p>
                                 {renderTextContent(item.scoringMethod)}
                             </div>
                         )}
                         {item.notes && (
                             <div className={styles.contentWrapper}>
-                                <p className={styles.itemMeta}><strong>Ghi chú:</strong></p>
+                                <p className={styles.itemMeta}><strong>5. Chú ý:</strong></p>
                                 {renderTextContent(item.notes)}
                             </div>
                         )}
@@ -676,7 +688,7 @@ export default function EventHotNewsDetail() {
                                                         type="text"
                                                         name="cham"
                                                         value={editFormData.cham}
-                                                        onChange={handleInputChange}
+                                                        onChange={handleEditInputChange}
                                                         placeholder="Nhập số 1 chữ số"
                                                         className={styles.input}
                                                         maxLength={1}

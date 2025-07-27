@@ -4,7 +4,7 @@
     border: 1px solid var(--primary-color);
     width: 850px;
     padding: 32px;
-    background-color: #f9fafb;
+    background-color: #f3ffdf;
     border-radius: 12px;
     margin-top: 20px;
     /* font-family: "Roboto", sans-serif; */
@@ -37,9 +37,55 @@
     font-size: 30px;
     color: #fff;
     font-weight: 700;
-    background-color: #059669;
     padding: 10px 0;
+}
 
+.itemLabel[data-label="Cầu kèo"] {
+    background-color: #10b981;
+}
+
+.itemLabel[data-label="Cầu kèo"]:hover {
+    background-color: #059669;
+}
+
+.itemLabel[data-label="Đặc biệt"] {
+    background-color: #ef4444;
+}
+
+.itemLabel[data-label="Đặc biệt"]:hover {
+    background-color: #dc2626;
+}
+
+.itemLabel[data-label="Mở bát"] {
+    background-color: #f97316;
+}
+
+.itemLabel[data-label="Mở bát"]:hover {
+    background-color: #ea580c;
+}
+
+.itemLabel[data-label="Thi đấu"] {
+    background-color: #7c3aed;
+}
+
+.itemLabel[data-label="Thi đấu"]:hover {
+    background-color: #6d28d9;
+}
+
+.itemLabel[data-label="Thông báo"] {
+    background-color: #facc15;
+}
+
+.itemLabel[data-label="Thông báo"]:hover {
+    background-color: #eab308;
+}
+
+.itemLabel[data-label="Boxloto"] {
+    background-color: #3b82f6;
+}
+
+.itemLabel[data-label="Boxloto"]:hover {
+    background-color: #2563eb;
 }
 
 .group {
@@ -73,17 +119,38 @@
 
 .itemContent {
     font-size: 18px;
-    color: #4b5563;
+    color: #000;
     line-height: 1.5;
-    font-weight: 600;
+    font-weight: 400;
     margin-bottom: 5px;
 }
 
 .itemMeta {
     font-size: 18px;
     font-weight: 800;
-    color: #6b7280;
+    color: var(--primary-color);
     font-style: italic;
+    margin-top: 24px;
+    margin-bottom: 10px;
+}
+
+.contentWrapperContent {
+    background-color: #ffeead;
+    padding: 5px;
+}
+
+.itemMeta1 {
+    font-size: 18px;
+    font-weight: 800;
+    color: green;
+    margin-top: 24px;
+    margin-bottom: 10px;
+}
+
+.itemMeta2 {
+    font-size: 18px;
+    font-weight: 800;
+    color: red;
     margin-top: 24px;
     margin-bottom: 10px;
 }

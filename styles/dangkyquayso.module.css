@@ -1,8 +1,7 @@
 .container {
     max-width: 800px;
     width: 600px;
-    min-height: 1000px;
-    height: 1000px;
+    /* height: 600px; */
     margin: 32px auto;
     padding: 24px;
     background: linear-gradient(135deg, #ffffff, #f8fafc);
@@ -11,7 +10,7 @@
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     font-family: 'Inter', 'Roboto', sans-serif;
-    min-height: calc(100vh - 64px);
+    min-height: 600px;
     transition: transform 0.3s ease;
 }
 
@@ -29,7 +28,8 @@
     text-transform: uppercase;
     background: linear-gradient(to right, red, red);
     -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    /* -webkit-text-fill-color: transparent; */
+    margin-top: 40px;
 }
 
 .time {
