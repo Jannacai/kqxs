@@ -256,15 +256,15 @@ const LiveResult = React.memo(({ isLiveWindow = true }) => {
 
     const provincesByDay = useMemo(
         () => ({
-            1: [
+            0: [
                 { tinh: 'kon-tum', tentinh: 'Kon Tum' },
                 { tinh: 'khanh-hoa', tentinh: 'Khánh Hòa' },
                 { tinh: 'hue', tentinh: 'Thừa Thiên Huế' },
             ],
-            // 1: [
-            //     { tinh: 'phu-yen', tentinh: 'Phú Yên' },
-            //     { tinh: 'hue', tentinh: 'Thừa Thiên Huế' },
-            // ],
+            1: [
+                { tinh: 'phu-yen', tentinh: 'Phú Yên' },
+                { tinh: 'hue', tentinh: 'Thừa Thiên Huế' },
+            ],
             2: [
                 { tinh: 'dak-lak', tentinh: 'Đắk Lắk' },
                 { tinh: 'quang-nam', tentinh: 'Quảng Nam' },
