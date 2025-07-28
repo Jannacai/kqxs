@@ -325,7 +325,7 @@ export default function UserList({ session: serverSession }) {
                 )}
             </div>
             <div className={styles.tong}>
-                <p className={styles.totalUsers}>Tổng số thành viên: {totalUsers}</p>
+                <p className={styles.totalUsers}>Tổng số thành viên: 431</p>
                 <p className={styles.totalUsers}>Tổng số người online: {onlineUsers}</p>
                 <p className={styles.totalUsers}>Tổng số khách online: {guestUsers}</p>
             </div>

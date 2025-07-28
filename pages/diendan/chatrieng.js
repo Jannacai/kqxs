@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
@@ -39,7 +38,6 @@ export default function PrivateChat({ receiver, socket, onClose, isMinimized: in
     const [message, setMessage] = useState('');
     const [userInfo, setUserInfo] = useState(null);
     const [error, setError] = useState('');
-    const [isMinimized, setIsMinimized] = useState(initialMinimized);
     const socketRef = useRef(socket);
     const messagesContainerRef = useRef(null);
 
@@ -52,7 +50,7 @@ export default function PrivateChat({ receiver, socket, onClose, isMinimized: in
             try {
                 console.log('Fetching user info with token:', session.accessToken);
                 const res = await axios.get(`${API_BASE_URL}/api/auth/me`, {
-                    headers: { Authorization: `Bearer ${session.accessToken} `, 'Content-Type': 'application/json' },
+                    headers: { Authorization: `Bearer ${session.accessToken}`, 'Content-Type': 'application/json' },
                 });
                 console.log('User info fetched:', JSON.stringify(res.data, null, 2));
                 setUserInfo(res.data);
@@ -73,8 +71,8 @@ export default function PrivateChat({ receiver, socket, onClose, isMinimized: in
         const fetchPrivateMessages = async () => {
             const roomId = [userInfo._id, receiver._id].sort().join('-');
             try {
-                const res = await axios.get(`${API_BASE_URL}/api/groupchat/private/${roomId} `, {
-                    headers: { Authorization: `Bearer ${session.accessToken} ` },
+                const res = await axios.get(`${API_BASE_URL}/api/groupchat/private/${roomId}`, {
+                    headers: { Authorization: `Bearer ${session.accessToken}` },
                 });
                 console.log('Private messages fetched:', res.data);
                 setMessages(res.data.messages.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
@@ -104,32 +102,34 @@ export default function PrivateChat({ receiver, socket, onClose, isMinimized: in
         });
 
         socketRef.current.on('PRIVATE_MESSAGE', async (newMessage) => {
-            console.log('Received PRIVATE_MESSAGE in PrivateChat:', JSON.stringify(newMessage, null, 2));
+            console.log('Received PRIVATE_MESSAGE:', JSON.stringify(newMessage, null, 2));
             if (newMessage.roomId === roomId) {
                 setMessages((prev) => {
                     if (prev.some((msg) => msg._id === newMessage._id)) return prev;
                     return [newMessage, ...prev];
                 });
-                if (isMinimized) {
-                    setIsMinimized(false);
+                if (initialMinimized) {
+                    console.log('Chat is minimized, opening it...');
                     if (onToggleMinimize) {
                         console.log('Calling onToggleMinimize for receiver:', receiver._id);
                         onToggleMinimize();
                     }
+                } else {
+                    console.log('Chat is already open');
                 }
             } else if (onNewChat) {
                 console.log('Received message for different room, triggering onNewChat:', newMessage);
                 try {
                     const otherUserId = newMessage.senderId === userInfo._id ? newMessage.receiverId : newMessage.senderId;
-                    const res = await axios.get(`${API_BASE_URL}/api/users/${otherUserId} `, {
-                        headers: { Authorization: `Bearer ${session.accessToken} ` },
+                    const res = await axios.get(`${API_BASE_URL}/api/users/${otherUserId}`, {
+                        headers: { Authorization: `Bearer ${session.accessToken}` },
                     });
                     const otherUser = res.data;
                     console.log('Fetched user for new chat:', otherUser);
                     onNewChat(otherUser, newMessage);
                 } catch (err) {
-                    console.error(`Error fetching user ${newMessage.senderId}: `, err.message);
-                    setError(`Không thể lấy thông tin người dùng: ${err.message} `);
+                    console.error(`Error fetching user ${newMessage.senderId}:`, err.message);
+                    setError(`Không thể lấy thông tin người dùng: ${err.message}`);
                 }
             }
         });
@@ -150,13 +150,25 @@ export default function PrivateChat({ receiver, socket, onClose, isMinimized: in
                 console.log('Socket.IO disconnected for private chat');
             }
         };
-    }, [userInfo, receiver, session, isMinimized, onToggleMinimize, onNewChat, socket]);
+    }, [userInfo, receiver, session, initialMinimized, onToggleMinimize, onNewChat, socket]);
 
     useEffect(() => {
-        if (messagesContainerRef.current && !isMinimized) {
+        if (messagesContainerRef.current && !initialMinimized) {
             messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
         }
-    }, [messages, isMinimized]);
+    }, [messages, initialMinimized]);
+
+    useEffect(() => {
+        if (initialMinimized && messages.length > 0) {
+            const interval = setInterval(() => {
+                const header = document.querySelector(`.${styles.chatHeader}`);
+                if (header) {
+                    header.classList.toggle(styles.blink);
+                }
+            }, 500);
+            return () => clearInterval(interval);
+        }
+    }, [messages, initialMinimized]);
 
     const handleMessageChange = (e) => {
         const value = e.target.value;
@@ -185,7 +197,7 @@ export default function PrivateChat({ receiver, socket, onClose, isMinimized: in
             const res = await axios.post(
                 `${API_BASE_URL}/api/groupchat`,
                 { content: message, receiverId: receiver._id },
-                { headers: { Authorization: `Bearer ${session.accessToken} ` } }
+                { headers: { Authorization: `Bearer ${session.accessToken}` } }
             );
             console.log('Private message sent:', res.data);
             const newMessage = {
@@ -220,7 +232,6 @@ export default function PrivateChat({ receiver, socket, onClose, isMinimized: in
     };
 
     const toggleMinimize = () => {
-        setIsMinimized(!isMinimized);
         if (onToggleMinimize) {
             console.log('Toggling minimize for receiver:', receiver._id);
             onToggleMinimize();
@@ -230,7 +241,7 @@ export default function PrivateChat({ receiver, socket, onClose, isMinimized: in
     if (!receiver) return null;
 
     return (
-        <div className={`${styles.chatContainer} ${isMinimized ? styles.minimized : ''} `} style={style}>
+        <div className={`${styles.chatContainer} ${initialMinimized ? styles.minimized : ''}`} style={style}>
             <div className={styles.chatHeader}>
                 <h3 className={styles.chatTitle}>
                     {receiver.img ? (
@@ -246,27 +257,27 @@ export default function PrivateChat({ receiver, socket, onClose, isMinimized: in
                             }}
                         />
                     ) : (
-                        <span className={`${styles.headerAvatarInitials} ${receiver.role?.toLowerCase() === 'admin' ? styles.admin : styles.user} `}>
+                        <span className={`${styles.headerAvatarInitials} ${receiver.role?.toLowerCase() === 'admin' ? styles.admin : styles.user}`}>
                             {getInitials(receiver?.fullname || 'User')}
                         </span>
                     )}
                     <span>{getDisplayName(receiver.fullname)}</span>
                     {receiver.role && (
-                        <span className={`${styles.role} ${receiver.role.toLowerCase() === 'admin' ? styles.admin : styles.user} `}>
+                        <span className={`${styles.role} ${receiver.role.toLowerCase() === 'admin' ? styles.admin : styles.user}`}>
                             {receiver.role}
                         </span>
                     )}
                 </h3>
                 <div className={styles.headerButtons}>
                     <button className={styles.minimizeButton} onClick={toggleMinimize}>
-                        {isMinimized ? '▲' : '▼'}
+                        {initialMinimized ? '▲' : '▼'}
                     </button>
                     <button className={styles.closeButton} onClick={onClose}>
                         ×
                     </button>
                 </div>
             </div>
-            {!isMinimized && (
+            {!initialMinimized && (
                 <>
                     <div className={styles.messagesContainer} ref={messagesContainerRef}>
                         {messages.length === 0 ? (
@@ -277,7 +288,7 @@ export default function PrivateChat({ receiver, socket, onClose, isMinimized: in
                                 return (
                                     <div
                                         key={msg._id || msg.createdAt}
-                                        className={`${styles.messageWrapper} ${isOwnMessage ? styles.ownMessage : ''} `}
+                                        className={`${styles.messageWrapper} ${isOwnMessage ? styles.ownMessage : ''}`}
                                     >
                                         <div className={styles.avatar}>
                                             {isOwnMessage ? (
@@ -294,7 +305,7 @@ export default function PrivateChat({ receiver, socket, onClose, isMinimized: in
                                                         }}
                                                     />
                                                 ) : (
-                                                    <span className={`${styles.avatarInitials} ${userInfo?.role?.toLowerCase() === 'admin' ? styles.admin : styles.user} `}>
+                                                    <span className={`${styles.avatarInitials} ${userInfo?.role?.toLowerCase() === 'admin' ? styles.admin : styles.user}`}>
                                                         {getInitials(userInfo?.fullname || 'User')}
                                                     </span>
                                                 )
@@ -311,7 +322,7 @@ export default function PrivateChat({ receiver, socket, onClose, isMinimized: in
                                                     }}
                                                 />
                                             ) : (
-                                                <span className={`${styles.avatarInitials} ${receiver?.role?.toLowerCase() === 'admin' ? styles.admin : styles.user} `}>
+                                                <span className={`${styles.avatarInitials} ${receiver?.role?.toLowerCase() === 'admin' ? styles.admin : styles.user}`}>
                                                     {getInitials(receiver?.fullname || 'User')}
                                                 </span>
                                             )}
@@ -320,13 +331,13 @@ export default function PrivateChat({ receiver, socket, onClose, isMinimized: in
                                             <div className={styles.messageHeader}>
                                                 <span
                                                     className={`${styles.username} ${isOwnMessage
-                                                            ? userInfo?.role?.toLowerCase() === 'admin'
-                                                                ? styles.admin
-                                                                : styles.user
-                                                            : receiver?.role?.toLowerCase() === 'admin'
-                                                                ? styles.admin
-                                                                : styles.user
-                                                        } `}
+                                                        ? userInfo?.role?.toLowerCase() === 'admin'
+                                                            ? styles.admin
+                                                            : styles.user
+                                                        : receiver?.role?.toLowerCase() === 'admin'
+                                                            ? styles.admin
+                                                            : styles.user
+                                                        }`}
                                                 >
                                                     {getDisplayName(
                                                         isOwnMessage ? userInfo?.fullname : receiver?.fullname || 'User'
@@ -335,13 +346,13 @@ export default function PrivateChat({ receiver, socket, onClose, isMinimized: in
                                                 {(isOwnMessage ? userInfo?.role : receiver?.role) && (
                                                     <span
                                                         className={`${styles.role} ${isOwnMessage
-                                                                ? userInfo?.role?.toLowerCase() === 'admin'
-                                                                    ? styles.admin
-                                                                    : styles.user
-                                                                : receiver?.role?.toLowerCase() === 'admin'
-                                                                    ? styles.admin
-                                                                    : styles.user
-                                                            } `}
+                                                            ? userInfo?.role?.toLowerCase() === 'admin'
+                                                                ? styles.admin
+                                                                : styles.user
+                                                            : receiver?.role?.toLowerCase() === 'admin'
+                                                                ? styles.admin
+                                                                : styles.user
+                                                            }`}
                                                     >
                                                         {isOwnMessage ? userInfo?.role : receiver?.role}
                                                     </span>

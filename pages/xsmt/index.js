@@ -24,9 +24,9 @@ const KQXS = (props) => {
     const tableRef = useRef(null);
     const router = useRouter();
 
-    const hour = 17;
-    const minutes1 = 10;
-    const minutes2 = 14;
+    const hour = 14;
+    const minutes1 = 51;
+    const minutes2 = 52;
 
     const dayof = props.dayofMT;
     const station = props.station || "xsmt";

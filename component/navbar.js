@@ -75,6 +75,13 @@ const NavBar = () => {
             <div className={styles.NavbarMobileNgang}>
                 <ul className={styles.nav_listNgang}>
                     <li
+                        className={`${styles.nav_itemNgang} ${router.pathname === '/diendan' ? styles.active : ''}`}
+                    >
+                        <Link href="#" className={styles.nav_itemLinkNgang}>
+                            Diễn Đàn
+                        </Link>
+                    </li>
+                    <li
                         className={`${styles.nav_itemNgang} ${router.pathname.startsWith('/ket-qua-xo-so-mien-bac') ? styles.active : ''}`}
                     >
                         <Link href="/ket-qua-xo-so-mien-bac" className={styles.nav_itemLinkNgang}>
@@ -123,13 +130,7 @@ const NavBar = () => {
                             Soi Cầu
                         </Link>
                     </li>
-                    <li
-                        className={`${styles.nav_itemNgang} ${router.pathname === '/diendan' ? styles.active : ''}`}
-                    >
-                        <Link href="#" className={styles.nav_itemLinkNgang}>
-                            Diễn Đàn
-                        </Link>
-                    </li>
+
                 </ul>
             </div>
 
@@ -165,6 +166,22 @@ const NavBar = () => {
                                                 <FaHome />
                                             </span>{' '}
                                             Home
+                                        </Link>
+                                    </div>
+                                </li>
+                                <li
+                                    className={`${styles.nav_itemMobile} ${router.pathname === '/diendan' ? styles.active : ''}`}
+                                >
+                                    <div className={styles.grouplinkMobile}>
+                                        <Link
+                                            href="#"
+                                            className={styles.nav_itemLinkMobile}
+                                            onClick={toggleMenu}
+                                        >
+                                            <span className={styles.iconNav}>
+                                                <FaUsers />
+                                            </span>{' '}
+                                            Diễn Đàn
                                         </Link>
                                     </div>
                                 </li>
@@ -662,22 +679,7 @@ const NavBar = () => {
                                         </li>
                                     </ul>
                                 </li>
-                                <li
-                                    className={`${styles.nav_itemMobile} ${router.pathname === '/diendan' ? styles.active : ''}`}
-                                >
-                                    <div className={styles.grouplinkMobile}>
-                                        <Link
-                                            href="#"
-                                            className={styles.nav_itemLinkMobile}
-                                            onClick={toggleMenu}
-                                        >
-                                            <span className={styles.iconNav}>
-                                                <FaUsers />
-                                            </span>{' '}
-                                            Diễn Đàn
-                                        </Link>
-                                    </div>
-                                </li>
+
                                 <li
                                     className={`${styles.nav_itemMobile} ${status === 'authenticated' ? router.pathname === '/dang-bai-viet' : router.pathname === '/login' ? styles.active : ''}`}
                                 >
@@ -717,6 +719,13 @@ const NavBar = () => {
                                         Home
                                     </Link>
                                 </div>
+                            </li>
+                            <li
+                                className={`${styles.nav_item} ${router.pathname === '/diendan' ? styles.active : ''}`}
+                            >
+                                <Link href="/diendan/" className={styles.nav_itemLink}>
+                                    Diễn Đàn
+                                </Link>
                             </li>
                             <li
                                 className={`${styles.nav_item} ${router.pathname.startsWith('/ket-qua-xo-so-mien-bac') ? styles.active : ''}`}
@@ -996,13 +1005,7 @@ const NavBar = () => {
                                     </li>
                                 </ul>
                             </li>
-                            <li
-                                className={`${styles.nav_item} ${router.pathname === '/diendan' ? styles.active : ''}`}
-                            >
-                                <Link href="/diendan/" className={styles.nav_itemLink}>
-                                    Diễn Đàn
-                                </Link>
-                            </li>
+
                             <li
                                 className={`${styles.nav_item} ${status === 'authenticated' ? router.pathname === '/dang-bai-viet' : router.pathname === '/login' ? styles.active : ''}`}
                             >

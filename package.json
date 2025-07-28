@@ -53,7 +53,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "HTTPS=true next start"
   },
   "devDependencies": {
     "clean-css": "^5.3.3",
