@@ -198,29 +198,6 @@ const getSharedSSE = (station, date, sessionId) => {
 };
 
 const LiveResult = React.memo(({ isLiveWindow = true }) => {
-    const animationQueue = useMemo(
-        () => [
-            'eightPrizes_0',
-            'sevenPrizes_0',
-            'sixPrizes_0',
-            'sixPrizes_1',
-            'sixPrizes_2',
-            'fivePrizes_0',
-            'fourPrizes_0',
-            'fourPrizes_1',
-            'fourPrizes_2',
-            'fourPrizes_3',
-            'fourPrizes_4',
-            'fourPrizes_5',
-            'fourPrizes_6',
-            'threePrizes_0',
-            'threePrizes_1',
-            'secondPrize_0',
-            'firstPrize_0',
-            'specialPrize_0',
-        ],
-        []
-    );
     const lotteryContext = useLottery();
     if (!lotteryContext) {
         console.error('LiveResult must be used within a LotteryProvider');
@@ -284,6 +261,10 @@ const LiveResult = React.memo(({ isLiveWindow = true }) => {
                 { tinh: 'khanh-hoa', tentinh: 'Khánh Hòa' },
                 { tinh: 'hue', tentinh: 'Thừa Thiên Huế' },
             ],
+            // 1: [
+            //     { tinh: 'phu-yen', tentinh: 'Phú Yên' },
+            //     { tinh: 'hue', tentinh: 'Thừa Thiên Huế' },
+            // ],
             2: [
                 { tinh: 'dak-lak', tentinh: 'Đắk Lắk' },
                 { tinh: 'quang-nam', tentinh: 'Quảng Nam' },
@@ -351,37 +332,38 @@ const LiveResult = React.memo(({ isLiveWindow = true }) => {
                 `sseSession:${station}:${today}`,
                 JSON.stringify({
                     sessionId: sessionIdRef.current,
-                    lastConnected: Date.now(),
                     lastUpdated: lastUpdatedRef.current,
                 })
             );
         };
 
-        // Tạo sessionId mới
         sessionIdRef.current = `${Date.now()}${Math.random().toString(36).slice(2)}`;
         console.log(`New session ID generated: ${sessionIdRef.current}`);
 
-        // Gọi fetchInitialData song song ngay khi mount
-        const fetchInitialData = async (specificTinh = null) => {
+        setLiveData(emptyResult);
+        lastDataRef.current = emptyResult;
+
+        const fetchInitialData = async (retry = 0, specificTinh = null) => {
             try {
                 const provincesToFetch = specificTinh
                     ? emptyResult.filter(item => item.tinh === specificTinh)
                     : emptyResult;
                 const fetchPromises = provincesToFetch.map(item =>
                     fetch(
-                        `https://backendkqxs-1.onrender.com/api/ketquaxs/xsmt/sse/initial?station=${station}&date=${today.replace(/\//g, '-')}&tinh=${item.tinh}`,
+                        `https://backendkqxs-1.onrender.com/api/ketquaxs/xsmt/sse/initial?station=${station}&date=${today}&tinh=${item.tinh}`,
                         { mode: 'cors' }
-                    ).then(res => {
-                        if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
-                        return res.json();
+                    ).then(response => {
+                        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                        return response.json().then(data => ({ tinh: item.tinh, data }));
                     })
                 );
-                const serverDataArray = await Promise.all(fetchPromises);
+                const results = await Promise.all(fetchPromises);
+
                 if (!mountedRef.current) return;
 
                 setLiveData(prev => {
                     const updatedData = prev.map(item => {
-                        const serverItem = serverDataArray.find(s => s.tinh === item.tinh) || item;
+                        const serverItem = results.find(r => r.tinh === item.tinh)?.data || item;
                         const updatedItem = { ...item };
                         let shouldUpdate = false;
                         for (const key in serverItem) {
@@ -405,20 +387,22 @@ const LiveResult = React.memo(({ isLiveWindow = true }) => {
                     setRetryCount(0);
                     setError(null);
                     console.log(`Initial data updated for session ${sessionIdRef.current}:`, updatedData);
+
+                    // Khởi tạo animatingPrizes dựa trên dữ liệu từ /initial
+                    const initialAnimatingPrizes = updatedData.reduce((acc, item) => {
+                        const nextPrize = animationQueue.find(prize => item[prize] === '...') || null;
+                        acc[item.tinh] = nextPrize;
+                        return acc;
+                    }, {});
+                    setAnimatingPrizes(initialAnimatingPrizes);
+
                     return updatedData;
                 });
-
-                const initialAnimatingPrizes = serverDataArray.reduce((acc, item) => {
-                    const nextPrize = animationQueue.find(prize => item[prize] === '...') || null;
-                    acc[item.tinh] = nextPrize;
-                    return acc;
-                }, {});
-                setAnimatingPrizes(initialAnimatingPrizes);
             } catch (err) {
-                console.error(`Error fetching initial data for session ${sessionIdRef.current}:`, err.message);
-                if (retryCount < fetchMaxRetries && mountedRef.current) {
+                console.error(`Error fetching initial data (retry ${retry + 1}) for session ${sessionIdRef.current}:`, err.message);
+                if (retry < fetchMaxRetries && mountedRef.current) {
                     setTimeout(() => {
-                        fetchInitialData(specificTinh);
+                        fetchInitialData(retry + 1, specificTinh);
                     }, fetchRetryInterval);
                 } else if (mountedRef.current) {
                     setError('Không thể lấy dữ liệu ban đầu, đang dựa vào dữ liệu mặc định...');
@@ -445,12 +429,89 @@ const LiveResult = React.memo(({ isLiveWindow = true }) => {
             }
             console.log(`Cleaned up LiveResult for session ${sessionIdRef.current}`);
         };
-    }, [today, station, setLiveData, setIsLiveDataComplete, emptyResult, prizeDigits, animationQueue]);
+    }, [today, station, setLiveData, setIsLiveDataComplete, emptyResult]);
 
     useEffect(() => {
         if (!mountedRef.current || !isLiveWindow) return;
 
+        const fetchInitialData = async (retry = 0, specificTinh = null) => {
+            try {
+                const provincesToFetch = specificTinh
+                    ? emptyResult.filter(item => item.tinh === specificTinh)
+                    : emptyResult;
+                const fetchPromises = provincesToFetch.map(item =>
+                    fetch(
+                        `https://backendkqxs-1.onrender.com/api/ketquaxs/xsmt/sse/initial?station=${station}&date=${today}&tinh=${item.tinh}`,
+                        { mode: 'cors' }
+                    ).then(response => {
+                        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                        return response.json().then(data => ({ tinh: item.tinh, data }));
+                    })
+                );
+                const results = await Promise.all(fetchPromises);
+
+                if (!mountedRef.current) return;
+
+                setLiveData(prev => {
+                    const updatedData = prev.map(item => {
+                        const serverItem = results.find(r => r.tinh === item.tinh)?.data || item;
+                        const updatedItem = { ...item };
+                        let shouldUpdate = false;
+                        for (const key in serverItem) {
+                            if (key in prizeDigits && serverItem[key] !== '...' && serverItem[key] !== item[key]) {
+                                updatedItem[key] = serverItem[key];
+                                shouldUpdate = true;
+                            }
+                        }
+                        if (shouldUpdate) {
+                            updatedItem.lastUpdated = serverItem.lastUpdated || Date.now();
+                            lastUpdatedRef.current[item.tinh] = updatedItem.lastUpdated;
+                        }
+                        return updatedItem;
+                    });
+                    lastDataRef.current = updatedData;
+                    const isComplete = updatedData.every(item =>
+                        Object.keys(prizeDigits).every(key => item[key] !== '...' && item[key] !== '***')
+                    );
+                    setIsLiveDataComplete(isComplete);
+                    setIsTodayLoading(false);
+                    setRetryCount(0);
+                    setError(null);
+                    console.log(`Initial data updated for session ${sessionIdRef.current}:`, updatedData);
+
+                    // Cập nhật animatingPrizes dựa trên dữ liệu từ /initial
+                    const initialAnimatingPrizes = updatedData.reduce((acc, item) => {
+                        const nextPrize = animationQueue.find(prize => item[prize] === '...') || null;
+                        acc[item.tinh] = nextPrize;
+                        return acc;
+                    }, {});
+                    setAnimatingPrizes(initialAnimatingPrizes);
+
+                    return updatedData;
+                });
+            } catch (err) {
+                console.error(`Error fetching initial data (retry ${retry + 1}) for session ${sessionIdRef.current}:`, err.message);
+                if (retry < fetchMaxRetries && mountedRef.current) {
+                    setTimeout(() => {
+                        fetchInitialData(retry + 1, specificTinh);
+                    }, fetchRetryInterval);
+                } else if (mountedRef.current) {
+                    setError('Không thể lấy dữ liệu ban đầu, đang dựa vào dữ liệu mặc định...');
+                    setIsTodayLoading(false);
+                }
+            }
+        };
+
         const connectSSE = () => {
+            if (!station || !today || !/^\d{2}-\d{2}-\d{4}$/.test(today)) {
+                console.warn(`Invalid station or today value for session ${sessionIdRef.current}:`, { station, today });
+                if (mountedRef.current) {
+                    setError('Dữ liệu không hợp lệ...');
+                    setIsTodayLoading(false);
+                }
+                return;
+            }
+
             try {
                 sseRef.current = getSharedSSE(station, today, sessionIdRef.current);
                 console.log(`SSE connection initiated for session ${sessionIdRef.current}, date ${today}`);
@@ -464,32 +525,32 @@ const LiveResult = React.memo(({ isLiveWindow = true }) => {
                             clearInterval(pollingIntervalRef.current);
                             pollingIntervalRef.current = null;
                         }
-                        // Gọi lại để đảm bảo dữ liệu mới nhất
-                        emptyResult.forEach(item => fetchInitialData(item.tinh));
+                        // Gọi fetchInitialData song song cho tất cả tỉnh
+                        fetchInitialData();
                     }
                 };
 
                 sseRef.current.onerror = () => {
-                    console.log(`SSE error, retrying... Retry count: ${retryCount + 1} for session ${sessionIdRef.current}`);
+                    console.log(`SSE error, retry count: ${retryCount + 1} for session ${sessionIdRef.current}`);
                     if (mountedRef.current) {
-                        setError('Mất kết nối trực tiếp, đang thử lại SSE...');
+                        setError('Mất kết nối trực tiếp, đang thử lại...');
+                        if (sseRef.current) {
+                            sseRef.current.close();
+                            sseRef.current = null;
+                            globalSSE = null;
+                        }
                         if (retryCount < maxRetries) {
                             setTimeout(() => {
-                                if (mountedRef.current && !sseRef.current) {
+                                if (mountedRef.current && !pollingIntervalRef.current) {
                                     setRetryCount(prev => prev + 1);
                                     connectSSE();
                                 }
                             }, retryInterval);
                         } else {
-                            console.log(`Max retries reached, starting polling for session ${sessionIdRef.current}`);
                             startPolling();
                         }
                     }
                 };
-
-                sseRef.current.addEventListener('canary', (event) => {
-                    console.log(`Received canary message for session ${sessionIdRef.current}:`, event.data);
-                });
 
                 sseRef.current.addEventListener('full', (event) => {
                     try {
@@ -513,27 +574,45 @@ const LiveResult = React.memo(({ isLiveWindow = true }) => {
                                         drawDate: data.drawDate || item.drawDate,
                                         lastUpdated: data.lastUpdated || Date.now(),
                                     };
-                                    lastUpdatedRef.current[data.tinh] = data.lastUpdated || Date.now();
                                     return updatedItem;
                                 });
                                 lastDataRef.current = updatedData;
+                                lastUpdatedRef.current[data.tinh] = data.lastUpdated || Date.now();
                                 const isComplete = updatedData.every(item =>
                                     Object.keys(prizeDigits).every(key => item[key] !== '...' && item[key] !== '***')
                                 );
                                 setIsLiveDataComplete(isComplete);
+                                setIsTodayLoading(false);
                                 setRetryCount(0);
                                 setError(null);
                                 console.log(`LiveData updated from SSE full for session ${sessionIdRef.current}:`, updatedData);
-                                return updatedData;
-                            });
 
-                            setAnimatingPrizes(prev => {
-                                const nextPrize = animationQueue.find(prize => data[prize] === '...') || null;
-                                return { ...prev, [data.tinh]: nextPrize };
+                                // Cập nhật animatingPrizes từ full event
+                                const newAnimatingPrizes = updatedData.reduce((acc, item) => {
+                                    const nextPrize = animationQueue.find(prize => item[prize] === '...') || null;
+                                    acc[item.tinh] = nextPrize;
+                                    return acc;
+                                }, {});
+                                setAnimatingPrizes(newAnimatingPrizes);
+
+                                return updatedData;
                             });
                         }
                     } catch (error) {
                         console.error(`Error processing full event for session ${sessionIdRef.current}:`, error);
+                    }
+                });
+
+                sseRef.current.addEventListener('canary', (event) => {
+                    console.log(`Received canary message for session ${sessionIdRef.current}:`, event.data);
+                    if (mountedRef.current) {
+                        sessionStorage.setItem(
+                            `sseSession:${station}:${today}`,
+                            JSON.stringify({
+                                sessionId: sessionIdRef.current,
+                                lastUpdated: lastUpdatedRef.current,
+                            })
+                        );
                     }
                 });
 
@@ -555,21 +634,25 @@ const LiveResult = React.memo(({ isLiveWindow = true }) => {
                                             drawDate: data.drawDate || item.drawDate,
                                             lastUpdated: data.lastUpdated || Date.now(),
                                         };
-                                        lastUpdatedRef.current[data.tinh] = data.lastUpdated || Date.now();
                                         return updatedItem;
                                     });
                                     lastDataRef.current = updatedData;
+                                    lastUpdatedRef.current[data.tinh] = data.lastUpdated || Date.now();
                                     const isComplete = updatedData.every(item =>
                                         Object.keys(prizeDigits).every(key => item[key] !== '...' && item[key] !== '***')
                                     );
                                     setIsLiveDataComplete(isComplete);
                                     console.log(`LiveData updated from SSE ${prizeType} for session ${sessionIdRef.current}:`, updatedData);
-                                    return updatedData;
-                                });
 
-                                setAnimatingPrizes(prev => {
-                                    const nextPrize = animationQueue.find(prize => data[prize] === '...') || null;
-                                    return { ...prev, [data.tinh]: nextPrize };
+                                    // Cập nhật animatingPrizes từ prizeType event
+                                    const newAnimatingPrizes = updatedData.reduce((acc, item) => {
+                                        const nextPrize = animationQueue.find(prize => item[prize] === '...') || null;
+                                        acc[item.tinh] = nextPrize;
+                                        return acc;
+                                    }, {});
+                                    setAnimatingPrizes(newAnimatingPrizes);
+
+                                    return updatedData;
                                 });
                             }
                         } catch (error) {
@@ -581,7 +664,16 @@ const LiveResult = React.memo(({ isLiveWindow = true }) => {
                 console.error(`Error setting up SSE for session ${sessionIdRef.current}:`, error);
                 if (mountedRef.current) {
                     setError('Lỗi thiết lập kết nối SSE, đang sử dụng polling...');
-                    startPolling();
+                    if (retryCount < maxRetries) {
+                        setTimeout(() => {
+                            if (mountedRef.current && !pollingIntervalRef.current) {
+                                setRetryCount(prev => prev + 1);
+                                connectSSE();
+                            }
+                        }, retryInterval);
+                    } else {
+                        startPolling();
+                    }
                 }
             }
         };
@@ -592,33 +684,32 @@ const LiveResult = React.memo(({ isLiveWindow = true }) => {
                 return;
             }
 
-            try {
-                const isIncomplete = contextLiveData.some(item =>
-                    Object.keys(prizeDigits).some(key => item[key] === '...' || item[key] === '***')
-                );
-                if (!isIncomplete) {
-                    console.log(`Data complete, stopping polling for session ${sessionIdRef.current}`);
-                    return;
-                }
+            const isIncomplete = contextLiveData.some(item =>
+                Object.keys(prizeDigits).some(key => item[key] === '...' || item[key] === '***')
+            );
+            if (!isIncomplete) {
+                console.log(`Data complete, stopping polling for session ${sessionIdRef.current}`);
+                return;
+            }
 
-                console.log(`Starting polling for session ${sessionIdRef.current}`);
-                pollingIntervalRef.current = setInterval(async () => {
-                    try {
-                        const fetchPromises = emptyResult.map(item =>
-                            fetch(
-                                `https://backendkqxs-1.onrender.com/api/ketquaxs/xsmt/sse/initial?station=${station}&date=${today.replace(/\//g, '-')}&tinh=${item.tinh}`,
-                                { mode: 'cors' }
-                            ).then(res => {
-                                if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
-                                return res.json();
-                            })
-                        );
-                        const serverDataArray = await Promise.all(fetchPromises);
-                        if (!mountedRef.current) return;
+            console.log(`Starting polling for session ${sessionIdRef.current}`);
+            pollingIntervalRef.current = setInterval(async () => {
+                try {
+                    const fetchPromises = emptyResult.map(item =>
+                        fetch(
+                            `https://backendkqxs-1.onrender.com/api/ketquaxs/xsmt/sse/initial?station=${station}&date=${today}&tinh=${item.tinh}`,
+                            { mode: 'cors' }
+                        ).then(response => {
+                            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                            return response.json().then(data => ({ tinh: item.tinh, data }));
+                        })
+                    );
+                    const results = await Promise.all(fetchPromises);
 
+                    if (mountedRef.current) {
                         setLiveData(prev => {
                             const updatedData = prev.map(item => {
-                                const serverItem = serverDataArray.find(s => s.tinh === item.tinh) || item;
+                                const serverItem = results.find(r => r.tinh === item.tinh)?.data || item;
                                 const hasChanges = Object.keys(prizeDigits).some(key => serverItem[key] !== item[key] && serverItem[key] !== '...');
                                 if (!hasChanges) return item;
                                 const updatedItem = {
@@ -635,31 +726,37 @@ const LiveResult = React.memo(({ isLiveWindow = true }) => {
                                     drawDate: serverItem.drawDate || item.drawDate,
                                     lastUpdated: serverItem.lastUpdated || Date.now(),
                                 };
-                                lastUpdatedRef.current[item.tinh] = updatedItem.lastUpdated;
                                 return updatedItem;
                             });
                             lastDataRef.current = updatedData;
+                            results.forEach(item => {
+                                lastUpdatedRef.current[item.tinh] = item.data.lastUpdated || Date.now();
+                            });
                             const isComplete = updatedData.every(item =>
                                 Object.keys(prizeDigits).every(key => item[key] !== '...' && item[key] !== '***')
                             );
                             setIsLiveDataComplete(isComplete);
-                            setError(null);
                             console.log(`LiveData updated from polling for session ${sessionIdRef.current}:`, updatedData);
+
+                            // Cập nhật animatingPrizes từ polling
+                            const newAnimatingPrizes = updatedData.reduce((acc, item) => {
+                                const nextPrize = animationQueue.find(prize => item[prize] === '...') || null;
+                                acc[item.tinh] = nextPrize;
+                                return acc;
+                            }, {});
+                            setAnimatingPrizes(newAnimatingPrizes);
+
                             return updatedData;
                         });
-                    } catch (error) {
-                        console.error(`Polling error for session ${sessionIdRef.current}:`, error);
-                        if (mountedRef.current) {
-                            setError('Không thể lấy dữ liệu, đang thử lại...');
-                        }
+                        setError(null);
                     }
-                }, pollingIntervalMs);
-            } catch (error) {
-                console.error(`Error starting polling for session ${sessionIdRef.current}:`, error);
-                if (mountedRef.current) {
-                    setError('Lỗi thiết lập polling, vui lòng thử lại...');
+                } catch (error) {
+                    console.error(`Polling error for session ${sessionIdRef.current}:`, error);
+                    if (mountedRef.current) {
+                        setError('Không thể lấy dữ liệu, đang thử lại...');
+                    }
                 }
-            }
+            }, pollingIntervalMs);
         };
 
         connectSSE();
@@ -678,30 +775,29 @@ const LiveResult = React.memo(({ isLiveWindow = true }) => {
         };
     }, [isLiveWindow, station, today, setLiveData, setIsLiveDataComplete, emptyResult, prizeDigits]);
 
-
-
-    useEffect(() => {
-        if (!mountedRef.current || !deferredLiveData?.length) return;
-
-        const newAnimatingPrizes = {};
-        let hasChanges = false;
-
-        deferredLiveData.forEach(stationData => {
-            const currentPrize = animatingPrizes[stationData.tinh];
-            const nextPrize = animationQueue.find(prize => stationData[prize] === '...') || null;
-            if (currentPrize !== nextPrize) {
-                newAnimatingPrizes[stationData.tinh] = nextPrize;
-                hasChanges = true;
-            } else {
-                newAnimatingPrizes[stationData.tinh] = currentPrize;
-            }
-        });
-
-        if (hasChanges) {
-            setAnimatingPrizes(newAnimatingPrizes);
-            console.log('Updated animatingPrizes:', newAnimatingPrizes);
-        }
-    }, [deferredLiveData, animationQueue, animatingPrizes]);
+    const animationQueue = useMemo(
+        () => [
+            'eightPrizes_0',
+            'sevenPrizes_0',
+            'sixPrizes_0',
+            'sixPrizes_1',
+            'sixPrizes_2',
+            'fivePrizes_0',
+            'fourPrizes_0',
+            'fourPrizes_1',
+            'fourPrizes_2',
+            'fourPrizes_3',
+            'fourPrizes_4',
+            'fourPrizes_5',
+            'fourPrizes_6',
+            'threePrizes_0',
+            'threePrizes_1',
+            'secondPrize_0',
+            'firstPrize_0',
+            'specialPrize_0',
+        ],
+        []
+    );
 
     const renderPrizeValue = useMemo(() => {
         return (tinh, prizeType, digits) => {
