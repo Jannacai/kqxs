@@ -5,7 +5,7 @@ import React from 'react';
 import { useLottery } from '../../contexts/LotteryContext';
 // import ViewCounter from "../views/ViewCounter";
 
-const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange, filterTypes, isLiveWindow }) => {
+const LiveResult = ({ getHeadAndTailNumbers, handleFilterChange, filterTypes, isLiveWindow }) => {
     const { liveData, setLiveData, setIsLiveDataComplete } = useLottery() || {};
     const [isTodayLoading, setIsTodayLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -13,12 +13,17 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     const [animatingPrize, setAnimatingPrize] = useState(null);
     const mountedRef = useRef(false);
     const sseRef = useRef(null);
-
+    const station = 'xsmb';
+    const today = new Date().toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+    }).replace(/\//g, '-');
     const maxRetries = 50;
     const retryInterval = 2000; // 2 giây
     const fetchMaxRetries = 3;
     const fetchRetryInterval = 5000;
-    const pollingIntervalMs = 1000; // Polling 2 giây cho đến khi đầy đủ
+    const pollingIntervalMs = 5000; // Polling 2 giây cho đến khi đầy đủ
     const regularPollingIntervalMs = 7000; // Sau khi đầy đủ
 
     const prizeDigits = {
