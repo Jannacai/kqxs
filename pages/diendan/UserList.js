@@ -7,9 +7,10 @@ import moment from 'moment';
 import 'moment-timezone';
 import Image from 'next/image';
 import io from 'socket.io-client';
-import styles from '../../styles/ListUser.module.css';
+import styles from '../../styles/forumOptimized.module.css';
 import UserInfoModal from './modals/UserInfoModal';
-import PrivateChat from './chatrieng'; // Thêm import PrivateChat
+import PrivateChat from './chatrieng';
+import { FaSearch, FaUser, FaCrown, FaCircle, FaEnvelope, FaEye } from 'react-icons/fa';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
 
@@ -42,10 +43,6 @@ const formatOfflineDuration = (lastActive) => {
     return 'Vừa mới';
 };
 
-const getAvatarClass = (role) => {
-    return role?.toLowerCase() === 'admin' ? styles.admin : styles.user;
-};
-
 export default function UserList({ session: serverSession }) {
     const { data: clientSession, status } = useSession();
     const session = clientSession || serverSession;
@@ -59,8 +56,8 @@ export default function UserList({ session: serverSession }) {
     const [onlineUsers, setOnlineUsers] = useState(0);
     const [guestUsers, setGuestUsers] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
-    const [privateChats, setPrivateChats] = useState([]); // Thêm trạng thái privateChats
-    const [userInfo, setUserInfo] = useState(null); // Thêm trạng thái userInfo
+    const [privateChats, setPrivateChats] = useState([]);
+    const [userInfo, setUserInfo] = useState(null);
     const socketRef = useRef(null);
 
     // Lấy thông tin người dùng hiện tại
@@ -98,161 +95,102 @@ export default function UserList({ session: serverSession }) {
             const res = await axios.get(`${API_BASE_URL}/api/users/list`, { headers, params });
             const { users: fetchedUsers, total } = res.data;
             console.log('Users fetched:', fetchedUsers);
-
-            const sortedUsers = fetchedUsers.sort((a, b) => {
-                if (a.isOnline && !b.isOnline) return -1;
-                if (!a.isOnline && b.isOnline) return 1;
-                return a.fullname.localeCompare(b.fullname);
-            });
-            setUsers(sortedUsers);
+            setUsers(fetchedUsers);
             setTotalUsers(total);
-            setOnlineUsers(sortedUsers.filter(user => user.isOnline).length);
+            setFetchError('');
         } catch (err) {
             console.error('Error fetching users:', err.message);
-            setFetchError('Không thể tải danh sách người dùng. Vui lòng thử lại.');
+            setFetchError(err.response?.data?.message || 'Đã có lỗi khi tải danh sách người dùng');
         }
     };
 
     useEffect(() => {
         fetchUsers();
-    }, [searchQuery]);
+    }, [session?.accessToken, searchQuery]);
 
     useEffect(() => {
-        const socket = io(API_BASE_URL, {
-            query: session?.accessToken && session?.user?.id
-                ? { token: session.accessToken, userId: session.user.id }
-                : {},
-            reconnectionAttempts: 5,
-            reconnectionDelay: 1000,
-            reconnectionDelayMax: 5000,
-        });
-        socketRef.current = socket;
+        if (status === 'authenticated' && session?.accessToken) {
+            const newSocket = io(API_BASE_URL, {
+                query: { token: session.accessToken },
+                reconnection: true,
+                reconnectionAttempts: 5,
+                reconnectionDelay: 1000
+            });
 
-        socket.on('connect', () => {
-            console.log('Socket.IO connected for user list:', socket.id);
-            socket.emit('joinUserStatus');
-            if (session?.accessToken && session?.user?.id) {
-                socket.emit('reconnect');
-            }
-        });
+            socketRef.current = newSocket;
 
-        socket.on('connect_error', (err) => {
-            console.error('Socket.IO connection error:', err.message);
-            setFetchError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
-        });
+            newSocket.on('connect', () => {
+                console.log('Connected to WebSocket for user list');
+                newSocket.emit('joinUserList');
+            });
 
-        socket.on('USER_STATUS_UPDATED', (updatedUser) => {
-            console.log('Received USER_STATUS_UPDATED:', updatedUser);
-            if (updatedUser?._id && isValidObjectId(updatedUser._id)) {
-                setUsers((prev) => {
-                    const updatedUsers = prev.map((user) =>
-                        user._id === updatedUser._id
-                            ? { ...user, isOnline: updatedUser.isOnline, lastActive: updatedUser.lastActive }
-                            : user
-                    );
-                    setOnlineUsers(updatedUsers.filter(user => user.isOnline).length);
-                    return updatedUsers.sort((a, b) => {
-                        if (a.isOnline && !b.isOnline) return -1;
-                        if (!a.isOnline && b.isOnline) return 1;
-                        return a.fullname.localeCompare(b.fullname);
-                    });
-                });
-                setUsersCache((prev) => ({
-                    ...prev,
-                    [updatedUser._id]: { ...prev[updatedUser._id], isOnline: updatedUser.isOnline, lastActive: updatedUser.lastActive },
-                }));
-            }
-        });
+            newSocket.on('USER_STATUS_CHANGED', (data) => {
+                console.log('User status changed:', data);
+                setUsers(prev => prev.map(user =>
+                    user._id === data.userId
+                        ? { ...user, isOnline: data.isOnline, lastActive: data.lastActive }
+                        : user
+                ));
+            });
 
-        socket.on('GUEST_COUNT_UPDATED', ({ guestCount }) => {
-            console.log('Received GUEST_COUNT_UPDATED:', guestCount);
-            setGuestUsers(guestCount);
-        });
+            newSocket.on('USER_UPDATED', (data) => {
+                console.log('User updated:', data);
+                setUsers(prev => prev.map(user =>
+                    user._id === data._id ? { ...user, ...data } : user
+                ));
+                setUsersCache(prev => ({ ...prev, [data._id]: data }));
+            });
 
-        // Xử lý tin nhắn riêng
-        socket.on('PRIVATE_MESSAGE', (newMessage) => {
-            console.log('Received PRIVATE_MESSAGE:', JSON.stringify(newMessage, null, 2));
-            setPrivateChats((prev) =>
-                prev.map((chat) =>
-                    chat.receiver._id === newMessage.senderId || chat.receiver._id === newMessage.receiverId
-                        ? { ...chat, messages: [...(chat.messages || []), newMessage] }
-                        : chat
-                )
-            );
-        });
+            newSocket.on('disconnect', () => {
+                console.log('Disconnected from WebSocket');
+            });
 
+            return () => {
+                newSocket.disconnect();
+            };
+        }
+    }, [session, status]);
+
+    useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
-                console.log('Tab is visible, checking connection');
-                if (socket.connected) {
-                    if (session?.accessToken && session?.user?.id) {
-                        socket.emit('reconnect');
-                    }
-                } else {
-                    socket.connect();
-                }
                 fetchUsers();
             }
         };
 
         document.addEventListener('visibilitychange', handleVisibilityChange);
-
-        return () => {
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
-            if (socketRef.current) {
-                socketRef.current.disconnect();
-                console.log('Socket.IO disconnected for user list');
-            }
-        };
-    }, [session]);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [session?.accessToken]);
 
     const openPrivateChat = (user) => {
-        console.log('openPrivateChat called with user:', JSON.stringify(user, null, 2));
-        if (!userInfo) {
-            setFetchError('Vui lòng đăng nhập để mở chat riêng');
-            console.log('Blocked: userInfo not loaded');
+        if (!session?.accessToken) {
+            console.log('No access token, cannot open private chat');
             return;
         }
-        const isCurrentUserAdmin = userInfo?.role?.toLowerCase() === 'admin';
-        const isTargetAdmin = user?.role?.toLowerCase() === 'admin';
-        if (!isCurrentUserAdmin && !isTargetAdmin) {
-            setFetchError('Bạn chỉ có thể chat riêng với admin');
-            console.log('Blocked: User cannot open private chat with non-admin');
-            return;
+
+        const existingChat = privateChats.find(chat => chat.receiverId === user._id);
+        if (!existingChat) {
+            setPrivateChats(prev => [...prev, {
+                receiverId: user._id,
+                receiverName: getDisplayName(user.fullname),
+                isMinimized: false
+            }]);
         }
-        setPrivateChats((prev) => {
-            if (prev.some((chat) => chat.receiver._id === user._id)) {
-                console.log('Chat already exists, setting to not minimized:', user._id);
-                return prev.map((chat) =>
-                    chat.receiver._id === user._id ? { ...chat, isMinimized: false } : chat
-                );
-            }
-            console.log('Opening new private chat:', user._id);
-            return [...prev, { receiver: user, isMinimized: false, messages: [] }];
-        });
     };
 
     const closePrivateChat = (receiverId) => {
-        console.log('Closing private chat with user:', receiverId);
-        setPrivateChats((prev) => prev.filter((chat) => chat.receiver._id !== receiverId));
+        setPrivateChats(prev => prev.filter(chat => chat.receiverId !== receiverId));
     };
 
     const toggleMinimizePrivateChat = (receiverId) => {
-        console.log('Toggling minimize for chat with user:', receiverId);
-        setPrivateChats((prev) =>
-            prev.map((chat) =>
-                chat.receiver._id === receiverId ? { ...chat, isMinimized: !chat.isMinimized } : chat
-            )
-        );
+        setPrivateChats(prev => prev.map(chat =>
+            chat.receiverId === receiverId
+                ? { ...chat, isMinimized: !chat.isMinimized }
+                : chat
+        ));
     };
 
     const handleShowDetails = (user) => {
-        console.log('handleShowDetails called with user:', user);
-        if (!user?._id || !isValidObjectId(user._id)) {
-            console.error('Invalid user ID:', user?._id);
-            setFetchError('ID người dùng không hợp lệ');
-            return;
-        }
         setSelectedUser(user);
         setShowModal(true);
     };
@@ -261,99 +199,150 @@ export default function UserList({ session: serverSession }) {
         setSearchQuery(e.target.value);
     };
 
+    const filteredUsers = users.filter(user => {
+        if (!searchQuery) return true;
+        const query = searchQuery.toLowerCase();
+        return (
+            getDisplayName(user.fullname).toLowerCase().includes(query) ||
+            (user.email && user.email.toLowerCase().includes(query)) ||
+            (user.role && user.role.toLowerCase().includes(query))
+        );
+    });
+
+    const onlineCount = filteredUsers.filter(user => user.isOnline).length;
+    const adminCount = filteredUsers.filter(user => user.role === 'admin').length;
+
     return (
-        <div className={styles.chatContainer}>
-            <h3 className={styles.chatTitle}>Danh Sách Thành Viên</h3>
-            <div className={styles.searchContainer}>
-                <input
-                    type="text"
-                    className={styles.searchInput}
-                    placeholder="Tìm kiếm theo tên..."
-                    value={searchQuery}
-                    onChange={handleSearchChange}
-                />
+        <div className={styles.userListCompact}>
+            {/* Compact Header */}
+            <div className={styles.compactHeader}>
+                <div className={styles.compactTitle}>Thành Viên Nhóm</div>
+                <div className={styles.compactSubtitle}>
+                    {totalUsers} thành viên • {onlineCount} online • {adminCount} admin
+                </div>
             </div>
-            <div className={styles.messagesContainer}>
-                {users.length === 0 ? (
-                    <p className={styles.noMessages}>Chưa có thành viên nào</p>
-                ) : (
-                    users.map((user) => (
-                        <div key={user._id} className={styles.messageWrapper}>
-                            <div
-                                className={`${styles.avatar} ${user.role?.toLowerCase() === 'admin' ? styles.admin : styles.user}`}
-                                onClick={() => handleShowDetails(user)}
-                                role="button"
-                                aria-label={`Xem chi tiết ${getDisplayName(user.fullname)}`}
-                            >
-                                {user?.img ? (
+
+            {/* Compact Content */}
+            <div className={`${styles.compactContent} ${styles.compactContent.large}`}>
+                {/* Search Bar */}
+                <div className={styles.searchBarCompact}>
+                    <FaSearch />
+                    <input
+                        type="text"
+                        placeholder="Tìm kiếm thành viên..."
+                        value={searchQuery}
+                        onChange={handleSearchChange}
+                        className={styles.searchInputCompact}
+                    />
+                </div>
+
+                {/* User List */}
+                <div className={styles.userListContentCompact}>
+                    {fetchError && (
+                        <div className={styles.errorMessage}>
+                            <FaEye />
+                            <span>{fetchError}</span>
+                        </div>
+                    )}
+
+                    {filteredUsers.map((user) => (
+                        <div
+                            key={user._id}
+                            className={styles.userItemCompact}
+                        >
+                            <div className={styles.userAvatarCompact}>
+                                {user.avatar ? (
                                     <Image
-                                        src={user.img}
+                                        src={user.avatar}
                                         alt={getDisplayName(user.fullname)}
-                                        className={styles.avatarImage}
-                                        width={36}
-                                        height={36}
-                                        onError={(e) => {
-                                            e.target.style.display = 'none';
-                                            e.target.nextSibling.style.display = 'flex';
-                                        }}
+                                        width={32}
+                                        height={32}
+                                        className={styles.userAvatarCompactImage}
                                     />
                                 ) : (
-                                    <span className={styles.avatarInitials}>
-                                        {getInitials(user?.fullname)}
-                                    </span>
+                                    <div className={styles.userAvatarCompactInitials}>
+                                        {getInitials(user.fullname)}
+                                    </div>
                                 )}
-                            </div>
-                            <div className={styles.messageContent}>
-                                <div className={styles.messageHeader}>
-                                    <span
-                                        className={`${styles.username} ${user.role?.toLowerCase() === 'admin' ? styles.admin : styles.user}`}
-                                        onClick={() => handleShowDetails(user)}
-                                        role="button"
-                                        aria-label={`Xem chi tiết ${getDisplayName(user.fullname)}`}
-                                    >
-                                        {getDisplayName(user.fullname)}
-                                    </span>
-                                    <span className={styles.timestamp}>
-                                        {user.isOnline
-                                            ? <span className={styles.online}>Online</span>
-                                            : `Offline ${formatOfflineDuration(user.lastActive)}`}
-                                    </span>
+                                <div className={`${styles.statusDot} ${user.isOnline ? styles.online : styles.offline}`}>
+                                    <FaCircle />
                                 </div>
                             </div>
+
+                            <div className={styles.userInfoCompact}>
+                                <div className={styles.userNameCompact}>
+                                    {getDisplayName(user.fullname)}
+                                    {user.role === 'admin' && (
+                                        <span className={styles.adminBadge}>
+                                            <FaCrown />
+                                            Admin
+                                        </span>
+                                    )}
+                                </div>
+                                <div className={styles.userRoleCompact}>
+                                    {user.role || 'USER'}
+                                    {!user.isOnline && (
+                                        <span className={styles.lastSeen}>
+                                            • {formatOfflineDuration(user.lastActive)}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className={styles.userActionsCompact}>
+                                <button
+                                    className={styles.actionButtonCompact}
+                                    onClick={() => handleShowDetails(user)}
+                                    title="Xem chi tiết"
+                                >
+                                    <FaEye />
+                                </button>
+                                {user.role !== 'admin' && (
+                                    <button
+                                        className={styles.actionButtonCompact}
+                                        onClick={() => openPrivateChat(user)}
+                                        title="Chat riêng"
+                                    >
+                                        <FaEnvelope />
+                                    </button>
+                                )}
+                            </div>
                         </div>
-                    ))
-                )}
+                    ))}
+
+                    {filteredUsers.length === 0 && (
+                        <div className={styles.emptyMessage}>
+                            {searchQuery ? 'Không tìm thấy thành viên nào' : 'Không có thành viên nào'}
+                        </div>
+                    )}
+                </div>
             </div>
-            <div className={styles.tong}>
-                <p className={styles.totalUsers}>Tổng số thành viên: 431</p>
-                <p className={styles.totalUsers}>Tổng số người online: {onlineUsers}</p>
-                <p className={styles.totalUsers}>Tổng số khách online: {guestUsers}</p>
-            </div>
-            {fetchError && <p className={styles.error}>{fetchError}</p>}
+
+            {/* Private Chats */}
+            {privateChats.map(chat => (
+                <PrivateChat
+                    key={chat.receiverId}
+                    receiverId={chat.receiverId}
+                    receiverName={chat.receiverName}
+                    isMinimized={chat.isMinimized}
+                    onClose={() => closePrivateChat(chat.receiverId)}
+                    onMinimize={() => toggleMinimizePrivateChat(chat.receiverId)}
+                    session={session}
+                />
+            ))}
+
+            {/* User Info Modal */}
             {showModal && selectedUser && (
                 <UserInfoModal
-                    selectedUser={selectedUser}
-                    setSelectedUser={setSelectedUser}
-                    setShowModal={setShowModal}
-                    openPrivateChat={openPrivateChat} // Truyền openPrivateChat
-                    getAvatarClass={getAvatarClass}
-                    accessToken={session?.accessToken}
+                    user={selectedUser}
+                    onClose={() => setShowModal(false)}
+                    onOpenPrivateChat={() => {
+                        openPrivateChat(selectedUser);
+                        setShowModal(false);
+                    }}
                 />
             )}
-            <div className={styles.privateChatsContainer}>
-                {privateChats.map((chat, index) => (
-                    <PrivateChat
-                        key={chat.receiver._id}
-                        receiver={chat.receiver}
-                        socket={socketRef.current}
-                        onClose={() => closePrivateChat(chat.receiver._id)}
-                        isMinimized={chat.isMinimized}
-                        onToggleMinimize={() => toggleMinimizePrivateChat(chat.receiver._id)}
-                        messages={chat.messages} // Truyền messages
-                        style={{ right: `${20 + index * 320}px` }}
-                    />
-                ))}
-            </div>
         </div>
     );
 }

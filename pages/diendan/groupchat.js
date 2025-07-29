@@ -8,7 +8,7 @@ import moment from 'moment';
 import 'moment-timezone';
 import Image from 'next/image';
 import io from 'socket.io-client';
-import styles from '../../styles/groupchat.module.css';
+import styles from '../../styles/forumOptimized.module.css';
 import PrivateChat from './chatrieng';
 import UserInfoModal from './modals/UserInfoModal';
 
@@ -228,7 +228,7 @@ export default function GroupChat({ session: serverSession }) {
             }
         };
         if (messages.length > 0) fetchMissingUserDetails();
-    }, [messages, usersCache, session?.accessToken]);
+    }, [messages, usersCache, session]);
 
     const handleShowDetails = (user) => {
         console.log('handleShowDetails called with user:', user);
@@ -263,10 +263,6 @@ export default function GroupChat({ session: serverSession }) {
         }
         if (!message.trim()) {
             setError('Nội dung tin nhắn không được để trống');
-            return;
-        }
-        if (isProfane(message)) {
-            setError('Tin nhắn chứa từ ngữ không phù hợp');
             return;
         }
         try {
@@ -336,102 +332,151 @@ export default function GroupChat({ session: serverSession }) {
     };
 
     const getAvatarClass = (role) => {
-        return role?.toLowerCase() === 'admin' ? styles.avatarA : styles.avatarB;
+        return role?.toLowerCase() === 'admin' ? styles.adminAvatar : styles.userAvatar;
     };
 
-    return (
-        <div className={styles.chatContainer}>
-            <h3 className={styles.chatTitle}>Chat Cộng Đồng</h3>
-            <div className={styles.messagesContainer} ref={messagesContainerRef}>
-                {messages.length === 0 ? (
-                    <p className={styles.noMessages}>Chưa có tin nhắn nào</p>
-                ) : (
-                    messages.slice().reverse().map((msg) => {
-                        const displayUser = usersCache[msg.userId?._id] || msg.userId;
-                        const isOwnMessage = userInfo?._id === msg.userId?._id;
-                        return (
-                            <div
-                                key={msg._id}
-                                className={`${styles.messageWrapper} ${isOwnMessage ? styles.ownMessage : ''}`}
-                            >
-                                <div
-                                    className={`${styles.avatar} ${getAvatarClass(displayUser?.role)}`}
-                                    onClick={() => handleShowDetails(displayUser)}
-                                    role="button"
-                                    aria-label={`Xem chi tiết ${getDisplayName(displayUser.fullname)}`}
-                                >
-                                    {displayUser?.img ? (
-                                        <Image
-                                            src={displayUser.img}
-                                            alt={getDisplayName(displayUser.fullname)}
-                                            className={styles.avatarImage}
-                                            width={36}
-                                            height={36}
-                                            onError={(e) => {
-                                                e.target.style.display = 'none';
-                                                e.target.nextSibling.style.display = 'flex';
-                                            }}
-                                        />
-                                    ) : (
-                                        <span className={styles.avatarInitials}>
-                                            {getInitials(displayUser?.fullname || 'User')}
-                                        </span>
-                                    )}
-                                </div>
-                                <div className={styles.messageContent}>
-                                    <div className={styles.messageHeader}>
-                                        <span
-                                            className={`${styles.username} ${getAvatarClass(displayUser?.role)}`}
-                                            onClick={() => handleShowDetails(displayUser)}
-                                            role="button"
-                                            aria-label={`Xem chi tiết ${getDisplayName(displayUser.fullname)}`}
-                                        >
-                                            {getDisplayName(displayUser?.fullname || 'User')}
-                                        </span>
-                                        {displayUser?.role && (
-                                            <span
-                                                className={`${styles.role} ${getAvatarClass(displayUser?.role)}`}
-                                            >
-                                                {displayUser.role}
-                                            </span>
-                                        )}
-                                        <span className={styles.timestamp}>
-                                            {moment.tz(msg.createdAt, 'Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm')}
-                                        </span>
-                                    </div>
-                                    <p className={styles.messageText}>{msg.content}</p>
-                                </div>
-                            </div>
-                        );
-                    })
-                )}
-            </div>
-            {session && !session.error ? (
-                <form onSubmit={handleMessageSubmit} className={styles.inputForm}>
-                    <div className={styles.inputWrapper}>
-                        <textarea
-                            value={message}
-                            onChange={handleMessageChange}
-                            placeholder="Nhập tin nhắn..."
-                            className={styles.input}
-                            maxLength={1000}
-                        />
-                        <span className={styles.charCount}>{message.length}/1000</span>
-                    </div>
-                    <button type="submit" className={styles.sendButton}>
-                        <i className="fa-solid fa-paper-plane"></i>
-                    </button>
-                </form>
-            ) : (
-                <div className={styles.loginPrompt}>
-                    <p>Vui lòng đăng nhập để gửi tin nhắn.</p>
-                    <button onClick={handleLoginRedirect} className={styles.loginButton}>
-                        Đăng nhập
-                    </button>
+    const formatTime = (timestamp) => {
+        return moment(timestamp).tz('Asia/Ho_Chi_Minh').format('HH:mm');
+    };
+
+    if (!session) {
+        return (
+            <div className={styles.chatCompact}>
+                <div className={styles.compactHeader}>
+                    <div className={styles.compactTitle}>Giao Lưu Chốt Số</div>
+                    <div className={styles.compactSubtitle}>Thảo luận và chia sẻ kinh nghiệm</div>
                 </div>
-            )}
-            {error && <p className={styles.error}>{error}</p>}
-            {fetchError && <p className={styles.error}>{fetchError}</p>}
+                <div className={styles.compactContent}>
+                    <div className={styles.loginPrompt}>
+                        <p>Vui lòng đăng nhập để tham gia chat</p>
+                        <button
+                            className={styles.loginButton}
+                            onClick={handleLoginRedirect}
+                        >
+                            Đăng nhập
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className={styles.chatCompact}>
+            {/* Compact Header */}
+            <div className={styles.compactHeader}>
+                <div className={styles.compactTitle}>Giao Lưu Chốt Số</div>
+                <div className={styles.compactSubtitle}>Thảo luận và chia sẻ kinh nghiệm</div>
+            </div>
+
+            {/* Compact Content */}
+            <div className={styles.compactContent}>
+                {/* Messages Container */}
+                <div className={styles.chatMessagesCompact} ref={messagesContainerRef}>
+                    {fetchError && (
+                        <div className={styles.errorMessage}>
+                            <span>{fetchError}</span>
+                        </div>
+                    )}
+
+                    {messages.length === 0 ? (
+                        <p className={styles.noMessages}>Chưa có tin nhắn nào</p>
+                    ) : (
+                        messages.slice().reverse().map((msg) => {
+                            const displayUser = usersCache[msg.userId?._id] || msg.userId;
+                            const isOwnMessage = userInfo?._id === msg.userId?._id;
+
+                            return (
+                                <div
+                                    key={msg._id}
+                                    className={`${styles.messageCompact} ${isOwnMessage ? styles.ownMessage : ''}`}
+                                >
+                                    <div
+                                        className={`${styles.messageAvatarCompact} ${getAvatarClass(displayUser?.role)}`}
+                                        onClick={() => handleShowDetails(displayUser)}
+                                        role="button"
+                                        aria-label={`Xem chi tiết ${getDisplayName(displayUser.fullname)}`}
+                                    >
+                                        {displayUser?.img ? (
+                                            <Image
+                                                src={displayUser.img}
+                                                alt={getDisplayName(displayUser.fullname)}
+                                                width={24}
+                                                height={24}
+                                                className={styles.messageAvatarCompactImage}
+                                                onError={(e) => {
+                                                    e.target.style.display = 'none';
+                                                    e.target.nextSibling.style.display = 'flex';
+                                                }}
+                                            />
+                                        ) : (
+                                            <div className={styles.messageAvatarCompactInitials}>
+                                                {getInitials(displayUser?.fullname || 'User')}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className={styles.messageContentCompact}>
+                                        <div className={styles.messageAuthorCompact}>
+                                            <span
+                                                className={`${styles.messageAuthorName} ${getAvatarClass(displayUser?.role)}`}
+                                                onClick={() => handleShowDetails(displayUser)}
+                                                role="button"
+                                                aria-label={`Xem chi tiết ${getDisplayName(displayUser.fullname)}`}
+                                            >
+                                                {getDisplayName(displayUser?.fullname || 'User')}
+                                            </span>
+                                            {displayUser?.role && (
+                                                <span
+                                                    className={`${styles.role} ${getAvatarClass(displayUser?.role)}`}
+                                                >
+                                                    {displayUser.role}
+                                                </span>
+                                            )}
+                                            <span className={styles.messageTimeCompact}>
+                                                {formatTime(msg.createdAt)}
+                                            </span>
+                                        </div>
+                                        <div className={styles.messageTextCompact}>
+                                            {msg.content}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+
+                {/* Message Input */}
+                {session && !session.error ? (
+                    <form onSubmit={handleMessageSubmit} className={styles.chatInputForm}>
+                        <div className={styles.inputWrapper}>
+                            <textarea
+                                className={styles.chatInputCompact}
+                                value={message}
+                                onChange={handleMessageChange}
+                                placeholder="Nhập tin nhắn..."
+                                maxLength={1000}
+                            />
+                            <span className={styles.charCount}>{message.length}/1000</span>
+                        </div>
+                        <button type="submit" className={styles.sendButtonCompact}>
+                            <i className="fa-solid fa-paper-plane"></i>
+                        </button>
+                    </form>
+                ) : (
+                    <div className={styles.loginPrompt}>
+                        <p>Vui lòng đăng nhập để gửi tin nhắn.</p>
+                        <button onClick={handleLoginRedirect} className={styles.loginButton}>
+                            Đăng nhập
+                        </button>
+                    </div>
+                )}
+
+                {error && <p className={styles.error}>{error}</p>}
+            </div>
+
+            {/* User Info Modal */}
             {showModal && selectedUser && (
                 <UserInfoModal
                     selectedUser={selectedUser}
@@ -442,6 +487,8 @@ export default function GroupChat({ session: serverSession }) {
                     accessToken={session?.accessToken}
                 />
             )}
+
+            {/* Private Chats */}
             <div className={styles.privateChatsContainer}>
                 {privateChats.map((chat, index) => (
                     <PrivateChat
@@ -451,6 +498,7 @@ export default function GroupChat({ session: serverSession }) {
                         onClose={() => closePrivateChat(chat.receiver._id)}
                         isMinimized={chat.isMinimized}
                         onToggleMinimize={() => toggleMinimizePrivateChat(chat.receiver._id)}
+                        messages={chat.messages}
                         style={{ right: `${20 + index * 320}px` }}
                     />
                 ))}

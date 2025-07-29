@@ -1,6 +1,7 @@
 "use client";
 import Link from 'next/link';
 import Head from 'next/head';
+import { useState } from 'react';
 
 import Vinhdanh from './vinhdanh';
 import Event from './events';
@@ -17,18 +18,25 @@ import NavBarDienDan from './navbarDiendan';
 
 export default function DienDan({ session }) {
     console.log('Session in DienDan:', JSON.stringify(session, null, 2));
+    const [activeSection, setActiveSection] = useState('home');
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
     const scrollToSection = (sectionId) => {
         const element = document.getElementById(sectionId);
         if (element) {
             element.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
+        setActiveSection(sectionId);
     };
-    const canonicalUrl = 'https://www.xsmb.win/diendan';
-    const title = `Diễn Đàn Quay Số`;
-    const description = `Thảo luận về xác suất và thống kê: Áp dụng các kiến thức toán học vào việc phân tích các trò quay số.
 
-Chia sẻ các thuật toán: Bạn có đang nghiên cứu một thuật toán tạo số ngẫu nhiên tối ưu, hay một mô hình dự đoán kết quả quay số? Hãy chia sẻ và cùng nhau phát triển!`;
+    const toggleSidebar = () => {
+        setSidebarOpen(!sidebarOpen);
+    };
+
+    const canonicalUrl = 'https://www.xsmb.win/diendan';
+    const title = `Diễn Đàn Quay Số - Cộng Đồng Xổ Số Việt Nam`;
+    const description = `Thảo luận về xác suất và thống kê: Áp dụng các kiến thức toán học vào việc phân tích các trò quay số. Chia sẻ các thuật toán: Bạn có đang nghiên cứu một thuật toán tạo số ngẫu nhiên tối ưu, hay một mô hình dự đoán kết quả quay số? Hãy chia sẻ và cùng nhau phát triển!`;
+
     return (<>
         <Head>
             <meta charset="UTF-8" />
@@ -149,85 +157,272 @@ Chia sẻ các thuật toán: Bạn có đang nghiên cứu một thuật toán 
                 ])}
             </script>
         </Head>
-        <div className={styles.background}>
-            <h1 className={styles.title}>Diễn Đàn Quay Số Tốt Nhất Hiện Nay</h1>
-            <div className={styles.dangnhap}>
-                <NavBarDienDan />
-                <Link className={styles.item1} href="/login">Đăng Ký/Đăng Nhập</Link>
+
+        {/* Forum Layout Wrapper */}
+        <div className={styles.forumLayoutWrapper}>
+            {/* Back to main site button */}
+            <div className={styles.backToMain}>
+                <Link href="/" className={styles.backButton}>
+                    ← Quay lại trang chủ
+                </Link>
             </div>
 
-            {/* Thanh navigation */}
-            <nav className={styles.navBar}>
-                <h2 className={styles.titlenavbar}>Menu Danh Mục</h2>
-                <ul className={styles.navList1}>
-                    <li><button onClick={() => scrollToSection('latest-event')}>Sự kiện mới nhất</button></li>
-                    <li><button onClick={() => scrollToSection('user-list')}>Thành Viên Nhóm</button></li>
-                    <li><button onClick={() => scrollToSection('announcements')}>Thông báo mới</button></li>
-                    <li><button onClick={() => scrollToSection('hot-events')}>Tin hot & Sự kiện</button></li>
-                    <li><button onClick={() => scrollToSection('group-chat')}>Giao Lưu Chốt Số</button></li>
-                </ul>
-                <ul className={styles.navList} >
-                    <li><button onClick={() => scrollToSection('event-registration')}>Danh sách đăng ký Events</button></li>
-                    <li><button onClick={() => scrollToSection('vinhdanh')}>Bảng vinh danh trúng giải</button></li>
-                    <li><button onClick={() => scrollToSection('leaderboard-1')}>Bảng xếp hạng Top 50</button></li>
-                    <li><button onClick={() => scrollToSection('rules')}>Quy Định Diễn Đàn</button></li>
-                    <li><button onClick={() => scrollToSection('leaderboard-2')}>Chốt Số Nhanh</button></li>
-                </ul>
-            </nav>
-            <div className={styles.tinhot}>
-                <h2 id="hot-events" className={styles.h3}>🌟Bảng Tin hot & Sự kiện</h2>
-                <Event />
-            </div>
-            <div className={styles.group}>
-                <div className='container'>
-                    <div className={styles.sukienmoi}>
-                        <h2 id="latest-event" className={styles.h6}>📌Cập nhập Sự kiện mới nhất hôm nay</h2>
-                        <LatestEventDetail />
-                    </div>
-                    <div className={styles.group2}>
-                        <h2 id="announcements" className={styles.h3}>🔔Thông báo mới</h2>
-                        <Thongbao />
-                    </div>
-                </div>
-            </div>
+            {/* Mobile Menu Toggle */}
+            <button className={styles.mobileMenuToggle} onClick={toggleSidebar}>
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
 
-            <div className={styles.group0}>
-                <div className='container'>
-                    <div className={styles.vinhdanh}>
-                        <h2 id="group-chat" className={styles.h3}>🎯Giao Lưu Chốt Số</h2>
-                        <GroupChat session={session} />
-                    </div>
-                    <div>
-                        <h2 id="user-list" className={styles.h6}>👥Thành Viên Nhóm</h2>
-                        <UserList />
-                    </div>
-                </div>
-            </div>
+            {/* Overlay for mobile */}
+            {sidebarOpen && (
+                <div className={styles.overlay} onClick={toggleSidebar}></div>
+            )}
 
-            <div className={styles.group}>
-                <div className='container'>
-                    <div className={styles.vinhdanh}>
-                        <h2 id="vinhdanh" className={styles.h4}>🏆Bảng vinh danh trúng giải</h2>
-                        <Vinhdanh />
+            <div className={styles.forumLayout}>
+                {/* Header */}
+                <header className={styles.forumHeader}>
+                    <div className={styles.headerContent}>
+                        <div className={styles.logoSection}>
+                            <h1 className={styles.forumTitle}>Diễn Đàn Xổ Số</h1>
+                            <p className={styles.forumSubtitle}>Cộng đồng chia sẻ kinh nghiệm</p>
+                        </div>
+                        <div className={styles.headerActions}>
+                            <NavBarDienDan />
+                            <Link className={styles.loginButton} href="/login">
+                                {session ? 'Tài khoản' : 'Đăng nhập'}
+                            </Link>
+                        </div>
                     </div>
-                    <div>
-                        <h2 id="leaderboard-1" className={styles.h4}>👑Bảng xếp hạng</h2>
-                        <Leaderboard />
-                    </div>
-                </div>
-            </div>
-            <h2 id="event-registration" className={styles.h3}>📜Danh sách đăng ký Events</h2>
-            <Lichsudangky />
-            <div className={styles.group3}>
-                <div className='container'>
-                    <div className={styles.quydinh}>
-                        <h2 id="rules" className={styles.h2}>⚖️Hướng Dẫn - Quy Định Diễn Đàn</h2>
-                        <Quydinh />
-                    </div>
-                    {/* <div>
-                        <h2 id="leaderboard-2" className={styles.h4}>👑Bảng xếp hạng</h2>
-                        <Leaderboard />
-                    </div> */}
+                </header>
+
+                {/* Main Layout */}
+                <div className={styles.mainLayout}>
+                    {/* Sidebar */}
+                    <aside className={`${styles.sidebar} ${sidebarOpen ? styles.sidebarOpen : ''}`}>
+                        <div className={styles.sidebarHeader}>
+                            <h3>Danh Mục</h3>
+                            <button className={styles.closeSidebar} onClick={toggleSidebar}>
+                                ×
+                            </button>
+                        </div>
+
+                        <nav className={styles.sidebarNav}>
+                            {/* Thông tin chính */}
+                            <div className={styles.navSection}>
+                                <h4>📢 Thông Tin Chính</h4>
+                                <ul>
+                                    <li>
+                                        <button
+                                            className={`${styles.navButton} ${activeSection === 'latest-event' ? styles.active : ''}`}
+                                            onClick={() => scrollToSection('latest-event')}
+                                        >
+                                            📌 Sự Kiện Mới Nhất
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button
+                                            className={`${styles.navButton} ${activeSection === 'hot-events' ? styles.active : ''}`}
+                                            onClick={() => scrollToSection('hot-events')}
+                                        >
+                                            🌟 Tin Hot & Sự Kiện
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button
+                                            className={`${styles.navButton} ${activeSection === 'announcements' ? styles.active : ''}`}
+                                            onClick={() => scrollToSection('announcements')}
+                                        >
+                                            🔔 Thông Báo Mới
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            {/* Cộng đồng */}
+                            <div className={styles.navSection}>
+                                <h4>👥 Cộng Đồng</h4>
+                                <ul>
+                                    <li>
+                                        <button
+                                            className={`${styles.navButton} ${activeSection === 'group-chat' ? styles.active : ''}`}
+                                            onClick={() => scrollToSection('group-chat')}
+                                        >
+                                            💬 Giao Lưu Chốt Số
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button
+                                            className={`${styles.navButton} ${activeSection === 'user-list' ? styles.active : ''}`}
+                                            onClick={() => scrollToSection('user-list')}
+                                        >
+                                            👥 Thành Viên Nhóm
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            {/* Thành tích */}
+                            <div className={styles.navSection}>
+                                <h4>🏆 Thành Tích</h4>
+                                <ul>
+                                    <li>
+                                        <button
+                                            className={`${styles.navButton} ${activeSection === 'vinhdanh' ? styles.active : ''}`}
+                                            onClick={() => scrollToSection('vinhdanh')}
+                                        >
+                                            🏆 Bảng Vinh Danh
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button
+                                            className={`${styles.navButton} ${activeSection === 'leaderboard' ? styles.active : ''}`}
+                                            onClick={() => scrollToSection('leaderboard')}
+                                        >
+                                            👑 Bảng Xếp Hạng
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            {/* Quản lý */}
+                            <div className={styles.navSection}>
+                                <h4>📋 Quản Lý</h4>
+                                <ul>
+                                    <li>
+                                        <button
+                                            className={`${styles.navButton} ${activeSection === 'event-registration' ? styles.active : ''}`}
+                                            onClick={() => scrollToSection('event-registration')}
+                                        >
+                                            📜 Danh Sách Đăng Ký
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button
+                                            className={`${styles.navButton} ${activeSection === 'rules' ? styles.active : ''}`}
+                                            onClick={() => scrollToSection('rules')}
+                                        >
+                                            ⚖️ Quy Định Diễn Đàn
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
+                        </nav>
+                    </aside>
+
+                    {/* Main Content */}
+                    <main className={styles.mainContent}>
+                        {/* Top Row - Sự kiện quan trọng nhất */}
+                        <div className={styles.topRow}>
+                            {/* Sự Kiện Mới Nhất - Chiếm 60% */}
+                            <section id="latest-event" className={`${styles.contentSection} ${styles.largeSection}`}>
+                                <div className={styles.sectionHeader}>
+                                    <h2>📌 Sự Kiện Mới Nhất</h2>
+                                    <p>Sự kiện quan trọng nhất hôm nay</p>
+                                </div>
+                                <div className={styles.sectionContent}>
+                                    <LatestEventDetail />
+                                </div>
+                            </section>
+
+                            {/* Thông Báo Mới - Chiếm 40% */}
+                            <section id="announcements" className={`${styles.contentSection} ${styles.smallSection}`}>
+                                <div className={styles.sectionHeader}>
+                                    <h2>🔔 Thông Báo Mới</h2>
+                                    <p>Thông báo từ ban quản trị</p>
+                                </div>
+                                <div className={styles.sectionContent}>
+                                    <Thongbao />
+                                </div>
+                            </section>
+                        </div>
+
+                        {/* Second Row - Tin hot và Chat */}
+                        <div className={styles.secondRow}>
+                            {/* Tin Hot & Sự Kiện - Chiếm 50% */}
+                            <section id="hot-events" className={`${styles.contentSection} ${styles.mediumSection}`}>
+                                <div className={styles.sectionHeader}>
+                                    <h2>🌟 Tin Hot & Sự Kiện</h2>
+                                    <p>Cập nhật thông tin mới nhất</p>
+                                </div>
+                                <div className={styles.sectionContent}>
+                                    <Event />
+                                </div>
+                            </section>
+
+                            {/* Giao Lưu Chốt Số - Chiếm 50% */}
+                            <section id="group-chat" className={`${styles.contentSection} ${styles.mediumSection}`}>
+                                <div className={styles.sectionHeader}>
+                                    <h2>💬 Giao Lưu Chốt Số</h2>
+                                    <p>Thảo luận và chia sẻ kinh nghiệm</p>
+                                </div>
+                                <div className={styles.sectionContent}>
+                                    <GroupChat session={session} />
+                                </div>
+                            </section>
+                        </div>
+
+                        {/* Third Row - Thành viên và Vinh danh */}
+                        <div className={styles.thirdRow}>
+                            {/* Thành Viên Nhóm - Chiếm 40% */}
+                            <section id="user-list" className={`${styles.contentSection} ${styles.mediumSection}`}>
+                                <div className={styles.sectionHeader}>
+                                    <h2>👥 Thành Viên Nhóm</h2>
+                                    <p>Danh sách thành viên tích cực</p>
+                                </div>
+                                <div className={styles.sectionContent}>
+                                    <UserList />
+                                </div>
+                            </section>
+
+                            {/* Bảng Vinh Danh - Chiếm 60% */}
+                            <section id="vinhdanh" className={`${styles.contentSection} ${styles.largeSection}`}>
+                                <div className={styles.sectionHeader}>
+                                    <h2>🏆 Bảng Vinh Danh</h2>
+                                    <p>Những thành viên xuất sắc nhất</p>
+                                </div>
+                                <div className={styles.sectionContent}>
+                                    <Vinhdanh />
+                                </div>
+                            </section>
+                        </div>
+
+                        {/* Fourth Row - Bảng xếp hạng và Quản lý */}
+                        <div className={styles.fourthRow}>
+                            {/* Bảng Xếp Hạng - Chiếm 70% */}
+                            <section id="leaderboard" className={`${styles.contentSection} ${styles.largeSection}`}>
+                                <div className={styles.sectionHeader}>
+                                    <h2>👑 Bảng Xếp Hạng</h2>
+                                    <p>Top 50 thành viên hàng đầu</p>
+                                </div>
+                                <div className={styles.sectionContent}>
+                                    <Leaderboard />
+                                </div>
+                            </section>
+
+                            {/* Danh Sách Đăng Ký - Chiếm 30% */}
+                            <section id="event-registration" className={`${styles.contentSection} ${styles.smallSection}`}>
+                                <div className={styles.sectionHeader}>
+                                    <h2>📜 Đăng Ký Events</h2>
+                                    <p>Theo dõi sự kiện</p>
+                                </div>
+                                <div className={styles.sectionContent}>
+                                    <Lichsudangky />
+                                </div>
+                            </section>
+                        </div>
+
+                        {/* Bottom Row - Quy định (Full width) */}
+                        <section id="rules" className={`${styles.contentSection} ${styles.fullWidthSection}`}>
+                            <div className={styles.sectionHeader}>
+                                <h2>⚖️ Quy Định Diễn Đàn</h2>
+                                <p>Hướng dẫn và quy định cộng đồng</p>
+                            </div>
+                            <div className={styles.sectionContent}>
+                                <Quydinh />
+                            </div>
+                        </section>
+                    </main>
                 </div>
             </div>
         </div>

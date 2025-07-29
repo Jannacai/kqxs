@@ -25,8 +25,8 @@ const KQXS = (props) => {
     const router = useRouter();
 
     const hour = 17;
-    const minutes1 = 50;
-    const minutes2 = 54;
+    const minutes1 = 10;
+    const minutes2 = 14;
 
     const dayof = props.dayofMT;
     const station = props.station || "xsmt";
@@ -41,7 +41,7 @@ const KQXS = (props) => {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
-    });
+    }).replace(/\//g, '/');
 
     const CACHE_KEY = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}`;
     const UPDATE_KEY = `xsmt_updated_${today}`; // Cờ để theo dõi cập nhật ngày hiện tại

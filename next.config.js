@@ -10,7 +10,7 @@ module.exports = withBundleAnalyzer({
         browsersListForSwc: ['defaults', 'not IE 11'],
     },
     env: {
-        BACKEND_URL: process.env.BACKEND_URL,
+        BACKEND_URL: "https://backendkqxs-1.onrender.com",
     },
     images: {
         remotePatterns: [

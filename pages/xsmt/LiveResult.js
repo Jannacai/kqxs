@@ -1,48 +1,26 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import styles from '../../styles/LIVEMT.module.css';
 import { getFilteredNumber } from "../../library/utils/filterUtils";
 import React from 'react';
 import { useLottery } from '../../contexts/LotteryContext';
-// import ViewCounter from "../views/ViewCounter";
 
-const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange, filterTypes, isLiveWindow }) => {
-    const { liveData, setLiveData, setIsLiveDataComplete } = useLottery() || { liveData: null, setLiveData: null, setIsLiveDataComplete: null };
-    const [isTodayLoading, setIsTodayLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [retryCount, setRetryCount] = useState(0);
-    const [animatingPrizes, setAnimatingPrizes] = useState({}); // { tinh: prizeType }
-    const mountedRef = useRef(false);
-    const sseRefs = useRef({}); // { tinh: EventSource }
+const LiveResult = React.memo(({ station = 'xsmt', getHeadAndTailNumbers, propHandleFilterChange, propFilterTypes, isLiveWindow }) => {
+    const { filterTypes: globalFilterTypes, handleFilterChange: globalHandleFilterChange, subscribeToLottery } = useLottery();
 
-    const maxRetries = 50;
-    const retryInterval = 2000;
-    const fetchMaxRetries = 3;
-    const fetchRetryInterval = 5000;
-    const pollingIntervalMs = 2000;
-    const regularPollingIntervalMs = 7000;
-
-    const prizeDigits = {
-        specialPrize_0: 6,
-        firstPrize_0: 5,
-        secondPrize_0: 5,
-        threePrizes_0: 5,
-        threePrizes_1: 5,
-        fourPrizes_0: 5,
-        fourPrizes_1: 5,
-        fourPrizes_2: 5,
-        fourPrizes_3: 5,
-        fourPrizes_4: 5,
-        fourPrizes_5: 5,
-        fourPrizes_6: 5,
-        fivePrizes_0: 4,
-        sixPrizes_0: 4,
-        sixPrizes_1: 4,
-        sixPrizes_2: 4,
-        sevenPrizes_0: 3,
-        eightPrizes_0: 2,
-    };
+    const today = useMemo(() => {
+        return new Date().toLocaleDateString('vi-VN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+        }).replace(/\//g, '-');
+    }, []);
 
     const provincesByDay = useMemo(() => ({
+        0: [
+            { tinh: 'kon-tum', tentinh: 'Kon Tum' },
+            { tinh: 'khanh-hoa', tentinh: 'Khánh Hòa' },
+            { tinh: 'hue', tentinh: 'Thừa Thiên Huế' },
+        ],
         1: [
             { tinh: 'phu-yen', tentinh: 'Phú Yên' },
             { tinh: 'hue', tentinh: 'Thừa Thiên Huế' },
@@ -68,376 +46,74 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             { tinh: 'da-nang', tentinh: 'Đà Nẵng' },
             { tinh: 'quang-ngai', tentinh: 'Quảng Ngãi' },
             { tinh: 'dak-nong', tentinh: 'Đắk Nông' },
-        ],
-        0: [
-            { tinh: 'kon-tum', tentinh: 'Kon Tum' },
-            { tinh: 'khanh-hoa', tentinh: 'Khánh Hòa' },
-            { tinh: 'hue', tentinh: 'Thừa Thiên Huế' },
         ]
     }), []);
 
-    const emptyResult = useMemo(() => {
-        const dayOfWeekIndex = new Date().getDay();
-        const provinces = provincesByDay[dayOfWeekIndex] || provincesByDay[6];
-        return provinces.map(province => ({
-            drawDate: today,
-            station: station,
-            dayOfWeek: new Date().toLocaleString('vi-VN', { weekday: 'long' }),
-            tentinh: province.tentinh,
-            tinh: province.tinh,
-            year: new Date().getFullYear(),
-            month: new Date().getMonth() + 1,
-            specialPrize_0: '...',
-            firstPrize_0: '...',
-            secondPrize_0: '...',
-            threePrizes_0: '...',
-            threePrizes_1: '...',
-            fourPrizes_0: '...',
-            fourPrizes_1: '...',
-            fourPrizes_2: '...',
-            fourPrizes_3: '...',
-            fourPrizes_4: '...',
-            fourPrizes_5: '...',
-            fourPrizes_6: '...',
-            fivePrizes_0: '...',
-            sixPrizes_0: '...',
-            sixPrizes_1: '...',
-            sixPrizes_2: '...',
-            sevenPrizes_0: '...',
-            eightPrizes_0: '...',
-            lastUpdated: 0,
-        }));
-    }, [today, station]);
+    const dayOfWeekIndex = useMemo(() => new Date().getDay(), []);
+    const provinces = useMemo(() => provincesByDay[dayOfWeekIndex] || provincesByDay[6], [provincesByDay, dayOfWeekIndex]);
 
+    // Use custom hook for lottery data
+    const {
+        useLotteryData
+    } = useLottery();
+
+    const {
+        data: liveData,
+        processedData,
+        isLoading,
+        isComplete,
+        error,
+        connectionStatus,
+        subscribersCount
+    } = useLotteryData(station, today, provinces);
+
+    console.log(`=== LIVE RESULT DEBUG ===`);
+    console.log(`LiveData:`, liveData);
+    console.log(`LiveData length:`, liveData ? liveData.length : 0);
+    console.log(`IsLoading:`, isLoading);
+    console.log(`IsComplete:`, isComplete);
+    console.log(`Error:`, error);
+
+    // Auto-subscribe when component mounts
     useEffect(() => {
-        mountedRef.current = true;
-        return () => {
-            mountedRef.current = false;
-            Object.values(sseRefs.current).forEach(sse => {
-                console.log('Đóng kết nối SSE...');
-                sse.close();
-            });
-            sseRefs.current = {};
-        };
-    }, []);
+        console.log(`=== LIVE RESULT MOUNT ===`);
+        console.log(`Station: ${station}`);
+        console.log(`Today: ${today}`);
+        console.log(`Provinces:`, provinces);
 
-    useEffect(() => {
-        if (!setLiveData || !setIsLiveDataComplete || !isLiveWindow) {
-            setLiveData(emptyResult);
-            setIsTodayLoading(true);
-            setError(null);
-            return;
-        }
-
-        let pollingInterval;
-
-        const fetchInitialData = async (retry = 0) => {
-            try {
-                const dayOfWeekIndex = new Date().getDay();
-                const provinces = provincesByDay[dayOfWeekIndex] || provincesByDay[6];
-                const results = await Promise.all(
-                    provinces.map(async (province) => {
-                        const cachedData = localStorage.getItem(`liveData:${station}:${province.tinh}:${today} `);
-                        let initialData = cachedData ? JSON.parse(cachedData) : {
-                            ...emptyResult.find(item => item.tinh === province.tinh),
-                            lastUpdated: 0,
-                        };
-
-                        try {
-                            const response = await fetch(
-                                `https://backendkqxs-1.onrender.com/api/ketquaxs/xsmt/sse/initial?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
-                            );
-                            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-                            const serverData = await response.json();
-                            console.log(`Dữ liệu từ /initial cho ${province.tinh}:`, serverData);
-
-                            const updatedData = { ...initialData };
-                            let shouldUpdate = !initialData.lastUpdated || serverData.lastUpdated > initialData.lastUpdated;
-                            for (const key in serverData) {
-                                if (serverData[key] !== '...' || !updatedData[key] || updatedData[key] === '...' || updatedData[key] === '***') {
-                                    updatedData[key] = serverData[key];
-                                    shouldUpdate = true;
-                                }
-                            }
-                            if (shouldUpdate) {
-                                updatedData.lastUpdated = serverData.lastUpdated || Date.now();
-                                localStorage.setItem(`liveData:${station}:${province.tinh}:${today}`, JSON.stringify(updatedData));
-                            }
-                            return updatedData;
-                        } catch (err) {
-                            console.error(`Lỗi khi lấy dữ liệu ban đầu cho ${province.tinh} (lần ${retry + 1}):`, err.message);
-                            return initialData;
-                        }
-                    })
-                );
-
-                if (mountedRef.current) {
-                    setLiveData(results);
-                    const isComplete = results.every(item =>
-                        Object.values(item).every(val => typeof val === 'string' && val !== '...' && val !== '***')
-                    );
-                    setIsLiveDataComplete(isComplete);
-                    setIsTodayLoading(false);
-                    setRetryCount(0);
-                    setError(null);
-                    console.log('Đã cập nhật dữ liệu ban đầu:', results);
-                }
-            } catch (err) {
-                console.error('Lỗi khi lấy dữ liệu ban đầu:', err.message);
-                if (retry < fetchMaxRetries) {
-                    setTimeout(() => {
-                        if (mountedRef.current) {
-                            fetchInitialData(retry + 1);
-                        }
-                    }, fetchRetryInterval);
-                } else if (mountedRef.current) {
-                    const dayOfWeekIndex = new Date().getDay();
-                    const provinces = provincesByDay[dayOfWeekIndex] || provincesByDay[6];
-                    const results = provinces.map(province => {
-                        const cachedData = localStorage.getItem(`liveData:${station}:${province.tinh}:${today}`);
-                        return cachedData ? JSON.parse(cachedData) : emptyResult.find(item => item.tinh === province.tinh);
-                    });
-                    setLiveData(results);
-                    setIsLiveDataComplete(false);
-                    setIsTodayLoading(false);
-                    setError('Không thể lấy dữ liệu ban đầu, đang dựa vào dữ liệu cục bộ...');
-                }
-            }
-        };
-
-        const connectSSE = () => {
-            const dayOfWeekIndex = new Date().getDay();
-            const provinces = provincesByDay[dayOfWeekIndex] || provincesByDay[6];
-
-            provinces.forEach(province => {
-                if (!station || !today || !/^\d{2}-\d{2}-\d{4}$/.test(today)) {
-                    console.warn('Invalid station or today value:', { station, today });
-                    if (mountedRef.current) {
-                        setError('Dữ liệu đang tải...');
-                        setIsTodayLoading(false);
-                    }
-                    return;
-                }
-
-                if (sseRefs.current[province.tinh]) {
-                    sseRefs.current[province.tinh].close();
-                }
-
-                sseRefs.current[province.tinh] = new EventSource(
-                    `http://localhost:5000/api/ketquaxs/xsmt/sse?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
-                );
-                console.log(`Khởi tạo kết nối SSE cho tỉnh ${province.tinh}, ngày: ${today}`);
-
-                sseRefs.current[province.tinh].onopen = () => {
-                    console.log(`SSE connection opened for ${province.tinh}`);
-                    if (mountedRef.current) {
-                        setError(null);
-                    }
-                };
-
-                sseRefs.current[province.tinh].onerror = () => {
-                    console.log(`SSE error for ${province.tinh}, reconnecting... Retry count: ${retryCount + 1}`);
-                    if (mountedRef.current) {
-                        setError('Đang kết nối lại...');
-                    }
-                    sseRefs.current[province.tinh].close();
-                    sseRefs.current[province.tinh] = null;
-                    if (retryCount < maxRetries) {
-                        setTimeout(() => {
-                            if (mountedRef.current) {
-                                setRetryCount(prev => prev + 1);
-                                connectSSE();
-                            }
-                        }, retryInterval);
-                    } else if (mountedRef.current) {
-                        setError('Mất kết nối trực tiếp, đang sử dụng polling...');
-                    }
-                };
-
-                const prizeTypes = [
-                    'specialPrize_0', 'firstPrize_0', 'secondPrize_0',
-                    'threePrizes_0', 'threePrizes_1',
-                    'fourPrizes_0', 'fourPrizes_1', 'fourPrizes_2', 'fourPrizes_3', 'fourPrizes_4', 'fourPrizes_5', 'fourPrizes_6',
-                    'fivePrizes_0',
-                    'sixPrizes_0', 'sixPrizes_1', 'sixPrizes_2',
-                    'sevenPrizes_0', 'eightPrizes_0'
-                ];
-
-                prizeTypes.forEach(prizeType => {
-                    sseRefs.current[province.tinh].addEventListener(prizeType, (event) => {
-                        try {
-                            const data = JSON.parse(event.data);
-                            console.log(`Nhận sự kiện SSE: ${prizeType} = ${data[prizeType]} (tỉnh ${province.tinh})`, data);
-                            if (data && data[prizeType] && mountedRef.current) {
-                                setLiveData(prev => {
-                                    const updatedData = prev.map(item => {
-                                        if (item.tinh !== province.tinh) return item;
-                                        if (data[prizeType] === '...' && item[prizeType] !== '...' && item[prizeType] !== '***') {
-                                            console.warn(`Bỏ qua ${prizeType} = "..." vì đã có giá trị: ${item[prizeType]}`);
-                                            return item;
-                                        }
-                                        const updatedItem = {
-                                            ...item,
-                                            [prizeType]: data[prizeType],
-                                            tentinh: data.tentinh || item.tentinh,
-                                            year: data.year || item.year,
-                                            month: data.month || item.month,
-                                            lastUpdated: data.lastUpdated || Date.now(),
-                                        };
-                                        localStorage.setItem(`liveData:${station}:${province.tinh}:${today}`, JSON.stringify(updatedItem));
-                                        return updatedItem;
-                                    });
-                                    const isComplete = updatedData.every(item =>
-                                        Object.values(item).every(val => typeof val === 'string' && val !== '...' && val !== '***')
-                                    );
-                                    setIsLiveDataComplete(isComplete);
-                                    setIsTodayLoading(false);
-                                    setRetryCount(0);
-                                    setError(null);
-                                    console.log('Cập nhật liveData từ SSE:', updatedData);
-                                    return updatedData;
-                                });
-                            }
-                        } catch (error) {
-                            console.error(`Lỗi xử lý sự kiện ${prizeType} (tỉnh ${province.tinh}):`, error);
-                        }
-                    });
-                });
-
-                sseRefs.current[province.tinh].addEventListener('full', (event) => {
-                    try {
-                        const data = JSON.parse(event.data);
-                        console.log(`Nhận sự kiện SSE full (tỉnh ${province.tinh}):`, data);
-                        if (data && mountedRef.current) {
-                            setLiveData(prev => {
-                                const updatedData = prev.map(item => {
-                                    if (item.tinh !== province.tinh) return item;
-                                    const updatedItem = { ...item };
-                                    let shouldUpdate = false;
-                                    for (const key in data) {
-                                        if (data[key] !== '...' || !updatedItem[key] || updatedItem[key] === '...' || updatedItem[key] === '***') {
-                                            updatedItem[key] = data[key];
-                                            shouldUpdate = true;
-                                        }
-                                    }
-                                    if (shouldUpdate) {
-                                        updatedItem.lastUpdated = data.lastUpdated || Date.now();
-                                        localStorage.setItem(`liveData:${station}:${province.tinh}:${today}`, JSON.stringify(updatedItem));
-                                    }
-                                    return updatedItem;
-                                });
-                                const isComplete = updatedData.every(item =>
-                                    Object.values(item).every(val => typeof val === 'string' && val !== '...' && val !== '***')
-                                );
-                                setIsLiveDataComplete(isComplete);
-                                console.log('Cập nhật liveData từ SSE full:', updatedData);
-                                return updatedData;
-                            });
-                            setIsTodayLoading(false);
-                            setRetryCount(0);
-                            setError(null);
-                        }
-                    } catch (error) {
-                        console.error(`Lỗi xử lý sự kiện full (tỉnh ${province.tinh}):`, error);
-                    }
-                });
-
-                sseRefs.current[province.tinh].addEventListener('canary', (event) => {
-                    console.log(`Received canary message for ${province.tinh}:`, event.data);
-                });
-            });
-        };
-
-        const startPolling = () => {
-            const poll = () => {
-                const dayOfWeekIndex = new Date().getDay();
-                const provinces = provincesByDay[dayOfWeekIndex] || provincesByDay[6];
-                const isIncomplete = (liveData || emptyResult).some(item =>
-                    Object.values(item).some(val => typeof val === 'string' && (val === '...' || val === '***'))
-                );
-                const interval = isIncomplete ? pollingIntervalMs : regularPollingIntervalMs;
-
-                pollingInterval = setTimeout(async () => {
-                    try {
-                        const results = await Promise.all(
-                            provinces.map(async province => {
-                                const response = await fetch(
-                                    `http://localhost:5000/api/ketquaxs/xsmt/sse/initial?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
-                                );
-                                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-                                const serverData = await response.json();
-                                console.log(`Dữ liệu từ polling cho ${province.tinh}:`, serverData);
-                                return { province: province.tinh, data: serverData };
-                            })
-                        );
-
-                        if (mountedRef.current) {
-                            setLiveData(prev => {
-                                const currentData = Array.isArray(prev) && prev.length > 0 ? prev : emptyResult;
-                                const updatedData = currentData.map(item => {
-                                    const serverData = results.find(r => r.province === item.tinh)?.data;
-                                    if (!serverData) return item;
-                                    const updatedItem = { ...item };
-                                    let shouldUpdate = !item.lastUpdated || serverData.lastUpdated > item.lastUpdated;
-                                    for (const key in serverData) {
-                                        if (serverData[key] !== '...' || !updatedItem[key] || updatedItem[key] === '...' || updatedItem[key] === '***') {
-                                            updatedItem[key] = serverData[key];
-                                            shouldUpdate = true;
-                                        }
-                                    }
-                                    if (shouldUpdate) {
-                                        updatedItem.lastUpdated = serverData.lastUpdated || Date.now();
-                                        localStorage.setItem(`liveData:${station}:${item.tinh}:${today}`, JSON.stringify(updatedItem));
-                                    }
-                                    return updatedItem;
-                                });
-                                const isComplete = updatedData.every(item =>
-                                    Object.values(item).every(val => typeof val === 'string' && val !== '...' && val !== '***')
-                                );
-                                setIsLiveDataComplete(isComplete);
-                                console.log('Cập nhật liveData từ polling:', updatedData);
-                                return updatedData;
-                            });
-                            setError(null);
-                        }
-                    } catch (error) {
-                        console.error('Lỗi khi polling dữ liệu:', error);
-                        if (mountedRef.current) {
-                            setError('Không thể lấy dữ liệu, đang thử lại...');
-                        }
-                    }
-                    if (mountedRef.current) {
-                        poll();
-                    }
-                }, interval);
-            };
-
-            poll();
-        };
-
-        if (!Array.isArray(liveData)) {
-            setLiveData(emptyResult);
-        }
-
-        fetchInitialData();
-        connectSSE();
-        startPolling();
+        // Subscribe to lottery data
+        const unsubscribe = subscribeToLottery(station, today, provinces);
 
         return () => {
-            Object.values(sseRefs.current).forEach(sse => {
-                console.log('Đóng kết nối SSE trong cleanup...');
-                sse.close();
-            });
-            sseRefs.current = {};
-            if (pollingInterval) {
-                clearTimeout(pollingInterval);
-            }
+            console.log(`=== LIVE RESULT UNMOUNT ===`);
+            unsubscribe.then(unsub => unsub && unsub());
         };
-    }, [isLiveWindow, station, today, setLiveData, setIsLiveDataComplete, provincesByDay, emptyResult]);
+    }, [station, today, provinces, subscribeToLottery]);
 
+    const [animatingPrizes, setAnimatingPrizes] = useState({});
+    const prevAnimatingPrizesRef = useRef(animatingPrizes);
+
+    // Đảm bảo dữ liệu có đúng format
+    const validLiveData = useMemo(() => {
+        if (!liveData || !liveData.length) return [];
+        const filtered = liveData.filter(item =>
+            item && item.tinh && item.tentinh &&
+            typeof item === 'object' && !Array.isArray(item)
+        );
+
+        return filtered;
+    }, [liveData]);
+
+    // Memoized values
+    const tableKey = useMemo(() => today + station, [today, station]);
+    const currentFilter = useMemo(() => globalFilterTypes.get(tableKey) || 'all', [globalFilterTypes, tableKey]);
+
+    // Handle animation states
     useEffect(() => {
-        if (!liveData || !liveData.length) {
-            setAnimatingPrizes({});
+        if (!validLiveData || !validLiveData.length) {
+            if (Object.keys(animatingPrizes).length > 0) {
+                setAnimatingPrizes({});
+            }
             return;
         }
 
@@ -451,83 +127,27 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
         ];
 
         const newAnimatingPrizes = { ...animatingPrizes };
-        let hasChanges = false;
 
-        liveData.forEach(stationData => {
+        validLiveData.forEach(stationData => {
             const currentPrize = animatingPrizes[stationData.tinh];
             if (!currentPrize || stationData[currentPrize] !== '...') {
                 const nextPrize = animationQueue.find(prize => stationData[prize] === '...') || null;
-                if (newAnimatingPrizes[stationData.tinh] !== nextPrize) {
-                    newAnimatingPrizes[stationData.tinh] = nextPrize;
-                    hasChanges = true;
-                }
+                newAnimatingPrizes[stationData.tinh] = nextPrize;
             }
         });
 
-        if (hasChanges) {
+        if (JSON.stringify(newAnimatingPrizes) !== JSON.stringify(prevAnimatingPrizesRef.current)) {
             setAnimatingPrizes(newAnimatingPrizes);
+            prevAnimatingPrizesRef.current = newAnimatingPrizes;
         }
-    }, [liveData]);
+    }, [validLiveData, animatingPrizes]);
 
-    if (!liveData || !liveData.length) {
-        return <div className={styles.error}>Đang tải dữ liệu...</div>;
-    }
-
-    const tableKey = today + station;
-    const currentFilter = filterTypes[tableKey] || 'all';
-
-    const getPrizeNumbers = (stationData) => {
-        const lastTwoNumbers = [];
-        const addNumber = (num, isSpecial = false, isEighth = false) => {
-            if (num && num !== '...' && num !== '***' && /^\d+$/.test(num)) {
-                const last2 = num.slice(-2).padStart(2, '0');
-                lastTwoNumbers.push({ num: last2, isSpecial, isEighth });
-            }
-        };
-
-        addNumber(stationData.specialPrize_0, true);
-        addNumber(stationData.firstPrize_0);
-        addNumber(stationData.secondPrize_0);
-        for (let i = 0; i < 2; i++) addNumber(stationData[`threePrizes_${i}`]);
-        for (let i = 0; i < 7; i++) addNumber(stationData[`fourPrizes_${i}`]);
-        addNumber(stationData.fivePrizes_0);
-        for (let i = 0; i < 3; i++) addNumber(stationData[`sixPrizes_${i}`]);
-        addNumber(stationData.sevenPrizes_0);
-        addNumber(stationData.eightPrizes_0, false, true);
-
-        const heads = Array(10).fill().map(() => []);
-        const tails = Array(10).fill().map(() => []);
-
-        lastTwoNumbers.forEach(item => {
-            const last2 = item.num;
-            if (last2.length === 2) {
-                const head = parseInt(last2[0], 10);
-                const tail = parseInt(last2[1], 10);
-                if (!isNaN(head) && !isNaN(tail)) {
-                    heads[head].push(item);
-                    tails[tail].push(item);
-                }
-            }
-        });
-
-        return { heads, tails };
-    };
-
-    const allHeads = Array(10).fill().map(() => []);
-    const allTails = Array(10).fill().map(() => []);
-    const stationsData = liveData.map(stationData => {
-        const { heads, tails } = getPrizeNumbers(stationData);
-        for (let i = 0; i < 10; i++) {
-            allHeads[i].push(heads[i]);
-            allTails[i].push(tails[i]);
-        }
-        return { tentinh: stationData.tentinh, station: stationData.station, tinh: stationData.tinh };
-    });
-
-    const renderPrizeValue = (tinh, prizeType, digits = 5) => {
-        const isAnimating = animatingPrizes[tinh] === prizeType && liveData.find(item => item.tinh === tinh)?.[prizeType] === '...';
+    const renderPrizeValue = useCallback((tinh, prizeType, digits = 5) => {
+        const stationData = validLiveData.find(item => item.tinh === tinh);
+        const isAnimating = animatingPrizes[tinh] === prizeType && stationData?.[prizeType] === '...';
         const className = `${styles.running_number} ${styles[`running_${digits}`]}`;
-        const prizeValue = liveData.find(item => item.tinh === tinh)?.[prizeType] || '...';
+        const prizeValue = stationData?.[prizeType] || '...';
+        const currentFilter = globalFilterTypes.get(`${today}${station}`) || 'all';
         const filteredValue = getFilteredNumber(prizeValue, currentFilter);
         const displayDigits = currentFilter === 'last2' ? 2 : currentFilter === 'last3' ? 3 : digits;
         const isSpecialOrEighth = prizeType === 'specialPrize_0' || prizeType === 'eightPrizes_0';
@@ -556,21 +176,39 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                 )}
             </span>
         );
-    };
+    }, [animatingPrizes, validLiveData, globalFilterTypes, today, station]);
+
+    // Early returns after all hooks
+    if (!liveData || liveData.length === 0) {
+        return <div className={styles.error}>Đang tải dữ liệu...</div>;
+    }
+
+    if (validLiveData.length === 0) {
+        return <div className={styles.error}>Không có dữ liệu hợp lệ</div>;
+    }
 
     return (
-        <div className={styles.containerKQs}>
-            {error && <div className={styles.error}>{error}</div>}
-            {isTodayLoading && (
+        <div className={styles.containerKQs} style={{ contain: 'layout style paint' }}>
+            {error && error !== 'Dữ liệu WebSocket không hợp lệ' && <div className={styles.error}>{error}</div>}
+            {isLoading && (
                 <div className={styles.loading}>Đang chờ kết quả ngày {today}...</div>
             )}
-            <div className={styles.kqxs} style={{ '--num-columns': liveData.length }}>
+            {connectionStatus && (
+                <div className={styles.connectionStatus}>
+                    <span className={styles.statusIndicator} data-status={connectionStatus ? 'connected' : 'disconnected'}></span>
+                    <span className={styles.statusText}>
+                        {connectionStatus ? 'Đã kết nối' : 'Đang kết nối...'}
+                        {subscribersCount > 0 && ` (${subscribersCount} người đang xem)`}
+                    </span>
+                </div>
+            )}
+            <div className={styles.kqxs} style={{ '--num-columns': validLiveData.length }}>
                 <div className={styles.header}>
                     <div className={styles.tructiep}><span className={styles.kqxs__title1}>Tường thuật trực tiếp...</span></div>
                     <h1 className={styles.kqxs__title}>XSMT - Kết quả Xổ số Miền Trung - SXMT {today}</h1>
                     <div className={styles.kqxs__action}>
                         <a className={styles.kqxs__actionLink} href="#!">XSMT</a>
-                        <a className={`${styles.kqxs__actionLink} ${styles.dayOfWeek}`} href="#!">{liveData[0]?.dayOfWeek}</a>
+                        <a className={`${styles.kqxs__actionLink} ${styles.dayOfWeek}`} href="#!">{validLiveData[0]?.dayOfWeek}</a>
                         <a className={styles.kqxs__actionLink} href="#!">{today}</a>
                     </div>
                 </div>
@@ -578,7 +216,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                     <thead>
                         <tr>
                             <th></th>
-                            {liveData.map(stationData => (
+                            {validLiveData.map(stationData => (
                                 <th key={stationData.tinh} className={styles.stationName}>
                                     {stationData.tentinh}
                                 </th>
@@ -588,7 +226,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                     <tbody>
                         <tr>
                             <td className={`${styles.tdTitle} ${styles.highlight}`}>G8</td>
-                            {liveData.map(item => (
+                            {validLiveData.map(item => (
                                 <td key={item.tinh} className={styles.rowXS}>
                                     <span className={`${styles.span4} ${styles.highlight}`}>
                                         {renderPrizeValue(item.tinh, 'eightPrizes_0', 2)}
@@ -598,7 +236,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                         </tr>
                         <tr>
                             <td className={styles.tdTitle}>G7</td>
-                            {liveData.map(item => (
+                            {validLiveData.map(item => (
                                 <td key={item.tinh} className={styles.rowXS}>
                                     <span className={styles.span4}>
                                         {renderPrizeValue(item.tinh, 'sevenPrizes_0', 3)}
@@ -608,7 +246,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                         </tr>
                         <tr>
                             <td className={styles.tdTitle}>G6</td>
-                            {liveData.map(item => (
+                            {validLiveData.map(item => (
                                 <td key={item.tinh} className={styles.rowXS}>
                                     {[0, 1, 2].map(idx => (
                                         <span key={idx} className={styles.span3}>
@@ -620,7 +258,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                         </tr>
                         <tr>
                             <td className={`${styles.tdTitle} ${styles.g3}`}>G5</td>
-                            {liveData.map(item => (
+                            {validLiveData.map(item => (
                                 <td key={item.tinh} className={styles.rowXS}>
                                     <span className={`${styles.span3} ${styles.g3}`}>
                                         {renderPrizeValue(item.tinh, 'fivePrizes_0', 4)}
@@ -630,7 +268,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                         </tr>
                         <tr>
                             <td className={styles.tdTitle}>G4</td>
-                            {liveData.map(item => (
+                            {validLiveData.map(item => (
                                 <td key={item.tinh} className={styles.rowXS}>
                                     {[0, 1, 2, 3, 4, 5, 6].map(idx => (
                                         <span key={idx} className={styles.span4}>
@@ -642,7 +280,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                         </tr>
                         <tr>
                             <td className={`${styles.tdTitle} ${styles.g3}`}>G3</td>
-                            {liveData.map(item => (
+                            {validLiveData.map(item => (
                                 <td key={item.tinh} className={styles.rowXS}>
                                     {[0, 1].map(idx => (
                                         <span key={idx} className={`${styles.span3} ${styles.g3}`}>
@@ -654,7 +292,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                         </tr>
                         <tr>
                             <td className={styles.tdTitle}>G2</td>
-                            {liveData.map(item => (
+                            {validLiveData.map(item => (
                                 <td key={item.tinh} className={styles.rowXS}>
                                     <span className={styles.span1}>
                                         {renderPrizeValue(item.tinh, 'secondPrize_0', 5)}
@@ -664,7 +302,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                         </tr>
                         <tr>
                             <td className={styles.tdTitle}>G1</td>
-                            {liveData.map(item => (
+                            {validLiveData.map(item => (
                                 <td key={item.tinh} className={styles.rowXS}>
                                     <span className={styles.span1}>
                                         {renderPrizeValue(item.tinh, 'firstPrize_0', 5)}
@@ -674,7 +312,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                         </tr>
                         <tr>
                             <td className={`${styles.tdTitle} ${styles.highlight}`}>ĐB</td>
-                            {liveData.map(item => (
+                            {validLiveData.map(item => (
                                 <td key={item.tinh} className={styles.rowXS}>
                                     <span className={`${styles.span1} ${styles.highlight} ${styles.gdb}`}>
                                         {renderPrizeValue(item.tinh, 'specialPrize_0', 6)}
@@ -693,7 +331,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                                 name={`filterOption-${tableKey}`}
                                 value="all"
                                 checked={currentFilter === 'all'}
-                                onChange={() => handleFilterChange(tableKey, 'all')}
+                                onChange={() => globalHandleFilterChange(tableKey, 'all')}
                             />
                             <label htmlFor={`filterAll-${tableKey}`}>Đầy Đủ</label>
                         </div>
@@ -704,7 +342,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                                 name={`filterOption-${tableKey}`}
                                 value="last2"
                                 checked={currentFilter === 'last2'}
-                                onChange={() => handleFilterChange(tableKey, 'last2')}
+                                onChange={() => globalHandleFilterChange(tableKey, 'last2')}
                             />
                             <label htmlFor={`filterTwo-${tableKey}`}>2 Số Đuôi</label>
                         </div>
@@ -715,7 +353,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                                 name={`filterOption-${tableKey}`}
                                 value="last3"
                                 checked={currentFilter === 'last3'}
-                                onChange={() => handleFilterChange(tableKey, 'last3')}
+                                onChange={() => globalHandleFilterChange(tableKey, 'last3')}
                             />
                             <label htmlFor={`filterThree-${tableKey}`}>3 Số Đuôi</label>
                         </div>
@@ -727,14 +365,14 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                     <div className={styles.TKe_contentTitle}>
                         <span className={styles.title}>Bảng Lô Tô - </span>
                         <span className={styles.desc}>Miền Trung</span>
-                        <span className={styles.dayOfWeek}>{`${liveData[0]?.dayOfWeek} - `}</span>
+                        <span className={styles.dayOfWeek}>{`${validLiveData[0]?.dayOfWeek} - `}</span>
                         <span className={styles.desc}>{today}</span>
                     </div>
-                    <table className={styles.tableKey} style={{ '--num-columns': liveData.length }}>
+                    <table className={styles.tableKey} style={{ '--num-columns': validLiveData.length }}>
                         <thead>
                             <tr>
                                 <th className={styles.t_h}>Đầu</th>
-                                {stationsData.map(station => (
+                                {(processedData.stationsData || []).map(station => (
                                     <th key={station.tinh}>{station.tentinh}</th>
                                 ))}
                             </tr>
@@ -743,9 +381,9 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             {Array.from({ length: 10 }, (_, idx) => (
                                 <tr key={idx}>
                                     <td className={styles.t_h}>{idx}</td>
-                                    {allHeads[idx].map((headNumbers, index) => (
+                                    {(processedData.allHeads[idx] || []).map((headNumbers, index) => (
                                         <td key={index}>
-                                            {headNumbers.length > 0 ? (
+                                            {headNumbers && headNumbers.length > 0 ? (
                                                 headNumbers.map((item, numIdx) => (
                                                     <span
                                                         key={numIdx}
@@ -767,14 +405,14 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                     <div className={styles.TKe_contentTitle}>
                         <span className={styles.title}>Bảng Lô Tô - </span>
                         <span className={styles.desc}>Miền Trung</span>
-                        <span className={styles.dayOfWeek}>{`${liveData[0]?.dayOfWeek} - `}</span>
+                        <span className={styles.dayOfWeek}>{`${validLiveData[0]?.dayOfWeek} - `}</span>
                         <span className={styles.desc}>{today}</span>
                     </div>
-                    <table className={styles.tableKey} style={{ '--num-columns': liveData.length }}>
+                    <table className={styles.tableKey} style={{ '--num-columns': validLiveData.length }}>
                         <thead>
                             <tr>
                                 <th className={styles.t_h}>Đuôi</th>
-                                {stationsData.map(station => (
+                                {(processedData.stationsData || []).map(station => (
                                     <th key={station.tinh}>{station.tentinh}</th>
                                 ))}
                             </tr>
@@ -783,9 +421,9 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             {Array.from({ length: 10 }, (_, idx) => (
                                 <tr key={idx}>
                                     <td className={styles.t_h}>{idx}</td>
-                                    {allTails[idx].map((tailNumbers, index) => (
+                                    {(processedData.allTails[idx] || []).map((tailNumbers, index) => (
                                         <td key={index}>
-                                            {tailNumbers.length > 0 ? (
+                                            {tailNumbers && tailNumbers.length > 0 ? (
                                                 tailNumbers.map((item, numIdx) => (
                                                     <span
                                                         key={numIdx}
@@ -806,6 +444,8 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             </div>
         </div>
     );
-};
+});
 
-export default React.memo(LiveResult);
+LiveResult.displayName = 'LiveResult';
+
+export default LiveResult;

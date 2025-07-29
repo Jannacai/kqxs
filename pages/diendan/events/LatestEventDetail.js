@@ -7,7 +7,8 @@ import axios from 'axios';
 import moment from 'moment';
 import 'moment-timezone';
 import parse from 'html-react-parser';
-import styles from '../../../styles/latestEventDetail.module.css';
+import styles from '../../../styles/forumOptimized.module.css';
+import { FaCalendar, FaEye, FaUserPlus, FaClock, FaArrowRight, FaExclamationTriangle } from 'react-icons/fa';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
 
@@ -25,7 +26,7 @@ const renderTextContent = (text) => {
     // Nếu không chứa HTML, xử lý như văn bản thuần
     const paragraphs = text.split(/\n\s*\n|\n/).filter(p => p.trim());
     return paragraphs.map((paragraph, index) => (
-        <p key={`para-${index}`} className={styles.itemContent}>
+        <p key={`para-${index}`} className={styles.eventDescriptionCompact}>
             {paragraph}
         </p>
     ));
@@ -100,43 +101,48 @@ export default function LatestEventDetail() {
     };
 
     const handlePreviousPage = () => {
-        if (page > 1) {
-            setPage(page - 1);
-            setIsLoading(true);
-            setShowModal(false);
-        }
+        setPage(Math.max(1, page - 1));
     };
 
     const handleNextPage = () => {
         setPage(page + 1);
-        setIsLoading(true);
-        setShowModal(false);
+    };
+
+    const formatDate = (date) => {
+        return moment(date).tz('Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm');
+    };
+
+    const truncateText = (text, maxLength = 150) => {
+        if (!text) return '';
+        return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
     };
 
     if (isLoading) {
-        return <div className={styles.loading}>Đang tải...</div>;
+        return (
+            <div className={styles.eventCompact}>
+                <div className={styles.compactHeader}>
+                    <div className={styles.compactTitle}>Sự Kiện Mới Nhất</div>
+                    <div className={styles.compactSubtitle}>Đang tải...</div>
+                </div>
+                <div className={styles.compactContent}>
+                    <div className={styles.loadingMessage}>Đang tải sự kiện...</div>
+                </div>
+            </div>
+        );
     }
 
-    if (error && !item) {
+    if (error) {
         return (
-            <div className={styles.container}>
-                <p className={styles.error}>{error}</p>
-                <div className={styles.pagination}>
-                    {page > 1 && (
-                        <button
-                            className={styles.pageButton}
-                            onClick={handlePreviousPage}
-                        >
-                            Trang trước
-                        </button>
-                    )}
-                    <span className={styles.pageInfo}>Trang {page}</span>
-                    <button
-                        className={styles.pageButton}
-                        onClick={handleNextPage}
-                    >
-                        Trang sau
-                    </button>
+            <div className={styles.eventCompact}>
+                <div className={styles.compactHeader}>
+                    <div className={styles.compactTitle}>Sự Kiện Mới Nhất</div>
+                    <div className={styles.compactSubtitle}>Có lỗi xảy ra</div>
+                </div>
+                <div className={styles.compactContent}>
+                    <div className={styles.errorMessage}>
+                        <FaExclamationTriangle />
+                        <span>{error}</span>
+                    </div>
                 </div>
             </div>
         );
@@ -144,154 +150,95 @@ export default function LatestEventDetail() {
 
     if (!item) {
         return (
-            <div className={styles.container}>
-                <p className={styles.error}>Không tìm thấy sự kiện nào trong ngày hôm nay</p>
-                <div className={styles.pagination}>
-                    {page > 1 && (
-                        <button
-                            className={styles.pageButton}
-                            onClick={handlePreviousPage}
-                        >
-                            Trang trước
-                        </button>
-                    )}
-                    <span className={styles.pageInfo}>Trang {page}</span>
-                    <button
-                        className={styles.pageButton}
-                        onClick={handleNextPage}
-                    >
-                        Trang sau
-                    </button>
+            <div className={styles.eventCompact}>
+                <div className={styles.compactHeader}>
+                    <div className={styles.compactTitle}>Sự Kiện Mới Nhất</div>
+                    <div className={styles.compactSubtitle}>Không có sự kiện nào</div>
+                </div>
+                <div className={styles.compactContent}>
+                    <div className={styles.emptyMessage}>
+                        Không có sự kiện nào cho hôm nay
+                    </div>
                 </div>
             </div>
         );
     }
 
     return (
-        <div>
-            <div className={styles.container} onClick={handleOpenModal}>
-                {/* <h1 className={styles.title}>📌Sự kiện mới nhất hôm nay</h1> */}
-                
-                <div className={styles.groupTitle}>
-                    <h2 className={styles.itemTitle} onClick={handleOpenModal}>🔥{item.title}</h2>
-
-                </div>
-                <div className={styles.contentWrapper1}>
-
-                    <div className={styles.itemMeta2}>
-                        <div className={styles.thoigian}>
-                            {item.startTime && (
-                                <p className={styles.itemMeta}>
-                                    <i className="fa-solid fa-clock"></i> Thời gian bắt đầu: {moment.tz(item.startTime, 'Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm:ss')}
-                                </p>
-                            )}
-                            {item.endTime && (
-                                <p className={styles.itemMeta}>
-                                    <i className="fa-solid fa-clock"></i> Thời gian kết thúc: {moment.tz(item.endTime, 'Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm:ss')}
-                                </p>
-                            )}
-                        </div>
-                        <strong className={styles.h3}><i className="fa-solid fa-fire"></i> Thể lệ cuộc thi:</strong><br />
-                        {renderTextContent(item.content)}
-                    </div>
-                    {item.rewards && (
-                        <div className={styles.contentWrapper1}>
-                            <div className={styles.itemMeta1}>
-                                <strong className={styles.h32}>🏆Phần Thưởng:</strong><br />
-                                {renderTextContent(item.rewards)}
-                            </div>
-                        </div>
-                    )}
-                    <button
-                        className={styles.viewDetailsButton}
-                        onClick={handleViewDetails}
-                    >
-                        👉Tham Gia Ngay
-                    </button>
-                </div>
-                {showModal && (
-                    <div className={styles.modalOverlay}>
-                        <div className={styles.modal} ref={modalRef}>
-                            <h2 className={styles.modalTitle}>{item.title}</h2>
-                            <div className={styles.contentWrapper}>
-                                <div className={styles.modalContent}>
-                                    {renderTextContent(item.content)}
-                                </div>
-                            </div>
-                            {item.startTime && (
-                                <div className={styles.modalMeta}>
-                                    <strong>Thời gian bắt đầu:</strong> {moment.tz(item.startTime, 'Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm:ss')}
-                                </div>
-                            )}
-                            {item.endTime && (
-                                <div className={styles.modalMeta}>
-                                    <strong>Thời gian kết thúc:</strong> {moment.tz(item.endTime, 'Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm:ss')}
-                                </div>
-                            )}
-                            {item.rules && (
-                                <div className={styles.contentWrapper}>
-                                    <div className={styles.modalMeta}>
-                                        <strong>Quy định:</strong>
-                                        {renderTextContent(item.rules)}
-                                    </div>
-                                </div>
-                            )}
-                            {item.rewards && (
-                                <div className={styles.contentWrapper}>
-                                    <div className={styles.modalMeta}>
-                                        <strong>Phần thưởng:</strong>
-                                        {renderTextContent(item.rewards)}
-                                    </div>
-                                </div>
-                            )}
-                            {item.scoringMethod && (
-                                <div className={styles.contentWrapper}>
-                                    <div className={styles.modalMeta}>
-                                        <strong>Cách tính điểm:</strong>
-                                        {renderTextContent(item.scoringMethod)}
-                                    </div>
-                                </div>
-                            )}
-                            {item.notes && (
-                                <div className={styles.contentWrapper}>
-                                    <div className={styles.modalMeta}>
-                                        <strong>Ghi chú:</strong>
-                                        {renderTextContent(item.notes)}
-                                    </div>
-                                </div>
-                            )}
-                            <button
-                                className={styles.closeButton}
-                                onClick={handleCloseModal}
-                            >
-                                Đóng
-                            </button>
-                            <button
-                                className={styles.viewDetailsButton}
-                                onClick={handleViewDetails}
-                            >
-                                👉Tham Gia Ngay
-                            </button>
-                        </div>
-                    </div>
-                )}
+        <div className={styles.eventCompact}>
+            {/* Compact Header */}
+            <div className={styles.compactHeader}>
+                <div className={styles.compactTitle}>Sự Kiện Mới Nhất</div>
+                <div className={styles.compactSubtitle}>Sự kiện quan trọng nhất hôm nay</div>
             </div>
-            <div className={styles.pagination}>
-                {page > 1 && (
+
+            {/* Compact Content */}
+            <div className={`${styles.compactContent} ${styles.compactContent.large}`}>
+                {/* Featured Event */}
+                <div className={styles.featuredEventCompact}>
+                    <div className={styles.eventItemCompact}>
+                        <div className={styles.eventIconCompact}>
+                            <FaCalendar />
+                        </div>
+
+                        <div className={styles.eventInfoCompact}>
+                            <div className={styles.eventNameCompact}>
+                                {item.title}
+                                {item.isHot && <span className={styles.hotBadge}>HOT</span>}
+                            </div>
+
+                            <div className={styles.eventDescriptionCompact}>
+                                {truncateText(item.content)}
+                            </div>
+
+                            <div className={styles.eventMetaCompact}>
+                                <span>
+                                    <FaClock />
+                                    {formatDate(item.createdAt)}
+                                </span>
+                                <span>
+                                    <FaEye />
+                                    {item.viewCount || 0} lượt xem
+                                </span>
+                                {item.registrationCount && (
+                                    <span>
+                                        <FaUserPlus />
+                                        {item.registrationCount} tham gia
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* View Details Button */}
+                        <button
+                            className={styles.viewDetailsButton}
+                            onClick={handleViewDetails}
+                        >
+                            <FaArrowRight />
+                            Xem chi tiết
+                        </button>
+                    </div>
+                </div>
+
+                {/* Navigation */}
+                <div className={styles.eventNavigationCompact}>
                     <button
-                        className={styles.pageButton}
+                        className={styles.navButton}
                         onClick={handlePreviousPage}
+                        disabled={page === 1}
                     >
-                        Trang trước
+                        Sự kiện trước
                     </button>
-                )}
-                <span className={styles.pageInfo}>Trang {page}</span>
-                <button
-                    className={styles.pageButton}
-                    onClick={handleNextPage}
-                >
-                    Trang sau
-                </button>
+                    <span className={styles.pageIndicator}>
+                        Trang {page}
+                    </span>
+                    <button
+                        className={styles.navButton}
+                        onClick={handleNextPage}
+                    >
+                        Sự kiện tiếp
+                    </button>
+                </div>
             </div>
         </div>
     );

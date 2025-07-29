@@ -1,311 +1,491 @@
 * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    overscroll-behavior: none;
-    /* background-color: #2d3483; */
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+	overscroll-behavior: none;
+	/* background-color: #2d3483; */
 }
 
 :root {
-    --primary-color: #2d3483;
-    --color-xam: #ccc;
-    --color-white: #fff;
-    --background-color: #0093E9;
-    --background-image: linear-gradient(160deg, #0093E9 0%, #80D0C7 100%);
-    --shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+	--primary-color: #2d3483;
+	--color-xam: #ccc;
+	--color-white: #fff;
+	--background-color: #0093e9;
+	--background-image: linear-gradient(160deg, #0093e9 0%, #80d0c7 100%);
+	--shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+
+	/* Modern Design System Variables - Softer Palette */
+	/* Color Palette - Softer */
+	--primary-50: #f8fafc;
+	--primary-100: #f1f5f9;
+	--primary-200: #e2e8f0;
+	--primary-300: #cbd5e1;
+	--primary-400: #94a3b8;
+	--primary-500: #64748b;
+	--primary-600: #475569;
+	--primary-700: #334155;
+	--primary-800: #1e293b;
+	--primary-900: #0f172a;
+
+	/* Neutral Colors - Softer */
+	--neutral-50: #fafafa;
+	--neutral-100: #f5f5f5;
+	--neutral-200: #e5e5e5;
+	--neutral-300: #d4d4d4;
+	--neutral-400: #a3a3a3;
+	--neutral-500: #737373;
+	--neutral-600: #525252;
+	--neutral-700: #404040;
+	--neutral-800: #262626;
+	--neutral-900: #171717;
+
+	/* Success Colors - Softer */
+	--success-50: #f0fdf4;
+	--success-100: #dcfce7;
+	--success-200: #bbf7d0;
+	--success-300: #86efac;
+	--success-400: #4ade80;
+	--success-500: #22c55e;
+	--success-600: #16a34a;
+	--success-700: #15803d;
+	--success-800: #166534;
+	--success-900: #14532d;
+
+	/* Warning Colors - Softer */
+	--warning-50: #fffbeb;
+	--warning-100: #fef3c7;
+	--warning-200: #fde68a;
+	--warning-300: #fcd34d;
+	--warning-400: #fbbf24;
+	--warning-500: #f59e0b;
+	--warning-600: #d97706;
+	--warning-700: #b45309;
+	--warning-800: #92400e;
+	--warning-900: #78350f;
+
+	/* Error Colors - Softer */
+	--error-50: #fef2f2;
+	--error-100: #fee2e2;
+	--error-200: #fecaca;
+	--error-300: #fca5a5;
+	--error-400: #f87171;
+	--error-500: #ef4444;
+	--error-600: #dc2626;
+	--error-700: #b91c1c;
+	--error-800: #991b1b;
+	--error-900: #7f1d1d;
+
+	/* Accent Colors - Softer */
+	--accent-blue-50: #eff6ff;
+	--accent-blue-100: #dbeafe;
+	--accent-blue-200: #bfdbfe;
+	--accent-blue-300: #93c5fd;
+	--accent-blue-400: #60a5fa;
+	--accent-blue-500: #3b82f6;
+	--accent-blue-600: #2563eb;
+	--accent-blue-700: #1d4ed8;
+	--accent-blue-800: #1e40af;
+	--accent-blue-900: #1e3a8a;
+
+	/* Purple Accent - Softer */
+	--accent-purple-50: #faf5ff;
+	--accent-purple-100: #f3e8ff;
+	--accent-purple-200: #e9d5ff;
+	--accent-purple-300: #d8b4fe;
+	--accent-purple-400: #c084fc;
+	--accent-purple-500: #a855f7;
+	--accent-purple-600: #9333ea;
+	--accent-purple-700: #7c3aed;
+	--accent-purple-800: #6b21a8;
+	--accent-purple-900: #581c87;
+
+	/* Forum Layout Variables - Thiết kế mới với màu sắc hài hòa */
+	--forum-primary-color: #4ade80;
+	--forum-primary-light: #86efac;
+	--forum-primary-dark: #22c55e;
+	--forum-secondary-color: #10b981;
+	--forum-accent-color: #06b6d4;
+	--forum-success-color: #10b981;
+	--forum-warning-color: #f59e0b;
+	--forum-danger-color: #ef4444;
+	--forum-info-color: #3b82f6;
+
+	--forum-bg-primary: #ffffff;
+	--forum-bg-secondary: #f8fafc;
+	--forum-bg-tertiary: #f1f5f9;
+	--forum-bg-dark: #1e293b;
+
+	--forum-text-primary: #334155;
+	--forum-text-secondary: #64748b;
+	--forum-text-muted: #94a3b8;
+	--forum-text-light: #ffffff;
+
+	--forum-border-color: #e2e8f0;
+	--forum-border-hover: #cbd5e1;
+
+	--forum-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+	--forum-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1),
+		0 2px 4px -2px rgb(0 0 0 / 0.1);
+	--forum-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1),
+		0 4px 6px -4px rgb(0 0 0 / 0.1);
+	--forum-shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1),
+		0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+	--forum-radius-sm: 0.375rem;
+	--forum-radius-md: 0.5rem;
+	--forum-radius-lg: 0.75rem;
+	--forum-radius-xl: 1rem;
+	--forum-radius-2xl: 1.5rem;
+
+	--forum-spacing-1: 0.25rem;
+	--forum-spacing-2: 0.5rem;
+	--forum-spacing-3: 0.75rem;
+	--forum-spacing-4: 1rem;
+	--forum-spacing-5: 1.25rem;
+	--forum-spacing-6: 1.5rem;
+	--forum-spacing-8: 2rem;
+	--forum-spacing-10: 2.5rem;
+	--forum-spacing-12: 3rem;
+	--forum-spacing-16: 4rem;
+	--forum-spacing-20: 5rem;
+
+	--forum-sidebar-width: 280px;
+	--forum-header-height: 80px;
+
+	/* Spacing System */
+	--space-1: 0.25rem;
+	--space-2: 0.5rem;
+	--space-3: 0.75rem;
+	--space-4: 1rem;
+	--space-5: 1.25rem;
+	--space-6: 1.5rem;
+	--space-8: 2rem;
+	--space-10: 2.5rem;
+	--space-12: 3rem;
+	--space-16: 4rem;
+	--space-20: 5rem;
+	--space-24: 6rem;
+
+	/* Border Radius */
+	--radius-sm: 0.25rem;
+	--radius-md: 0.375rem;
+	--radius-lg: 0.5rem;
+	--radius-xl: 0.75rem;
+	--radius-2xl: 1rem;
+	--radius-3xl: 1.5rem;
+
+	/* Shadows - Softer */
+	--shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+	--shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.08),
+		0 2px 4px -2px rgb(0 0 0 / 0.08);
+	--shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08),
+		0 4px 6px -4px rgb(0 0 0 / 0.08);
+	--shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.08),
+		0 8px 10px -6px rgb(0 0 0 / 0.08);
+	--shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.15);
+
+	/* Typography */
+	--font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+		sans-serif;
+	--font-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+
+	/* Font Sizes */
+	--text-xs: 0.75rem;
+	--text-sm: 0.875rem;
+	--text-base: 1rem;
+	--text-lg: 1.125rem;
+	--text-xl: 1.25rem;
+	--text-2xl: 1.5rem;
+	--text-3xl: 1.875rem;
+	--text-4xl: 2.25rem;
+	--text-5xl: 3rem;
 }
 
 /* rest */
 html {
-    font-size: 62.5%;
-    scroll-behavior: smooth;
+	font-size: 62.5%;
+	scroll-behavior: smooth;
 }
 
 body {
-    font-size: 1.6rem;
-    font-family: system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
-        "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-    margin: 0;
-    color: #333;
-
+	font-size: 1.6rem;
+	font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+		'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+	margin: 0;
+	color: #333;
 }
 
 a {
-    text-decoration: none;
-    color: inherit;
+	text-decoration: none;
+	color: inherit;
 }
 
 .container {
-    margin-top: 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 15px;
-    width: 1300px;
-    max-width: calc(100vw - 48px);
-    margin: 0 auto;
+	margin-top: 20px;
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 15px;
+	width: 1300px;
+	max-width: calc(100vw - 48px);
+	margin: 0 auto;
 }
 
 .desc1 {
-    font-family: "Roboto", sans-serif;
-    width: 100%;
-    margin-top: 20px;
-    padding: 20px;
-    border: 1px Dashed #ccc;
-    min-height: 200px;
-    background-color: #ffeca099;
-    line-height: 1.5;
-    font-size: 1.1rem;
-    /* margin: 10px; */
+	font-family: 'Roboto', sans-serif;
+	width: 100%;
+	margin-top: 20px;
+	padding: 20px;
+	border: 1px Dashed #ccc;
+	min-height: 200px;
+	background-color: #ffeca099;
+	line-height: 1.5;
+	font-size: 1.1rem;
+	/* margin: 10px; */
 }
 
 .note {
-    color: red;
+	color: red;
 }
 
 .heading {
-    font-family: "Roboto", sans-serif;
-    font-size: 1.4rem;
-    font-weight: 700;
+	font-family: 'Roboto', sans-serif;
+	font-size: 1.4rem;
+	font-weight: 700;
 }
 
 /* css banner */
 
 .banner1 {
-    margin-top: 20px;
-    width: 300px;
-    height: 300px;
-    object-fit: cover;
-    aspect-ratio: 16 / 9;
+	margin-top: 20px;
+	width: 300px;
+	height: 300px;
+	object-fit: cover;
+	aspect-ratio: 16 / 9;
 }
 
 .videobanner {
-    width: 300px;
-    height: 300px;
-    aspect-ratio: 16 / 9;
+	width: 300px;
+	height: 300px;
+	aspect-ratio: 16 / 9;
 }
 
 .header__logo--img {
-    object-fit: cover;
-    width: 400px;
-    height: 100%;
-    max-width: 100%;
-    aspect-ratio: 16 / 9;
+	object-fit: cover;
+	width: 400px;
+	height: 100%;
+	max-width: 100%;
+	aspect-ratio: 16 / 9;
 }
 
 .groupbanner3 {
-    /* height: 50px; */
-    display: flex;
-    justify-content: center;
-
+	/* height: 50px; */
+	display: flex;
+	justify-content: center;
 }
 
 .banner3 {
-    width: 100%;
-    height: 100px;
-    object-fit: contain;
+	width: 100%;
+	height: 100px;
+	object-fit: contain;
 }
 
 /* Header */
 .header {
-    top: 0;
-    background-color: var(--color-white);
+	top: 0;
+	background-color: var(--color-white);
 }
 
 .header__logo {
-    display: flex;
-    justify-content: center;
-    height: 100px;
-    width: 100%;
-    text-align: center;
+	display: flex;
+	justify-content: center;
+	height: 100px;
+	width: 100%;
+	text-align: center;
 }
 
 .header__logo a:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+	outline: none;
+	box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
 }
-
-
 
 /* Calendar */
 .CalendarWrapper {
-    width: 300px;
-    /* Tăng kích thước để hiển thị đầy đủ */
-    height: 300px;
-    border: 1px solid var(--color-xam);
-    font-family: sans-serif;
-    font-size: 14px;
-    /* Tăng font-size cho dễ đọc */
-    position: relative;
-    overflow: hidden;
-    /* Ngăn tràn nội dung */
+	width: 300px;
+	/* Tăng kích thước để hiển thị đầy đủ */
+	height: 300px;
+	border: 1px solid var(--color-xam);
+	font-family: sans-serif;
+	font-size: 14px;
+	/* Tăng font-size cho dễ đọc */
+	position: relative;
+	overflow: hidden;
+	/* Ngăn tràn nội dung */
 }
 
 .calendar {
-    display: flex;
-    justify-content: space-between;
-    padding: 10px;
-    /* Tăng padding cho bố cục đẹp hơn */
-    border-bottom: 1px solid #eee;
+	display: flex;
+	justify-content: space-between;
+	padding: 10px;
+	/* Tăng padding cho bố cục đẹp hơn */
+	border-bottom: 1px solid #eee;
 }
 
 .MonthYearPicker {
-    display: flex;
-    align-items: center;
+	display: flex;
+	align-items: center;
 }
 
 .Select {
-    font-size: 14px;
-    margin: 0 5px;
-    padding: 5px;
-    /* Tăng padding cho nút select */
-    border: 1px solid var(--color-xam);
-    border-radius: 5px;
-    background: var(--color-white);
-    cursor: pointer;
+	font-size: 14px;
+	margin: 0 5px;
+	padding: 5px;
+	/* Tăng padding cho nút select */
+	border: 1px solid var(--color-xam);
+	border-radius: 5px;
+	background: var(--color-white);
+	cursor: pointer;
 }
 
 .Weekdays {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    padding: 5px;
-    text-align: center;
-    font-weight: bold;
-    color: #333;
+	display: grid;
+	grid-template-columns: repeat(7, 1fr);
+	padding: 5px;
+	text-align: center;
+	font-weight: bold;
+	color: #333;
 }
 
 .Days {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    padding: 5px;
-    text-align: center;
+	display: grid;
+	grid-template-columns: repeat(7, 1fr);
+	padding: 5px;
+	text-align: center;
 }
 
 .DayLink {
-    cursor: pointer;
-    color: inherit;
-    padding: 5px;
-    transition: background-color 0.2s;
+	cursor: pointer;
+	color: inherit;
+	padding: 5px;
+	transition: background-color 0.2s;
 }
 
 .DayLink:hover {
-    background-color: #f0f0f0;
-    border-radius: 50%;
+	background-color: #f0f0f0;
+	border-radius: 50%;
 }
 
 /* Kết quả xổ số */
 .resultSection {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    padding: 10px;
-    border: 1px solid var(--color-xam);
-    border-radius: 5px;
-    background: var(--color-white);
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+	padding: 10px;
+	border: 1px solid var(--color-xam);
+	border-radius: 5px;
+	background: var(--color-white);
 }
 
 .resultItem {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 5px 10px;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 5px 10px;
 }
 
 .resultItem span {
-    font-weight: bold;
-    color: #d32f2f;
-    /* Màu đỏ cho kết quả đặc biệt */
+	font-weight: bold;
+	color: #d32f2f;
+	/* Màu đỏ cho kết quả đặc biệt */
 }
 
 /* Trang chủ */
 .trangchu {
-    display: flex;
-    gap: 20px;
+	display: flex;
+	gap: 20px;
 }
 
 /* Icons */
 .iconRight,
 .iconLeft {
-    font-size: 30px;
-    color: var(--primary-color);
+	font-size: 30px;
+	color: var(--primary-color);
 }
 
 /* Authentication */
 .authenticated {
-    color: #000;
-    min-height: 100vh;
+	color: #000;
+	min-height: 100vh;
 }
 
 .unauthenticated {
-    background-color: var(--color-white);
-    color: #333;
-    min-height: 100vh;
+	background-color: var(--color-white);
+	color: #333;
+	min-height: 100vh;
 }
-
-
-
-
 
 /* Responsive Styles */
 
 /* PC */
 @media screen and (min-width: 992px) {
-    .calendarMobile {
-        display: none;
-        background-color: red;
-    }
+	.calendarMobile {
+		display: none;
+		background-color: red;
+	}
 }
 
 /*Tablet and mobile */
 @media screen and (max-width: 991px) {
-    .container {
-        display: block;
-    }
+	.container {
+		display: block;
+	}
 
-    .groupbanner3 {
-        width: 100%;
-        height: 90px;
-    }
+	.groupbanner3 {
+		width: 100%;
+		height: 90px;
+	}
 
-    .banner3 {
-        width: 100%;
-        height: 90px;
-    }
+	.banner3 {
+		width: 100%;
+		height: 90px;
+	}
 
-    .banner1 {
-        display: none;
-        width: 100%;
-        height: 150px;
-    }
+	.banner1 {
+		display: none;
+		width: 100%;
+		height: 150px;
+	}
 
-    .videobanner {
-        width: 100%;
-        height: 150px;
-    }
+	.videobanner {
+		width: 100%;
+		height: 150px;
+	}
 
-    .header__logo--img {
-        position: absolute;
-        width: 250px;
-        height: 60px;
-        top: 40%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-    }
+	.header__logo--img {
+		position: absolute;
+		width: 250px;
+		height: 60px;
+		top: 40%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+	}
 
-    .header__logo {
-        position: relative;
-        margin-top: 20px;
-        margin-bottom: 5px;
-        height: 50px;
-    }
+	.header__logo {
+		position: relative;
+		margin-top: 20px;
+		margin-bottom: 5px;
+		height: 50px;
+	}
 
-    .container {
-        max-width: 100vw;
-    }
+	.container {
+		max-width: 100vw;
+	}
 }
 
 /* Tablet */
-@media screen and (min-width: 768px) and (max-width:991.98px) {}
+@media screen and (min-width: 768px) and (max-width: 991.98px) {
+}
 
 /* Mobile */
-@media screen and (max-width: 767px) {}
+@media screen and (max-width: 767px) {
+}

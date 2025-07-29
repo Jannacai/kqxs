@@ -23,8 +23,8 @@ const LiveResult = ({ getHeadAndTailNumbers, handleFilterChange, filterTypes, is
     const retryInterval = 2000; // 2 giây
     const fetchMaxRetries = 3;
     const fetchRetryInterval = 5000;
-    const pollingIntervalMs = 5000; // Polling 2 giây cho đến khi đầy đủ
-    const regularPollingIntervalMs = 7000; // Sau khi đầy đủ
+    const pollingIntervalMs = 7000; // Polling 2 giây cho đến khi đầy đủ
+    const regularPollingIntervalMs = 10000; // Sau khi đầy đủ
 
     const prizeDigits = {
         specialPrize_0: 5,
@@ -735,7 +735,7 @@ function isWithinLiveWindow() {
     const vietTime = new Date(now);
     const hours = vietTime.getHours();
     const minutes = vietTime.getMinutes();
-    return (hours === 18 && minutes >= 10 && minutes <= 32);
+    return (hours === 18 && minutes >= 10 && minutes <= 55);
 }
 
 export default React.memo(LiveResult);
