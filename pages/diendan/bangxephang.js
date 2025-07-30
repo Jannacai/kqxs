@@ -225,83 +225,107 @@ const Leaderboard = () => {
 
         return (
             <div key={player._id} className={styles.playerItem}>
-                <span className={styles.rankCircle}>{index + 1}</span>
-                <Image className={styles.star1} src={star1} alt='Star icon' />
-                <div className={styles.playerHeader}>
-                    {player.img ? (
-                        <Image
-                            src={player.img}
-                            alt={fullname}
-                            className={styles.avatarImage}
-                            width={32}
-                            height={32}
-                            onClick={() => handleShowDetails(player)}
-                            role="button"
-                            aria-label={`Xem chi tiết ${fullname}`}
-                            onError={(e) => {
-                                e.target.style.display = 'none';
-                                e.target.nextSibling.style.display = 'flex';
-                            }}
-                        />
-                    ) : (
-                        <div
-                            className={`${styles.avatar} ${getAvatarClass(fullname)}`}
-                            onClick={() => handleShowDetails(player)}
-                            role="button"
-                            aria-label={`Xem chi tiết ${fullname}`}
-                        >
-                            {firstChar}
-                        </div>
-                    )}
+                {/* Rank Badge */}
+                <div className={styles.rankBadge}>
+                    <span className={styles.rankNumber}>{index + 1}</span>
+                    {index < 3 && <div className={`${styles.rankCrown} ${styles[`rank${index + 1}`]}`}>👑</div>}
+                </div>
+
+                {/* Player Content */}
+                <div className={styles.playerContent}>
+                    {/* Avatar Section */}
+                    <div className={styles.avatarSection}>
+                        {player.img ? (
+                            <Image
+                                src={player.img}
+                                alt={fullname}
+                                className={styles.avatarImage}
+                                width={48}
+                                height={48}
+                                onClick={() => handleShowDetails(player)}
+                                role="button"
+                                aria-label={`Xem chi tiết ${fullname}`}
+                                onError={(e) => {
+                                    e.target.style.display = 'none';
+                                    e.target.nextSibling.style.display = 'flex';
+                                }}
+                            />
+                        ) : (
+                            <div
+                                className={`${styles.avatar} ${getAvatarClass(fullname)}`}
+                                onClick={() => handleShowDetails(player)}
+                                role="button"
+                                aria-label={`Xem chi tiết ${fullname}`}
+                            >
+                                {firstChar}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Player Info */}
                     <div className={styles.playerInfo}>
-                        <span
-                            className={styles.playerName}
-                            onClick={() => handleShowDetails(player)}
-                            role="button"
-                            aria-label={`Xem chi tiết ${fullname}`}
-                        >
-                            {fullname}
-                        </span>
-                        <div className={styles.titleWrapper}>
-                            <span className={`${styles.titles} ${styles[titleClass]}`}>
-                                {highestTitle}
+                        <div className={styles.playerHeader}>
+                            <span
+                                className={styles.playerName}
+                                onClick={() => handleShowDetails(player)}
+                                role="button"
+                                aria-label={`Xem chi tiết ${fullname}`}
+                            >
+                                {fullname}
                             </span>
-                            {player.titles?.length > 1 && (
-                                <button
-                                    className={styles.toggleButton}
-                                    onClick={() => handleToggleTitles(player._id)}
-                                >
-                                    {expandedTitles[player._id] ? '▲' : '▼'}
-                                </button>
-                            )}
+                            <div className={styles.titleSection}>
+                                <span className={`${styles.titleBadge} ${styles[titleClass]}`}>
+                                    {highestTitle}
+                                </span>
+                                {player.titles?.length > 1 && (
+                                    <button
+                                        className={styles.toggleButton}
+                                        onClick={() => handleToggleTitles(player._id)}
+                                        aria-label="Xem tất cả danh hiệu"
+                                    >
+                                        {expandedTitles[player._id] ? '▲' : '▼'}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Expanded Titles */}
+                        {expandedTitles[player._id] && player.titles?.length > 1 && (
+                            <div
+                                className={styles.expandedTitles}
+                                ref={(el) => (titleRefs.current[player._id] = el)}
+                            >
+                                {player.titles.map((title, index) => {
+                                    const titleClass = title.toLowerCase().includes('học giả')
+                                        ? 'hocgia'
+                                        : title.toLowerCase().includes('chuyên gia')
+                                            ? 'chuyengia'
+                                            : title.toLowerCase().includes('thần số học')
+                                                ? 'thansohoc'
+                                                : title.toLowerCase().includes('thần chốt số')
+                                                    ? 'thanchotso'
+                                                    : 'tanthu';
+                                    return (
+                                        <span key={index} className={`${styles.titleBadge} ${styles[titleClass]}`}>
+                                            {title}
+                                        </span>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Stats Section */}
+                    <div className={styles.statsSection}>
+                        <div className={styles.statItem}>
+                            <span className={styles.statLabel}>
+                                {sortBy === 'winCount' ? 'Trúng' : 'Điểm'}
+                            </span>
+                            <span className={styles.statValue}>
+                                {sortBy === 'winCount' ? player.winCount || 0 : player.points || 0}
+                            </span>
                         </div>
                     </div>
-                    <span className={styles.points}>
-                        {sortBy === 'winCount' ? `Trúng: ${player.winCount || 0}` : `Điểm: ${player.points || 0}`}
-                    </span>
-                    {expandedTitles[player._id] && player.titles?.length > 1 && (
-                        <div
-                            className={styles.expandedTitles}
-                            ref={(el) => (titleRefs.current[player._id] = el)}
-                        >
-                            {player.titles.map((title, index) => {
-                                const titleClass = title.toLowerCase().includes('học giả')
-                                    ? 'hocgia'
-                                    : title.toLowerCase().includes('chuyên gia')
-                                        ? 'chuyengia'
-                                        : title.toLowerCase().includes('thần số học')
-                                            ? 'thansohoc'
-                                            : title.toLowerCase().includes('thần chốt số')
-                                                ? 'thanchotso'
-                                                : 'tanthu';
-                                return (
-                                    <span key={index} className={`${styles.titles} ${styles[titleClass]}`}>
-                                        {title}
-                                    </span>
-                                );
-                            })}
-                        </div>
-                    )}
                 </div>
             </div>
         );
@@ -309,19 +333,59 @@ const Leaderboard = () => {
 
     return (
         <div className={styles.container}>
-            <h1 className={styles.title}>Top 50 Thánh Bảng</h1>
-            {isLoading && <p className={styles.loading}>Đang tải...</p>}
-            {error && <p className={styles.error}>{error}</p>}
-            <div className={styles.sortOptions}>
-                <label>Sắp xếp theo: </label>
-                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-                    <option value="points">Điểm</option>
-                    <option value="winCount">Số lần trúng</option>
-                </select>
+            {/* Header Section */}
+            <div className={styles.header}>
+                <div className={styles.headerContent}>
+                    <h1 className={styles.title}>
+                        <span className={styles.titleIcon}>🏆</span>
+                        Top 50 Thánh Bảng
+                    </h1>
+                    <div className={styles.stats}>
+                        <span className={styles.statItem}>
+                            <span className={styles.statIcon}>👥</span>
+                            Tổng: {players.length}
+                        </span>
+                    </div>
+                </div>
             </div>
+
+            {/* Filter Section */}
+            <div className={styles.filterSection}>
+                <div className={styles.sortOptions}>
+                    <label className={styles.sortLabel}>Sắp xếp theo:</label>
+                    <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                        className={styles.sortSelect}
+                    >
+                        <option value="points">Điểm số</option>
+                        <option value="winCount">Số lần trúng</option>
+                    </select>
+                </div>
+            </div>
+
+            {/* Loading & Error States */}
+            {isLoading && (
+                <div className={styles.loadingContainer}>
+                    <div className={styles.loadingSpinner}></div>
+                    <span className={styles.loadingText}>Đang tải bảng xếp hạng...</span>
+                </div>
+            )}
+
+            {error && (
+                <div className={styles.errorContainer}>
+                    <span className={styles.errorIcon}>⚠️</span>
+                    <span className={styles.errorText}>{error}</span>
+                </div>
+            )}
+
+            {/* Player List */}
             <div className={styles.playerList}>
-                {players.length === 0 ? (
-                    <p className={styles.noPlayers}>Chưa có người chơi nào.</p>
+                {players.length === 0 && !isLoading ? (
+                    <div className={styles.emptyState}>
+                        <span className={styles.emptyIcon}>📊</span>
+                        <p className={styles.emptyText}>Chưa có người chơi nào.</p>
+                    </div>
                 ) : (
                     players.map((player, index) => {
                         console.log('Rendering player:', player);

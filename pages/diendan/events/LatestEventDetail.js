@@ -167,16 +167,27 @@ export default function LatestEventDetail() {
     return (
         <div className={styles.eventCompact}>
             {/* Compact Header */}
-            <div className={styles.compactHeader}>
+            {/* <div className={styles.compactHeader}>
                 <div className={styles.compactTitle}>Sự Kiện Mới Nhất</div>
                 <div className={styles.compactSubtitle}>Sự kiện quan trọng nhất hôm nay</div>
-            </div>
+            </div> */}
 
             {/* Compact Content */}
             <div className={`${styles.compactContent} ${styles.compactContent.large}`}>
                 {/* Featured Event */}
                 <div className={styles.featuredEventCompact}>
-                    <div className={styles.eventItemCompact}>
+                    <div
+                        className={styles.eventItemCompact}
+                        onClick={handleViewDetails}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                handleViewDetails(e);
+                            }
+                        }}
+                    >
                         <div className={styles.eventIconCompact}>
                             <FaCalendar />
                         </div>
@@ -209,14 +220,10 @@ export default function LatestEventDetail() {
                             </div>
                         </div>
 
-                        {/* View Details Button */}
-                        <button
-                            className={styles.viewDetailsButton}
-                            onClick={handleViewDetails}
-                        >
+                        {/* View Details Icon */}
+                        <div className={styles.viewDetailsIcon}>
                             <FaArrowRight />
-                            Xem chi tiết
-                        </button>
+                        </div>
                     </div>
                 </div>
 
@@ -240,6 +247,8 @@ export default function LatestEventDetail() {
                     </button>
                 </div>
             </div>
+
+
         </div>
     );
 }

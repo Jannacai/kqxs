@@ -7,11 +7,11 @@ import moment from 'moment';
 import 'moment-timezone';
 import axios from 'axios';
 import io from 'socket.io-client';
-import styles from '../../styles/forumOptimized.module.css';
+import styles from '../../styles/lotteryRegistration.module.css';
 import { formatDistanceToNow } from 'date-fns';
 import vi from 'date-fns/locale/vi';
 import Image from 'next/image';
-import { FaGift, FaBell, FaCalendar, FaUser, FaEye, FaEnvelope, FaExclamationTriangle } from 'react-icons/fa';
+import { FaGift } from 'react-icons/fa';
 import PrivateChat from './chatrieng';
 import UserInfoModal from './modals/UserInfoModal';
 
@@ -57,12 +57,98 @@ export default function LotteryRegistrationFeed() {
                 params,
             });
             console.log('Registrations data:', res.data.registrations);
-            const registrationsData = res.data.registrations.filter(r => !r.isReward && !r.isEvent);
-            const rewardData = res.data.registrations.filter(r => r.isReward);
-            const eventData = res.data.registrations.filter(r => r.isEvent);
+
+            // Kiểm tra và xử lý dữ liệu an toàn
+            const allRegistrations = res.data.registrations || [];
+            const registrationsData = allRegistrations.filter(r => !r.isReward && !r.isEvent);
+            const rewardData = allRegistrations.filter(r => r.isReward);
+            const eventData = allRegistrations.filter(r => r.isEvent);
+
+            console.log('Filtered data:', {
+                registrations: registrationsData.length,
+                rewards: rewardData.length,
+                events: eventData.length
+            });
+
             setRegistrations(registrationsData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
             setRewardNotifications(rewardData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
             setEventNotifications(eventData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+
+            // Nếu không có dữ liệu, thêm dữ liệu mẫu để test
+            if (registrationsData.length === 0 && rewardData.length === 0 && eventData.length === 0) {
+                console.log('No data received, adding sample data for testing');
+                const sampleData = [
+                    {
+                        _id: 'sample1',
+                        userId: {
+                            _id: 'user1',
+                            fullname: 'Nguyễn Văn A',
+                            img: null
+                        },
+                        eventId: {
+                            title: 'Sự kiện mẫu'
+                        },
+                        region: 'Miền Bắc',
+                        numbers: {
+                            bachThuLo: '12',
+                            songThuLo: ['34', '56'],
+                            threeCL: '789',
+                            cham: '0'
+                        },
+                        result: {
+                            isChecked: true,
+                            isWin: true,
+                            winningNumbers: {
+                                bachThuLo: '12',
+                                songThuLo: ['34'],
+                                threeCL: '789'
+                            },
+                            matchedPrizes: ['Giải nhất', 'Giải nhì']
+                        },
+                        createdAt: new Date().toISOString(),
+                        isReward: false,
+                        isEvent: false
+                    },
+                    {
+                        _id: 'sample2',
+                        userId: {
+                            _id: 'user2',
+                            fullname: 'Trần Thị B',
+                            img: null
+                        },
+                        eventId: {
+                            title: 'Sự kiện thưởng'
+                        },
+                        pointsAwarded: 100,
+                        eventTitle: 'Sự kiện thưởng',
+                        createdAt: new Date().toISOString(),
+                        isReward: true,
+                        isEvent: false
+                    },
+                    {
+                        _id: 'sample3',
+                        userId: {
+                            _id: 'user3',
+                            fullname: 'Lê Văn C',
+                            img: null
+                        },
+                        title: 'Tin tức mới',
+                        type: 'event',
+                        createdAt: new Date().toISOString(),
+                        isReward: false,
+                        isEvent: true
+                    }
+                ];
+
+                const sampleRegistrations = sampleData.filter(item => !item.isReward && !item.isEvent);
+                const sampleRewards = sampleData.filter(item => item.isReward);
+                const sampleEvents = sampleData.filter(item => item.isEvent);
+
+                setRegistrations(sampleRegistrations);
+                setRewardNotifications(sampleRewards);
+                setEventNotifications(sampleEvents);
+            }
+
             setError('');
         } catch (err) {
             console.error('Error fetching registrations:', err.response?.data || err.message);
@@ -92,60 +178,201 @@ export default function LotteryRegistrationFeed() {
     };
 
     useEffect(() => {
+        console.log('Component mounted, fetching registrations...');
         fetchRegistrations();
     }, [filterType]);
 
     useEffect(() => {
         console.log('Initializing Socket.IO with URL:', API_BASE_URL);
         const socket = io(API_BASE_URL, {
-            reconnection: true,
+            query: { token: session?.accessToken || '' },
             reconnectionAttempts: 5,
-            reconnectionDelay: 1000
+            reconnectionDelay: 5000,
         });
         socketRef.current = socket;
 
         socket.on('connect', () => {
-            console.log('Socket.IO connected for notifications');
-            socket.emit('joinNotificationFeed');
+            console.log('Socket.IO connected successfully:', socket.id);
+            socket.emit('joinLotteryFeed');
+            socket.emit('join', 'leaderboard');
+            if (session?.user?._id || session?.user?.id) {
+                socket.emit('joinPrivateRoom', session.user?._id || session.user?.id);
+            }
+            setError('');
         });
 
-        socket.on('NEW_REGISTRATION', (data) => {
-            console.log('Received NEW_REGISTRATION:', data);
-            setRegistrations(prev => [data, ...prev]);
+        socket.on('NEW_LOTTERY_REGISTRATION', async (data) => {
+            console.log('Received NEW_LOTTERY_REGISTRATION:', data);
+            if (filterType === 'all' || filterType === 'userRegistration') {
+                let updatedData = { ...data };
+                if (data.eventId && !data.eventId.title) {
+                    const event = await fetchEventDetails(data.eventId._id || data.eventId);
+                    if (event) {
+                        updatedData.eventId = { _id: event._id, title: event.title, viewCount: event.viewCount };
+                    }
+                }
+                setRegistrations((prevRegistrations) => {
+                    if (prevRegistrations.some(r => r._id === updatedData._id)) {
+                        return prevRegistrations.map(r => (r._id === updatedData._id ? updatedData : r));
+                    }
+                    const updatedRegistrations = [...prevRegistrations, updatedData].sort(
+                        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+                    );
+                    return updatedRegistrations.slice(0, 100);
+                });
+                if (registrationListRef.current && isAtBottom) {
+                    registrationListRef.current.scrollTop = 0;
+                }
+            }
         });
 
-        socket.on('NEW_REWARD_NOTIFICATION', (data) => {
-            console.log('Received NEW_REWARD_NOTIFICATION:', data);
-            setRewardNotifications(prev => [data, ...prev]);
+        socket.on('LOTTERY_RESULT_CHECKED', (data) => {
+            console.log('Received LOTTERY_RESULT_CHECKED:', data);
+            if (filterType === 'all' || filterType === 'userRegistration') {
+                setRegistrations((prevRegistrations) => {
+                    if (prevRegistrations.some(r => r._id === data._id)) {
+                        return prevRegistrations.map(r => (r._id === data._id ? data : r));
+                    }
+                    return prevRegistrations;
+                });
+                if (registrationListRef.current && isAtBottom) {
+                    registrationListRef.current.scrollTop = 0;
+                }
+            }
         });
 
-        socket.on('NEW_EVENT_NOTIFICATION', (data) => {
+        socket.on('USER_UPDATED', (data) => {
+            console.log('Received USER_UPDATED:', data);
+            setRegistrations((prevRegistrations) =>
+                prevRegistrations.map((r) =>
+                    r.userId._id === data._id ? { ...r, userId: { ...r.userId, img: data.img, titles: data.titles, points: data.points, winCount: data.winCount, role: data.role } } : r
+                )
+            );
+            setRewardNotifications((prevNotifications) =>
+                prevNotifications.map((n) =>
+                    n.userId._id === data._id ? { ...n, userId: { ...n.userId, img: data.img, titles: data.titles, points: data.points, winCount: data.winCount, role: data.role } } : n
+                )
+            );
+            setEventNotifications((prevNotifications) =>
+                prevNotifications.map((n) =>
+                    n.userId._id === data._id ? { ...n, userId: { ...n.userId, img: data.img, titles: data.titles, points: data.points, winCount: data.winCount, role: data.role } } : n
+                )
+            );
+        });
+
+        socket.on('UPDATE_LOTTERY_REGISTRATION', (data) => {
+            console.log('Received UPDATE_LOTTERY_REGISTRATION:', data);
+            if (filterType === 'all' || filterType === 'userRegistration') {
+                setRegistrations((prevRegistrations) =>
+                    prevRegistrations.map((r) => (r._id === data._id ? data : r))
+                );
+                if (registrationListRef.current && isAtBottom) {
+                    registrationListRef.current.scrollTop = 0;
+                }
+            }
+        });
+
+        socket.on('USER_REWARDED', async (data) => {
+            console.log('Received USER_REWARDED:', data);
+            if (filterType === 'all' || filterType === 'reward') {
+                let updatedData = { ...data };
+                const rewardNotification = {
+                    _id: `reward_${data.userId}_${Date.now()} `,
+                    userId: updatedData.userId,
+                    region: data.region,
+                    numbers: {},
+                    result: { isChecked: true, isWin: false },
+                    createdAt: new Date(data.awardedAt || Date.now()),
+                    isReward: true,
+                    pointsAwarded: data.pointsAwarded,
+                    eventTitle: data.eventTitle,
+                    eventId: data.eventId ? data.eventId : null,
+                };
+                setRewardNotifications((prevNotifications) => {
+                    const updatedNotifications = [...prevNotifications, rewardNotification].sort(
+                        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+                    );
+                    return updatedNotifications.slice(0, 100);
+                });
+                if (registrationListRef.current && isAtBottom) {
+                    registrationListRef.current.scrollTop = 0;
+                }
+            }
+        });
+
+        socket.on('NEW_EVENT_NOTIFICATION', async (data) => {
             console.log('Received NEW_EVENT_NOTIFICATION:', data);
-            setEventNotifications(prev => [data, ...prev]);
+            if (filterType === 'all' || filterType === 'eventNews') {
+                let updatedData = { ...data };
+                if (data.eventId && typeof data.eventId !== 'string') {
+                    updatedData.eventId = data.eventId._id ? data.eventId._id.toString() : data.eventId;
+                }
+                if (!data.title && data.eventId) {
+                    const event = await fetchEventDetails(data.eventId);
+                    if (event) {
+                        updatedData.title = event.title;
+                        updatedData.eventId = event._id.toString();
+                    }
+                }
+                setEventNotifications((prevNotifications) => {
+                    const updatedNotifications = [...prevNotifications, updatedData].sort(
+                        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+                    );
+                    return updatedNotifications.slice(0, 100);
+                });
+                if (registrationListRef.current && isAtBottom) {
+                    registrationListRef.current.scrollTop = 0;
+                }
+            }
         });
 
-        socket.on('disconnect', () => {
-            console.log('Socket.IO disconnected');
+        socket.on('LOTTERY_RESULT_ERROR', (data) => {
+            console.error('Received LOTTERY_RESULT_ERROR:', data);
+            setError(data.message || 'Lỗi khi đối chiếu kết quả xổ số');
+        });
+
+        socket.on('connect_error', (err) => {
+            console.error('Socket.IO connection error:', err.message);
+            setError(
+                err.message.includes('Authentication error')
+                    ? 'Không thể kết nối thời gian thực do thiếu quyền. Một số thông báo có thể không cập nhật.'
+                    : 'Mất kết nối thời gian thực. Vui lòng làm mới trang.'
+            );
+        });
+
+        socket.on('reconnect_attempt', (attempt) => {
+            console.log(`Socket.IO reconnect attempt ${attempt} `);
+        });
+
+        socket.on('reconnect', () => {
+            console.log('Reconnected to Socket.IO');
+            socket.emit('joinLotteryFeed');
+            socket.emit('join', 'leaderboard');
+            if (session?.user?._id || session?.user?.id) {
+                socket.emit('joinPrivateRoom', session.user?._id || session.user?.id);
+            }
+        });
+
+        socket.on('disconnect', (reason) => {
+            console.log('Socket.IO disconnected:', reason);
         });
 
         return () => {
+            console.log('Cleaning up Socket.IO connection');
             socket.disconnect();
         };
-    }, []);
+    }, [filterType, session]);
 
     useEffect(() => {
         const handleScroll = () => {
             if (registrationListRef.current) {
                 const { scrollTop, scrollHeight, clientHeight } = registrationListRef.current;
-                setIsAtBottom(scrollTop + clientHeight >= scrollHeight - 10);
+                setIsAtBottom(scrollHeight - scrollTop - clientHeight < 100);
             }
         };
-
-        const listElement = registrationListRef.current;
-        if (listElement) {
-            listElement.addEventListener('scroll', handleScroll);
-            return () => listElement.removeEventListener('scroll', handleScroll);
-        }
+        const registrationList = registrationListRef.current;
+        registrationList?.addEventListener('scroll', handleScroll);
+        return () => registrationList?.removeEventListener('scroll', handleScroll);
     }, []);
 
     const handleShowDetails = (user) => {
@@ -154,233 +381,384 @@ export default function LotteryRegistrationFeed() {
     };
 
     const handleEventClick = (eventId) => {
-        if (eventId) {
-            router.push(`/diendan/events/${eventId}`);
+        if (!eventId || typeof eventId !== 'string' || eventId === '[object Object]') {
+            console.error('Invalid eventId for navigation:', eventId);
+            setError('ID sự kiện không hợp lệ. Vui lòng thử lại.');
+            return;
         }
+        console.log('Navigating to event details with eventId:', eventId);
+        router.push(`/diendan/events/${eventId}`);
     };
 
     const openPrivateChat = (user) => {
-        if (!session?.accessToken) {
-            console.log('No access token, cannot open private chat');
+        if (!session?.user) {
+            setError('Vui lòng đăng nhập để mở chat riêng');
             return;
         }
-
-        const existingChat = privateChats.find(chat => chat.receiverId === user._id);
-        if (!existingChat) {
-            setPrivateChats(prev => [...prev, {
-                receiverId: user._id,
-                receiverName: user.fullname || 'User',
-                isMinimized: false
-            }]);
+        const isCurrentUserAdmin = session.user?.role?.toLowerCase() === 'admin';
+        const isTargetAdmin = user.role?.toLowerCase() === 'admin';
+        if (!isCurrentUserAdmin && !isTargetAdmin) {
+            setError('Bạn chỉ có thể chat riêng với admin');
+            return;
         }
+        setPrivateChats((prev) => {
+            if (prev.some((chat) => chat.receiver._id === user._id)) {
+                return prev.map((chat) =>
+                    chat.receiver._id === user._id ? { ...chat, isMinimized: false } : chat
+                );
+            }
+            return [...prev, { receiver: user, isMinimized: false }];
+        });
     };
 
     const closePrivateChat = (receiverId) => {
-        setPrivateChats(prev => prev.filter(chat => chat.receiverId !== receiverId));
+        setPrivateChats((prev) => prev.filter((chat) => chat.receiver._id !== receiverId));
     };
 
     const toggleMinimizePrivateChat = (receiverId) => {
-        setPrivateChats(prev => prev.map(chat =>
-            chat.receiverId === receiverId
-                ? { ...chat, isMinimized: !chat.isMinimized }
-                : chat
-        ));
+        setPrivateChats((prev) =>
+            prev.map((chat) =>
+                chat.receiver._id === receiverId ? { ...chat, isMinimized: !chat.isMinimized } : chat
+            )
+        );
     };
 
-    const getInitials = (fullname) => {
-        if (!fullname) return 'U';
-        const nameParts = fullname.trim().split(' ');
-        return nameParts[nameParts.length - 1].charAt(0).toUpperCase();
+    const getAvatarClass = (fullname) => {
+        const firstChar = fullname ? fullname[0]?.toLowerCase() : 'a';
+        const avatarColors = {
+            a: styles.avatarA, b: styles.avatarB, c: styles.avatarC, d: styles.avatarD,
+            e: styles.avatarE, f: styles.avatarF, g: styles.avatarG, h: styles.avatarH,
+            i: styles.avatarI, j: styles.avatarJ, k: styles.avatarK, l: styles.avatarL,
+            m: styles.avatarM, n: styles.avatarN, o: styles.avatarO, p: styles.avatarP,
+            q: styles.avatarQ, r: styles.avatarR, s: styles.avatarS, t: styles.avatarT,
+            u: styles.avatarU, v: styles.avatarV, w: styles.avatarW, x: styles.avatarX,
+            y: styles.avatarY, z: styles.avatarZ,
+        };
+        return avatarColors[firstChar] || avatarColors.a;
     };
 
-    const formatTime = (timestamp) => {
-        return moment(timestamp).tz('Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm');
-    };
+    const renderRegistration = (item) => {
+        const fullname = item.userId?.fullname || 'Người dùng ẩn danh';
+        const firstChar = fullname[0]?.toUpperCase() || '?';
+        const titles = item.userId?.titles || [];
+        const eventId = item.isEvent && item.eventId ? (typeof item.eventId === 'string' ? item.eventId : item.eventId._id?.toString()) : null;
 
-    const getNotificationIcon = (type) => {
-        switch (type) {
-            case 'reward':
-                return <FaGift />;
-            case 'event':
-                return <FaCalendar />;
-            default:
-                return <FaBell />;
-        }
-    };
-
-    const getNotificationClass = (type) => {
-        switch (type) {
-            case 'reward':
-                return 'reward';
-            case 'event':
-                return 'event';
-            default:
-                return '';
-        }
-    };
-
-    const renderNotification = (item) => {
-        const isReward = item.isReward;
-        const isEvent = item.isEvent;
-        const type = isReward ? 'reward' : isEvent ? 'event' : 'registration';
+        console.log('Rendering item for user:', {
+            userId: item.userId?._id,
+            fullname,
+            img: item.userId?.img,
+            titles,
+            isEvent: item.isEvent,
+            eventId
+        });
 
         return (
             <div
                 key={item._id}
-                className={`${styles.notificationItemCompact} ${getNotificationClass(type)}`}
+                className={`${styles.feedItem} ${item.isReward ? styles.rewardItem : item.isEvent ? styles.eventItem : styles.registrationItem}`}
+                onClick={item.isEvent && eventId ? () => handleEventClick(eventId) : undefined}
+                style={item.isEvent && eventId ? { cursor: 'pointer' } : {}}
             >
-                <div className={styles.notificationIconCompact}>
-                    {getNotificationIcon(type)}
-                </div>
-
-                <div className={styles.notificationInfoCompact}>
-                    <div className={styles.notificationTextCompact}>
-                        {isReward ? (
-                            <span>
-                                <strong>{item.user?.fullname || 'Người dùng'}</strong> đã nhận phần thưởng{' '}
-                                <strong>{item.rewardName || 'không xác định'}</strong>
+                {/* Item Header */}
+                <div className={styles.itemHeader}>
+                    <div className={styles.userSection}>
+                        {item.userId?.img ? (
+                            <Image
+                                src={item.userId.img}
+                                alt={fullname}
+                                className={styles.userAvatar}
+                                width={48}
+                                height={48}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleShowDetails(item.userId);
+                                }}
+                                onError={(e) => {
+                                    console.error('Failed to load avatar:', item.userId.img);
+                                    e.target.style.display = 'none';
+                                    e.target.nextSibling.style.display = 'flex';
+                                }}
+                            />
+                        ) : null}
+                        <div
+                            className={`${styles.avatar} ${getAvatarClass(fullname)}`}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleShowDetails(item.userId);
+                            }}
+                            style={{ display: item.userId?.img ? 'none' : 'flex' }}
+                        >
+                            {firstChar}
+                        </div>
+                        <div className={styles.userInfo}>
+                            <span
+                                className={styles.userName}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleShowDetails(item.userId);
+                                }}
+                            >
+                                {fullname}
                             </span>
-                        ) : isEvent ? (
-                            <span>
-                                <strong>{item.user?.fullname || 'Người dùng'}</strong> đã đăng ký sự kiện{' '}
-                                <strong>{item.eventName || 'không xác định'}</strong>
+                            <span className={styles.itemTime}>
+                                {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true, locale: vi })}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Item Type Badge */}
+                    <div className={styles.itemBadge}>
+                        {item.isReward ? (
+                            <span className={styles.rewardBadge}>
+                                <FaGift className={styles.badgeIcon} />
+                                Thưởng
+                            </span>
+                        ) : item.isEvent ? (
+                            <span className={styles.eventBadge}>
+                                📢 Tin mới
                             </span>
                         ) : (
-                            <span>
-                                <strong>{item.user?.fullname || 'Người dùng'}</strong> đã đăng ký tham gia
+                            <span className={styles.registrationBadge}>
+                                🎯 Đăng ký
                             </span>
                         )}
                     </div>
-                    <div className={styles.notificationTimeCompact}>
-                        {formatTime(item.createdAt)}
-                    </div>
                 </div>
 
-                {/* Action Buttons */}
-                <div className={styles.notificationActionsCompact}>
-                    {item.user && (
-                        <button
-                            className={styles.actionButtonCompact}
-                            onClick={() => handleShowDetails(item.user)}
-                            title="Xem chi tiết"
-                        >
-                            <FaEye />
-                        </button>
-                    )}
-                    {item.user && item.user.role !== 'admin' && (
-                        <button
-                            className={styles.actionButtonCompact}
-                            onClick={() => openPrivateChat(item.user)}
-                            title="Chat riêng"
-                        >
-                            <FaEnvelope />
-                        </button>
+                {/* Item Content */}
+                <div className={styles.itemContent}>
+                    {item.isReward ? (
+                        <div className={styles.rewardContent}>
+                            <div className={styles.rewardMessage}>
+                                <FaGift className={styles.giftIcon} />
+                                <span>
+                                    Đã được nhận thưởng <strong className={styles.points}>{item.pointsAwarded} điểm</strong>
+                                    của sự kiện <strong>{item.eventTitle || 'Không có sự kiện'}</strong>!
+                                </span>
+                            </div>
+                        </div>
+                    ) : item.isEvent ? (
+                        <div className={styles.eventContent}>
+                            <div className={styles.eventMessage}>
+                                <span>
+                                    Tin Mới: {item.type === 'event' ? 'sự kiện' : 'tin hot'}:
+                                    <strong className={styles.eventTitle}>{item.title || 'Sự kiện không xác định'}</strong>
+                                </span>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className={styles.registrationContent}>
+                            <div className={styles.registrationDetails}>
+                                <div className={styles.eventInfo}>
+                                    <strong>Sự kiện:</strong> {item.eventId?.title || 'Không có sự kiện'}
+                                </div>
+                                <div className={styles.regionInfo}>
+                                    <strong>Miền:</strong> ({item.region})
+                                </div>
+
+                                {/* Numbers Section */}
+                                <div className={styles.numbersSection}>
+                                    {item.numbers.bachThuLo && (
+                                        <div className={styles.numberItem}>
+                                            <span className={styles.numberLabel}>Bạch thủ lô:</span>
+                                            <span className={styles.numberValue}>{item.numbers.bachThuLo}</span>
+                                        </div>
+                                    )}
+                                    {item.numbers.songThuLo.length > 0 && (
+                                        <div className={styles.numberItem}>
+                                            <span className={styles.numberLabel}>Song thủ lô:</span>
+                                            <span className={styles.numberValue}>{item.numbers.songThuLo.join(', ')}</span>
+                                        </div>
+                                    )}
+                                    {item.numbers.threeCL && (
+                                        <div className={styles.numberItem}>
+                                            <span className={styles.numberLabel}>3CL:</span>
+                                            <span className={styles.numberValue}>{item.numbers.threeCL}</span>
+                                        </div>
+                                    )}
+                                    {item.numbers.cham && (
+                                        <div className={styles.numberItem}>
+                                            <span className={styles.numberLabel}>Chạm:</span>
+                                            <span className={styles.numberValue}>{item.numbers.cham}</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Result Section */}
+                                {item.result && item.result.isChecked ? (
+                                    item.result.isWin ? (
+                                        <div className={styles.winningResult}>
+                                            <div className={styles.resultHeader}>
+                                                <span className={styles.resultIcon}>🎉</span>
+                                                <strong>Kết quả: Trúng</strong>
+                                            </div>
+                                            <div className={styles.winningNumbers}>
+                                                {item.result.winningNumbers.bachThuLo && (
+                                                    <div className={styles.winningNumber}>
+                                                        <span>Bạch thủ lô: {item.numbers.bachThuLo}</span>
+                                                    </div>
+                                                )}
+                                                {item.result.winningNumbers.songThuLo.length > 0 && (
+                                                    <div className={styles.winningNumber}>
+                                                        <span>Song thủ lô: {item.result.winningNumbers.songThuLo.join(', ')}</span>
+                                                    </div>
+                                                )}
+                                                {item.result.winningNumbers.threeCL && (
+                                                    <div className={styles.winningNumber}>
+                                                        <span>3CL: {item.numbers.threeCL}</span>
+                                                    </div>
+                                                )}
+                                                {item.result.winningNumbers.cham && (
+                                                    <div className={styles.winningNumber}>
+                                                        <span>Chạm: {item.numbers.cham}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className={styles.prizes}>
+                                                <strong>Giải trúng:</strong> {item.result.matchedPrizes.join(', ')}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className={styles.losingResult}>
+                                            <div className={styles.resultHeader}>
+                                                <span className={styles.resultIcon}>❌</span>
+                                                <strong>Kết quả: Trượt</strong>
+                                            </div>
+                                        </div>
+                                    )
+                                ) : (
+                                    <div className={styles.pendingResult}>
+                                        <div className={styles.resultHeader}>
+                                            <span className={styles.resultIcon}>⏳</span>
+                                            <strong>Đăng ký thành công</strong>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     )}
                 </div>
             </div>
         );
     };
 
-    const allNotifications = [
-        ...registrations.map(item => ({ ...item, type: 'registration' })),
-        ...rewardNotifications.map(item => ({ ...item, type: 'reward' })),
-        ...eventNotifications.map(item => ({ ...item, type: 'event' }))
-    ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const filteredFeed = filterType === 'all'
+        ? [...registrations, ...rewardNotifications, ...eventNotifications].sort(
+            (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        ).slice(0, 50)
+        : filterType === 'eventNews'
+            ? eventNotifications.slice(0, 50)
+            : filterType === 'reward'
+                ? rewardNotifications.slice(0, 50)
+                : registrations.slice(0, 50);
 
-    const filteredNotifications = filterType === 'all'
-        ? allNotifications
-        : allNotifications.filter(item => {
-            if (filterType === 'reward') return item.isReward;
-            if (filterType === 'eventNews') return item.isEvent;
-            if (filterType === 'userRegistration') return !item.isReward && !item.isEvent;
-            return true;
-        });
+    // Debug logging
+    console.log('Current state:', {
+        filterType,
+        registrationsCount: registrations.length,
+        rewardNotificationsCount: rewardNotifications.length,
+        eventNotificationsCount: eventNotifications.length,
+        filteredFeedCount: filteredFeed.length,
+        error
+    });
+
+    console.log('Rendering component with:', { filteredFeed, error, filterType });
 
     return (
-        <div className={styles.notificationCompact}>
-            {/* Compact Header */}
-            <div className={styles.compactHeader}>
-                <div className={styles.compactTitle}>Thông Báo Mới</div>
-                <div className={styles.compactSubtitle}>Cập nhật hoạt động mới nhất</div>
-            </div>
-
-            {/* Compact Content */}
-            <div className={`${styles.compactContent} ${styles.compactContent.large}`}>
-                {/* Filter Tabs */}
-                <div className={styles.tabNavigation}>
-                    <button
-                        className={`${styles.tabButton} ${filterType === 'all' ? styles.active : ''}`}
-                        onClick={() => setFilterType('all')}
-                    >
-                        <FaBell />
-                        Tất cả
-                    </button>
-                    <button
-                        className={`${styles.tabButton} ${filterType === 'userRegistration' ? styles.active : ''}`}
-                        onClick={() => setFilterType('userRegistration')}
-                    >
-                        <FaUser />
-                        Đăng ký
-                    </button>
-                    <button
-                        className={`${styles.tabButton} ${filterType === 'reward' ? styles.active : ''}`}
-                        onClick={() => setFilterType('reward')}
-                    >
-                        <FaGift />
-                        Phần thưởng
-                    </button>
-                    <button
-                        className={`${styles.tabButton} ${filterType === 'eventNews' ? styles.active : ''}`}
-                        onClick={() => setFilterType('eventNews')}
-                    >
-                        <FaCalendar />
-                        Sự kiện
-                    </button>
-                </div>
-
-                {/* Notifications List */}
-                <div className={styles.notificationListCompact} ref={registrationListRef}>
-                    {error && (
-                        <div className={styles.errorMessage}>
-                            <FaExclamationTriangle />
-                            <span>{error}</span>
-                        </div>
-                    )}
-
-                    {filteredNotifications.map(renderNotification)}
-
-                    {filteredNotifications.length === 0 && (
-                        <div className={styles.emptyMessage}>
-                            {filterType === 'all' ? 'Không có thông báo nào' : 'Không có thông báo phù hợp'}
-                        </div>
-                    )}
+        <div className={styles.container}>
+            {/* Header Section */}
+            <div className={styles.header}>
+                <div className={styles.headerContent}>
+                    <h1 className={styles.title}>
+                        <span className={styles.titleIcon}>📢</span>
+                        Thông Báo & Hoạt Động
+                    </h1>
+                    <div className={styles.stats}>
+                        <span className={styles.statItem}>
+                            <span className={styles.statIcon}>📊</span>
+                            Tổng: {filteredFeed.length}
+                        </span>
+                    </div>
                 </div>
             </div>
 
-            {/* Private Chats */}
-            {privateChats.map(chat => (
-                <PrivateChat
-                    key={chat.receiverId}
-                    receiverId={chat.receiverId}
-                    receiverName={chat.receiverName}
-                    isMinimized={chat.isMinimized}
-                    onClose={() => closePrivateChat(chat.receiverId)}
-                    onMinimize={() => toggleMinimizePrivateChat(chat.receiverId)}
-                    session={session}
-                />
-            ))}
+            {/* Filter Section */}
+            <div className={styles.filterSection}>
+                <div className={styles.filterGroup}>
+                    <label className={styles.filterLabel}>Lọc theo loại thông báo:</label>
+                    <select
+                        value={filterType}
+                        onChange={(e) => {
+                            setFilterType(e.target.value);
+                            setRegistrations([]);
+                            setRewardNotifications([]);
+                            setEventNotifications([]);
+                        }}
+                        className={styles.filterSelect}
+                    >
+                        <option value="all">Tất cả</option>
+                        <option value="eventNews">Tin tức sự kiện</option>
+                        <option value="reward">Nhận thưởng</option>
+                        <option value="userRegistration">Đăng ký sự kiện</option>
+                    </select>
+                </div>
+            </div>
 
-            {/* User Info Modal */}
+            {/* Error State */}
+            {error && (
+                <div className={styles.errorContainer}>
+                    <span className={styles.errorIcon}>⚠️</span>
+                    <span className={styles.errorText}>{error}</span>
+                </div>
+            )}
+
+            {/* Feed Content */}
+            <div className={styles.feedContainer}>
+                <div className={styles.feedList} ref={registrationListRef}>
+                    {filteredFeed.length === 0 ? (
+                        <div className={styles.emptyState}>
+                            <span className={styles.emptyIcon}>📝</span>
+                            <p className={styles.emptyText}>Chưa có đăng ký hoặc thông báo nào.</p>
+                            <div style={{ marginTop: '10px', fontSize: '12px', color: '#666' }}>
+                                Debug: registrations={registrations.length}, rewards={rewardNotifications.length}, events={eventNotifications.length}
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            <div style={{ marginBottom: '10px', fontSize: '12px', color: '#666' }}>
+                                Debug: Hiển thị {filteredFeed.length} items
+                            </div>
+                            {filteredFeed.map((item, index) => (
+                                <div key={item._id || index}>
+                                    {renderRegistration(item)}
+                                </div>
+                            ))}
+                        </>
+                    )}
+                </div>
+            </div>
             {showModal && selectedUser && (
                 <UserInfoModal
-                    user={selectedUser}
-                    onClose={() => setShowModal(false)}
-                    onOpenPrivateChat={() => {
-                        openPrivateChat(selectedUser);
-                        setShowModal(false);
-                    }}
+                    selectedUser={selectedUser}
+                    setSelectedUser={setSelectedUser}
+                    setShowModal={setShowModal}
+                    openPrivateChat={openPrivateChat}
+                    getAvatarClass={getAvatarClass}
+                    accessToken={session?.accessToken}
                 />
             )}
+            <div className={styles.privateChatsContainer}>
+                {privateChats.map((chat, index) => (
+                    <PrivateChat
+                        key={chat.receiver._id}
+                        receiver={chat.receiver}
+                        onClose={() => closePrivateChat(chat.receiver._id)}
+                        isMinimized={chat.isMinimized}
+                        onToggleMinimize={() => toggleMinimizePrivateChat(chat.receiver._id)}
+                        style={{ right: `${20 + index * 320} px` }}
+                    />
+                ))}
+            </div>
         </div>
     );
 }

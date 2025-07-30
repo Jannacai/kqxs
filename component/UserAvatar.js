@@ -9,7 +9,7 @@ import vi from 'date-fns/locale/vi';
 import Link from 'next/link';
 import axios from 'axios';
 import io from 'socket.io-client';
-import { FaGift } from 'react-icons/fa';
+import { FaGift, FaBell, FaUser, FaSignOutAlt, FaCog, FaImage } from 'react-icons/fa';
 import Image from 'next/image';
 import { toast } from 'react-toastify';
 import styles from '../styles/userAvatar.module.css';
@@ -21,17 +21,13 @@ const UserAvatar = () => {
     const router = useRouter();
     const [userInfo, setUserInfo] = useState(null);
     const [fetchError, setFetchError] = useState(null);
-    const [isSubmenuOpen, setIsSubmenuOpen] = useState(false);
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-    const [isProfileOpen, setIsProfileOpen] = useState(false);
-    const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const [notificationError, setNotificationError] = useState('');
     const [uploading, setUploading] = useState(false);
-    const submenuRef = useRef(null);
+    const dropdownRef = useRef(null);
     const notificationRef = useRef(null);
-    const profileRef = useRef(null);
-    const adminMenuRef = useRef(null);
     const fileInputRef = useRef(null);
     const notificationListRef = useRef(null);
     const [isAtBottom, setIsAtBottom] = useState(true);
@@ -286,17 +282,11 @@ const UserAvatar = () => {
     // Xử lý cuộn và click ngoài
     useEffect(() => {
         const handleClickOutside = (event) => {
-            if (submenuRef.current && !submenuRef.current.contains(event.target)) {
-                setIsSubmenuOpen(false);
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsDropdownOpen(false);
             }
             if (notificationRef.current && !notificationRef.current.contains(event.target)) {
                 setIsNotificationOpen(false);
-            }
-            if (profileRef.current && !profileRef.current.contains(event.target)) {
-                setIsProfileOpen(false);
-            }
-            if (adminMenuRef.current && !adminMenuRef.current.contains(event.target)) {
-                setIsAdminMenuOpen(false);
             }
         };
 
@@ -433,7 +423,7 @@ const UserAvatar = () => {
                 autoClose: 5000,
             });
         }
-        setIsSubmenuOpen(false);
+        setIsDropdownOpen(false);
     };
 
     // Xử lý nhấp vào thông báo
@@ -604,8 +594,8 @@ const UserAvatar = () => {
                             src={notification.userId.img}
                             alt={fullname}
                             className={styles.avatarImage}
-                            width={40}
-                            height={40}
+                            width={32}
+                            height={32}
                             onError={(e) => {
                                 e.target.style.display = 'none';
                                 e.target.nextSibling.style.display = 'flex';
@@ -686,26 +676,44 @@ const UserAvatar = () => {
         return role?.toLowerCase() === 'admin' ? styles.admin : styles.user;
     };
 
+    // Nếu chưa đăng nhập, hiển thị nút đăng nhập
     if (status === "unauthenticated") {
-        return null;
+        return (
+            <div className={styles.authSection}>
+                <Link href="/login" className={styles.loginButton}>
+                    <FaUser className={styles.loginIcon} />
+                    Đăng nhập
+                </Link>
+            </div>
+        );
+    }
+
+    // Nếu đang loading
+    if (status === "loading") {
+        return (
+            <div className={styles.loadingSection}>
+                <div className={styles.loadingSpinner}></div>
+            </div>
+        );
     }
 
     return (
-        <div className={styles.userInfo} ref={submenuRef}>
+        <div className={styles.userAvatarContainer}>
             {fetchError && <p className={styles.error}>{fetchError}</p>}
             {userInfo ? (
                 <>
+                    {/* Notification Bell */}
                     <div className={styles.notificationWrapper}>
-                        <div
-                            className={styles.notificationIcon}
+                        <button
+                            className={styles.notificationButton}
                             onClick={() => setIsNotificationOpen(!isNotificationOpen)}
                             aria-label="Mở danh sách thông báo"
                         >
-                            🔔
+                            <FaBell className={styles.notificationIcon} />
                             {unreadCount > 0 && (
                                 <span className={styles.notificationBadge}>{unreadCount}</span>
                             )}
-                        </div>
+                        </button>
                         {isNotificationOpen && (
                             <div className={styles.notificationMenu} ref={notificationRef}>
                                 <div className={styles.notificationHeader}>
@@ -733,114 +741,111 @@ const UserAvatar = () => {
                             </div>
                         )}
                     </div>
-                    <div
-                        className={`${styles.avatar} ${getRoleColorClass(userInfo.role)}`}
-                        onClick={() => setIsSubmenuOpen(!isSubmenuOpen)}
-                        aria-expanded={isSubmenuOpen}
-                        aria-label="Mở menu người dùng"
-                    >
-                        {userInfo.img ? (
-                            <img src={userInfo.img} alt="Avatar người dùng" className={styles.avatarImage} />
-                        ) : (
-                            getInitials(userInfo.fullname)
-                        )}
-                    </div>
-                    <div className={styles.info}>
-                        <span
-                            className={styles.username}
-                            onClick={() => setIsSubmenuOpen(!isSubmenuOpen)}
-                            aria-expanded={isSubmenuOpen}
+
+                    {/* User Avatar & Dropdown */}
+                    <div className={styles.userSection} ref={dropdownRef}>
+                        <button
+                            className={styles.avatarButton}
+                            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                            aria-expanded={isDropdownOpen}
                             aria-label="Mở menu người dùng"
                         >
-                            {getDisplayName(userInfo.fullname)}
-                        </span>
-                        <span className={`${styles.role} ${getRoleColorClass(userInfo.role)}`}>
-                            {userInfo.role}
-                        </span>
-                    </div>
-                    {isSubmenuOpen && (
-                        <div className={`${styles.submenu} ${isSubmenuOpen ? styles.active : ''}`} ref={submenuRef}>
-                            <span className={styles.fullname}>{userInfo.fullname}</span>
-                            <button
-                                className={styles.submenuItem}
-                                onClick={() => {
-                                    setIsProfileOpen(true);
-                                    setIsSubmenuOpen(false);
-                                }}
-                                aria-label="Xem thông tin cá nhân"
-                            >
-                                Thông tin cá nhân
-                            </button>
-                            <label className={styles.uploadButton} aria-label="Tải ảnh đại diện">
-                                {uploading ? 'Đang tải...' : 'Tải ảnh đại diện'}
-                                <input
-                                    type="file"
-                                    accept="image/jpeg,image/png"
-                                    onChange={handleAvatarChange}
-                                    ref={fileInputRef}
-                                    style={{ display: 'none' }}
-                                    disabled={uploading}
-                                />
-                            </label>
-                            {userInfo.role === 'ADMIN' && (
-                                <div className={styles.adminMenuWrapper}>
-                                    <button
-                                        className={styles.submenuItem}
-                                        onClick={() => setIsAdminMenuOpen(!isAdminMenuOpen)}
-                                        aria-expanded={isAdminMenuOpen}
-                                        aria-label="Mở menu quản lý"
-                                    >
-                                        Quản lý chung
+                            <div className={`${styles.avatar} ${getRoleColorClass(userInfo.role)}`}>
+                                {userInfo.img ? (
+                                    <Image
+                                        src={userInfo.img}
+                                        alt="Avatar người dùng"
+                                        className={styles.avatarImage}
+                                        width={32}
+                                        height={32}
+                                    />
+                                ) : (
+                                    getInitials(userInfo.fullname)
+                                )}
+                            </div>
+                            <span className={styles.username}>{getDisplayName(userInfo.fullname)}</span>
+                        </button>
+
+                        {isDropdownOpen && (
+                            <div className={styles.dropdownMenu}>
+                                <div className={styles.userInfo}>
+                                    <div className={`${styles.avatar} ${getRoleColorClass(userInfo.role)}`}>
+                                        {userInfo.img ? (
+                                            <Image
+                                                src={userInfo.img}
+                                                alt="Avatar người dùng"
+                                                className={styles.avatarImage}
+                                                width={48}
+                                                height={48}
+                                            />
+                                        ) : (
+                                            getInitials(userInfo.fullname)
+                                        )}
+                                    </div>
+                                    <div className={styles.userDetails}>
+                                        <span className={styles.fullname}>{userInfo.fullname}</span>
+                                        <span className={`${styles.role} ${getRoleColorClass(userInfo.role)}`}>
+                                            {userInfo.role}
+                                        </span>
+                                        <span className={styles.points}>Điểm: {userInfo.points}</span>
+                                    </div>
+                                </div>
+
+                                <div className={styles.menuItems}>
+                                    <button className={styles.menuItem}>
+                                        <FaUser className={styles.menuIcon} />
+                                        Thông tin cá nhân
                                     </button>
-                                    {isAdminMenuOpen && (
-                                        <div className={styles.adminSubmenu} ref={adminMenuRef}>
-                                            <Link href="/admin/quanlyuser" className={styles.submenuItem}>
+
+                                    <label className={styles.menuItem} aria-label="Tải ảnh đại diện">
+                                        <FaImage className={styles.menuIcon} />
+                                        {uploading ? 'Đang tải...' : 'Tải ảnh đại diện'}
+                                        <input
+                                            type="file"
+                                            accept="image/jpeg,image/png"
+                                            onChange={handleAvatarChange}
+                                            ref={fileInputRef}
+                                            style={{ display: 'none' }}
+                                            disabled={uploading}
+                                        />
+                                    </label>
+
+                                    {userInfo.role === 'ADMIN' && (
+                                        <div className={styles.adminSection}>
+                                            <span className={styles.adminLabel}>Quản lý</span>
+                                            <Link href="/admin/quanlyuser" className={styles.menuItem}>
+                                                <FaCog className={styles.menuIcon} />
                                                 Quản lý người dùng
                                             </Link>
-                                            <Link href="/admin/QLquayso" className={styles.submenuItem}>
+                                            <Link href="/admin/QLquayso" className={styles.menuItem}>
+                                                <FaCog className={styles.menuIcon} />
                                                 Quản lý đăng ký xổ số
                                             </Link>
-                                            <Link href="/diendan/AdminPostEvent" className={styles.submenuItem}>
+                                            <Link href="/diendan/AdminPostEvent" className={styles.menuItem}>
+                                                <FaCog className={styles.menuIcon} />
                                                 Đăng bài post
                                             </Link>
                                         </div>
                                     )}
+
+                                    <button
+                                        onClick={handleLogout}
+                                        className={`${styles.menuItem} ${styles.logoutButton}`}
+                                        aria-label="Đăng xuất"
+                                    >
+                                        <FaSignOutAlt className={styles.menuIcon} />
+                                        Đăng xuất
+                                    </button>
                                 </div>
-                            )}
-                            <button
-                                onClick={handleLogout}
-                                className={styles.logoutButton}
-                                aria-label="Đăng xuất"
-                            >
-                                Đăng xuất
-                            </button>
-                        </div>
-                    )}
-                    {isProfileOpen && (
-                        <div className={styles.profileMenu} ref={profileRef}>
-                            <div className={styles.profileHeader}>
-                                <span>Thông tin cá nhân</span>
-                                <button
-                                    className={styles.closeButton}
-                                    onClick={() => setIsProfileOpen(false)}
-                                    aria-label="Đóng thông tin cá nhân"
-                                >
-                                    ✕
-                                </button>
                             </div>
-                            <div className={styles.profileContent}>
-                                <p><strong>Họ tên:</strong> {userInfo.fullname}</p>
-                                <p><strong>Email:</strong> {userInfo.email}</p>
-                                <p><strong>Số điện thoại:</strong> {userInfo.phoneNumber || 'N/A'}</p>
-                                <p><strong>Danh hiệu:</strong> {userInfo.titles?.join(', ') || 'Chưa có'}</p>
-                                <p><strong>Cấp độ:</strong> {userInfo.level}</p>
-                                <p><strong>Số điểm:</strong> {userInfo.points}</p>
-                            </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </>
             ) : (
-                <span className={styles.loading}>Đang tải thông tin...</span>
+                <div className={styles.loadingSection}>
+                    <div className={styles.loadingSpinner}></div>
+                    <span>Đang tải thông tin...</span>
+                </div>
             )}
         </div>
     );

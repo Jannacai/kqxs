@@ -370,12 +370,27 @@ export default function LotteryRegistrationHistory() {
     };
 
     return (
-        <div className={styles.lotteryHistory}>
-            <div className={styles.fixedHeader}>
-                <h2>Danh sách đăng ký Events - Tổng đã đăng ký: {totalRegistrations}</h2>
-                <div className={styles.filterGroup}>
-                    <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Chọn ngày</label>
+        <div className={styles.container}>
+            {/* Header Section */}
+            <div className={styles.header}>
+                <div className={styles.headerContent}>
+                    <h2 className={styles.title}>
+                        📋 Lịch Sử Đăng Ký Events
+                    </h2>
+                    <div className={styles.stats}>
+                        <span className={styles.statItem}>
+                            <span className={styles.statIcon}>📊</span>
+                            Tổng: {totalRegistrations}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Filters Section */}
+            <div className={styles.filters}>
+                <div className={styles.filterRow}>
+                    <div className={styles.filterGroup}>
+                        <label className={styles.filterLabel}>📅 Chọn ngày</label>
                         <select
                             value={selectedDate}
                             onChange={(e) => {
@@ -383,7 +398,7 @@ export default function LotteryRegistrationHistory() {
                                 setSelectedEventId('');
                                 setCurrentPage(1);
                             }}
-                            className={styles.input}
+                            className={styles.filterSelect}
                         >
                             <option value="">Tất cả (10 ngày gần nhất)</option>
                             {dateRange.map((date) => (
@@ -391,15 +406,15 @@ export default function LotteryRegistrationHistory() {
                             ))}
                         </select>
                     </div>
-                    <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Chọn sự kiện</label>
+                    <div className={styles.filterGroup}>
+                        <label className={styles.filterLabel}>🎯 Chọn sự kiện</label>
                         <select
                             value={selectedEventId}
                             onChange={(e) => {
                                 setSelectedEventId(e.target.value);
                                 setCurrentPage(1);
                             }}
-                            className={styles.input}
+                            className={styles.filterSelect}
                             disabled={!selectedDate || events.length === 0}
                         >
                             <option value="">Tất cả sự kiện</option>
@@ -409,40 +424,74 @@ export default function LotteryRegistrationHistory() {
                         </select>
                     </div>
                 </div>
+
                 {!session && (
                     <div className={styles.loginPrompt}>
-                        <p>Đăng nhập để nhận cập nhật thời gian thực.</p>
+                        <p>🔐 Đăng nhập để nhận cập nhật thời gian thực</p>
                         <button
                             className={styles.loginButton}
                             onClick={() => window.location.href = '/login'}
-                            aria-label="Đăng nhập"
                         >
                             Đăng nhập
                         </button>
                     </div>
                 )}
             </div>
+
+            {/* Content Section */}
             <div className={styles.content}>
-                {fetchError && <p className={styles.error}>{fetchError}</p>}
-                {isLoading && <p className={styles.loading}>Đang tải dữ liệu...</p>}
-                {!isLoading && Object.keys(registrationsByDate).length === 0 && (
-                    <p>Chưa có đăng ký nào {selectedDate ? `cho ngày ${selectedDate}` : 'trong 10 ngày gần nhất'}.</p>
+                {fetchError && (
+                    <div className={styles.errorMessage}>
+                        <span className={styles.errorIcon}>⚠️</span>
+                        {fetchError}
+                    </div>
                 )}
+
+                {isLoading && (
+                    <div className={styles.loadingMessage}>
+                        <span className={styles.loadingIcon}>⏳</span>
+                        Đang tải dữ liệu...
+                    </div>
+                )}
+
+                {!isLoading && Object.keys(registrationsByDate).length === 0 && (
+                    <div className={styles.emptyState}>
+                        <span className={styles.emptyIcon}>📭</span>
+                        <p>Chưa có đăng ký nào {selectedDate ? `cho ngày ${selectedDate}` : 'trong 10 ngày gần nhất'}.</p>
+                    </div>
+                )}
+
                 {dateRange
                     .filter(date => !selectedDate || date === selectedDate)
                     .map((date) => (
                         <div key={date} className={styles.dateSection}>
-                            <h3>Danh sách tham gia sự kiện | ngày: {date}</h3>
+                            <div className={styles.dateHeader}>
+                                <h3 className={styles.dateTitle}>
+                                    📅 Danh sách tham gia sự kiện | {date}
+                                </h3>
+                            </div>
+
                             {registrationsByDate[date] ? (
                                 Object.entries(registrationsByDate[date])
                                     .filter(([eventId]) => !selectedEventId || eventId === selectedEventId)
                                     .map(([eventId, eventData]) => (
                                         <div key={eventId} className={styles.eventSection}>
-                                            <h4>Sự Kiện: {eventData.title}</h4>
+                                            <div className={styles.eventHeader}>
+                                                <h4 className={styles.eventTitle}>
+                                                    🎯 {eventData.title}
+                                                </h4>
+                                                <span className={styles.registrationCount}>
+                                                    {eventData.registrations.length} đăng ký
+                                                </span>
+                                            </div>
+
                                             {eventData.registrations.length === 0 ? (
-                                                <p>Chưa có đăng ký cho sự kiện này.</p>
+                                                <div className={styles.emptyEvent}>
+                                                    <span className={styles.emptyEventIcon}>📝</span>
+                                                    <p>Chưa có đăng ký cho sự kiện này.</p>
+                                                </div>
                                             ) : (
-                                                <div className={styles.registrations}>
+                                                <div className={styles.registrationsList}>
                                                     {eventData.registrations.map((reg) => {
                                                         const user = usersCache[reg.userId?._id] || reg.userId || {
                                                             fullname: 'User',
@@ -454,12 +503,11 @@ export default function LotteryRegistrationHistory() {
                                                         };
 
                                                         return (
-                                                            <div key={reg._id} className={styles.commentWrapper}>
-                                                                <div className={styles.commentHeader}>
+                                                            <div key={reg._id} className={styles.registrationCard}>
+                                                                <div className={styles.userInfo}>
                                                                     <div
-                                                                        className={`${styles.avatar} ${getRoleColorClass(user?.role)}`}
+                                                                        className={`${styles.userAvatar} ${getRoleColorClass(user?.role)}`}
                                                                         onClick={() => handleShowDetails(user)}
-                                                                        style={{ cursor: 'pointer' }}
                                                                         role="button"
                                                                         aria-label={`Xem chi tiết ${getDisplayName(user.fullname)}`}
                                                                     >
@@ -480,82 +528,121 @@ export default function LotteryRegistrationHistory() {
                                                                             <span>{getInitials(user?.fullname || 'User')}</span>
                                                                         )}
                                                                     </div>
-                                                                    <div className={styles.commentInfo}>
-                                                                        <span
-                                                                            className={`${styles.username} ${getRoleColorClass(user?.role)}`}
-                                                                            onClick={() => handleShowDetails(user)}
-                                                                            style={{ cursor: 'pointer' }}
-                                                                            role="button"
-                                                                            aria-label={`Xem chi tiết ${getDisplayName(user.fullname)}`}
-                                                                        >
+                                                                    <div className={styles.userDetails}>
+                                                                        <div className={styles.userName}>
                                                                             {getDisplayName(user?.fullname || 'User')}
-                                                                        </span>
-                                                                        {user?.role && (
-                                                                            <span
-                                                                                className={`${styles.role} ${getRoleColorClass(user.role)}`}
-                                                                            >
-                                                                                {user.role}
+                                                                        </div>
+                                                                        <div className={styles.userMeta}>
+                                                                            {user?.role && (
+                                                                                <span className={`${styles.userRole} ${getRoleColorClass(user.role)}`}>
+                                                                                    {user.role}
+                                                                                </span>
+                                                                            )}
+                                                                            <span className={styles.userLevel}>
+                                                                                Cấp {user?.level ?? 'N/A'}
                                                                             </span>
-                                                                        )}
-                                                                        <span className={styles.roless}>
+                                                                            <span className={styles.userPoints}>
+                                                                                {user?.points ?? 0} điểm
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className={styles.userTitles}>
                                                                             {user?.titles?.length > 0 ? user.titles.join(', ') : 'Chưa có danh hiệu'}
-                                                                        </span>
-                                                                        <span className={styles.level}>
-                                                                            Cấp {user?.level ?? 'N/A'}
-                                                                        </span>
-                                                                        <span className={styles.points}>
-                                                                            {user?.points ?? 0} điểm
-                                                                        </span>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
-                                                                <div className={styles.comment}>
-                                                                    <p className={styles.commentMeta}>
-                                                                        <i className="fa-solid fa-clock"></i> Đã đăng ký lúc: {moment.tz(reg.createdAt, 'Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm:ss')}
-                                                                    </p>
-                                                                    <div className={styles.commentContent}>
-                                                                        <p><strong>Miền:</strong> {reg.region}</p>
-                                                                        <p><strong>Số đăng ký:</strong></p>
-                                                                        <ul>
+
+                                                                <div className={styles.registrationDetails}>
+                                                                    <div className={styles.registrationMeta}>
+                                                                        <span className={styles.registrationTime}>
+                                                                            ⏰ {moment.tz(reg.createdAt, 'Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm:ss')}
+                                                                        </span>
+                                                                        <span className={styles.registrationRegion}>
+                                                                            🌍 {reg.region}
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <div className={styles.numbersSection}>
+                                                                        <h5 className={styles.numbersTitle}>🔢 Số đăng ký:</h5>
+                                                                        <div className={styles.numbersList}>
                                                                             {reg.numbers.bachThuLo && (
-                                                                                <li>Bạch thủ lô: {reg.numbers.bachThuLo}</li>
+                                                                                <span className={styles.numberItem}>
+                                                                                    <span className={styles.numberLabel}>Bạch thủ lô:</span>
+                                                                                    <span className={styles.numberValue}>{reg.numbers.bachThuLo}</span>
+                                                                                </span>
                                                                             )}
                                                                             {reg.numbers.songThuLo?.length > 0 && (
-                                                                                <li>Song thủ lô: {reg.numbers.songThuLo.join(', ')}</li>
+                                                                                <span className={styles.numberItem}>
+                                                                                    <span className={styles.numberLabel}>Song thủ lô:</span>
+                                                                                    <span className={styles.numberValue}>{reg.numbers.songThuLo.join(', ')}</span>
+                                                                                </span>
                                                                             )}
                                                                             {reg.numbers.threeCL && (
-                                                                                <li>3CL: {reg.numbers.threeCL}</li>
+                                                                                <span className={styles.numberItem}>
+                                                                                    <span className={styles.numberLabel}>3CL:</span>
+                                                                                    <span className={styles.numberValue}>{reg.numbers.threeCL}</span>
+                                                                                </span>
                                                                             )}
                                                                             {reg.numbers.cham && (
-                                                                                <li>Chạm: {reg.numbers.cham}</li>
+                                                                                <span className={styles.numberItem}>
+                                                                                    <span className={styles.numberLabel}>Chạm:</span>
+                                                                                    <span className={styles.numberValue}>{reg.numbers.cham}</span>
+                                                                                </span>
                                                                             )}
-                                                                        </ul>
-                                                                        <p><strong>Kết quả:</strong></p>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div className={styles.resultSection}>
+                                                                        <h5 className={styles.resultTitle}>🎯 Kết quả:</h5>
                                                                         {reg.result.isChecked ? (
                                                                             reg.result.isWin ? (
-                                                                                <div>
-                                                                                    <p className={styles.success}>Trúng thưởng!</p>
-                                                                                    <p><strong>Số trúng:</strong></p>
-                                                                                    <ul>
-                                                                                        {reg.result.winningNumbers.bachThuLo && (
-                                                                                            <li>Bạch thủ lô: {reg.result.winningNumbers.bachThuLo}</li>
-                                                                                        )}
-                                                                                        {reg.result.winningNumbers.songThuLo?.length > 0 && (
-                                                                                            <li>Song thủ lô: {reg.result.winningNumbers.songThuLo.join(', ')}</li>
-                                                                                        )}
-                                                                                        {reg.result.winningNumbers.threeCL && (
-                                                                                            <li>3CL: {reg.result.winningNumbers.threeCL}</li>
-                                                                                        )}
-                                                                                        {reg.result.winningNumbers.cham && (
-                                                                                            <li>Chạm: {reg.result.winningNumbers.cham}</li>
-                                                                                        )}
-                                                                                    </ul>
-                                                                                    <p><strong>Giải trúng:</strong> {reg.result.matchedPrizes.join(', ') || 'N/A'}</p>
+                                                                                <div className={styles.winResult}>
+                                                                                    <span className={styles.winIcon}>🏆</span>
+                                                                                    <span className={styles.winText}>Trúng thưởng!</span>
+                                                                                    <div className={styles.winningNumbers}>
+                                                                                        <h6>🎊 Số trúng:</h6>
+                                                                                        <div className={styles.winningNumbersList}>
+                                                                                            {reg.result.winningNumbers.bachThuLo && (
+                                                                                                <span className={styles.winningNumberItem}>
+                                                                                                    <span className={styles.winningNumberLabel}>Bạch thủ lô:</span>
+                                                                                                    <span className={styles.winningNumberValue}>{reg.result.winningNumbers.bachThuLo}</span>
+                                                                                                </span>
+                                                                                            )}
+                                                                                            {reg.result.winningNumbers.songThuLo?.length > 0 && (
+                                                                                                <span className={styles.winningNumberItem}>
+                                                                                                    <span className={styles.winningNumberLabel}>Song thủ lô:</span>
+                                                                                                    <span className={styles.winningNumberValue}>{reg.result.winningNumbers.songThuLo.join(', ')}</span>
+                                                                                                </span>
+                                                                                            )}
+                                                                                            {reg.result.winningNumbers.threeCL && (
+                                                                                                <span className={styles.winningNumberItem}>
+                                                                                                    <span className={styles.winningNumberLabel}>3CL:</span>
+                                                                                                    <span className={styles.winningNumberValue}>{reg.result.winningNumbers.threeCL}</span>
+                                                                                                </span>
+                                                                                            )}
+                                                                                            {reg.result.winningNumbers.cham && (
+                                                                                                <span className={styles.winningNumberItem}>
+                                                                                                    <span className={styles.winningNumberLabel}>Chạm:</span>
+                                                                                                    <span className={styles.winningNumberValue}>{reg.result.winningNumbers.cham}</span>
+                                                                                                </span>
+                                                                                            )}
+                                                                                        </div>
+                                                                                        <div className={styles.prizes}>
+                                                                                            <span className={styles.prizesLabel}>💰 Giải trúng:</span>
+                                                                                            <span className={styles.prizesValue}>{reg.result.matchedPrizes.join(', ') || 'N/A'}</span>
+                                                                                        </div>
+                                                                                    </div>
                                                                                 </div>
                                                                             ) : (
-                                                                                <p className={styles.error}>Không trúng</p>
+                                                                                <div className={styles.loseResult}>
+                                                                                    <span className={styles.loseIcon}>❌</span>
+                                                                                    <span className={styles.loseText}>Không trúng</span>
+                                                                                </div>
                                                                             )
                                                                         ) : (
-                                                                            <p className={styles.status}>Đăng ký thành công</p>
+                                                                            <div className={styles.pendingResult}>
+                                                                                <span className={styles.pendingIcon}>⏳</span>
+                                                                                <span className={styles.pendingText}>Đăng ký thành công</span>
+                                                                            </div>
                                                                         )}
                                                                     </div>
                                                                 </div>
@@ -567,33 +654,39 @@ export default function LotteryRegistrationHistory() {
                                         </div>
                                     ))
                             ) : (
-                                <p>Chưa có đăng ký trong ngày này.</p>
+                                <div className={styles.emptyDate}>
+                                    <span className={styles.emptyDateIcon}>📅</span>
+                                    <p>Chưa có đăng ký trong ngày này.</p>
+                                </div>
                             )}
                         </div>
                     ))}
-                {showModal && selectedUser && (
-                    <UserInfoModal
-                        selectedUser={selectedUser}
-                        setSelectedUser={setSelectedUser}
-                        setShowModal={setShowModal}
-                        openPrivateChat={openPrivateChat}
-                        getAvatarClass={getAvatarClass}
-                        accessToken={session?.accessToken}
+            </div>
+
+            {/* Modals and Private Chats */}
+            {showModal && selectedUser && (
+                <UserInfoModal
+                    selectedUser={selectedUser}
+                    setSelectedUser={setSelectedUser}
+                    setShowModal={setShowModal}
+                    openPrivateChat={openPrivateChat}
+                    getAvatarClass={getAvatarClass}
+                    accessToken={session?.accessToken}
+                />
+            )}
+
+            <div className={styles.privateChatsContainer}>
+                {privateChats.map((chat, index) => (
+                    <PrivateChat
+                        key={chat.receiver._id}
+                        receiver={chat.receiver}
+                        socket={socketRef.current}
+                        onClose={() => closePrivateChat(chat.receiver._id)}
+                        isMinimized={chat.isMinimized}
+                        onToggleMinimize={() => toggleMinimizePrivateChat(chat.receiver._id)}
+                        style={{ right: `${20 + index * 320}px` }}
                     />
-                )}
-                <div className={styles.privateChatsContainer}>
-                    {privateChats.map((chat, index) => (
-                        <PrivateChat
-                            key={chat.receiver._id}
-                            receiver={chat.receiver}
-                            socket={socketRef.current}
-                            onClose={() => closePrivateChat(chat.receiver._id)}
-                            isMinimized={chat.isMinimized}
-                            onToggleMinimize={() => toggleMinimizePrivateChat(chat.receiver._id)}
-                            style={{ right: `${20 + index * 320}px` }}
-                        />
-                    ))}
-                </div>
+                ))}
             </div>
         </div>
     );

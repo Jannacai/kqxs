@@ -7,7 +7,7 @@ import axios from 'axios';
 import io from 'socket.io-client';
 import moment from 'moment';
 import 'moment-timezone';
-import styles from '../../../styles/forumOptimized.module.css';
+import styles from '../../../styles/eventHotNews.module.css';
 import EditPostModal from '../../../component/EditPostModal';
 import {
     FaBullhorn,
@@ -20,7 +20,10 @@ import {
     FaExclamationTriangle,
     FaArrowLeft,
     FaArrowRight,
-    FaSpinner
+    FaSpinner,
+    FaEdit,
+    FaTrash,
+    FaPlus
 } from 'react-icons/fa';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
@@ -36,6 +39,7 @@ export default function EventHotNews() {
     const [total, setTotal] = useState(0);
     const [socket, setSocket] = useState(null);
     const [editItem, setEditItem] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         if (status === 'authenticated') {
@@ -100,251 +104,341 @@ export default function EventHotNews() {
                 setItems((prev) =>
                     prev.map((item) =>
                         item._id.toString() === data.eventId.toString()
-                            ? { ...item, commentCount: (item.commentCount || 0) + 1 }
+                            ? { ...item, commentCount: data.commentCount }
                             : item
                     )
                 );
             });
 
+            newSocket.on('COMMENT_DELETED', (data) => {
+                console.log('Received COMMENT_DELETED:', data);
+                setItems((prev) =>
+                    prev.map((item) =>
+                        item._id.toString() === data.eventId.toString()
+                            ? { ...item, commentCount: data.commentCount }
+                            : item
+                    )
+                );
+            });
+
+            newSocket.on('NEW_REPLY', (data) => {
+                console.log('Received NEW_REPLY:', data);
+                setItems((prev) =>
+                    prev.map((item) =>
+                        item._id.toString() === data.eventId.toString()
+                            ? { ...item, commentCount: data.commentCount }
+                            : item
+                    )
+                );
+            });
+
+            newSocket.on('REPLY_DELETED', (data) => {
+                console.log('Received REPLY_DELETED:', data);
+                setItems((prev) =>
+                    prev.map((item) =>
+                        item._id.toString() === data.eventId.toString()
+                            ? { ...item, commentCount: data.commentCount }
+                            : item
+                    )
+                );
+            });
+
+            newSocket.on('connect_error', (error) => {
+                console.error('WebSocket connection error:', error.message);
+            });
+
             newSocket.on('disconnect', () => {
-                console.log('Disconnected from WebSocket');
+                console.log('WebSocket disconnected');
             });
 
             return () => {
                 newSocket.disconnect();
+                console.log('WebSocket cleanup');
             };
         }
-    }, [session, status, tab]);
-
-    const fetchItems = useCallback(async () => {
-        try {
-            const headers = session?.accessToken
-                ? { Authorization: `Bearer ${session.accessToken}`, 'Content-Type': 'application/json' }
-                : { 'Content-Type': 'application/json' };
-
-            const res = await axios.get(`${API_BASE_URL}/api/events`, {
-                params: {
-                    type: tab,
-                    page: page,
-                    limit: 10
-                },
-                headers
-            });
-
-            if (res.data.events) {
-                setItems(res.data.events);
-                setTotal(res.data.total);
-                setError('');
-            }
-        } catch (err) {
-            console.error('Error fetching items:', err.message);
-            setError(err.response?.data?.message || 'Đã có lỗi khi tải dữ liệu');
-        }
-    }, [session?.accessToken, tab, page]);
+    }, [status, session, tab]);
 
     useEffect(() => {
         fetchItems();
-    }, [fetchItems]);
+    }, [tab, page]);
 
-    const handleTabChange = (newTab) => {
-        setTab(newTab);
-        setPage(1);
-        setItems([]);
-    };
 
-    const handleViewDetails = (itemId) => {
-        router.push(`/diendan/events/${itemId}`);
-    };
 
-    const handleEdit = (item) => {
-        setEditItem(item);
-    };
-
-    const handleDelete = async (itemId) => {
-        if (!confirm('Bạn có chắc chắn muốn xóa?')) return;
-
+    const fetchItems = useCallback(async () => {
+        setIsLoading(true);
         try {
-            const headers = session?.accessToken
-                ? { Authorization: `Bearer ${session.accessToken}`, 'Content-Type': 'application/json' }
-                : { 'Content-Type': 'application/json' };
-
-            await axios.delete(`${API_BASE_URL}/api/events/${itemId}`, { headers });
-            setItems((prev) => prev.filter((item) => item._id !== itemId));
-            setTotal((prev) => prev - 1);
+            const res = await axios.get(`${API_BASE_URL}/api/events`, {
+                params: { type: tab, page, limit: 20 },
+                headers: { Authorization: `Bearer ${session?.accessToken} ` }
+            });
+            setItems(res.data.events);
+            setTotal(res.data.total);
+            setError('');
         } catch (err) {
-            console.error('Error deleting item:', err.message);
-            setError(err.response?.data?.message || 'Đã có lỗi khi xóa');
+            setError(err.response?.data?.message || 'Đã có lỗi khi lấy danh sách');
+            console.error('Error fetching items:', err.message);
+        } finally {
+            setIsLoading(false);
         }
-    };
+    }, [tab, page, session]);
 
+    const handleItemClick = useCallback((id) => {
+        router.push(`/diendan/events/${id} `);
+    }, [router]);
+
+    const handlePostDiscussion = useCallback(() => {
+        router.push('/diendan/postthaoluan');
+    }, [router]);
+
+    const handleEdit = useCallback((item) => {
+        setEditItem(item);
+    }, []);
+
+    const handleDelete = useCallback(async (id) => {
+        if (!confirm('Bạn có chắc muốn xóa bài viết này?')) return;
+        try {
+            await axios.delete(`${API_BASE_URL}/api/events/${id} `, {
+                headers: { Authorization: `Bearer ${session?.accessToken} ` }
+            });
+            setError('');
+            fetchItems(); // Refresh the list
+        } catch (err) {
+            setError(err.response?.data?.message || 'Đã có lỗi khi xóa bài viết');
+            alert(err.response?.data?.message || 'Đã có lỗi khi xóa bài viết');
+        }
+    }, [session, fetchItems]);
+
+    const handleCloseModal = useCallback(() => {
+        setEditItem(null);
+    }, []);
+
+    // Kiểm tra xem item có được đăng trong ngày hiện tại không
     const isNewItem = (createdAt) => {
-        const now = moment();
-        const itemTime = moment(createdAt);
-        return now.diff(itemTime, 'hours') < 24;
+        const today = moment.tz('Asia/Ho_Chi_Minh').startOf('day');
+        const itemDate = moment.tz(createdAt, 'Asia/Ho_Chi_Minh').startOf('day');
+        return today.isSame(itemDate);
     };
 
-    const getStatusIcon = (item) => {
-        if (item.isHot) return <FaBolt className={styles.statusIcon} />;
-        if (isNewItem(item.createdAt)) return <FaRocket className={styles.statusIcon} />;
-        return null;
-    };
-
-    const getStatusClass = (item) => {
-        if (item.isHot) return 'hot';
-        if (isNewItem(item.createdAt)) return 'new';
-        return '';
-    };
-
-    const formatDate = (date) => {
-        return moment(date).tz('Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm');
-    };
-
-    const truncateText = (text, maxLength = 100) => {
-        if (!text) return '';
-        return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
-    };
-
-    if (error) {
+    if (status === 'loading') {
         return (
-            <div className={styles.errorContainer}>
-                <div className={styles.errorMessage}>
-                    <FaExclamationTriangle />
-                    <span>{error}</span>
-                </div>
+            <div className={styles.loadingContainer}>
+                <FaSpinner className={styles.loadingIcon} />
+                <span>Đang tải...</span>
             </div>
         );
     }
 
     return (
-        <div className={styles.eventCompact}>
-            {/* Compact Header */}
-            <div className={styles.compactHeader}>
-                <div className={styles.compactTitle}>Tin Hot & Sự Kiện</div>
-                <div className={styles.compactSubtitle}>Cập nhật thông tin mới nhất</div>
+        <div className={styles.container}>
+            {/* Header Section */}
+            <div className={styles.header}>
+                <div className={styles.headerContent}>
+                    <h1 className={styles.title}>
+                        <FaBullhorn className={styles.titleIcon} />
+                        Tin Tức & Sự Kiện
+                    </h1>
+                    <div className={styles.stats}>
+                        <span className={styles.statItem}>
+                            <span className={styles.statIcon}>📊</span>
+                            Tổng: {total}
+                        </span>
+                    </div>
+                </div>
             </div>
 
-            {/* Compact Content */}
-            <div className={`${styles.compactContent} ${styles.compactContent.large}`}>
-                {/* Tab Navigation */}
-                <div className={styles.tabNavigation}>
+            {/* Tab Navigation */}
+            <div className={styles.tabContainer}>
+                <div className={styles.tabGroup}>
                     <button
-                        className={`${styles.tabButton} ${tab === 'event' ? styles.active : ''}`}
-                        onClick={() => handleTabChange('event')}
+                        className={`${styles.tab} ${tab === 'event' ? styles.active : ''}`}
+                        onClick={() => { setTab('event'); setPage(1); }}
                     >
-                        <FaCalendar />
-                        Sự Kiện
+                        <FaCalendar className={styles.tabIcon} />
+                        Sự kiện VIP
                     </button>
                     <button
-                        className={`${styles.tabButton} ${tab === 'news' ? styles.active : ''}`}
-                        onClick={() => handleTabChange('news')}
+                        className={`${styles.tab} ${tab === 'hot_news' ? styles.active : ''}`}
+                        onClick={() => { setTab('hot_news'); setPage(1); }}
                     >
-                        <FaBullhorn />
-                        Tin Tức
+                        <FaBolt className={styles.tabIcon} />
+                        Tin hot
+                    </button>
+                    <button
+                        className={`${styles.tab} ${tab === 'discussion' ? styles.active : ''}`}
+                        onClick={() => { setTab('discussion'); setPage(1); }}
+                    >
+                        <span className={styles.tabIcon}>♻️</span>
+                        Thảo luận
                     </button>
                 </div>
 
-                {/* Event/News List */}
-                <div className={styles.eventListCompact}>
-                    {items.map((item) => (
-                        <div
-                            key={item._id}
-                            className={`${styles.eventItemCompact} ${getStatusClass(item)}`}
-                            onClick={() => handleViewDetails(item._id)}
-                        >
-                            <div className={styles.eventIconCompact}>
-                                {getStatusIcon(item)}
-                                {tab === 'event' ? <FaCalendar /> : <FaBullhorn />}
-                            </div>
+                {status === 'authenticated' && tab === 'discussion' && (
+                    <button
+                        className={styles.postButton}
+                        onClick={handlePostDiscussion}
+                    >
+                        <FaPlus className={styles.postButtonIcon} />
+                        Đăng bài thảo luận
+                    </button>
+                )}
+            </div>
 
-                            <div className={styles.eventInfoCompact}>
-                                <div className={styles.eventNameCompact}>
-                                    {item.title}
-                                    {getStatusIcon(item)}
+            {/* Content Section */}
+            <div className={styles.content}>
+                {error && (
+                    <div className={styles.errorMessage}>
+                        <FaExclamationTriangle className={styles.errorIcon} />
+                        <span>{error}</span>
+                    </div>
+                )}
+
+                {isLoading && (
+                    <div className={styles.loadingMessage}>
+                        <FaSpinner className={styles.loadingIcon} />
+                        <span>Đang tải dữ liệu...</span>
+                    </div>
+                )}
+
+                {!isLoading && items.length === 0 && (
+                    <div className={styles.emptyState}>
+                        <span className={styles.emptyIcon}>📝</span>
+                        <p>Không có bài viết nào</p>
+                    </div>
+                )}
+
+                {!isLoading && items.length > 0 && (
+                    <div className={styles.itemsList}>
+                        {items.map((item) => (
+                            <div key={item._id} className={styles.item}>
+                                <div
+                                    className={styles.itemContent}
+                                    onClick={() => handleItemClick(item._id)}
+                                    role="button"
+                                    tabIndex={0}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            handleItemClick(item._id);
+                                        }
+                                    }}
+                                >
+                                    <div className={styles.itemHeader}>
+                                        <div className={styles.itemLabels}>
+                                            <span
+                                                className={styles.itemLabel}
+                                                data-label={item.label}
+                                            >
+                                                {item.label}
+                                            </span>
+                                            {isNewItem(item.createdAt) && (
+                                                <span className={styles.newLabel}>HOT NEW</span>
+                                            )}
+                                        </div>
+                                        <h3 className={styles.itemTitle}>{item.title}</h3>
+                                    </div>
+
+                                    <div className={styles.itemStats}>
+                                        <div className={styles.statGroup}>
+                                            <FaEye className={styles.statIcon} />
+                                            <span className={styles.statValue}>{item.viewCount || 0}</span>
+                                            <span className={styles.statLabel}>lượt xem</span>
+                                        </div>
+
+                                        {item.type === 'event' && (
+                                            <div className={styles.statGroup}>
+                                                <FaUserPlus className={styles.statIcon} />
+                                                <span className={styles.statValue}>{item.registrationCount || 0}</span>
+                                                <span className={styles.statLabel}>tham gia</span>
+                                            </div>
+                                        )}
+
+                                        <div className={styles.statGroup}>
+                                            <FaRocket className={styles.statIcon} />
+                                            <span className={styles.statValue}>{item.commentCount || 0}</span>
+                                            <span className={styles.statLabel}>bình luận</span>
+                                        </div>
+                                    </div>
+
+                                    <div className={styles.itemMeta}>
+                                        <div className={styles.metaInfo}>
+                                            <FaClock className={styles.metaIcon} />
+                                            <span className={styles.metaText}>
+                                                Đăng bởi: {item.createdBy?.fullname || 'Ẩn danh'}
+                                            </span>
+                                        </div>
+                                        <div className={styles.metaInfo}>
+                                            <span className={styles.metaDate}>
+                                                {moment.tz(item.createdAt, 'Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm:ss')}
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <div className={styles.eventDescriptionCompact}>
-                                    {truncateText(item.content)}
-                                </div>
-
-                                <div className={styles.eventMetaCompact}>
-                                    <span>
-                                        <FaClock />
-                                        {formatDate(item.createdAt)}
-                                    </span>
-                                    <span>
-                                        <FaEye />
-                                        {item.viewCount || 0}
-                                    </span>
-                                    {item.registrationCount && (
-                                        <span>
-                                            <FaUserPlus />
-                                            {item.registrationCount}
-                                        </span>
+                                <div className={styles.itemActions}>
+                                    {session?.user?.role === 'ADMIN' && (
+                                        <>
+                                            <button
+                                                className={`${styles.actionButton} ${styles.editButton}`}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleEdit(item);
+                                                }}
+                                            >
+                                                <FaEdit className={styles.actionIcon} />
+                                                Sửa
+                                            </button>
+                                            <button
+                                                className={`${styles.actionButton} ${styles.deleteButton}`}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDelete(item._id);
+                                                }}
+                                            >
+                                                <FaTrash className={styles.actionIcon} />
+                                                Xóa
+                                            </button>
+                                        </>
                                     )}
                                 </div>
                             </div>
-
-                            {/* Action Buttons */}
-                            {session?.user?.role === 'admin' && (
-                                <div className={styles.eventActionsCompact}>
-                                    <button
-                                        className={styles.actionButton}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleEdit(item);
-                                        }}
-                                    >
-                                        Sửa
-                                    </button>
-                                    <button
-                                        className={`${styles.actionButton} ${styles.deleteButton}`}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleDelete(item._id);
-                                        }}
-                                    >
-                                        Xóa
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    ))}
-                </div>
-
-                {/* Pagination */}
-                {total > 10 && (
-                    <div className={styles.paginationCompact}>
-                        <button
-                            className={styles.paginationButton}
-                            onClick={() => setPage(Math.max(1, page - 1))}
-                            disabled={page === 1}
-                        >
-                            <FaArrowLeft />
-                            Trước
-                        </button>
-                        <span className={styles.pageInfo}>
-                            Trang {page} / {Math.ceil(total / 10)}
-                        </span>
-                        <button
-                            className={styles.paginationButton}
-                            onClick={() => setPage(page + 1)}
-                            disabled={page >= Math.ceil(total / 10)}
-                        >
-                            Sau
-                            <FaArrowRight />
-                        </button>
+                        ))}
                     </div>
                 )}
             </div>
+
+            {/* Pagination */}
+            {total > 20 && (
+                <div className={styles.pagination}>
+                    <button
+                        className={styles.paginationButton}
+                        disabled={page === 1}
+                        onClick={() => setPage(page - 1)}
+                    >
+                        <FaArrowLeft className={styles.paginationIcon} />
+                        Trang trước
+                    </button>
+                    <span className={styles.pageInfo}>Trang {page}</span>
+                    <button
+                        className={styles.paginationButton}
+                        disabled={page * 20 >= total}
+                        onClick={() => setPage(page + 1)}
+                    >
+                        Trang sau
+                        <FaArrowRight className={styles.paginationIcon} />
+                    </button>
+                </div>
+            )}
 
             {/* Edit Modal */}
             {editItem && (
                 <EditPostModal
                     item={editItem}
-                    onClose={() => setEditItem(null)}
-                    onSave={fetchItems}
+                    onClose={handleCloseModal}
+                    onSuccess={() => fetchItems()}
                 />
             )}
+
+
         </div>
     );
 }

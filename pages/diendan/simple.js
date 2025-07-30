@@ -1,6 +1,7 @@
 "use client";
 import { useState } from 'react';
 import styles from '../../styles/DienDan.module.css';
+import UserAvatar from '../../component/UserAvatar'
 
 export default function SimpleForum() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -39,9 +40,7 @@ export default function SimpleForum() {
                             <p className={styles.forumSubtitle}>Cộng đồng chia sẻ kinh nghiệm</p>
                         </div>
                         <div className={styles.headerActions}>
-                            <a className={styles.loginButton} href="/login">
-                                Đăng nhập
-                            </a>
+                            <UserAvatar />
                         </div>
                     </div>
                 </header>

@@ -15,6 +15,7 @@ import { getSession } from 'next-auth/react';
 import Quydinh from './Quydinh';
 import UserList from './UserList';
 import NavBarDienDan from './navbarDiendan';
+import UserAvatar from '../../component/UserAvatar'
 
 export default function DienDan({ session }) {
     console.log('Session in DienDan:', JSON.stringify(session, null, 2));
@@ -189,16 +190,14 @@ export default function DienDan({ session }) {
                         </div>
                         <div className={styles.headerActions}>
                             <NavBarDienDan />
-                            <Link className={styles.loginButton} href="/login">
-                                {session ? 'Tài khoản' : 'Đăng nhập'}
-                            </Link>
+                            <UserAvatar />
                         </div>
                     </div>
                 </header>
 
                 {/* Main Layout */}
                 <div className={styles.mainLayout}>
-                    {/* Sidebar */}
+                    {/* Left Sidebar */}
                     <aside className={`${styles.sidebar} ${sidebarOpen ? styles.sidebarOpen : ''}`}>
                         <div className={styles.sidebarHeader}>
                             <h3>Danh Mục</h3>
@@ -243,14 +242,6 @@ export default function DienDan({ session }) {
                             <div className={styles.navSection}>
                                 <h4>👥 Cộng Đồng</h4>
                                 <ul>
-                                    <li>
-                                        <button
-                                            className={`${styles.navButton} ${activeSection === 'group-chat' ? styles.active : ''}`}
-                                            onClick={() => scrollToSection('group-chat')}
-                                        >
-                                            💬 Giao Lưu Chốt Số
-                                        </button>
-                                    </li>
                                     <li>
                                         <button
                                             className={`${styles.navButton} ${activeSection === 'user-list' ? styles.active : ''}`}
@@ -310,8 +301,8 @@ export default function DienDan({ session }) {
                         </nav>
                     </aside>
 
-                    {/* Main Content */}
-                    <main className={styles.mainContent}>
+                    {/* Center Content */}
+                    <main className={styles.centerContent}>
                         {/* Top Row - Sự kiện quan trọng nhất */}
                         <div className={styles.topRow}>
                             {/* Sự Kiện Mới Nhất - Chiếm 60% */}
@@ -325,51 +316,42 @@ export default function DienDan({ session }) {
                                 </div>
                             </section>
 
+                            {/* Second Row - Tin hot */}
+                            <div className={styles.secondRow}>
+                                {/* Tin Hot & Sự Kiện - Full width */}
+                                <section id="hot-events" className={`${styles.contentSection} ${styles.fullWidthSection}`}>
+                                    {/* <div className={styles.sectionHeader}>
+                                        <h2>🌟 Tin Hot & Sự Kiện</h2>
+                                        <p>Cập nhật thông tin mới nhất</p>
+                                    </div> */}
+                                    <div className={styles.sectionContent}>
+                                        <Event />
+                                    </div>
+                                </section>
+                            </div>
+
                             {/* Thông Báo Mới - Chiếm 40% */}
                             <section id="announcements" className={`${styles.contentSection} ${styles.smallSection}`}>
-                                <div className={styles.sectionHeader}>
+                                {/* <div className={styles.sectionHeader}>
                                     <h2>🔔 Thông Báo Mới</h2>
                                     <p>Thông báo từ ban quản trị</p>
-                                </div>
+                                </div> */}
                                 <div className={styles.sectionContent}>
                                     <Thongbao />
                                 </div>
                             </section>
                         </div>
 
-                        {/* Second Row - Tin hot và Chat */}
-                        <div className={styles.secondRow}>
-                            {/* Tin Hot & Sự Kiện - Chiếm 50% */}
-                            <section id="hot-events" className={`${styles.contentSection} ${styles.mediumSection}`}>
-                                <div className={styles.sectionHeader}>
-                                    <h2>🌟 Tin Hot & Sự Kiện</h2>
-                                    <p>Cập nhật thông tin mới nhất</p>
-                                </div>
-                                <div className={styles.sectionContent}>
-                                    <Event />
-                                </div>
-                            </section>
 
-                            {/* Giao Lưu Chốt Số - Chiếm 50% */}
-                            <section id="group-chat" className={`${styles.contentSection} ${styles.mediumSection}`}>
-                                <div className={styles.sectionHeader}>
-                                    <h2>💬 Giao Lưu Chốt Số</h2>
-                                    <p>Thảo luận và chia sẻ kinh nghiệm</p>
-                                </div>
-                                <div className={styles.sectionContent}>
-                                    <GroupChat session={session} />
-                                </div>
-                            </section>
-                        </div>
 
                         {/* Third Row - Thành viên và Vinh danh */}
                         <div className={styles.thirdRow}>
                             {/* Thành Viên Nhóm - Chiếm 40% */}
                             <section id="user-list" className={`${styles.contentSection} ${styles.mediumSection}`}>
-                                <div className={styles.sectionHeader}>
+                                {/* <div className={styles.sectionHeader}>
                                     <h2>👥 Thành Viên Nhóm</h2>
                                     <p>Danh sách thành viên tích cực</p>
-                                </div>
+                                </div> */}
                                 <div className={styles.sectionContent}>
                                     <UserList />
                                 </div>
@@ -391,38 +373,49 @@ export default function DienDan({ session }) {
                         <div className={styles.fourthRow}>
                             {/* Bảng Xếp Hạng - Chiếm 70% */}
                             <section id="leaderboard" className={`${styles.contentSection} ${styles.largeSection}`}>
-                                <div className={styles.sectionHeader}>
+                                {/* <div className={styles.sectionHeader}>
                                     <h2>👑 Bảng Xếp Hạng</h2>
                                     <p>Top 50 thành viên hàng đầu</p>
-                                </div>
+                                </div> */}
                                 <div className={styles.sectionContent}>
                                     <Leaderboard />
                                 </div>
-                            </section>
-
-                            {/* Danh Sách Đăng Ký - Chiếm 30% */}
-                            <section id="event-registration" className={`${styles.contentSection} ${styles.smallSection}`}>
-                                <div className={styles.sectionHeader}>
+                            </section><section id="event-registration" className={`${styles.contentSection} ${styles.smallSection}`}>
+                                {/* <div className={styles.sectionHeader}>
                                     <h2>📜 Đăng Ký Events</h2>
                                     <p>Theo dõi sự kiện</p>
-                                </div>
+                                </div> */}
                                 <div className={styles.sectionContent}>
                                     <Lichsudangky />
                                 </div>
                             </section>
+                            <section id="rules" className={`${styles.contentSection} ${styles.smallSection}`}>
+                                <div className={styles.sectionHeader}>
+                                    <h2>⚖️ Quy Định Diễn Đàn</h2>
+                                    <p>Hướng dẫn và quy định cộng đồng</p>
+                                </div>
+                                <div className={styles.sectionContent}>
+                                    <Quydinh />
+                                </div>
+                            </section>
+                            {/* Danh Sách Đăng Ký - Chiếm 30% */}
+
                         </div>
 
                         {/* Bottom Row - Quy định (Full width) */}
-                        <section id="rules" className={`${styles.contentSection} ${styles.fullWidthSection}`}>
-                            <div className={styles.sectionHeader}>
-                                <h2>⚖️ Quy Định Diễn Đàn</h2>
-                                <p>Hướng dẫn và quy định cộng đồng</p>
-                            </div>
-                            <div className={styles.sectionContent}>
-                                <Quydinh />
-                            </div>
-                        </section>
+
                     </main>
+
+                    {/* Right Sidebar - Fixed Group Chat */}
+                    <aside className={styles.rightSidebar}>
+                        {/* <div className={styles.rightSidebarHeader}>
+                            <h3>💬 Giao Lưu Chốt Số</h3>
+                            <p>Thảo luận và chia sẻ kinh nghiệm</p>
+                        </div> */}
+                        <div className={styles.rightSidebarContent}>
+                            <GroupChat session={session} />
+                        </div>
+                    </aside>
                 </div>
             </div>
         </div>

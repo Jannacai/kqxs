@@ -126,6 +126,7 @@
 	--forum-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 	--forum-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1),
 		0 2px 4px -2px rgb(0 0 0 / 0.1);
+
 	--forum-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1),
 		0 4px 6px -4px rgb(0 0 0 / 0.1);
 	--forum-shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1),
@@ -139,7 +140,7 @@
 
 	--forum-spacing-1: 0.25rem;
 	--forum-spacing-2: 0.5rem;
-	--forum-spacing-3: 0.75rem;
+	--forum-spacing-3: 0.5rem;
 	--forum-spacing-4: 1rem;
 	--forum-spacing-5: 1.25rem;
 	--forum-spacing-6: 1.5rem;
@@ -151,6 +152,7 @@
 
 	--forum-sidebar-width: 280px;
 	--forum-header-height: 80px;
+	--forum-right-sidebar-width: 350px;
 
 	/* Spacing System */
 	--space-1: 0.25rem;
@@ -483,9 +485,7 @@ a {
 }
 
 /* Tablet */
-@media screen and (min-width: 768px) and (max-width: 991.98px) {
-}
+@media screen and (min-width: 768px) and (max-width: 991.98px) {}
 
 /* Mobile */
-@media screen and (max-width: 767px) {
-}
+@media screen and (max-width: 767px) {}

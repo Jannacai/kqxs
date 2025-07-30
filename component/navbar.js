@@ -697,7 +697,7 @@ const NavBar = () => {
                                     </div>
                                 </li>
                             </ul>
-                            <UserAvatar />
+                            {/* <UserAvatar /> */}
                         </nav>
                     </div>
                 </div>
@@ -1006,7 +1006,7 @@ const NavBar = () => {
                                 </ul>
                             </li>
 
-                            <li
+                            {/* <li
                                 className={`${styles.nav_item} ${status === 'authenticated' ? router.pathname === '/dang-bai-viet' : router.pathname === '/login' ? styles.active : ''}`}
                             >
                                 <Link
@@ -1018,10 +1018,10 @@ const NavBar = () => {
                                     </span>
                                     {status === 'authenticated' ? 'Đăng bài' : ''}
                                 </Link>
-                            </li>
+                            </li> */}
                         </ul>
                     </div>
-                    <UserAvatar />
+                    {/* <UserAvatar /> */}
                 </nav>
             </div>
         </div>

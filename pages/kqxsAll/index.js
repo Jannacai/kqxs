@@ -45,7 +45,7 @@ const KQXS = (props) => {
         year: 'numeric',
     });
 
-    const duration = 22 * 60 * 1000; // 22 phút cho khung giờ trực tiếp
+    const duration = 40 * 60 * 1000; // 22 phút cho khung giờ trực tiếp
 
     const CACHE_KEY = `xsmb_data_${station}_${date || 'null'}_${dayof || 'null'}`;
 
