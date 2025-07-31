@@ -69,7 +69,7 @@
 .filterRow {
 	display: flex;
 	gap: var(--space-4);
-	align-items: end;
+	align-items: flex-end;
 	flex-wrap: wrap;
 }
 

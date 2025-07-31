@@ -32,9 +32,9 @@ const KQXS = (props) => {
     const observerRef = useRef(null);
     const router = useRouter();
 
-    const hour = 16;
-    const minutes1 = 11;
-    const minutes2 = 2;
+    const hour = 17;
+    const minutes1 = 10;
+    const minutes2 = 13;
 
     const dayof = props.dayofMT;
     const station = props.station || "xsmt";
@@ -418,7 +418,6 @@ const KQXS = (props) => {
                     { tinh: 'da-nang', tentinh: 'Đà Nẵng' },
                     { tinh: 'khanh-hoa', tentinh: 'Khánh Hòa' },
                 ],
-
                 4: [
                     { tinh: 'binh-dinh', tentinh: 'Bình Định' },
                     { tinh: 'quang-tri', tentinh: 'Quảng Trị' },
