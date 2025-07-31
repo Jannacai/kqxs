@@ -10,23 +10,31 @@ import React from 'react';
 import { useLottery } from '../../contexts/LotteryContext';
 
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // Cache 24 giờ
+const LIVE_CACHE_DURATION = 40 * 60 * 1000; // Cache 40 phút cho live data
 const ITEMS_PER_PAGE = 3;
+const VISIBLE_ITEMS = 2; // Chỉ render 2 items visible
 
 const KQXS = (props) => {
     const { liveData, isLiveDataComplete } = useLottery();
     const [data, setData] = useState(props.data || []);
     const [loading, setLoading] = useState(true);
+    const [loadingPage, setLoadingPage] = useState(false);
     const [filterTypes, setFilterTypes] = useState({});
     const [isRunning, setIsRunning] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [hasTriggeredScraper, setHasTriggeredScraper] = useState(false);
+    const [lastLiveUpdate, setLastLiveUpdate] = useState(null);
+    const [loadedPages, setLoadedPages] = useState(new Set([1])); // Track loaded pages
+    const [visibleRange, setVisibleRange] = useState({ start: 0, end: VISIBLE_ITEMS });
+    const [isInLiveWindow, setIsInLiveWindow] = useState(false);
     const intervalRef = useRef(null);
     const tableRef = useRef(null);
+    const observerRef = useRef(null);
     const router = useRouter();
 
-    const hour = 17;
-    const minutes1 = 10;
-    const minutes2 = 13;
+    const hour = 16;
+    const minutes1 = 11;
+    const minutes2 = 2;
 
     const dayof = props.dayofMT;
     const station = props.station || "xsmt";
@@ -75,7 +83,29 @@ const KQXS = (props) => {
         }
     };
 
-    const fetchData = useCallback(async (page = currentPage) => {
+    // Tối ưu cho live window - tắt tất cả logic không cần thiết
+    const isLiveWindowActive = useMemo(() => {
+        const now = new Date();
+        const vietnamTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+        const vietnamHours = vietnamTime.getHours();
+        const vietnamMinutes = vietnamTime.getMinutes();
+        return vietnamHours === 17 && vietnamMinutes >= 10 && vietnamMinutes <= 59;
+    }, []);
+
+    // Tối ưu fetchData cho live window
+    const fetchData = useCallback(async (page = currentPage, forceRefresh = false) => {
+        // Trong live window, không fetch data mới
+        if (isLiveWindowActive) {
+            console.log('🔄 Live window active - sử dụng cached data');
+            const CACHE_KEY_PAGE = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_${page}`;
+            const cachedData = localStorage.getItem(CACHE_KEY_PAGE);
+            if (cachedData) {
+                setData(JSON.parse(cachedData));
+            }
+            setLoading(false);
+            return;
+        }
+
         try {
             const now = new Date();
             const vietnamTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
@@ -85,17 +115,67 @@ const KQXS = (props) => {
             const isPostLiveWindow = vietnamHours > 17 || (vietnamHours === 17 && vietnamMinutes > 59);
             const hasUpdatedToday = localStorage.getItem(UPDATE_KEY);
 
-            const cachedData = localStorage.getItem(CACHE_KEY);
-            const cachedTime = localStorage.getItem(`${CACHE_KEY}_time`);
+            // Cập nhật live window state
+            setIsInLiveWindow(isUpdateWindow);
+
+            // Cache key với page
+            const CACHE_KEY_PAGE = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_${page}`;
+            const cachedData = localStorage.getItem(CACHE_KEY_PAGE);
+            const cachedTime = localStorage.getItem(`${CACHE_KEY_PAGE}_time`);
             const cacheAge = cachedTime ? now.getTime() - parseInt(cachedTime) : Infinity;
 
-            // Gọi API nếu:
-            // 1. Trong khung giờ trực tiếp (17h10-17h35)
-            // 2. Sau 17h35 và chưa cập nhật trong ngày
-            // 3. Không có cache hoặc cache đã hết hạn
-            if (isUpdateWindow || (isPostLiveWindow && !hasUpdatedToday) || (!cachedData || cacheAge >= CACHE_DURATION)) {
-                console.log('Fetching from API'); // Log để kiểm tra
-                const result = await apiMT.getLottery(station, date, tinh, dayof, { page, limit: ITEMS_PER_PAGE });
+            // Cache-first strategy: Ưu tiên cache trước
+            if (cachedData && cacheAge < CACHE_DURATION && !forceRefresh) {
+                console.log(`📦 Cache hit: ${CACHE_KEY_PAGE}, age: ${Math.round(cacheAge / 1000 / 60)} phút`);
+
+                const cachedDataParsed = JSON.parse(cachedData);
+                if (page === 1) {
+                    setData(cachedDataParsed);
+                } else {
+                    setData(prevData => {
+                        const existingDates = prevData.map(item => item.drawDate);
+                        const newData = cachedDataParsed.filter(item => !existingDates.includes(item.drawDate));
+                        return [...prevData, ...newData];
+                    });
+                }
+                setLoading(false);
+                return; // Không gọi API nếu cache còn valid
+            }
+
+            // Logic cache invalidation thông minh - chỉ gọi API khi thực sự cần
+            const shouldFetchFromAPI =
+                forceRefresh || // Force refresh từ live data
+                (!cachedData || cacheAge >= CACHE_DURATION) || // Cache hết hạn hoặc không có
+                (isPostLiveWindow && !hasUpdatedToday) || // Sau live window và chưa update
+                (lastLiveUpdate && (now.getTime() - lastLiveUpdate) > LIVE_CACHE_DURATION); // Live data cũ
+
+            // Trong live window, không fetch data mới
+            if (isUpdateWindow) {
+                console.log('🔄 Trong live window, không fetch data mới');
+                if (cachedData) {
+                    const cachedDataParsed = JSON.parse(cachedData);
+                    setData(cachedDataParsed);
+                }
+                setLoading(false);
+                return;
+            }
+
+            if (shouldFetchFromAPI) {
+                console.log('Fetching from API', {
+                    forceRefresh,
+                    isUpdateWindow,
+                    isPostLiveWindow,
+                    hasUpdatedToday: !!hasUpdatedToday,
+                    cacheAge: Math.round(cacheAge / 1000 / 60) + ' phút',
+                    lastLiveUpdate: lastLiveUpdate ? Math.round((now.getTime() - lastLiveUpdate) / 1000 / 60) + ' phút' : 'null',
+                    page,
+                    limit: ITEMS_PER_PAGE
+                });
+
+                const result = await apiMT.getLottery(station, date, tinh, dayof, {
+                    page,
+                    limit: ITEMS_PER_PAGE
+                });
                 const dataArray = Array.isArray(result) ? result : [result];
 
                 const formattedData = dataArray.map(item => ({
@@ -135,15 +215,37 @@ const KQXS = (props) => {
                 const cachedDataParsed = cachedData ? JSON.parse(cachedData) : [];
                 const hasNewData = JSON.stringify(finalData) !== JSON.stringify(cachedDataParsed);
 
-                if (hasNewData || !cachedData) {
-                    setData(finalData);
-                    localStorage.setItem(CACHE_KEY, JSON.stringify(finalData));
-                    localStorage.setItem(`${CACHE_KEY}_time`, now.getTime().toString());
-                    if (isPostLiveWindow) {
-                        localStorage.setItem(UPDATE_KEY, now.getTime().toString()); // Đánh dấu đã cập nhật
+                if (hasNewData || !cachedData || forceRefresh) {
+                    // Nếu là page 1, thay thế toàn bộ data
+                    if (page === 1) {
+                        setData(finalData);
+                    } else {
+                        // Nếu là page khác, append vào data hiện tại
+                        setData(prevData => {
+                            const existingDates = prevData.map(item => item.drawDate);
+                            const newData = finalData.filter(item => !existingDates.includes(item.drawDate));
+                            return [...prevData, ...newData];
+                        });
                     }
+
+                    localStorage.setItem(CACHE_KEY_PAGE, JSON.stringify(finalData));
+                    localStorage.setItem(`${CACHE_KEY_PAGE}_time`, now.getTime().toString());
+                    if (isPostLiveWindow || forceRefresh) {
+                        localStorage.setItem(UPDATE_KEY, now.getTime().toString());
+                        setLastLiveUpdate(now.getTime());
+                    }
+                    console.log('✅ Đã cập nhật data mới từ API cho page:', page);
                 } else if (cachedData) {
-                    setData(cachedDataParsed);
+                    if (page === 1) {
+                        setData(cachedDataParsed);
+                    } else {
+                        setData(prevData => {
+                            const existingDates = prevData.map(item => item.drawDate);
+                            const newData = cachedDataParsed.filter(item => !existingDates.includes(item.drawDate));
+                            return [...prevData, ...newData];
+                        });
+                    }
+                    console.log('📦 Sử dụng cached data cho page:', page);
                 }
 
                 setFilterTypes(prevFilters => ({
@@ -155,16 +257,26 @@ const KQXS = (props) => {
                 }));
 
                 setLoading(false);
-            } else if (cachedData) {
-                console.log('Using cached data'); // Log để kiểm tra
-                setData(JSON.parse(cachedData));
+            } else {
+                console.log('📦 Sử dụng cached data (điều kiện không thỏa mãn) cho page:', page);
+                if (cachedData) {
+                    if (page === 1) {
+                        setData(JSON.parse(cachedData));
+                    } else {
+                        setData(prevData => {
+                            const existingDates = prevData.map(item => item.drawDate);
+                            const newData = JSON.parse(cachedData).filter(item => !existingDates.includes(item.drawDate));
+                            return [...prevData, ...newData];
+                        });
+                    }
+                }
                 setLoading(false);
             }
         } catch (error) {
             console.error('Error fetching lottery data:', error);
             setLoading(false);
         }
-    }, [station, date, tinh, dayof, currentPage]);
+    }, [station, date, tinh, dayof, currentPage, lastLiveUpdate, isLiveWindowActive]);
 
     const isLiveMode = useMemo(() => {
         if (!props.data3) return true;
@@ -185,12 +297,37 @@ const KQXS = (props) => {
 
     useEffect(() => {
         cleanOldCache();
-        fetchData();
-    }, [fetchData]);
+        // Trong live window, chỉ load cached data, không fetch API
+        if (isLiveWindowActive) {
+            console.log('🔄 Live window active - chỉ load cached data');
+            const CACHE_KEY_PAGE_1 = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_1`;
+            const cachedData = localStorage.getItem(CACHE_KEY_PAGE_1);
+            if (cachedData) {
+                setData(JSON.parse(cachedData));
+            }
+            setLoading(false);
+        } else {
+            // Chỉ fetch data nếu không trong live window
+            if (!isInLiveWindow) {
+                fetchData();
+            } else {
+                console.log('🔄 Trong live window, sử dụng cached data');
+                // Load cached data nếu có
+                const CACHE_KEY_PAGE_1 = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_1`;
+                const cachedData = localStorage.getItem(CACHE_KEY_PAGE_1);
+                if (cachedData) {
+                    setData(JSON.parse(cachedData));
+                }
+                setLoading(false);
+            }
+        }
+    }, [fetchData, isInLiveWindow, isLiveWindowActive]);
 
-    // Cập nhật cache khi liveData đầy đủ
+    // Tối ưu useEffect cho liveData - chỉ update khi không trong live window
     useEffect(() => {
-        if (isLiveDataComplete && liveData && Array.isArray(liveData) && liveData.some(item => item.drawDate === today)) {
+        if (isLiveDataComplete && liveData && Array.isArray(liveData) && liveData.some(item => item.drawDate === today) && !isLiveWindowActive) {
+            console.log('🔄 Live data complete, cập nhật cache và force refresh');
+
             setData(prevData => {
                 // Loại bỏ dữ liệu cũ của ngày hôm nay
                 const filteredData = prevData.filter(item => item.drawDate !== today);
@@ -220,17 +357,28 @@ const KQXS = (props) => {
                 const newData = [formattedLiveData, ...filteredData].sort((a, b) =>
                     new Date(b.drawDate.split('/').reverse().join('-')) - new Date(a.drawDate.split('/').reverse().join('-'))
                 );
-                localStorage.setItem(CACHE_KEY, JSON.stringify(newData));
-                localStorage.setItem(`${CACHE_KEY}_time`, new Date().getTime().toString());
-                localStorage.setItem(UPDATE_KEY, new Date().getTime().toString()); // Đánh dấu đã cập nhật từ liveData
+
+                // Chỉ cache cho page 1
+                const CACHE_KEY_PAGE_1 = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_1`;
+                localStorage.setItem(CACHE_KEY_PAGE_1, JSON.stringify(newData));
+                localStorage.setItem(`${CACHE_KEY_PAGE_1}_time`, new Date().getTime().toString());
+                localStorage.setItem(UPDATE_KEY, new Date().getTime().toString());
+                setLastLiveUpdate(new Date().getTime());
                 return newData;
             });
+
             setFilterTypes(prev => ({
                 ...prev,
                 [today]: prev[today] || 'all',
             }));
+
+            // Force refresh từ API sau 5 phút để đảm bảo data consistency (chỉ page 1)
+            setTimeout(() => {
+                console.log('🔄 Force refresh từ API sau live window (page 1)');
+                fetchData(1, true);
+            }, 5 * 60 * 1000); // 5 phút
         }
-    }, [isLiveDataComplete, liveData, today, station]);
+    }, [isLiveDataComplete, liveData, today, station, fetchData, isLiveWindowActive]);
 
     useEffect(() => {
         const checkTime = () => {
@@ -370,10 +518,26 @@ const KQXS = (props) => {
     const endIndex = startIndex + ITEMS_PER_PAGE;
     const currentData = data.slice(startIndex, endIndex);
 
-    const goToPage = (page) => {
+    const goToPage = async (page) => {
         if (page >= 1 && page <= totalPages) {
             setCurrentPage(page);
             tableRef.current?.scrollIntoView({ behavior: 'smooth' });
+
+            // Lazy load data cho page mới nếu chưa có
+            const startIndex = (page - 1) * ITEMS_PER_PAGE;
+            const endIndex = startIndex + ITEMS_PER_PAGE;
+            const hasDataForPage = data.slice(startIndex, endIndex).length > 0;
+
+            if (!hasDataForPage && !loadedPages.has(page)) {
+                console.log(`🔄 Lazy loading data cho page ${page}`);
+                setLoadingPage(true);
+                try {
+                    await fetchData(page);
+                    setLoadedPages(prev => new Set([...prev, page]));
+                } finally {
+                    setLoadingPage(false);
+                }
+            }
         }
     };
 
@@ -382,6 +546,85 @@ const KQXS = (props) => {
             tableRef.current.scrollIntoView({ behavior: 'smooth' });
         }
     }, [currentPage]);
+
+    // Intersection Observer cho lazy rendering
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        const index = parseInt(entry.target.dataset.index);
+                        setVisibleRange(prev => ({
+                            start: Math.max(0, index - 1),
+                            end: Math.min(data.length, index + VISIBLE_ITEMS)
+                        }));
+                    }
+                });
+            },
+            {
+                rootMargin: '50px',
+                threshold: 0.1
+            }
+        );
+
+        observerRef.current = observer;
+
+        // Observe tất cả các elements có data-index
+        const elements = document.querySelectorAll('[data-index]');
+        elements.forEach(el => observer.observe(el));
+
+        return () => {
+            if (observerRef.current) {
+                observerRef.current.disconnect();
+            }
+        };
+    }, [data.length]);
+
+    // Debounced scroll handler cho virtual scrolling
+    const handleScroll = useCallback(
+        debounce(() => {
+            if (!tableRef.current) return;
+
+            const rect = tableRef.current.getBoundingClientRect();
+            const windowHeight = window.innerHeight;
+
+            // Tính toán visible range dựa trên scroll position
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            const containerTop = rect.top + scrollTop;
+            const containerHeight = rect.height;
+
+            const startIndex = Math.floor((scrollTop - containerTop) / 200); // Ước tính 200px per item
+            const endIndex = Math.min(data.length, startIndex + VISIBLE_ITEMS + 1);
+
+            setVisibleRange({
+                start: Math.max(0, startIndex),
+                end: endIndex
+            });
+        }, 100),
+        [data.length]
+    );
+
+    useEffect(() => {
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [handleScroll]);
+
+    // Chỉ render visible items để tối ưu performance
+    const visibleData = useMemo(() => {
+        return data.slice(visibleRange.start, visibleRange.end);
+    }, [data, visibleRange]);
+
+    // Preload next page khi user scroll gần cuối
+    const shouldPreloadNextPage = useMemo(() => {
+        return visibleRange.end >= data.length - 1 && !loadedPages.has(currentPage + 1);
+    }, [visibleRange.end, data.length, loadedPages, currentPage]);
+
+    useEffect(() => {
+        if (shouldPreloadNextPage && !isInLiveWindow) {
+            console.log('🔄 Preloading next page:', currentPage + 1);
+            fetchData(currentPage + 1);
+        }
+    }, [shouldPreloadNextPage, currentPage, isInLiveWindow, fetchData]);
 
     const todayData = data.find(item => item.drawDate === today);
     const provinces = todayData ? todayData.stations.map(station => ({
@@ -392,314 +635,319 @@ const KQXS = (props) => {
     if (loading) {
         return (
             <div className={styles.containerKQ}>
-                <Skeleton count={10} height={30} />
+                <Skeleton count={6} height={30} />
             </div>
         );
     }
 
     return (
-        <div ref={tableRef} className={styles.containerKQ}>
+        <div ref={tableRef} className={`${styles.containerKQ} ${isLiveWindowActive ? styles.liveWindowActive : ''}`}>
             {isLiveMode && isRunning && (
-                <LiveResult
-                    station={station}
-                    today={today}
-                    getHeadAndTailNumbers={getHeadAndTailNumbers}
-                    handleFilterChange={handleFilterChange}
-                    filterTypes={filterTypes}
-                    isLiveWindow={isRunning}
-                    provinces={provinces}
-                />
+                <div className={styles.liveResultContainer}>
+                    <LiveResult
+                        station={station}
+                        today={today}
+                        getHeadAndTailNumbers={getHeadAndTailNumbers}
+                        handleFilterChange={handleFilterChange}
+                        filterTypes={filterTypes}
+                        isLiveWindow={isRunning}
+                        provinces={provinces}
+                    />
+                </div>
             )}
-            {currentData.map((dayData) => {
-                const tableKey = dayData.drawDate;
-                const currentFilter = filterTypes[tableKey] || 'all';
+            <div className={`${isLiveWindowActive ? styles.liveOptimized : ''}`}>
+                {visibleData.map((dayData, index) => {
+                    const actualIndex = visibleRange.start + index;
+                    const tableKey = dayData.drawDate;
+                    const currentFilter = filterTypes[tableKey] || 'all';
 
-                const allHeads = Array(10).fill().map(() => []);
-                const allTails = Array(10).fill().map(() => []);
-                const stationsData = dayData.stations.map(stationData => {
-                    const { heads, tails } = getHeadAndTailNumbers(stationData);
-                    for (let i = 0; i < 10; i++) {
-                        allHeads[i].push(heads[i]);
-                        allTails[i].push(tails[i]);
-                    }
-                    return { tentinh: stationData.tentinh, station: stationData.tinh || stationData.station };
-                });
+                    const allHeads = Array(10).fill().map(() => []);
+                    const allTails = Array(10).fill().map(() => []);
+                    const stationsData = dayData.stations.map(stationData => {
+                        const { heads, tails } = getHeadAndTailNumbers(stationData);
+                        for (let i = 0; i < 10; i++) {
+                            allHeads[i].push(heads[i]);
+                            allTails[i].push(tails[i]);
+                        }
+                        return { tentinh: stationData.tentinh, station: stationData.tinh || stationData.station };
+                    });
 
-                return (
-                    <div key={tableKey}>
-                        <div className={styles.kqxs}>
-                            <div className={styles.header}>
-                                <h1 className={styles.kqxs__title}>XSMT - Kết quả Xổ số Miền Trung - SXMT {dayData.drawDate}</h1>
-                                <div className={styles.kqxs__action}>
-                                    <a className={`${styles.kqxs__actionLink} `} href="#!">XSMT</a>
-                                    <a className={`${styles.kqxs__actionLink} ${styles.dayOfWeek} `} href="#!">{dayData.dayOfWeek}</a>
-                                    <a className={styles.kqxs__actionLink} href="#!">{dayData.drawDate}</a>
-                                </div>
-                            </div>
-                            <table className={styles.tableXS}>
-                                <thead>
-                                    <tr>
-                                        <th></th>
-                                        {dayData.stations.map(stationData => (
-                                            <th key={stationData.tinh || stationData.station} className={styles.stationName}>
-                                                {stationData.tentinh || `Tỉnh ${dayData.stations.indexOf(stationData) + 1} `}
-                                            </th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td className={`${styles.tdTitle} ${styles.highlight} `}>G8</td>
-                                        {dayData.stations.map(stationData => (
-                                            <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
-                                                <span className={`${styles.prizeNumber} ${styles.highlight} `}>
-                                                    {(stationData.eightPrizes || [])[0] ? getFilteredNumber(stationData.eightPrizes[0], currentFilter) : '-'}
-                                                </span>
-                                            </td>
-                                        ))}
-                                    </tr>
-                                    <tr>
-                                        <td className={styles.tdTitle}>G7</td>
-                                        {dayData.stations.map(stationData => (
-                                            <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
-                                                <span className={styles.prizeNumber}>
-                                                    {(stationData.sevenPrizes || [])[0] ? getFilteredNumber(stationData.sevenPrizes[0], currentFilter) : '-'}
-                                                </span>
-                                            </td>
-                                        ))}
-                                    </tr>
-                                    <tr>
-                                        <td className={styles.tdTitle}>G6</td>
-                                        {dayData.stations.map(stationData => (
-                                            <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
-                                                {(stationData.sixPrizes || []).slice(0, 3).map((kq, idx) => (
-                                                    <span key={idx} className={styles.prizeNumber}>
-                                                        {getFilteredNumber(kq, currentFilter)}
-                                                        {idx < (stationData.sixPrizes || []).slice(0, 3).length - 1 && <br />}
-                                                    </span>
-                                                ))}
-                                            </td>
-                                        ))}
-                                    </tr>
-                                    <tr>
-                                        <td className={`${styles.tdTitle} ${styles.g3} `}>G5</td>
-                                        {dayData.stations.map(stationData => (
-                                            <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
-                                                {(stationData.fivePrizes || []).slice(0, 3).map((kq, idx) => (
-                                                    <span key={idx} className={`${styles.prizeNumber} ${styles.g3} `}>
-                                                        {getFilteredNumber(kq, currentFilter)}
-                                                        {idx < (stationData.fivePrizes || []).slice(0, 3).length - 1 && <br />}
-                                                    </span>
-                                                ))}
-                                            </td>
-                                        ))}
-                                    </tr>
-                                    <tr>
-                                        <td className={styles.tdTitle}>G4</td>
-                                        {dayData.stations.map(stationData => (
-                                            <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
-                                                {(stationData.fourPrizes || []).slice(0, 7).map((kq, idx) => (
-                                                    <span key={idx} className={styles.prizeNumber}>
-                                                        {getFilteredNumber(kq, currentFilter)}
-                                                        {idx < (stationData.fourPrizes || []).slice(0, 7).length - 1 && <br />}
-                                                    </span>
-                                                ))}
-                                            </td>
-                                        ))}
-                                    </tr>
-                                    <tr>
-                                        <td className={`${styles.tdTitle} ${styles.g3} `}>G3</td>
-                                        {dayData.stations.map(stationData => (
-                                            <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
-                                                {(stationData.threePrizes || []).slice(0, 2).map((kq, idx) => (
-                                                    <span key={idx} className={`${styles.prizeNumber} ${styles.g3} `}>
-                                                        {getFilteredNumber(kq, currentFilter)}
-                                                        {idx < (stationData.threePrizes || []).slice(0, 2).length - 1 && <br />}
-                                                    </span>
-                                                ))}
-                                            </td>
-                                        ))}
-                                    </tr>
-                                    <tr>
-                                        <td className={styles.tdTitle}>G2</td>
-                                        {dayData.stations.map(stationData => (
-                                            <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
-                                                <span className={styles.prizeNumber}>
-                                                    {(stationData.secondPrize || [])[0] ? getFilteredNumber(stationData.secondPrize[0], currentFilter) : '-'}
-                                                </span>
-                                            </td>
-                                        ))}
-                                    </tr>
-                                    <tr>
-                                        <td className={styles.tdTitle}>G1</td>
-                                        {dayData.stations.map(stationData => (
-                                            <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
-                                                <span className={styles.prizeNumber}>
-                                                    {(stationData.firstPrize || [])[0] ? getFilteredNumber(stationData.firstPrize[0], currentFilter) : '-'}
-                                                </span>
-                                            </td>
-                                        ))}
-                                    </tr>
-                                    <tr>
-                                        <td className={`${styles.tdTitle} ${styles.highlight} `}>ĐB</td>
-                                        {dayData.stations.map(stationData => (
-                                            <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
-                                                <span className={`${styles.prizeNumber} ${styles.highlight} ${styles.gdb} `}>
-                                                    {(stationData.specialPrize || [])[0] ? getFilteredNumber(stationData.specialPrize[0], currentFilter) : '-'}
-                                                </span>
-                                            </td>
-                                        ))}
-                                    </tr>
-                                </tbody>
-                            </table>
-                            <div className={styles.action}>
-                                <div aria-label="Tùy chọn lọc số" className={styles.filter__options} role="radiogroup">
-                                    <div className={styles.optionInput}>
-                                        <input
-                                            id={`filterAll - ${tableKey} `}
-                                            type="radio"
-                                            name={`filterOption - ${tableKey} `}
-                                            value="all"
-                                            checked={currentFilter === 'all'}
-                                            onChange={() => handleFilterChange(tableKey, 'all')}
-                                        />
-                                        <label htmlFor={`filterAll - ${tableKey} `}>Tất cả</label>
-                                    </div>
-                                    <div className={styles.optionInput}>
-                                        <input
-                                            id={`filterTwo - ${tableKey} `}
-                                            type="radio"
-                                            name={`filterOption - ${tableKey} `}
-                                            value="last2"
-                                            checked={currentFilter === 'last2'}
-                                            onChange={() => handleFilterChange(tableKey, 'last2')}
-                                        />
-                                        <label htmlFor={`filterTwo - ${tableKey} `}>2 số cuối</label>
-                                    </div>
-                                    <div className={styles.optionInput}>
-                                        <input
-                                            id={`filterThree - ${tableKey} `}
-                                            type="radio"
-                                            name={`filterOption - ${tableKey} `}
-                                            value="last3"
-                                            checked={currentFilter === 'last3'}
-                                            onChange={() => handleFilterChange(tableKey, 'last3')}
-                                        />
-                                        <label htmlFor={`filterThree - ${tableKey} `}>3 số cuối</label>
+                    return (
+                        <div key={tableKey} data-index={actualIndex} className={styles.lazyItem}>
+                            <div className={styles.kqxs}>
+                                <div className={styles.header}>
+                                    <h1 className={styles.kqxs__title}>XSMT - Kết quả Xổ số Miền Trung - SXMT {dayData.drawDate}</h1>
+                                    <div className={styles.kqxs__action}>
+                                        <a className={`${styles.kqxs__actionLink} `} href="#!">XSMT</a>
+                                        <a className={`${styles.kqxs__actionLink} ${styles.dayOfWeek} `} href="#!">{dayData.dayOfWeek}</a>
+                                        <a className={styles.kqxs__actionLink} href="#!">{dayData.drawDate}</a>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-
-                        <div className={styles.TKe_container}>
-                            <div className={styles.TKe_content}>
-                                <div className={styles.TKe_contentTitle}>
-                                    <span className={styles.title}>Thống kê lô tô theo Đầu - </span>
-                                    <span className={styles.dayOfWeek}>{`${dayData.dayOfWeek} - `}</span>
-                                    <span className={styles.desc}>{dayData.drawDate}</span>
-                                </div>
-                                <table className={styles.tableKey}>
+                                <table className={styles.tableXS}>
                                     <thead>
                                         <tr>
-                                            <th className={styles.t_h}>Đầu</th>
-                                            {stationsData.map(station => (
-                                                <th key={station.station}>
-                                                    {station.tentinh || `Tỉnh ${stationsData.indexOf(station) + 1} `}
+                                            <th></th>
+                                            {dayData.stations.map(stationData => (
+                                                <th key={stationData.tinh || stationData.station} className={styles.stationName}>
+                                                    {stationData.tentinh || `Tỉnh ${dayData.stations.indexOf(stationData) + 1} `}
                                                 </th>
                                             ))}
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {Array.from({ length: 10 }, (_, idx) => (
-                                            <tr key={idx}>
-                                                <td className={styles.t_h}>{idx}</td>
-                                                {allHeads[idx].map((headNumbers, stationIdx) => (
-                                                    <td key={stationIdx}>
-                                                        {headNumbers.map((item, numIdx) => (
-                                                            <span
-                                                                key={numIdx}
-                                                                className={
-                                                                    item.isEighth || item.isSpecial
-                                                                        ? styles.highlightPrize
-                                                                        : ''
-                                                                }
-                                                            >
-                                                                {item.num}
-                                                                {numIdx < headNumbers.length - 1 && ', '}
-                                                            </span>
-                                                        ))}
-                                                    </td>
-                                                ))}
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <div className={styles.TKe_content}>
-                                <div className={styles.TKe_contentTitle}>
-                                    <span className={styles.title}>Thống kê lô tô theo Đuôi - </span>
-                                    <span className={styles.dayOfWeek}>{`${dayData.dayOfWeek} - `}</span>
-                                    <span className={styles.desc}>{dayData.drawDate}</span>
-                                </div>
-                                <table className={styles.tableKey}>
-                                    <thead>
                                         <tr>
-                                            <th className={styles.t_h}>Đuôi</th>
-                                            {stationsData.map(station => (
-                                                <th key={station.station}>
-                                                    {station.tentinh || `Tỉnh ${stationsData.indexOf(station) + 1} `}
-                                                </th>
+                                            <td className={`${styles.tdTitle} ${styles.highlight} `}>G8</td>
+                                            {dayData.stations.map(stationData => (
+                                                <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
+                                                    <span className={`${styles.prizeNumber} ${styles.highlight} `}>
+                                                        {(stationData.eightPrizes || [])[0] ? getFilteredNumber(stationData.eightPrizes[0], currentFilter) : '-'}
+                                                    </span>
+                                                </td>
                                             ))}
                                         </tr>
-                                    </thead>
-                                    <tbody>
-                                        {Array.from({ length: 10 }, (_, idx) => (
-                                            <tr key={idx}>
-                                                <td className={styles.t_h}>{idx}</td>
-                                                {allTails[idx].map((tailNumbers, stationIdx) => (
-                                                    <td key={stationIdx}>
-                                                        {tailNumbers.map((item, numIdx) => (
-                                                            <span
-                                                                key={numIdx}
-                                                                className={
-                                                                    item.isEighth || item.isSpecial
-                                                                        ? styles.highlightPrize
-                                                                        : ''
-                                                                }
-                                                            >
-                                                                {item.num}
-                                                                {numIdx < tailNumbers.length - 1 && ', '}
-                                                            </span>
-                                                        ))}
-                                                    </td>
-                                                ))}
-                                            </tr>
-                                        ))}
+                                        <tr>
+                                            <td className={styles.tdTitle}>G7</td>
+                                            {dayData.stations.map(stationData => (
+                                                <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
+                                                    <span className={styles.prizeNumber}>
+                                                        {(stationData.sevenPrizes || [])[0] ? getFilteredNumber(stationData.sevenPrizes[0], currentFilter) : '-'}
+                                                    </span>
+                                                </td>
+                                            ))}
+                                        </tr>
+                                        <tr>
+                                            <td className={styles.tdTitle}>G6</td>
+                                            {dayData.stations.map(stationData => (
+                                                <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
+                                                    {(stationData.sixPrizes || []).slice(0, 3).map((kq, idx) => (
+                                                        <span key={idx} className={styles.prizeNumber}>
+                                                            {getFilteredNumber(kq, currentFilter)}
+                                                            {idx < (stationData.sixPrizes || []).slice(0, 3).length - 1 && <br />}
+                                                        </span>
+                                                    ))}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                        <tr>
+                                            <td className={`${styles.tdTitle} ${styles.g3} `}>G5</td>
+                                            {dayData.stations.map(stationData => (
+                                                <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
+                                                    {(stationData.fivePrizes || []).slice(0, 3).map((kq, idx) => (
+                                                        <span key={idx} className={`${styles.prizeNumber} ${styles.g3} `}>
+                                                            {getFilteredNumber(kq, currentFilter)}
+                                                            {idx < (stationData.fivePrizes || []).slice(0, 3).length - 1 && <br />}
+                                                        </span>
+                                                    ))}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                        <tr>
+                                            <td className={styles.tdTitle}>G4</td>
+                                            {dayData.stations.map(stationData => (
+                                                <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
+                                                    {(stationData.fourPrizes || []).slice(0, 7).map((kq, idx) => (
+                                                        <span key={idx} className={styles.prizeNumber}>
+                                                            {getFilteredNumber(kq, currentFilter)}
+                                                            {idx < (stationData.fourPrizes || []).slice(0, 7).length - 1 && <br />}
+                                                        </span>
+                                                    ))}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                        <tr>
+                                            <td className={`${styles.tdTitle} ${styles.g3} `}>G3</td>
+                                            {dayData.stations.map(stationData => (
+                                                <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
+                                                    {(stationData.threePrizes || []).slice(0, 2).map((kq, idx) => (
+                                                        <span key={idx} className={`${styles.prizeNumber} ${styles.g3} `}>
+                                                            {getFilteredNumber(kq, currentFilter)}
+                                                            {idx < (stationData.threePrizes || []).slice(0, 2).length - 1 && <br />}
+                                                        </span>
+                                                    ))}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                        <tr>
+                                            <td className={styles.tdTitle}>G2</td>
+                                            {dayData.stations.map(stationData => (
+                                                <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
+                                                    <span className={styles.prizeNumber}>
+                                                        {(stationData.secondPrize || [])[0] ? getFilteredNumber(stationData.secondPrize[0], currentFilter) : '-'}
+                                                    </span>
+                                                </td>
+                                            ))}
+                                        </tr>
+                                        <tr>
+                                            <td className={styles.tdTitle}>G1</td>
+                                            {dayData.stations.map(stationData => (
+                                                <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
+                                                    <span className={styles.prizeNumber}>
+                                                        {(stationData.firstPrize || [])[0] ? getFilteredNumber(stationData.firstPrize[0], currentFilter) : '-'}
+                                                    </span>
+                                                </td>
+                                            ))}
+                                        </tr>
+                                        <tr>
+                                            <td className={`${styles.tdTitle} ${styles.highlight} `}>ĐB</td>
+                                            {dayData.stations.map(stationData => (
+                                                <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
+                                                    <span className={`${styles.prizeNumber} ${styles.highlight} ${styles.gdb} `}>
+                                                        {(stationData.specialPrize || [])[0] ? getFilteredNumber(stationData.specialPrize[0], currentFilter) : '-'}
+                                                    </span>
+                                                </td>
+                                            ))}
+                                        </tr>
                                     </tbody>
                                 </table>
+                                <div className={styles.action}>
+                                    <div aria-label="Tùy chọn lọc số" className={styles.filter__options} role="radiogroup">
+                                        <div className={styles.optionInput}>
+                                            <input
+                                                id={`filterAll - ${tableKey} `}
+                                                type="radio"
+                                                name={`filterOption - ${tableKey} `}
+                                                value="all"
+                                                checked={currentFilter === 'all'}
+                                                onChange={() => handleFilterChange(tableKey, 'all')}
+                                            />
+                                            <label htmlFor={`filterAll - ${tableKey} `}>Tất cả</label>
+                                        </div>
+                                        <div className={styles.optionInput}>
+                                            <input
+                                                id={`filterTwo - ${tableKey} `}
+                                                type="radio"
+                                                name={`filterOption - ${tableKey} `}
+                                                value="last2"
+                                                checked={currentFilter === 'last2'}
+                                                onChange={() => handleFilterChange(tableKey, 'last2')}
+                                            />
+                                            <label htmlFor={`filterTwo - ${tableKey} `}>2 số cuối</label>
+                                        </div>
+                                        <div className={styles.optionInput}>
+                                            <input
+                                                id={`filterThree - ${tableKey} `}
+                                                type="radio"
+                                                name={`filterOption - ${tableKey} `}
+                                                value="last3"
+                                                checked={currentFilter === 'last3'}
+                                                onChange={() => handleFilterChange(tableKey, 'last3')}
+                                            />
+                                            <label htmlFor={`filterThree - ${tableKey} `}>3 số cuối</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className={styles.TKe_container}>
+                                <div className={styles.TKe_content}>
+                                    <div className={styles.TKe_contentTitle}>
+                                        <span className={styles.title}>Thống kê lô tô theo Đầu - </span>
+                                        <span className={styles.dayOfWeek}>{`${dayData.dayOfWeek} - `}</span>
+                                        <span className={styles.desc}>{dayData.drawDate}</span>
+                                    </div>
+                                    <table className={styles.tableKey}>
+                                        <thead>
+                                            <tr>
+                                                <th className={styles.t_h}>Đầu</th>
+                                                {stationsData.map(station => (
+                                                    <th key={station.station}>
+                                                        {station.tentinh || `Tỉnh ${stationsData.indexOf(station) + 1} `}
+                                                    </th>
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {Array.from({ length: 10 }, (_, idx) => (
+                                                <tr key={idx}>
+                                                    <td className={styles.t_h}>{idx}</td>
+                                                    {allHeads[idx].map((headNumbers, stationIdx) => (
+                                                        <td key={stationIdx}>
+                                                            {headNumbers.map((item, numIdx) => (
+                                                                <span
+                                                                    key={numIdx}
+                                                                    className={
+                                                                        item.isEighth || item.isSpecial
+                                                                            ? styles.highlightPrize
+                                                                            : ''
+                                                                    }
+                                                                >
+                                                                    {item.num}
+                                                                    {numIdx < headNumbers.length - 1 && ', '}
+                                                                </span>
+                                                            ))}
+                                                        </td>
+                                                    ))}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div className={styles.TKe_content}>
+                                    <div className={styles.TKe_contentTitle}>
+                                        <span className={styles.title}>Thống kê lô tô theo Đuôi - </span>
+                                        <span className={styles.dayOfWeek}>{`${dayData.dayOfWeek} - `}</span>
+                                        <span className={styles.desc}>{dayData.drawDate}</span>
+                                    </div>
+                                    <table className={styles.tableKey}>
+                                        <thead>
+                                            <tr>
+                                                <th className={styles.t_h}>Đuôi</th>
+                                                {stationsData.map(station => (
+                                                    <th key={station.station}>
+                                                        {station.tentinh || `Tỉnh ${stationsData.indexOf(station) + 1} `}
+                                                    </th>
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {Array.from({ length: 10 }, (_, idx) => (
+                                                <tr key={idx}>
+                                                    <td className={styles.t_h}>{idx}</td>
+                                                    {allTails[idx].map((tailNumbers, stationIdx) => (
+                                                        <td key={stationIdx}>
+                                                            {tailNumbers.map((item, numIdx) => (
+                                                                <span
+                                                                    key={numIdx}
+                                                                    className={
+                                                                        item.isEighth || item.isSpecial
+                                                                            ? styles.highlightPrize
+                                                                            : ''
+                                                                    }
+                                                                >
+                                                                    {item.num}
+                                                                    {numIdx < tailNumbers.length - 1 && ', '}
+                                                                </span>
+                                                            ))}
+                                                        </td>
+                                                    ))}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                );
-            })}
+                    );
+                })}
+            </div>
 
-            {data.length > 1 && (
+            {data.length > 1 && !isLiveWindowActive && (
                 <div className={styles.pagination}>
                     <button
                         onClick={() => goToPage(currentPage - 1)}
-                        disabled={currentPage === 1}
+                        disabled={currentPage === 1 || loadingPage}
                         className={styles.paginationButton}
                     >
-                        Trước
+                        {loadingPage ? 'Đang tải...' : 'Trước'}
                     </button>
                     <span>Trang {currentPage} / {totalPages}</span>
                     <button
                         onClick={() => goToPage(currentPage + 1)}
-                        disabled={currentPage === totalPages}
+                        disabled={currentPage === totalPages || loadingPage}
                         className={styles.paginationButton}
                     >
-                        Sau
+                        {loadingPage ? 'Đang tải...' : 'Sau'}
                     </button>
                 </div>
             )}

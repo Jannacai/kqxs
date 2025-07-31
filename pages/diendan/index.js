@@ -15,7 +15,8 @@ import { getSession } from 'next-auth/react';
 import Quydinh from './Quydinh';
 import UserList from './UserList';
 import NavBarDienDan from './navbarDiendan';
-import UserAvatar from '../../component/UserAvatar'
+import UserAvatar from '../../component/UserAvatar';
+import LiveResultButton from '../../components/LiveResultButton';
 
 export default function DienDan({ session }) {
     console.log('Session in DienDan:', JSON.stringify(session, null, 2));
@@ -418,6 +419,17 @@ export default function DienDan({ session }) {
                     </aside>
                 </div>
             </div>
+
+            {/* Live XSMT Button */}
+            <LiveResultButton
+                station="xsmt"
+                isLiveWindow={true}
+                buttonText="Xem XSMT Live"
+                buttonStyle="primary"
+                size="medium"
+                isForum={true}
+                position="bottom-left"
+            />
         </div>
     </>
     );

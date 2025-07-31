@@ -1,0 +1,278 @@
+/* Base Button Styles */
+.liveResultButton {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 12px 20px;
+	border: none;
+	border-radius: 8px;
+	font-size: 16px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.3s ease;
+	text-decoration: none;
+	position: relative;
+	overflow: hidden;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Button Styles */
+.primary {
+	background: linear-gradient(135deg, #e80000 0%, #ff4444 100%);
+	color: white;
+}
+
+.secondary {
+	background: linear-gradient(135deg, #2d3483 0%, #4a90e2 100%);
+	color: white;
+}
+
+.success {
+	background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+	color: white;
+}
+
+.warning {
+	background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+	color: #212529;
+}
+
+.danger {
+	background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%);
+	color: white;
+}
+
+/* Button Sizes */
+.small {
+	padding: 8px 16px;
+	font-size: 14px;
+}
+
+.medium {
+	padding: 12px 20px;
+	font-size: 16px;
+}
+
+.large {
+	padding: 16px 24px;
+	font-size: 18px;
+}
+
+/* Forum Button - Fixed Position */
+.forumButton {
+	position: fixed;
+	z-index: 999;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+	border-radius: 12px;
+	backdrop-filter: blur(10px);
+	background: linear-gradient(135deg, #e80000 0%, #ff4444 100%);
+	color: white;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	min-width: 200px;
+	justify-content: center;
+}
+
+/* Forum Button Positions */
+.bottomLeft {
+	bottom: 20px;
+	left: 20px;
+}
+
+.bottomRight {
+	bottom: 20px;
+	right: 20px;
+}
+
+.topLeft {
+	top: 20px;
+	left: 20px;
+}
+
+.topRight {
+	top: 20px;
+	right: 20px;
+}
+
+/* Button Elements */
+.buttonIcon {
+	font-size: 18px;
+	animation: bounce 2s infinite;
+}
+
+.buttonText {
+	white-space: nowrap;
+}
+
+.liveIndicator {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	font-size: 12px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 1px;
+	background: rgba(255, 255, 255, 0.2);
+	padding: 4px 8px;
+	border-radius: 4px;
+	position: relative;
+}
+
+.pulse {
+	width: 8px;
+	height: 8px;
+	background-color: #fff;
+	border-radius: 50%;
+	animation: pulse 1.5s infinite;
+}
+
+/* Hover Effects */
+.liveResultButton:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.forumButton:hover {
+	transform: translateY(-3px) scale(1.05);
+	box-shadow: 0 12px 32px rgba(232, 0, 0, 0.4);
+}
+
+/* Active State */
+.liveResultButton:active {
+	transform: translateY(0);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.forumButton:active {
+	transform: translateY(-1px) scale(1.02);
+}
+
+/* Focus State */
+.liveResultButton:focus {
+	outline: 2px solid rgba(255, 255, 255, 0.5);
+	outline-offset: 2px;
+}
+
+/* Animations */
+@keyframes bounce {
+	0%,
+	20%,
+	50%,
+	80%,
+	100% {
+		transform: translateY(0);
+	}
+	40% {
+		transform: translateY(-4px);
+	}
+	60% {
+		transform: translateY(-2px);
+	}
+}
+
+@keyframes pulse {
+	0% {
+		box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+	}
+	70% {
+		box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
+	}
+	100% {
+		box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+	}
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+	.forumButton {
+		min-width: 160px;
+		padding: 10px 16px;
+		font-size: 14px;
+	}
+
+	.buttonIcon {
+		font-size: 16px;
+	}
+
+	.liveIndicator {
+		font-size: 10px;
+		padding: 3px 6px;
+	}
+
+	.pulse {
+		width: 6px;
+		height: 6px;
+	}
+}
+
+@media (max-width: 480px) {
+	.forumButton {
+		min-width: 140px;
+		padding: 8px 12px;
+		font-size: 12px;
+		bottom: 10px;
+		left: 10px;
+	}
+
+	.buttonText {
+		display: none;
+	}
+
+	.liveIndicator {
+		font-size: 9px;
+		padding: 2px 4px;
+	}
+}
+
+/* Loading State */
+.liveResultButton.loading {
+	pointer-events: none;
+	opacity: 0.7;
+}
+
+.liveResultButton.loading .buttonIcon {
+	animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/* Disabled State */
+.liveResultButton:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	pointer-events: none;
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+	.liveResultButton {
+		border: 2px solid currentColor;
+	}
+
+	.forumButton {
+		border: 2px solid white;
+	}
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+	.liveResultButton {
+		transition: none;
+	}
+
+	.buttonIcon {
+		animation: none;
+	}
+
+	.pulse {
+		animation: none;
+	}
+}
