@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Live Window Manager</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .active { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .inactive { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .debug { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    </style>
+</head>
+<body>
+    <h1>Test Live Window Manager</h1>
+    
+    <div id="status" class="status inactive">
+        <strong>Trạng thái Live Window:</strong> <span id="liveStatus">Không hoạt động</span>
+    </div>
+    
+    <div id="debug" class="status debug">
+        <strong>Debug Info:</strong>
+        <div id="debugInfo">Đang khởi tạo...</div>
+    </div>
+    
+    <div>
+        <h3>Hướng dẫn test:</h3>
+        <ul>
+            <li>Mở Console (F12) để xem debug logs</li>
+            <li>Live Window sẽ hoạt động từ 17:10-17:59</li>
+            <li>Hàm cào sẽ kích hoạt lúc 17:14</li>
+            <li>Kiểm tra logs để xem hoạt động</li>
+        </ul>
+    </div>
+
+    <script>
+        // Mock LiveWindowManager cho test
+        class LiveWindowManager {
+            constructor() {
+                this.isLiveWindowActive = false;
+                this.scraperTriggered = false;
+                this.lastScraperDate = null;
+                this.listeners = new Set();
+                this.scraperListeners = new Set();
+                this.checkInterval = null;
+                this.station = 'xsmt';
+            }
+
+            start() {
+                console.log('🚀 Khởi động LiveWindowManager');
+                this.checkTime();
+                this.checkInterval = setInterval(() => this.checkTime(), 5000);
+            }
+
+            checkTime() {
+                const now = new Date();
+                const vietnamTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+                const vietnamHours = vietnamTime.getHours();
+                const vietnamMinutes = vietnamTime.getMinutes();
+                const today = vietnamTime.toLocaleDateString('vi-VN').replace(/\//g, '-');
+
+                // Debug log để kiểm tra thời gian
+                console.log(`🕐 Debug LiveWindowManager: ${vietnamHours}:${vietnamMinutes.toString().padStart(2, '0')} - ${today}`);
+
+                // Reset mỗi ngày
+                if (this.lastScraperDate !== today) {
+                    this.scraperTriggered = false;
+                    this.lastScraperDate = null;
+                    console.log('🔄 Reset scraper trigger cho ngày mới:', today);
+                }
+
+                // Kiểm tra live window (17:10-17:59)
+                const isLiveWindow = vietnamHours === 17 && vietnamMinutes >= 10 && vietnamMinutes <= 59;
+
+                // Debug log để kiểm tra điều kiện live window
+                console.log(`🔍 Live window check: ${vietnamHours} === 17 && ${vietnamMinutes} >= 10 && ${vietnamMinutes} <= 59 = ${isLiveWindow}`);
+
+                if (isLiveWindow !== this.isLiveWindowActive) {
+                    this.isLiveWindowActive = isLiveWindow;
+                    console.log(`🔄 Live window ${isLiveWindow ? 'activated' : 'deactivated'} (${vietnamHours}:${vietnamMinutes.toString().padStart(2, '0')})`);
+                    console.log(`📡 Notifying ${this.listeners.size} listeners`);
+                    this.notifyListeners(isLiveWindow);
+                }
+
+                // Kích hoạt hàm cào chỉ 1 lần ở 17:14
+                if (vietnamHours === 17 && vietnamMinutes === 14 && !this.scraperTriggered) {
+                    console.log(`🚀 Triggering scraper at ${vietnamHours}:${vietnamMinutes.toString().padStart(2, '0')}`);
+                    this.triggerScraper(today);
+                }
+
+                // Cập nhật UI
+                this.updateUI(vietnamHours, vietnamMinutes, isLiveWindow);
+            }
+
+            updateUI(hours, minutes, isLiveWindow) {
+                const statusEl = document.getElementById('status');
+                const liveStatusEl = document.getElementById('liveStatus');
+                const debugEl = document.getElementById('debugInfo');
+
+                if (isLiveWindow) {
+                    statusEl.className = 'status active';
+                    liveStatusEl.textContent = 'Đang hoạt động';
+                } else {
+                    statusEl.className = 'status inactive';
+                    liveStatusEl.textContent = 'Không hoạt động';
+                }
+
+                debugEl.innerHTML = `
+                    <div>Thời gian hiện tại: ${hours}:${minutes.toString().padStart(2, '0')}</div>
+                    <div>Live Window: ${isLiveWindow ? 'Có' : 'Không'}</div>
+                    <div>Scraper Triggered: ${this.scraperTriggered ? 'Có' : 'Không'}</div>
+                    <div>Listeners: ${this.listeners.size}</div>
+                `;
+            }
+
+            async triggerScraper(today) {
+                if (this.scraperTriggered) {
+                    console.log('🔄 Scraper đã được kích hoạt, bỏ qua');
+                    return;
+                }
+
+                console.log('🚀 Kích hoạt hàm cào lần đầu tiên');
+                this.scraperTriggered = true;
+                this.lastScraperDate = today;
+
+                // Mock API call
+                console.log('📡 Gọi API hàm cào với date:', today, 'station:', this.station);
+                
+                // Thông báo cho tất cả listeners
+                this.notifyScraperListeners(today);
+            }
+
+            addListener(callback) {
+                this.listeners.add(callback);
+                return () => this.listeners.delete(callback);
+            }
+
+            addScraperListener(callback) {
+                this.scraperListeners.add(callback);
+                return () => this.scraperListeners.delete(callback);
+            }
+
+            notifyListeners(isLiveWindow) {
+                this.listeners.forEach(callback => callback(isLiveWindow));
+            }
+
+            notifyScraperListeners(today) {
+                this.scraperListeners.forEach(callback => callback(today));
+            }
+
+            stop() {
+                if (this.checkInterval) {
+                    clearInterval(this.checkInterval);
+                    this.checkInterval = null;
+                }
+                console.log('🛑 Dừng LiveWindowManager');
+            }
+        }
+
+        // Khởi tạo và test
+        const liveWindowManager = new LiveWindowManager();
+        
+        // Subscribe để test
+        liveWindowManager.addListener((isActive) => {
+            console.log(`🔄 Test listener nhận thông báo: ${isActive}`);
+        });
+
+        liveWindowManager.addScraperListener((today) => {
+            console.log(`📡 Test scraper listener nhận thông báo: ${today}`);
+        });
+
+        // Khởi động
+        liveWindowManager.start();
+
+        // Cleanup khi đóng trang
+        window.addEventListener('beforeunload', () => {
+            liveWindowManager.stop();
+        });
+    </script>
+</body>
+</html> 

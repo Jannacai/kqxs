@@ -6,16 +6,13 @@ import axios from 'axios';
 import moment from 'moment';
 import 'moment-timezone';
 import Image from 'next/image';
-import io from 'socket.io-client';
+import { getSocket, isSocketConnected, addConnectionListener } from '../../../utils/Socket';
+import { isValidObjectId } from '../../../utils/validation';
 import styles from '../../../styles/comment.module.css';
 import UserInfoModal from '../modals/UserInfoModal';
 import PrivateChat from '../chatrieng';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
-
-const isValidObjectId = (id) => {
-    return /^[0-9a-fA-F]{24}$/.test(id);
-};
 
 const getDisplayName = (fullname) => {
     if (!fullname) return 'User';
@@ -59,9 +56,11 @@ export default function CommentSection({ comments = [], session, eventId, setIte
     const [selectedUser, setSelectedUser] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [privateChats, setPrivateChats] = useState([]);
+    const [socketConnected, setSocketConnected] = useState(false);
     const socketRef = useRef(null);
     const commentsContainerRef = useRef(null);
     const repliesContainerRefs = useRef({});
+    const mountedRef = useRef(true);
 
     console.log('CommentSection initialized with eventId:', eventId);
 
@@ -107,7 +106,7 @@ export default function CommentSection({ comments = [], session, eventId, setIte
         const cleanValue = filterProfanity(value);
         setReply(cleanValue);
         if (isProfane(value)) {
-            setError('Trả lời chứa từ ngữ không phù hợp');
+            setError('Bình luận chứa từ ngữ không phù hợp');
         } else if (value.length > 950) {
             setError(`Còn ${1000 - value.length} ký tự`);
         } else {
@@ -116,50 +115,31 @@ export default function CommentSection({ comments = [], session, eventId, setIte
     };
 
     const handleShowDetails = (user) => {
-        console.log('handleShowDetails called with user:', user);
-        if (!user?._id || !isValidObjectId(user._id)) {
-            console.error('Invalid user ID:', user?._id);
-            setError('ID người dùng không hợp lệ');
-            return;
-        }
         setSelectedUser(user);
         setShowModal(true);
     };
 
     const openPrivateChat = (user) => {
-        console.log('openPrivateChat called with user:', JSON.stringify(user, null, 2));
-        if (!userInfo) {
-            setError('Vui lòng đăng nhập để mở chat riêng');
-            console.log('Blocked: userInfo not loaded');
-            return;
-        }
-        const isCurrentUserAdmin = userInfo?.role?.toLowerCase() === 'admin';
-        const isTargetAdmin = user?.role?.toLowerCase() === 'admin';
-        if (!isCurrentUserAdmin && !isTargetAdmin) {
-            setError('Bạn chỉ có thể chat riêng với admin');
-            console.log('Blocked: User cannot open private chat with non-admin');
+        if (!user || !user._id) {
+            console.error('Invalid user for private chat:', user);
             return;
         }
         setPrivateChats((prev) => {
-            if (prev.some((chat) => chat.receiver._id === user._id)) {
-                console.log('Chat already exists, setting to not minimized:', user._id);
+            const existingChat = prev.find((chat) => chat.receiver._id === user._id);
+            if (existingChat) {
                 return prev.map((chat) =>
                     chat.receiver._id === user._id ? { ...chat, isMinimized: false } : chat
                 );
             }
-            console.log('Opening new private chat:', user._id);
-            console.log('privateChats updated:', [...prev, { receiver: user, isMinimized: false, messages: [] }]);
-            return [...prev, { receiver: user, isMinimized: false, messages: [] }];
+            return [...prev, { receiver: user, isMinimized: false }];
         });
     };
 
     const closePrivateChat = (receiverId) => {
-        console.log('Closing private chat with user:', receiverId);
         setPrivateChats((prev) => prev.filter((chat) => chat.receiver._id !== receiverId));
     };
 
     const toggleMinimizePrivateChat = (receiverId) => {
-        console.log('Toggling minimize for chat with user:', receiverId);
         setPrivateChats((prev) =>
             prev.map((chat) =>
                 chat.receiver._id === receiverId ? { ...chat, isMinimized: !chat.isMinimized } : chat
@@ -168,248 +148,243 @@ export default function CommentSection({ comments = [], session, eventId, setIte
     };
 
     useEffect(() => {
-        if (session) {
+        if (session && status === 'authenticated') {
             fetchUserInfo();
         }
     }, [session]);
 
     useEffect(() => {
         const fetchMissingUserDetails = async () => {
-            if (!Array.isArray(comments)) {
-                console.warn('Comments is not an array:', comments);
-                return;
-            }
-            setIsLoadingUsers(true);
             const missingUsers = new Set();
-            comments.forEach(comment => {
-                const commentUserId = typeof comment.userId === 'object' ? comment.userId?._id : comment.userId;
-                if (commentUserId && isValidObjectId(commentUserId) && !usersCache[commentUserId]) {
-                    missingUsers.add(commentUserId);
+            sortedComments.forEach((comment) => {
+                if (comment.userId?._id && !usersCache[comment.userId._id]) {
+                    missingUsers.add(comment.userId._id);
                 }
-                (comment.replies || []).forEach(reply => {
-                    const replyUserId = typeof reply.userId === 'object' ? reply.userId?._id : reply.userId;
-                    if (replyUserId && isValidObjectId(replyUserId) && !usersCache[replyUserId]) {
-                        missingUsers.add(replyUserId);
+                (comment.replies || []).forEach((reply) => {
+                    if (reply.userId?._id && !usersCache[reply.userId._id]) {
+                        missingUsers.add(reply.userId._id);
                     }
                 });
             });
-            const uniqueMissingUsers = [...missingUsers];
-            console.log('Fetching missing users:', uniqueMissingUsers);
-            try {
-                const fetchPromises = uniqueMissingUsers.map(async (userId) => {
-                    try {
-                        const res = await axios.get(`${API_BASE_URL}/api/users/${userId}`);
-                        const userData = res.data;
-                        console.log(`Fetched user ${userId}:`, userData);
-                        setUsersCache((prev) => ({ ...prev, [userId]: userData }));
-                    } catch (err) {
-                        console.error(`Error fetching user ${userId}:`, err.message);
-                    }
-                });
-                await Promise.all(fetchPromises);
-            } catch (err) {
-                console.error('Error fetching missing users:', err.message);
-                setFetchError('Không thể tải thông tin người dùng');
-            } finally {
-                setIsLoadingUsers(false);
+
+            if (missingUsers.size > 0) {
+                setIsLoadingUsers(true);
+                try {
+                    const userIds = Array.from(missingUsers);
+                    const res = await axios.get(`${API_BASE_URL}/api/users/batch`, {
+                        params: { userIds: userIds.join(',') },
+                        headers: { Authorization: `Bearer ${session?.accessToken}` },
+                    });
+                    const newUsers = res.data.users || [];
+                    setUsersCache((prev) => {
+                        const updated = { ...prev };
+                        newUsers.forEach((user) => {
+                            updated[user._id] = user;
+                        });
+                        return updated;
+                    });
+                } catch (err) {
+                    console.error('Error fetching missing user details:', err.message);
+                } finally {
+                    setIsLoadingUsers(false);
+                }
             }
         };
 
-        if (comments?.length > 0) {
+        if (sortedComments.length > 0) {
             fetchMissingUserDetails();
         }
-    }, [comments]);
+    }, [comments, usersCache, session?.accessToken]);
 
     useEffect(() => {
-        if (!eventId || !isValidObjectId(eventId)) {
-            setFetchError('ID sự kiện không hợp lệ');
-            return;
-        }
         if (!session?.accessToken || !userInfo?._id) {
             console.log('Skipping Socket.IO setup: missing session or userInfo');
             return;
         }
 
-        const socket = io(API_BASE_URL, {
-            query: { token: session.accessToken },
-            reconnectionAttempts: 5,
-            reconnectionDelay: 5000,
-        });
-        socketRef.current = socket;
+        mountedRef.current = true;
 
-        socket.on('connect', () => {
-            console.log('Socket.IO connected for comments:', socket.id);
-            socket.emit('joinEvent', eventId);
-            console.log(`Client ${socket.id} joined room event:${eventId}`);
-            console.log('Joining private room for user:', userInfo._id);
-            socket.emit('joinPrivateRoom', userInfo._id);
-        });
+        const initializeSocket = async () => {
+            try {
+                const socket = await getSocket();
+                if (!mountedRef.current) return;
 
-        socket.on('connect_error', (err) => {
-            console.error('Socket.IO connection error:', err.message);
-            setFetchError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
-        });
+                socketRef.current = socket;
+                setSocketConnected(true);
 
-        socket.on('NEW_COMMENT', (newComment) => {
-            console.log('Received NEW_COMMENT:', JSON.stringify(newComment, null, 2));
-            if (
-                newComment &&
-                newComment.userId?._id &&
-                isValidObjectId(newComment.userId._id) &&
-                newComment.eventId === eventId &&
-                newComment.content
-            ) {
-                setUsersCache((prev) => ({
-                    ...prev,
-                    [newComment.userId._id]: newComment.userId,
-                }));
-                if (newComment.userId._id === userInfo?._id) {
-                    setUserInfo(newComment.userId);
-                }
-                setItem((prev) => {
-                    const updatedComments = [newComment, ...(prev.comments || [])];
-                    console.log('Updated comments:', updatedComments);
-                    return {
-                        ...prev,
-                        comments: updatedComments,
-                    };
+                // Thêm connection listener
+                const removeListener = addConnectionListener((connected) => {
+                    if (mountedRef.current) {
+                        setSocketConnected(connected);
+                    }
                 });
-            } else {
-                console.warn('Ignoring invalid or irrelevant NEW_COMMENT:', newComment);
-            }
-        });
 
-        socket.on('NEW_REPLY', (newReply) => {
-            console.log('Received NEW_REPLY:', JSON.stringify(newReply, null, 2));
-            if (
-                newReply &&
-                newReply.userId?._id &&
-                isValidObjectId(newReply.userId._id) &&
-                newReply.eventId === eventId &&
-                newReply.commentId &&
-                newReply.content
-            ) {
-                setUsersCache((prev) => ({
-                    ...prev,
-                    [newReply.userId._id]: newReply.userId,
-                }));
-                if (newReply.userId._id === userInfo?._id) {
-                    setUserInfo(newReply.userId);
-                }
-                setItem((prev) => {
-                    const updatedComments = prev.comments.map(c =>
-                        c._id === newReply.commentId
-                            ? { ...c, replies: [...(c.replies || []), newReply] }
-                            : c
-                    );
-                    return {
-                        ...prev,
-                        comments: updatedComments,
-                    };
+                socket.on('connect', () => {
+                    console.log('Socket.IO connected for comments:', socket.id);
+                    socket.emit('joinEvent', eventId);
+                    setSocketConnected(true);
                 });
-                setExpandedReplies((prev) => ({ ...prev, [newReply.commentId]: true }));
-            } else {
-                console.warn('Ignoring invalid or irrelevant NEW_REPLY:', newReply);
-            }
-        });
 
-        socket.on('COMMENT_LIKED', (data) => {
-            console.log('Received COMMENT_LIKED:', data);
-            if (data.eventId === eventId && data.commentId) {
-                setItem((prev) => ({
-                    ...prev,
-                    comments: prev.comments.map(c =>
-                        c._id === data.commentId
-                            ? { ...c, likes: data.likes }
-                            : c
-                    ),
-                }));
-            }
-        });
+                socket.on('connect_error', (err) => {
+                    console.error('Socket.IO connection error:', err.message);
+                    setSocketConnected(false);
+                    setFetchError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
+                });
 
-        socket.on('REPLY_LIKED', (data) => {
-            console.log('Received REPLY_LIKED:', data);
-            if (data.eventId === eventId && data.commentId && data.replyId) {
-                setItem((prev) => ({
-                    ...prev,
-                    comments: prev.comments.map(c =>
-                        c._id === data.commentId
-                            ? {
-                                ...c,
-                                replies: c.replies.map(r =>
-                                    r._id === data.replyId ? { ...r, likes: data.likes } : r
-                                ),
-                            }
-                            : c
-                    ),
-                }));
-            }
-        });
+                socket.on('disconnect', () => {
+                    console.log('Socket.IO disconnected for comments');
+                    setSocketConnected(false);
+                });
 
-        socket.on('REPLY_DELETED', (data) => {
-            console.log('Received REPLY_DELETED:', data);
-            if (data.eventId === eventId && data.commentId && data.replyId) {
-                setItem((prev) => ({
-                    ...prev,
-                    comments: prev.comments.map(c =>
-                        c._id === data.commentId
-                            ? { ...c, replies: c.replies.filter(r => r._id !== data.replyId) }
-                            : c
-                    ),
-                }));
-            }
-        });
+                socket.on('NEW_COMMENT', (newComment) => {
+                    console.log('Received NEW_COMMENT:', JSON.stringify(newComment, null, 2));
+                    if (mountedRef.current && newComment.eventId === eventId) {
+                        setItem((prev) => {
+                            if (prev.some((comment) => comment._id === newComment._id)) return prev;
+                            return [newComment, ...prev];
+                        });
+                    }
+                });
 
-        socket.on('COMMENT_DELETED', (data) => {
-            console.log('Received COMMENT_DELETED:', data);
-            if (data.eventId === eventId && data.commentId) {
-                setItem((prev) => ({
-                    ...prev,
-                    comments: prev.comments.filter(c => c._id !== data.commentId),
-                }));
-            }
-        });
+                socket.on('NEW_REPLY', (newReply) => {
+                    console.log('Received NEW_REPLY:', JSON.stringify(newReply, null, 2));
+                    if (mountedRef.current) {
+                        setItem((prev) =>
+                            prev.map((comment) =>
+                                comment._id === newReply.commentId
+                                    ? { ...comment, replies: [...(comment.replies || []), newReply] }
+                                    : comment
+                            )
+                        );
+                    }
+                });
 
-        socket.on('PRIVATE_MESSAGE', (newMessage) => {
-            console.log('Received PRIVATE_MESSAGE:', JSON.stringify(newMessage, null, 2));
-            setPrivateChats((prev) =>
-                prev.map((chat) =>
-                    chat.receiver._id === newMessage.senderId || chat.receiver._id === newMessage.receiverId
-                        ? { ...chat, messages: [...(chat.messages || []), newMessage] }
-                        : chat
-                )
-            );
-        });
+                socket.on('COMMENT_LIKED', (data) => {
+                    console.log('Received COMMENT_LIKED:', data);
+                    if (mountedRef.current) {
+                        setItem((prev) =>
+                            prev.map((comment) =>
+                                comment._id === data.commentId
+                                    ? { ...comment, likes: data.likes, isLiked: data.isLiked }
+                                    : comment
+                            )
+                        );
+                    }
+                });
 
-        socket.on('USER_UPDATED', (updatedUser) => {
-            console.log('Received USER_UPDATED:', updatedUser);
-            if (updatedUser?._id && isValidObjectId(updatedUser._id)) {
-                setUsersCache((prev) => ({ ...prev, [updatedUser._id]: updatedUser }));
-                if (updatedUser._id === userInfo?._id) {
-                    setUserInfo(updatedUser);
-                }
+                socket.on('REPLY_LIKED', (data) => {
+                    console.log('Received REPLY_LIKED:', data);
+                    if (mountedRef.current) {
+                        setItem((prev) =>
+                            prev.map((comment) =>
+                                comment._id === data.commentId
+                                    ? {
+                                        ...comment,
+                                        replies: comment.replies.map((reply) =>
+                                            reply._id === data.replyId
+                                                ? { ...reply, likes: data.likes, isLiked: data.isLiked }
+                                                : reply
+                                        ),
+                                    }
+                                    : comment
+                            )
+                        );
+                    }
+                });
+
+                socket.on('COMMENT_DELETED', (data) => {
+                    console.log('Received COMMENT_DELETED:', data);
+                    if (mountedRef.current) {
+                        setItem((prev) => prev.filter((comment) => comment._id !== data.commentId));
+                    }
+                });
+
+                socket.on('REPLY_DELETED', (data) => {
+                    console.log('Received REPLY_DELETED:', data);
+                    if (mountedRef.current) {
+                        setItem((prev) =>
+                            prev.map((comment) =>
+                                comment._id === data.commentId
+                                    ? {
+                                        ...comment,
+                                        replies: comment.replies.filter((reply) => reply._id !== data.replyId),
+                                    }
+                                    : comment
+                            )
+                        );
+                    }
+                });
+
+                socket.on('USER_UPDATED', (data) => {
+                    console.log('Received USER_UPDATED:', data);
+                    if (mountedRef.current && data?._id && isValidObjectId(data._id)) {
+                        setUsersCache((prev) => ({ ...prev, [data._id]: data }));
+                    }
+                });
+
+                socket.on('PRIVATE_MESSAGE', (newMessage) => {
+                    console.log('Received PRIVATE_MESSAGE:', JSON.stringify(newMessage, null, 2));
+                    if (mountedRef.current) {
+                        setPrivateChats((prev) =>
+                            prev.map((chat) =>
+                                chat.receiver._id === newMessage.senderId || chat.receiver._id === newMessage.receiverId
+                                    ? { ...chat, messages: [...(chat.messages || []), newMessage] }
+                                    : chat
+                            )
+                        );
+                    }
+                });
+
+                return () => {
+                    removeListener();
+                    if (socketRef.current) {
+                        socketRef.current.off('connect');
+                        socketRef.current.off('connect_error');
+                        socketRef.current.off('disconnect');
+                        socketRef.current.off('NEW_COMMENT');
+                        socketRef.current.off('NEW_REPLY');
+                        socketRef.current.off('COMMENT_LIKED');
+                        socketRef.current.off('REPLY_LIKED');
+                        socketRef.current.off('COMMENT_DELETED');
+                        socketRef.current.off('REPLY_DELETED');
+                        socketRef.current.off('USER_UPDATED');
+                        socketRef.current.off('PRIVATE_MESSAGE');
+                    }
+                };
+            } catch (error) {
+                console.error('Failed to initialize socket:', error);
+                setSocketConnected(false);
             }
-        });
+        };
+
+        initializeSocket();
 
         return () => {
-            socketRef.current?.disconnect();
-            console.log('Socket.IO disconnected for comments');
+            mountedRef.current = false;
         };
-    }, [eventId, setItem, userInfo, session?.accessToken]);
+    }, [session?.accessToken, userInfo?._id, eventId]);
 
     useEffect(() => {
-        if (commentsContainerRef.current) {
-            commentsContainerRef.current.scrollTop = 0;
-        }
-    }, [comments]);
-
-    useEffect(() => {
-        Object.keys(expandedReplies).forEach(commentId => {
-            if (expandedReplies[commentId] && repliesContainerRefs.current[commentId]) {
-                repliesContainerRefs.current[commentId].scrollTop = 0;
+        const handleScroll = () => {
+            if (commentsContainerRef.current) {
+                const { scrollTop, scrollHeight, clientHeight } = commentsContainerRef.current;
+                const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
+                if (isAtBottom) {
+                    // Auto-scroll to bottom when new comments arrive
+                    commentsContainerRef.current.scrollTop = commentsContainerRef.current.scrollHeight;
+                }
             }
-        });
-    }, [expandedReplies, comments]);
+        };
+
+        if (commentsContainerRef.current) {
+            commentsContainerRef.current.addEventListener('scroll', handleScroll);
+            return () => {
+                if (commentsContainerRef.current) {
+                    commentsContainerRef.current.removeEventListener('scroll', handleScroll);
+                }
+            };
+        }
+    }, []);
 
     const handleCommentSubmit = async (e) => {
         e.preventDefault();
@@ -417,12 +392,12 @@ export default function CommentSection({ comments = [], session, eventId, setIte
             router.push('/login');
             return;
         }
-        if (!comment.trim()) {
-            setError('Nội dung bình luận không được để trống');
+        if (!eventId || !isValidObjectId(eventId)) {
+            setError('ID sự kiện không hợp lệ');
             return;
         }
-        if (!eventId || !isValidObjectId(eventId)) {
-            setError('ID bài viết không hợp lệ');
+        if (!comment.trim()) {
+            setError('Vui lòng nhập nội dung bình luận');
             return;
         }
         if (isProfane(comment)) {
@@ -430,19 +405,16 @@ export default function CommentSection({ comments = [], session, eventId, setIte
             return;
         }
         try {
-            console.log('Submitting comment for event:', eventId);
+            console.log('Submitting comment:', comment);
             const res = await axios.post(
                 `${API_BASE_URL}/api/events/${eventId}/comments`,
                 { content: comment },
                 { headers: { Authorization: `Bearer ${session?.accessToken}` } }
             );
-            console.log('Comment submission response:', JSON.stringify(res.data, null, 2));
+            console.log('Comment response:', JSON.stringify(res.data, null, 2));
             setComment('');
             setError('');
             setItem(res.data.event);
-            if (userInfo) {
-                await fetchUserInfo();
-            }
         } catch (err) {
             console.error('Error submitting comment:', err.message, err.response?.data);
             setError(err.response?.data?.message || 'Đã có lỗi khi gửi bình luận');
@@ -455,33 +427,30 @@ export default function CommentSection({ comments = [], session, eventId, setIte
             router.push('/login');
             return;
         }
-        if (!reply.trim()) {
-            setError('Nội dung trả lời không được để trống');
-            return;
-        }
         if (!eventId || !isValidObjectId(eventId) || !isValidObjectId(commentId)) {
             setError('ID không hợp lệ');
             return;
         }
+        if (!reply.trim()) {
+            setError('Vui lòng nhập nội dung trả lời');
+            return;
+        }
         if (isProfane(reply)) {
-            setError('Trả lời chứa từ ngữ không phù hợp');
+            setError('Bình luận chứa từ ngữ không phù hợp');
             return;
         }
         try {
-            console.log('Submitting reply for comment:', commentId);
+            console.log('Submitting reply:', reply);
             const res = await axios.post(
-                `${API_BASE_URL}/api/events/${eventId}/comments/${commentId}/reply`,
+                `${API_BASE_URL}/api/events/${eventId}/comments/${commentId}/replies`,
                 { content: reply },
                 { headers: { Authorization: `Bearer ${session?.accessToken}` } }
             );
-            console.log('Reply submission response:', JSON.stringify(res.data, null, 2));
+            console.log('Reply response:', JSON.stringify(res.data, null, 2));
             setReply('');
             setReplyingTo(null);
             setError('');
             setItem(res.data.event);
-            if (userInfo) {
-                await fetchUserInfo();
-            }
         } catch (err) {
             console.error('Error submitting reply:', err.message, err.response?.data);
             setError(err.response?.data?.message || 'Đã có lỗi khi gửi trả lời');
@@ -505,10 +474,11 @@ export default function CommentSection({ comments = [], session, eventId, setIte
                 { headers: { Authorization: `Bearer ${session?.accessToken}` } }
             );
             console.log('Like comment response:', JSON.stringify(res.data, null, 2));
+            setError('');
             setItem(res.data.event);
         } catch (err) {
             console.error('Error liking comment:', err.message, err.response?.data);
-            setError(err.response?.data?.message || 'Đã có lỗi khi thích/bỏ thích bình luận');
+            setError(err.response?.data?.message || 'Đã có lỗi khi thích bình luận');
         }
     };
 
@@ -529,10 +499,11 @@ export default function CommentSection({ comments = [], session, eventId, setIte
                 { headers: { Authorization: `Bearer ${session?.accessToken}` } }
             );
             console.log('Like reply response:', JSON.stringify(res.data, null, 2));
+            setError('');
             setItem(res.data.event);
         } catch (err) {
             console.error('Error liking reply:', err.message, err.response?.data);
-            setError(err.response?.data?.message || 'Đã có lỗi khi thích/bỏ thích trả lời');
+            setError(err.response?.data?.message || 'Đã có lỗi khi thích trả lời');
         }
     };
 

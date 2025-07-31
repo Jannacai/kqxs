@@ -6,16 +6,13 @@ import axios from 'axios';
 import moment from 'moment';
 import 'moment-timezone';
 import Image from 'next/image';
-import io from 'socket.io-client';
+import { getSocket, isSocketConnected, addConnectionListener } from '../../utils/Socket';
+import { isValidObjectId } from '../../utils/validation';
 import styles from '../../styles/lichsudangky.module.css';
 import PrivateChat from './chatrieng';
 import UserInfoModal from './modals/UserInfoModal';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
-
-const isValidObjectId = (id) => {
-    return /^[0-9a-fA-F]{24}$/.test(id);
-};
 
 const getDisplayName = (fullname) => {
     if (!fullname) return 'User';
@@ -46,8 +43,10 @@ export default function LotteryRegistrationHistory() {
     const [selectedUser, setSelectedUser] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [privateChats, setPrivateChats] = useState([]);
+    const [socketConnected, setSocketConnected] = useState(false);
     const itemsPerPage = 50;
     const socketRef = useRef(null);
+    const mountedRef = useRef(true);
 
     const fetchEvents = useCallback(async (date) => {
         try {
@@ -211,136 +210,124 @@ export default function LotteryRegistrationHistory() {
 
     useEffect(() => {
         if (!session?.accessToken) {
+            console.log('Socket.IO not initialized: No token');
             return;
         }
 
-        const socket = io(API_BASE_URL, {
-            query: { token: session.accessToken },
-            reconnectionAttempts: 5,
-            reconnectionDelay: 5000,
-        });
-        socketRef.current = socket;
+        mountedRef.current = true;
 
-        socket.on('connect', () => {
-            console.log('Socket.IO connected for lottery:', socket.id);
-            socket.emit('joinRoom', 'lotteryFeed');
-            socket.emit('joinPrivateRoom', session.user?._id || session.user?.id);
-        });
+        const initializeSocket = async () => {
+            try {
+                const socket = await getSocket();
+                if (!mountedRef.current) return;
 
-        socket.on('connect_error', (err) => {
-            console.error('Socket.IO connection error:', err.message);
-            if (err.message.includes('Authentication error')) {
-                setFetchError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
-                signOut({ redirect: false });
-                window.location.href = '/login?error=SessionExpired';
-            } else {
-                setFetchError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
-            }
-        });
+                socketRef.current = socket;
+                setSocketConnected(true);
 
-        socket.on('NEW_LOTTERY_REGISTRATION', (newRegistration) => {
-            console.log('Received NEW_LOTTERY_REGISTRATION:', newRegistration);
-            if (newRegistration?.userId?._id && newRegistration?.eventId && isValidObjectId(newRegistration.userId._id)) {
-                setUsersCache((prev) => ({
-                    ...prev,
-                    [newRegistration.userId._id]: newRegistration.userId,
-                }));
-
-                const date = moment(newRegistration.createdAt).tz('Asia/Ho_Chi_Minh').format('DD-MM-YYYY');
-                const eventId = newRegistration.eventId?._id || 'no-event';
-                const eventTitle = newRegistration.eventId?.title || 'Không có sự kiện';
-
-                if (!selectedDate || selectedDate === date) {
-                    if (!selectedEventId || selectedEventId === eventId) {
-                        setRegistrationsByDate((prev) => {
-                            const updated = { ...prev };
-                            if (!updated[date]) {
-                                updated[date] = {};
-                            }
-                            if (!updated[date][eventId]) {
-                                updated[date][eventId] = {
-                                    title: eventTitle,
-                                    registrations: [],
-                                };
-                            }
-                            updated[date][eventId].registrations = [
-                                newRegistration,
-                                ...(updated[date][eventId].registrations || []),
-                            ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-                            return updated;
-                        });
-                        setTotalRegistrations((prev) => prev + 1);
+                // Thêm connection listener
+                const removeListener = addConnectionListener((connected) => {
+                    if (mountedRef.current) {
+                        setSocketConnected(connected);
                     }
-                }
-            }
-        });
+                });
 
-        socket.on('UPDATE_LOTTERY_REGISTRATION', (updatedRegistration) => {
-            console.log('Received UPDATE_LOTTERY_REGISTRATION:', updatedRegistration);
-            if (updatedRegistration?.userId?._id && updatedRegistration?.eventId && isValidObjectId(updatedRegistration.userId._id)) {
-                setUsersCache((prev) => ({
-                    ...prev,
-                    [updatedRegistration.userId._id]: updatedRegistration.userId,
-                }));
+                socket.on('connect', () => {
+                    console.log('Socket.IO connected for lottery:', socket.id);
+                    socket.emit('joinLotteryFeed');
+                    setSocketConnected(true);
+                });
 
-                const date = moment(updatedRegistration.createdAt).tz('Asia/Ho_Chi_Minh').format('DD-MM-YYYY');
-                const eventId = updatedRegistration.eventId?._id || 'no-event';
+                socket.on('connect_error', (err) => {
+                    console.error('Socket.IO connection error:', err.message);
+                    setSocketConnected(false);
+                    setFetchError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
+                });
 
-                if (!selectedDate || selectedDate === date) {
-                    if (!selectedEventId || selectedEventId === eventId) {
+                socket.on('disconnect', () => {
+                    console.log('Socket.IO disconnected for lottery');
+                    setSocketConnected(false);
+                });
+
+                socket.on('NEW_LOTTERY_REGISTRATION', (newRegistration) => {
+                    console.log('Received NEW_LOTTERY_REGISTRATION:', JSON.stringify(newRegistration, null, 2));
+                    if (mountedRef.current) {
                         setRegistrationsByDate((prev) => {
-                            const updated = { ...prev };
-                            if (updated[date]?.[eventId]) {
-                                updated[date][eventId].registrations = updated[date][eventId].registrations
-                                    .map(reg => reg._id === updatedRegistration._id ? updatedRegistration : reg)
-                                    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                            const date = moment.tz(newRegistration.createdAt, 'Asia/Ho_Chi_Minh').format('DD-MM-YYYY');
+                            const existingRegistrations = prev[date] || [];
+
+                            if (existingRegistrations.some(reg => reg._id === newRegistration._id)) {
+                                return prev;
                             }
-                            return updated;
+
+                            return {
+                                ...prev,
+                                [date]: [newRegistration, ...existingRegistrations]
+                            };
                         });
                     }
-                }
-            }
-        });
+                });
 
-        socket.on('LOTTERY_RESULT_CHECKED', (checkedRegistration) => {
-            console.log('Received LOTTERY_RESULT_CHECKED:', checkedRegistration);
-            if (checkedRegistration?.userId?._id && checkedRegistration?.eventId && isValidObjectId(checkedRegistration.userId._id)) {
-                setUsersCache((prev) => ({
-                    ...prev,
-                    [checkedRegistration.userId._id]: checkedRegistration.userId,
-                }));
-
-                const date = moment(checkedRegistration.createdAt).tz('Asia/Ho_Chi_Minh').format('DD-MM-YYYY');
-                const eventId = checkedRegistration.eventId?._id || 'no-event';
-
-                if (!selectedDate || selectedDate === date) {
-                    if (!selectedEventId || selectedEventId === eventId) {
+                socket.on('UPDATE_LOTTERY_REGISTRATION', (updatedRegistration) => {
+                    console.log('Received UPDATE_LOTTERY_REGISTRATION:', JSON.stringify(updatedRegistration, null, 2));
+                    if (mountedRef.current) {
                         setRegistrationsByDate((prev) => {
-                            const updated = { ...prev };
-                            if (updated[date]?.[eventId]) {
-                                updated[date][eventId].registrations = updated[date][eventId].registrations
-                                    .map(reg => reg._id === checkedRegistration._id ? checkedRegistration : reg)
-                                    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-                            }
-                            return updated;
+                            const date = moment.tz(updatedRegistration.createdAt, 'Asia/Ho_Chi_Minh').format('DD-MM-YYYY');
+                            const existingRegistrations = prev[date] || [];
+
+                            return {
+                                ...prev,
+                                [date]: existingRegistrations.map(reg =>
+                                    reg._id === updatedRegistration._id ? updatedRegistration : reg
+                                )
+                            };
                         });
                     }
-                }
-            }
-        });
+                });
 
-        socket.on('USER_UPDATED', (updatedUser) => {
-            console.log('Received USER_UPDATED:', updatedUser);
-            if (updatedUser?._id && isValidObjectId(updatedUser._id)) {
-                setUsersCache((prev) => ({ ...prev, [updatedUser._id]: updatedUser }));
+                socket.on('USER_UPDATED', (data) => {
+                    console.log('Received USER_UPDATED:', data);
+                    if (mountedRef.current && data?._id && isValidObjectId(data._id)) {
+                        setUsersCache((prev) => ({ ...prev, [data._id]: data }));
+                    }
+                });
+
+                socket.on('PRIVATE_MESSAGE', (newMessage) => {
+                    console.log('Received PRIVATE_MESSAGE:', JSON.stringify(newMessage, null, 2));
+                    if (mountedRef.current) {
+                        setPrivateChats((prev) =>
+                            prev.map((chat) =>
+                                chat.receiver._id === newMessage.senderId || chat.receiver._id === newMessage.receiverId
+                                    ? { ...chat, messages: [...(chat.messages || []), newMessage] }
+                                    : chat
+                            )
+                        );
+                    }
+                });
+
+                return () => {
+                    removeListener();
+                    if (socketRef.current) {
+                        socketRef.current.off('connect');
+                        socketRef.current.off('connect_error');
+                        socketRef.current.off('disconnect');
+                        socketRef.current.off('NEW_LOTTERY_REGISTRATION');
+                        socketRef.current.off('UPDATE_LOTTERY_REGISTRATION');
+                        socketRef.current.off('USER_UPDATED');
+                        socketRef.current.off('PRIVATE_MESSAGE');
+                    }
+                };
+            } catch (error) {
+                console.error('Failed to initialize socket:', error);
+                setSocketConnected(false);
             }
-        });
+        };
+
+        initializeSocket();
 
         return () => {
-            socketRef.current?.disconnect();
-            console.log('Socket.IO disconnected for lottery');
+            mountedRef.current = false;
         };
-    }, [session?.accessToken, selectedDate, selectedEventId]);
+    }, [session?.accessToken]);
 
     useEffect(() => {
         if (selectedDate) {

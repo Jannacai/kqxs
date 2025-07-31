@@ -6,7 +6,7 @@ import axios from 'axios';
 import moment from 'moment';
 import 'moment-timezone';
 import Image from 'next/image';
-import io from 'socket.io-client';
+import { getSocket, isSocketConnected, addConnectionListener } from '../../utils/Socket';
 import styles from '../../styles/chatrieng.module.css';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
@@ -38,8 +38,10 @@ export default function PrivateChat({ receiver, socket, onClose, isMinimized: in
     const [message, setMessage] = useState('');
     const [userInfo, setUserInfo] = useState(null);
     const [error, setError] = useState('');
+    const [socketConnected, setSocketConnected] = useState(false);
     const socketRef = useRef(socket);
     const messagesContainerRef = useRef(null);
+    const mountedRef = useRef(true);
 
     useEffect(() => {
         const fetchUserInfo = async () => {
@@ -68,89 +70,80 @@ export default function PrivateChat({ receiver, socket, onClose, isMinimized: in
             return;
         }
 
-        const fetchPrivateMessages = async () => {
-            const roomId = [userInfo._id, receiver._id].sort().join('-');
+        mountedRef.current = true;
+
+        const initializeSocket = async () => {
             try {
-                const res = await axios.get(`${API_BASE_URL}/api/groupchat/private/${roomId}`, {
-                    headers: { Authorization: `Bearer ${session.accessToken}` },
+                let socketInstance = socketRef.current;
+
+                if (!socketInstance) {
+                    console.log('No socket provided, initializing new connection');
+                    socketInstance = await getSocket();
+                    socketRef.current = socketInstance;
+                }
+
+                if (!mountedRef.current) return;
+
+                setSocketConnected(true);
+
+                // Thêm connection listener
+                const removeListener = addConnectionListener((connected) => {
+                    if (mountedRef.current) {
+                        setSocketConnected(connected);
+                    }
                 });
-                console.log('Private messages fetched:', res.data);
-                setMessages(res.data.messages.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
-            } catch (err) {
-                console.error('Error fetching private messages:', err.message);
-                setError('Không thể tải tin nhắn. Vui lòng thử lại.');
+
+                const roomId = [userInfo._id, receiver._id].sort().join('-');
+                socketInstance.emit('joinPrivateRoom', roomId);
+                console.log('Joining private room:', roomId);
+
+                socketInstance.on('connect', () => {
+                    console.log('Socket.IO connected for private chat:', socketInstance.id);
+                    setSocketConnected(true);
+                });
+
+                socketInstance.on('connect_error', (err) => {
+                    console.error('Socket.IO connection error:', err.message);
+                    setSocketConnected(false);
+                    setError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
+                });
+
+                socketInstance.on('disconnect', () => {
+                    console.log('Socket.IO disconnected for private chat');
+                    setSocketConnected(false);
+                });
+
+                socketInstance.on('PRIVATE_MESSAGE', (newMessage) => {
+                    console.log('Received PRIVATE_MESSAGE:', JSON.stringify(newMessage, null, 2));
+                    if (mountedRef.current) {
+                        setMessages((prev) => {
+                            if (prev.some((msg) => msg._id === newMessage._id)) return prev;
+                            return [newMessage, ...prev];
+                        });
+                    }
+                });
+
+                return () => {
+                    removeListener();
+                    if (socketInstance) {
+                        socketInstance.off('connect');
+                        socketInstance.off('connect_error');
+                        socketInstance.off('disconnect');
+                        socketInstance.off('PRIVATE_MESSAGE');
+                    }
+                };
+            } catch (error) {
+                console.error('Failed to initialize socket:', error);
+                setSocketConnected(false);
             }
         };
-        fetchPrivateMessages();
 
-        if (!socketRef.current) {
-            console.log('No socket provided, initializing new connection');
-            socketRef.current = io(API_BASE_URL, {
-                query: { token: session?.accessToken || '' },
-                reconnectionAttempts: 5,
-                reconnectionDelay: 5000,
-            });
-        }
-
-        const roomId = [userInfo._id, receiver._id].sort().join('-');
-        socketRef.current.emit('joinPrivateRoom', roomId);
-        console.log('Joining private room:', roomId);
-
-        socketRef.current.on('connect', () => {
-            console.log('Socket.IO connected for private chat:', socketRef.current.id);
-            socketRef.current.emit('fetchPrivateMessages', roomId);
-        });
-
-        socketRef.current.on('PRIVATE_MESSAGE', async (newMessage) => {
-            console.log('Received PRIVATE_MESSAGE:', JSON.stringify(newMessage, null, 2));
-            if (newMessage.roomId === roomId) {
-                setMessages((prev) => {
-                    if (prev.some((msg) => msg._id === newMessage._id)) return prev;
-                    return [newMessage, ...prev];
-                });
-                if (initialMinimized) {
-                    console.log('Chat is minimized, opening it...');
-                    if (onToggleMinimize) {
-                        console.log('Calling onToggleMinimize for receiver:', receiver._id);
-                        onToggleMinimize();
-                    }
-                } else {
-                    console.log('Chat is already open');
-                }
-            } else if (onNewChat) {
-                console.log('Received message for different room, triggering onNewChat:', newMessage);
-                try {
-                    const otherUserId = newMessage.senderId === userInfo._id ? newMessage.receiverId : newMessage.senderId;
-                    const res = await axios.get(`${API_BASE_URL}/api/users/${otherUserId}`, {
-                        headers: { Authorization: `Bearer ${session.accessToken}` },
-                    });
-                    const otherUser = res.data;
-                    console.log('Fetched user for new chat:', otherUser);
-                    onNewChat(otherUser, newMessage);
-                } catch (err) {
-                    console.error(`Error fetching user ${newMessage.senderId}:`, err.message);
-                    setError(`Không thể lấy thông tin người dùng: ${err.message}`);
-                }
-            }
-        });
-
-        socketRef.current.on('reconnect', () => {
-            console.log('Socket.IO reconnected, fetching messages:', roomId);
-            socketRef.current.emit('fetchPrivateMessages', roomId);
-        });
-
-        socketRef.current.on('connect_error', (err) => {
-            console.error('Socket.IO connection error:', err.message);
-            setError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
-        });
+        initializeSocket();
 
         return () => {
-            if (socketRef.current && !socket) {
-                socketRef.current.disconnect();
-                console.log('Socket.IO disconnected for private chat');
-            }
+            mountedRef.current = false;
         };
-    }, [userInfo, receiver, session, initialMinimized, onToggleMinimize, onNewChat, socket]);
+    }, [userInfo, receiver, session]);
 
     useEffect(() => {
         if (messagesContainerRef.current && !initialMinimized) {

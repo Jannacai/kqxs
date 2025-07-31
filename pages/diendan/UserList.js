@@ -6,16 +6,13 @@ import axios from 'axios';
 import moment from 'moment';
 import 'moment-timezone';
 import Image from 'next/image';
-import io from 'socket.io-client';
+import { getSocket, isSocketConnected, addConnectionListener } from '../../utils/Socket';
+import { isValidObjectId } from '../../utils/validation';
 import styles from '../../styles/ListUser.module.css';
 import UserInfoModal from './modals/UserInfoModal';
 import PrivateChat from './chatrieng';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
-
-const isValidObjectId = (id) => {
-    return /^[0-9a-fA-F]{24}$/.test(id);
-};
 
 const getDisplayName = (fullname) => {
     if (!fullname) return 'User';
@@ -62,7 +59,9 @@ export default function UserList({ session: serverSession }) {
     const [privateChats, setPrivateChats] = useState([]);
     const [userInfo, setUserInfo] = useState(null);
     const [newRegistrations, setNewRegistrations] = useState([]); // Thêm state cho người dùng đăng ký mới
+    const [socketConnected, setSocketConnected] = useState(false);
     const socketRef = useRef(null);
+    const mountedRef = useRef(true);
 
     // Lấy thông tin người dùng hiện tại
     useEffect(() => {
@@ -128,103 +127,112 @@ export default function UserList({ session: serverSession }) {
     };
 
     useEffect(() => {
-        fetchUsers();
-        fetchNewRegistrations();
-    }, [searchQuery]);
+        mountedRef.current = true;
 
-    useEffect(() => {
-        const socket = io(API_BASE_URL, {
-            query: session?.accessToken && session?.user?.id
-                ? { token: session.accessToken, userId: session.user.id }
-                : {},
-            reconnectionAttempts: 5,
-            reconnectionDelay: 1000,
-            reconnectionDelayMax: 5000,
-        });
-        socketRef.current = socket;
+        const initializeSocket = async () => {
+            try {
+                const socket = await getSocket();
+                if (!mountedRef.current) return;
 
-        socket.on('connect', () => {
-            console.log('Socket.IO connected for user list:', socket.id);
-            socket.emit('joinUserStatus');
-            if (session?.accessToken && session?.user?.id) {
-                socket.emit('reconnect');
-            }
-        });
+                socketRef.current = socket;
+                setSocketConnected(true);
 
-        socket.on('connect_error', (err) => {
-            console.error('Socket.IO connection error:', err.message);
-            setFetchError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
-        });
-
-        socket.on('USER_STATUS_UPDATED', (updatedUser) => {
-            console.log('Received USER_STATUS_UPDATED:', updatedUser);
-            if (updatedUser?._id && isValidObjectId(updatedUser._id)) {
-                setUsers((prev) => {
-                    const updatedUsers = prev.map((user) =>
-                        user._id === updatedUser._id
-                            ? { ...user, isOnline: updatedUser.isOnline, lastActive: updatedUser.lastActive }
-                            : user
-                    );
-                    setOnlineUsers(updatedUsers.filter(user => user.isOnline).length);
-                    return updatedUsers.sort((a, b) => {
-                        if (a.isOnline && !b.isOnline) return -1;
-                        if (!a.isOnline && b.isOnline) return 1;
-                        return a.fullname.localeCompare(b.fullname);
-                    });
+                // Thêm connection listener
+                const removeListener = addConnectionListener((connected) => {
+                    if (mountedRef.current) {
+                        setSocketConnected(connected);
+                    }
                 });
-                setUsersCache((prev) => ({
-                    ...prev,
-                    [updatedUser._id]: { ...prev[updatedUser._id], isOnline: updatedUser.isOnline, lastActive: updatedUser.lastActive },
-                }));
-            }
-        });
 
-        socket.on('GUEST_COUNT_UPDATED', ({ guestCount }) => {
-            console.log('Received GUEST_COUNT_UPDATED:', guestCount);
-            setGuestUsers(guestCount);
-        });
-
-        // Xử lý tin nhắn riêng
-        socket.on('PRIVATE_MESSAGE', (newMessage) => {
-            console.log('Received PRIVATE_MESSAGE:', JSON.stringify(newMessage, null, 2));
-            setPrivateChats((prev) =>
-                prev.map((chat) =>
-                    chat.receiver._id === newMessage.senderId || chat.receiver._id === newMessage.receiverId
-                        ? { ...chat, messages: [...(chat.messages || []), newMessage] }
-                        : chat
-                )
-            );
-        });
-
-        // Thêm listener cho người dùng đăng ký mới
-        socket.on('NEW_USER_REGISTRATION', (newUser) => {
-            console.log('Received NEW_USER_REGISTRATION:', newUser);
-            setNewRegistrations((prev) => [newUser, ...prev.slice(0, 4)]); // Giữ tối đa 5 người mới
-        });
-
-        const handleVisibilityChange = () => {
-            if (document.visibilityState === 'visible') {
-                console.log('Tab is visible, checking connection');
-                if (socket.connected) {
+                socket.on('connect', () => {
+                    console.log('Socket.IO connected for user list:', socket.id);
+                    socket.emit('joinUserStatus');
                     if (session?.accessToken && session?.user?.id) {
                         socket.emit('reconnect');
                     }
-                } else {
-                    socket.connect();
-                }
-                fetchUsers();
-                fetchNewRegistrations();
+                    setSocketConnected(true);
+                });
+
+                socket.on('connect_error', (err) => {
+                    console.error('Socket.IO connection error:', err.message);
+                    setSocketConnected(false);
+                    setFetchError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
+                });
+
+                socket.on('disconnect', () => {
+                    console.log('Socket.IO disconnected for user list');
+                    setSocketConnected(false);
+                });
+
+                socket.on('USER_STATUS_UPDATED', (updatedUser) => {
+                    console.log('Received USER_STATUS_UPDATED:', updatedUser);
+                    if (updatedUser?._id && isValidObjectId(updatedUser._id)) {
+                        setUsers((prev) => {
+                            const updatedUsers = prev.map((user) =>
+                                user._id === updatedUser._id
+                                    ? { ...user, isOnline: updatedUser.isOnline, lastActive: updatedUser.lastActive }
+                                    : user
+                            );
+                            setOnlineUsers(updatedUsers.filter(user => user.isOnline).length);
+                            return updatedUsers.sort((a, b) => {
+                                if (a.isOnline && !b.isOnline) return -1;
+                                if (!a.isOnline && b.isOnline) return 1;
+                                return a.fullname.localeCompare(b.fullname);
+                            });
+                        });
+                        setUsersCache((prev) => ({
+                            ...prev,
+                            [updatedUser._id]: { ...prev[updatedUser._id], isOnline: updatedUser.isOnline, lastActive: updatedUser.lastActive },
+                        }));
+                    }
+                });
+
+                socket.on('GUEST_COUNT_UPDATED', ({ guestCount }) => {
+                    console.log('Received GUEST_COUNT_UPDATED:', guestCount);
+                    setGuestUsers(guestCount);
+                });
+
+                socket.on('PRIVATE_MESSAGE', (newMessage) => {
+                    console.log('Received PRIVATE_MESSAGE:', JSON.stringify(newMessage, null, 2));
+                    setPrivateChats((prev) =>
+                        prev.map((chat) =>
+                            chat.receiver._id === newMessage.senderId || chat.receiver._id === newMessage.receiverId
+                                ? { ...chat, messages: [...(chat.messages || []), newMessage] }
+                                : chat
+                        )
+                    );
+                });
+
+                socket.on('NEW_USER_REGISTRATION', (newUser) => {
+                    console.log('Received NEW_USER_REGISTRATION:', newUser);
+                    setNewRegistrations((prev) => {
+                        const updated = [newUser, ...prev];
+                        return updated.slice(0, 10); // Giữ tối đa 10 người dùng mới
+                    });
+                });
+
+                return () => {
+                    removeListener();
+                    if (socketRef.current) {
+                        socketRef.current.off('connect');
+                        socketRef.current.off('connect_error');
+                        socketRef.current.off('disconnect');
+                        socketRef.current.off('USER_STATUS_UPDATED');
+                        socketRef.current.off('GUEST_COUNT_UPDATED');
+                        socketRef.current.off('PRIVATE_MESSAGE');
+                        socketRef.current.off('NEW_USER_REGISTRATION');
+                    }
+                };
+            } catch (error) {
+                console.error('Failed to initialize socket:', error);
+                setSocketConnected(false);
             }
         };
 
-        document.addEventListener('visibilitychange', handleVisibilityChange);
+        initializeSocket();
 
         return () => {
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
-            if (socketRef.current) {
-                socketRef.current.disconnect();
-                console.log('Socket.IO disconnected for user list');
-            }
+            mountedRef.current = false;
         };
     }, [session]);
 

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
-import io from 'socket.io-client';
+import { getSocket, isSocketConnected, addConnectionListener } from '../../../utils/Socket';
 import moment from 'moment';
 import 'moment-timezone';
 import LotteryRegistration from '../dangkyquayso';
@@ -14,7 +14,6 @@ import EventRegistrationsList from './detaillichsudangky';
 import NavBarDienDan from '../navbarDiendan';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
-const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
 
 const renderTextContent = (text) => {
     if (!text) return null;
@@ -49,6 +48,8 @@ export default function EventHotNewsDetail() {
         danDe: ''
     });
     const modalRef = useRef(null);
+    const [socketConnected, setSocketConnected] = useState(false);
+    const mountedRef = useRef(true);
 
     useEffect(() => {
         console.log('router.query:', router.query);
@@ -94,69 +95,66 @@ export default function EventHotNewsDetail() {
             return;
         }
 
-        const newSocket = io(SOCKET_URL, {
-            query: { token: session.accessToken }
-        });
-        setSocket(newSocket);
+        mountedRef.current = true;
 
-        newSocket.on('connect', () => {
-            console.log('Socket connected, joining event:', id);
-            newSocket.emit('joinEvent', id);
-        });
-
-        newSocket.on('NEW_COMMENT', (data) => {
-            if (data._id === id) {
-                console.log('Received new comment:', data);
-                setItem(data);
-            }
-        });
-
-        newSocket.on('connect_error', (err) => {
-            console.error('Socket connection error:', err.message);
-            setError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
-        });
-
-        newSocket.on('disconnect', (reason) => {
-            console.log('Socket disconnected:', reason);
-        });
-
-        const checkRegistrationStatus = async () => {
+        const initializeSocket = async () => {
             try {
-                console.log('Checking registration status:', {
-                    userId: session.user.id,
-                    eventId: id,
-                    token: session.accessToken ? 'Present' : 'Missing'
-                });
-                const todayStart = moment().tz('Asia/Ho_Chi_Minh').startOf('day').toDate();
-                const todayEnd = moment().tz('Asia/Ho_Chi_Minh').endOf('day').toDate();
-                const res = await axios.get(`${API_BASE_URL}/api/lottery/check-limit`, {
-                    headers: {
-                        Authorization: `Bearer ${session.accessToken}`,
-                        'Content-Type': 'application/json',
-                    },
-                    params: {
-                        userId: session.user.id,
-                        startDate: todayStart.toISOString(),
-                        endDate: todayEnd.toISOString(),
-                        eventId: id
+                const newSocket = await getSocket();
+                if (!mountedRef.current) return;
+
+                setSocket(newSocket);
+                setSocketConnected(true);
+
+                // Thêm connection listener
+                const removeListener = addConnectionListener((connected) => {
+                    if (mountedRef.current) {
+                        setSocketConnected(connected);
                     }
                 });
-                console.log('Registration status response:', res.data);
-                setHasRegistered(res.data.registrations?.length > 0);
-                setError('');
-            } catch (err) {
-                console.error('Error checking registration status:', err.message, err.response?.data);
-                const errorMessage = err.response?.data?.message || 'Đã có lỗi khi kiểm tra trạng thái đăng ký';
-                setError(errorMessage);
+
+                newSocket.on('connect', () => {
+                    console.log('Connected to WebSocket:', newSocket.id);
+                    setSocketConnected(true);
+                });
+
+                newSocket.on('connect_error', (err) => {
+                    console.error('Socket connection error:', err.message);
+                    setSocketConnected(false);
+                });
+
+                newSocket.on('disconnect', (reason) => {
+                    console.log('Socket disconnected:', reason);
+                    setSocketConnected(false);
+                });
+
+                newSocket.on('NEW_COMMENT', (data) => {
+                    console.log('Received NEW_COMMENT:', data);
+                    if (mountedRef.current && data.eventId === id) {
+                        // Có thể cập nhật UI nếu cần
+                    }
+                });
+
+                return () => {
+                    removeListener();
+                    if (newSocket) {
+                        newSocket.off('connect');
+                        newSocket.off('connect_error');
+                        newSocket.off('disconnect');
+                        newSocket.off('NEW_COMMENT');
+                    }
+                };
+            } catch (error) {
+                console.error('Failed to initialize socket:', error);
+                setSocketConnected(false);
             }
         };
 
-        checkRegistrationStatus();
+        initializeSocket();
 
         return () => {
-            newSocket.disconnect();
+            mountedRef.current = false;
         };
-    }, [status, session, id, router.isReady]);
+    }, [id, router.isReady, status, session]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {

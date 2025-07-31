@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import io from 'socket.io-client';
+import { getSocket, isSocketConnected, addConnectionListener } from '../../utils/Socket';
 import axios from 'axios';
 import Image from 'next/image';
 import star1 from '../asset/img/start 1.png';
@@ -32,8 +32,10 @@ const Leaderboard = () => {
     const [expandedTitles, setExpandedTitles] = useState({});
     const [sortBy, setSortBy] = useState('points');
     const [privateChats, setPrivateChats] = useState([]);
+    const [socketConnected, setSocketConnected] = useState(false);
     const titleRefs = useRef({});
     const socketRef = useRef(null);
+    const mountedRef = useRef(true);
 
     const fetchLeaderboard = async () => {
         setIsLoading(true);
@@ -74,59 +76,95 @@ const Leaderboard = () => {
             return;
         }
 
-        const socket = io(API_BASE_URL, {
-            query: { token: session.accessToken },
-            reconnectionAttempts: 5,
-            reconnectionDelay: 5000,
-        });
-        socketRef.current = socket;
+        mountedRef.current = true;
 
-        socket.on('connect', () => {
-            console.log('Socket.IO connected for leaderboard:', socket.id);
-            socket.emit('joinLeaderboard');
-            socket.emit('joinPrivateRoom', session.user?._id || session.user?.id);
-        });
+        const initializeSocket = async () => {
+            try {
+                const socket = await getSocket();
+                if (!mountedRef.current) return;
 
-        socket.on('connect_error', (err) => {
-            console.error('Socket.IO connection error:', err.message);
-            if (err.message.includes('Authentication error')) {
-                setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
-                signOut({ redirect: false });
-                router.push('/login?error=SessionExpired');
-            } else {
-                setError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
+                socketRef.current = socket;
+                setSocketConnected(true);
+
+                // Thêm connection listener
+                const removeListener = addConnectionListener((connected) => {
+                    if (mountedRef.current) {
+                        setSocketConnected(connected);
+                    }
+                });
+
+                socket.on('connect', () => {
+                    console.log('Socket.IO connected for leaderboard:', socket.id);
+                    socket.emit('joinLeaderboard');
+                    socket.emit('joinPrivateRoom', session.user?._id || session.user?.id);
+                    setSocketConnected(true);
+                });
+
+                socket.on('connect_error', (err) => {
+                    console.error('Socket.IO connection error:', err.message);
+                    setSocketConnected(false);
+                    if (err.message.includes('Authentication error')) {
+                        setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+                        signOut({ redirect: false });
+                        router.push('/login?error=SessionExpired');
+                    } else {
+                        setError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
+                    }
+                });
+
+                socket.on('disconnect', () => {
+                    console.log('Socket.IO disconnected for leaderboard');
+                    setSocketConnected(false);
+                });
+
+                socket.on('USER_UPDATED', (data) => {
+                    console.log('Received USER_UPDATED:', data);
+                    if (mountedRef.current && data?._id && isValidObjectId(data._id)) {
+                        setPlayers((prev) =>
+                            prev.map((player) =>
+                                player._id === data._id
+                                    ? { ...player, img: data.img, titles: data.titles, points: data.points, winCount: data.winCount, role: data.role }
+                                    : player
+                            )
+                        );
+                    }
+                });
+
+                socket.on('PRIVATE_MESSAGE', (newMessage) => {
+                    console.log('Received PRIVATE_MESSAGE:', JSON.stringify(newMessage, null, 2));
+                    if (mountedRef.current) {
+                        setPrivateChats((prev) =>
+                            prev.map((chat) =>
+                                chat.receiver._id === newMessage.senderId || chat.receiver._id === newMessage.receiverId
+                                    ? { ...chat, messages: [...(chat.messages || []), newMessage] }
+                                    : chat
+                            )
+                        );
+                    }
+                });
+
+                return () => {
+                    removeListener();
+                    if (socketRef.current) {
+                        socketRef.current.off('connect');
+                        socketRef.current.off('connect_error');
+                        socketRef.current.off('disconnect');
+                        socketRef.current.off('USER_UPDATED');
+                        socketRef.current.off('PRIVATE_MESSAGE');
+                    }
+                };
+            } catch (error) {
+                console.error('Failed to initialize socket:', error);
+                setSocketConnected(false);
             }
-        });
+        };
 
-        socket.on('USER_UPDATED', (updatedUser) => {
-            console.log('Received USER_UPDATED:', updatedUser);
-            setPlayers((prev) =>
-                prev
-                    .map((player) =>
-                        player._id === updatedUser._id
-                            ? { ...player, points: updatedUser.points, titles: updatedUser.titles, winCount: updatedUser.winCount }
-                            : player
-                    )
-                    .sort((a, b) => (sortBy === 'winCount' ? b.winCount - a.winCount : b.points - a.points))
-            );
-        });
-
-        socket.on('PRIVATE_MESSAGE', (message) => {
-            console.log('Received PRIVATE_MESSAGE:', message);
-            setPrivateChats((prev) =>
-                prev.map((chat) =>
-                    chat.receiver._id === message.senderId || chat.receiver._id === message.receiverId
-                        ? { ...chat, messages: [...(chat.messages || []), message] }
-                        : chat
-                )
-            );
-        });
+        initializeSocket();
 
         return () => {
-            socketRef.current?.disconnect();
-            console.log('Socket.IO disconnected for leaderboard');
+            mountedRef.current = false;
         };
-    }, [session, sortBy]);
+    }, [session?.accessToken, router]);
 
     const handleShowDetails = (player) => {
         console.log('handleShowDetails called with player:', player);

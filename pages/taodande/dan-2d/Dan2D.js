@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import styles from '../../../styles/taodan2D.module.css';
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backendkqxs-1.onrender.com';
 
 // Tách số từ input thành các cặp 2 chữ số và chuẩn hóa định dạng
 const parseAndNormalizeInput = (input) => {

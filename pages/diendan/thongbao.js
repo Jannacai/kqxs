@@ -6,7 +6,6 @@ import { useState, useEffect, useRef } from 'react';
 import moment from 'moment';
 import 'moment-timezone';
 import axios from 'axios';
-import io from 'socket.io-client';
 import styles from '../../styles/lotteryRegistration.module.css';
 import { formatDistanceToNow } from 'date-fns';
 import vi from 'date-fns/locale/vi';
@@ -14,6 +13,7 @@ import Image from 'next/image';
 import { FaGift } from 'react-icons/fa';
 import PrivateChat from './chatrieng';
 import UserInfoModal from './modals/UserInfoModal';
+import { getSocket, isSocketConnected, addConnectionListener } from '../../utils/Socket';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL3 || 'http://localhost:5001';
 
@@ -31,6 +31,8 @@ export default function LotteryRegistrationFeed() {
     const registrationListRef = useRef(null);
     const socketRef = useRef(null);
     const [isAtBottom, setIsAtBottom] = useState(true);
+    const [socketConnected, setSocketConnected] = useState(false);
+    const mountedRef = useRef(true);
 
     const fetchRegistrations = async () => {
         try {
@@ -184,182 +186,212 @@ export default function LotteryRegistrationFeed() {
 
     useEffect(() => {
         console.log('Initializing Socket.IO with URL:', API_BASE_URL);
-        const socket = io(API_BASE_URL, {
-            query: { token: session?.accessToken || '' },
-            reconnectionAttempts: 5,
-            reconnectionDelay: 5000,
-        });
-        socketRef.current = socket;
+        mountedRef.current = true;
 
-        socket.on('connect', () => {
-            console.log('Socket.IO connected successfully:', socket.id);
-            socket.emit('joinLotteryFeed');
-            socket.emit('join', 'leaderboard');
-            if (session?.user?._id || session?.user?.id) {
-                socket.emit('joinPrivateRoom', session.user?._id || session.user?.id);
-            }
-            setError('');
-        });
+        const initializeSocket = async () => {
+            try {
+                const socket = await getSocket();
+                if (!mountedRef.current) return;
 
-        socket.on('NEW_LOTTERY_REGISTRATION', async (data) => {
-            console.log('Received NEW_LOTTERY_REGISTRATION:', data);
-            if (filterType === 'all' || filterType === 'userRegistration') {
-                let updatedData = { ...data };
-                if (data.eventId && !data.eventId.title) {
-                    const event = await fetchEventDetails(data.eventId._id || data.eventId);
-                    if (event) {
-                        updatedData.eventId = { _id: event._id, title: event.title, viewCount: event.viewCount };
+                socketRef.current = socket;
+                setSocketConnected(true);
+
+                // Thêm connection listener
+                const removeListener = addConnectionListener((connected) => {
+                    if (mountedRef.current) {
+                        setSocketConnected(connected);
                     }
-                }
-                setRegistrations((prevRegistrations) => {
-                    if (prevRegistrations.some(r => r._id === updatedData._id)) {
-                        return prevRegistrations.map(r => (r._id === updatedData._id ? updatedData : r));
+                });
+
+                socket.on('connect', () => {
+                    console.log('Socket.IO connected successfully:', socket.id);
+                    socket.emit('joinLotteryFeed');
+                    socket.emit('join', 'leaderboard');
+                    if (session?.user?._id || session?.user?.id) {
+                        socket.emit('joinPrivateRoom', session.user?._id || session.user?.id);
                     }
-                    const updatedRegistrations = [...prevRegistrations, updatedData].sort(
-                        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+                    setError('');
+                    setSocketConnected(true);
+                });
+
+                socket.on('connect_error', (err) => {
+                    console.error('Socket.IO connection error:', err.message);
+                    setSocketConnected(false);
+                    setError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
+                });
+
+                socket.on('disconnect', () => {
+                    console.log('Socket.IO disconnected');
+                    setSocketConnected(false);
+                });
+
+                socket.on('NEW_LOTTERY_REGISTRATION', async (data) => {
+                    console.log('Received NEW_LOTTERY_REGISTRATION:', data);
+                    if (filterType === 'all' || filterType === 'userRegistration') {
+                        let updatedData = { ...data };
+                        if (data.eventId && !data.eventId.title) {
+                            const event = await fetchEventDetails(data.eventId._id || data.eventId);
+                            if (event) {
+                                updatedData.eventId = { _id: event._id, title: event.title, viewCount: event.viewCount };
+                            }
+                        }
+                        setRegistrations((prevRegistrations) => {
+                            if (prevRegistrations.some(r => r._id === updatedData._id)) {
+                                return prevRegistrations.map(r => (r._id === updatedData._id ? updatedData : r));
+                            }
+                            const updatedRegistrations = [...prevRegistrations, updatedData].sort(
+                                (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+                            );
+                            return updatedRegistrations.slice(0, 100);
+                        });
+                        if (registrationListRef.current && isAtBottom) {
+                            registrationListRef.current.scrollTop = 0;
+                        }
+                    }
+                });
+
+                socket.on('LOTTERY_RESULT_CHECKED', (data) => {
+                    console.log('Received LOTTERY_RESULT_CHECKED:', data);
+                    if (filterType === 'all' || filterType === 'userRegistration') {
+                        setRegistrations((prevRegistrations) => {
+                            if (prevRegistrations.some(r => r._id === data._id)) {
+                                return prevRegistrations.map(r => (r._id === data._id ? data : r));
+                            }
+                            return prevRegistrations;
+                        });
+                        if (registrationListRef.current && isAtBottom) {
+                            registrationListRef.current.scrollTop = 0;
+                        }
+                    }
+                });
+
+                socket.on('USER_UPDATED', (data) => {
+                    console.log('Received USER_UPDATED:', data);
+                    setRegistrations((prevRegistrations) =>
+                        prevRegistrations.map((r) =>
+                            r.userId._id === data._id ? { ...r, userId: { ...r.userId, img: data.img, titles: data.titles, points: data.points, winCount: data.winCount, role: data.role } } : r
+                        )
                     );
-                    return updatedRegistrations.slice(0, 100);
+                    setRewardNotifications((prevNotifications) =>
+                        prevNotifications.map((n) =>
+                            n.userId._id === data._id ? { ...n, userId: { ...n.userId, img: data.img, titles: data.titles, points: data.points, winCount: data.winCount, role: data.role } } : n
+                        )
+                    );
+                    setEventNotifications((prevNotifications) =>
+                        prevNotifications.map((n) =>
+                            n.userId._id === data._id ? { ...n, userId: { ...n.userId, img: data.img, titles: data.titles, points: data.points, winCount: data.winCount, role: data.role } } : n
+                        )
+                    );
                 });
-                if (registrationListRef.current && isAtBottom) {
-                    registrationListRef.current.scrollTop = 0;
-                }
-            }
-        });
 
-        socket.on('LOTTERY_RESULT_CHECKED', (data) => {
-            console.log('Received LOTTERY_RESULT_CHECKED:', data);
-            if (filterType === 'all' || filterType === 'userRegistration') {
-                setRegistrations((prevRegistrations) => {
-                    if (prevRegistrations.some(r => r._id === data._id)) {
-                        return prevRegistrations.map(r => (r._id === data._id ? data : r));
+                socket.on('UPDATE_LOTTERY_REGISTRATION', (data) => {
+                    console.log('Received UPDATE_LOTTERY_REGISTRATION:', data);
+                    if (filterType === 'all' || filterType === 'userRegistration') {
+                        setRegistrations((prevRegistrations) =>
+                            prevRegistrations.map((r) => (r._id === data._id ? data : r))
+                        );
+                        if (registrationListRef.current && isAtBottom) {
+                            registrationListRef.current.scrollTop = 0;
+                        }
                     }
-                    return prevRegistrations;
                 });
-                if (registrationListRef.current && isAtBottom) {
-                    registrationListRef.current.scrollTop = 0;
-                }
-            }
-        });
 
-        socket.on('USER_UPDATED', (data) => {
-            console.log('Received USER_UPDATED:', data);
-            setRegistrations((prevRegistrations) =>
-                prevRegistrations.map((r) =>
-                    r.userId._id === data._id ? { ...r, userId: { ...r.userId, img: data.img, titles: data.titles, points: data.points, winCount: data.winCount, role: data.role } } : r
-                )
-            );
-            setRewardNotifications((prevNotifications) =>
-                prevNotifications.map((n) =>
-                    n.userId._id === data._id ? { ...n, userId: { ...n.userId, img: data.img, titles: data.titles, points: data.points, winCount: data.winCount, role: data.role } } : n
-                )
-            );
-            setEventNotifications((prevNotifications) =>
-                prevNotifications.map((n) =>
-                    n.userId._id === data._id ? { ...n, userId: { ...n.userId, img: data.img, titles: data.titles, points: data.points, winCount: data.winCount, role: data.role } } : n
-                )
-            );
-        });
+                socket.on('USER_REWARDED', async (data) => {
+                    console.log('Received USER_REWARDED:', data);
+                    if (filterType === 'all' || filterType === 'reward') {
+                        let updatedData = { ...data };
+                        const rewardNotification = {
+                            _id: `reward_${data.userId}_${Date.now()} `,
+                            userId: updatedData.userId,
+                            region: data.region,
+                            numbers: {},
+                            result: { isChecked: true, isWin: false },
+                            createdAt: new Date(data.awardedAt || Date.now()),
+                            isReward: true,
+                            pointsAwarded: data.pointsAwarded,
+                            eventTitle: data.eventTitle,
+                            eventId: data.eventId ? data.eventId : null,
+                        };
+                        setRewardNotifications((prevNotifications) => {
+                            const updatedNotifications = [...prevNotifications, rewardNotification].sort(
+                                (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+                            );
+                            return updatedNotifications.slice(0, 100);
+                        });
+                        if (registrationListRef.current && isAtBottom) {
+                            registrationListRef.current.scrollTop = 0;
+                        }
+                    }
+                });
 
-        socket.on('UPDATE_LOTTERY_REGISTRATION', (data) => {
-            console.log('Received UPDATE_LOTTERY_REGISTRATION:', data);
-            if (filterType === 'all' || filterType === 'userRegistration') {
-                setRegistrations((prevRegistrations) =>
-                    prevRegistrations.map((r) => (r._id === data._id ? data : r))
-                );
-                if (registrationListRef.current && isAtBottom) {
-                    registrationListRef.current.scrollTop = 0;
-                }
-            }
-        });
+                socket.on('NEW_EVENT_NOTIFICATION', async (data) => {
+                    console.log('Received NEW_EVENT_NOTIFICATION:', data);
+                    if (filterType === 'all' || filterType === 'eventNews') {
+                        let updatedData = { ...data };
+                        if (data.eventId && typeof data.eventId !== 'string') {
+                            updatedData.eventId = data.eventId._id ? data.eventId._id.toString() : data.eventId;
+                        }
+                        if (!data.title && data.eventId) {
+                            const event = await fetchEventDetails(data.eventId);
+                            if (event) {
+                                updatedData.title = event.title;
+                                updatedData.eventId = event._id.toString();
+                            }
+                        }
+                        setEventNotifications((prevNotifications) => {
+                            const updatedNotifications = [...prevNotifications, updatedData].sort(
+                                (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+                            );
+                            return updatedNotifications.slice(0, 100);
+                        });
+                        if (registrationListRef.current && isAtBottom) {
+                            registrationListRef.current.scrollTop = 0;
+                        }
+                    }
+                });
 
-        socket.on('USER_REWARDED', async (data) => {
-            console.log('Received USER_REWARDED:', data);
-            if (filterType === 'all' || filterType === 'reward') {
-                let updatedData = { ...data };
-                const rewardNotification = {
-                    _id: `reward_${data.userId}_${Date.now()} `,
-                    userId: updatedData.userId,
-                    region: data.region,
-                    numbers: {},
-                    result: { isChecked: true, isWin: false },
-                    createdAt: new Date(data.awardedAt || Date.now()),
-                    isReward: true,
-                    pointsAwarded: data.pointsAwarded,
-                    eventTitle: data.eventTitle,
-                    eventId: data.eventId ? data.eventId : null,
+                socket.on('LOTTERY_RESULT_ERROR', (data) => {
+                    console.error('Received LOTTERY_RESULT_ERROR:', data);
+                    setError(data.message || 'Lỗi khi đối chiếu kết quả xổ số');
+                });
+
+                socket.on('PRIVATE_MESSAGE', (newMessage) => {
+                    console.log('Received PRIVATE_MESSAGE:', JSON.stringify(newMessage, null, 2));
+                    setPrivateChats((prev) =>
+                        prev.map((chat) =>
+                            chat.receiver._id === newMessage.senderId || chat.receiver._id === newMessage.receiverId
+                                ? { ...chat, messages: [...(chat.messages || []), newMessage] }
+                                : chat
+                        )
+                    );
+                });
+
+                return () => {
+                    removeListener();
+                    if (socketRef.current) {
+                        socketRef.current.off('connect');
+                        socketRef.current.off('connect_error');
+                        socketRef.current.off('disconnect');
+                        socketRef.current.off('NEW_LOTTERY_REGISTRATION');
+                        socketRef.current.off('LOTTERY_RESULT_CHECKED');
+                        socketRef.current.off('USER_UPDATED');
+                        socketRef.current.off('UPDATE_LOTTERY_REGISTRATION');
+                        socketRef.current.off('USER_REWARDED');
+                        socketRef.current.off('NEW_EVENT_NOTIFICATION');
+                        socketRef.current.off('LOTTERY_RESULT_ERROR');
+                        socketRef.current.off('PRIVATE_MESSAGE');
+                    }
                 };
-                setRewardNotifications((prevNotifications) => {
-                    const updatedNotifications = [...prevNotifications, rewardNotification].sort(
-                        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-                    );
-                    return updatedNotifications.slice(0, 100);
-                });
-                if (registrationListRef.current && isAtBottom) {
-                    registrationListRef.current.scrollTop = 0;
-                }
+            } catch (error) {
+                console.error('Failed to initialize socket:', error);
+                setSocketConnected(false);
             }
-        });
+        };
 
-        socket.on('NEW_EVENT_NOTIFICATION', async (data) => {
-            console.log('Received NEW_EVENT_NOTIFICATION:', data);
-            if (filterType === 'all' || filterType === 'eventNews') {
-                let updatedData = { ...data };
-                if (data.eventId && typeof data.eventId !== 'string') {
-                    updatedData.eventId = data.eventId._id ? data.eventId._id.toString() : data.eventId;
-                }
-                if (!data.title && data.eventId) {
-                    const event = await fetchEventDetails(data.eventId);
-                    if (event) {
-                        updatedData.title = event.title;
-                        updatedData.eventId = event._id.toString();
-                    }
-                }
-                setEventNotifications((prevNotifications) => {
-                    const updatedNotifications = [...prevNotifications, updatedData].sort(
-                        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-                    );
-                    return updatedNotifications.slice(0, 100);
-                });
-                if (registrationListRef.current && isAtBottom) {
-                    registrationListRef.current.scrollTop = 0;
-                }
-            }
-        });
-
-        socket.on('LOTTERY_RESULT_ERROR', (data) => {
-            console.error('Received LOTTERY_RESULT_ERROR:', data);
-            setError(data.message || 'Lỗi khi đối chiếu kết quả xổ số');
-        });
-
-        socket.on('connect_error', (err) => {
-            console.error('Socket.IO connection error:', err.message);
-            setError(
-                err.message.includes('Authentication error')
-                    ? 'Không thể kết nối thời gian thực do thiếu quyền. Một số thông báo có thể không cập nhật.'
-                    : 'Mất kết nối thời gian thực. Vui lòng làm mới trang.'
-            );
-        });
-
-        socket.on('reconnect_attempt', (attempt) => {
-            console.log(`Socket.IO reconnect attempt ${attempt} `);
-        });
-
-        socket.on('reconnect', () => {
-            console.log('Reconnected to Socket.IO');
-            socket.emit('joinLotteryFeed');
-            socket.emit('join', 'leaderboard');
-            if (session?.user?._id || session?.user?.id) {
-                socket.emit('joinPrivateRoom', session.user?._id || session.user?.id);
-            }
-        });
-
-        socket.on('disconnect', (reason) => {
-            console.log('Socket.IO disconnected:', reason);
-        });
+        initializeSocket();
 
         return () => {
-            console.log('Cleaning up Socket.IO connection');
-            socket.disconnect();
+            mountedRef.current = false;
         };
     }, [filterType, session]);
 

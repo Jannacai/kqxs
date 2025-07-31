@@ -13,6 +13,7 @@ import { FaGift, FaBell, FaUser, FaSignOutAlt, FaCog, FaImage } from 'react-icon
 import Image from 'next/image';
 import { toast } from 'react-toastify';
 import styles from '../styles/userAvatar.module.css';
+import { getSocket, isSocketConnected, addConnectionListener } from '../utils/Socket';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
 
@@ -32,6 +33,8 @@ const UserAvatar = () => {
     const notificationListRef = useRef(null);
     const [isAtBottom, setIsAtBottom] = useState(true);
     const socketRef = useRef(null);
+    const [socketConnected, setSocketConnected] = useState(false);
+    const mountedRef = useRef(true);
 
     // Lấy thông tin người dùng
     useEffect(() => {
@@ -169,113 +172,136 @@ const UserAvatar = () => {
             return;
         }
 
-        const socket = io(API_BASE_URL, {
-            query: { token: session.accessToken },
-            reconnectionAttempts: 5,
-            reconnectionDelay: 5000,
-        });
-        socketRef.current = socket;
+        mountedRef.current = true;
 
-        socket.on('connect', () => {
-            console.log('Socket.IO connected successfully:', socket.id);
-            socket.emit('joinRewardFeed');
-            socket.emit('joinEventFeed');
-            socket.emit('joinRoom', `user:${userId} `);
-            console.log(`Client joined room: user:${userId} `);
-            setNotificationError('');
-        });
+        const initializeSocket = async () => {
+            try {
+                const socket = await getSocket();
+                if (!mountedRef.current) return;
 
-        socket.on('USER_REWARDED', (data) => {
-            console.log('Received USER_REWARDED:', JSON.stringify(data, null, 2));
-            if (data.userId !== userId) {
-                console.log('Ignoring USER_REWARDED for another user:', data.userId);
-                return;
+                socketRef.current = socket;
+                setSocketConnected(true);
+
+                // Thêm connection listener
+                const removeListener = addConnectionListener((connected) => {
+                    if (mountedRef.current) {
+                        setSocketConnected(connected);
+                    }
+                });
+
+                socket.on('connect', () => {
+                    console.log('Socket.IO connected successfully:', socket.id);
+                    socket.emit('joinRewardFeed');
+                    socket.emit('joinEventFeed');
+                    socket.emit('joinRoom', `user:${userId}`);
+                    console.log(`Client joined room: user:${userId}`);
+                    setNotificationError('');
+                    setSocketConnected(true);
+                });
+
+                socket.on('connect_error', (error) => {
+                    console.error('Socket.IO connection error:', error.message);
+                    setSocketConnected(false);
+                    if (error.message.includes('Authentication error')) {
+                        setNotificationError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+                        signOut({ redirect: false });
+                        router.push('/login?error=SessionExpired');
+                    } else {
+                        setNotificationError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
+                    }
+                });
+
+                socket.on('disconnect', (reason) => {
+                    console.log('Socket.IO disconnected:', reason);
+                    setSocketConnected(false);
+                });
+
+                socket.on('USER_REWARDED', (data) => {
+                    console.log('Received USER_REWARDED:', JSON.stringify(data, null, 2));
+                    if (data.userId !== userId) {
+                        console.log('Ignoring USER_REWARDED for another user:', data.userId);
+                        return;
+                    }
+                    const notification = {
+                        _id: data.notificationId,
+                        userId: {
+                            _id: data.userId,
+                            fullname: data.fullname,
+                            img: data.img,
+                            titles: data.titles || [],
+                            points: data.points,
+                            winCount: data.winCount || 0
+                        },
+                        type: 'USER_REWARDED',
+                        content: `Bạn đã được phát thưởng ${data.pointsAwarded} điểm cho sự kiện ${data.eventTitle}!`,
+                        isRead: false,
+                        createdAt: new Date(data.awardedAt),
+                        eventId: data.eventId ? data.eventId.toString() : null
+                    };
+                    setNotifications((prev) => {
+                        if (prev.some(n => n._id === notification._id)) {
+                            console.log('Duplicate USER_REWARDED ignored:', notification._id);
+                            return prev;
+                        }
+                        console.log('Adding USER_REWARDED:', notification);
+                        const updated = [notification, ...prev].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 50);
+                        if (isAtBottom && notificationListRef.current) {
+                            notificationListRef.current.scrollTop = notificationListRef.current.scrollHeight;
+                        }
+                        return updated;
+                    });
+                });
+
+                socket.on('NEW_EVENT', (data) => {
+                    console.log('Received NEW_EVENT:', JSON.stringify(data, null, 2));
+                    const notification = {
+                        _id: `temp_${Date.now()}`,
+                        userId: data.createdBy || { fullname: 'Hệ thống', img: null },
+                        type: 'NEW_EVENT',
+                        content: `HOT!! ${data.type === 'event' ? 'sự kiện' : 'tin hot'}: ${data.title}`,
+                        isRead: false,
+                        createdAt: new Date(data.createdAt),
+                        eventId: data._id ? data._id.toString() : null
+                    };
+                    setNotifications((prev) => {
+                        if (prev.some(n => n.eventId === notification.eventId && n.type === 'NEW_EVENT')) {
+                            console.log('Duplicate NEW_EVENT ignored:', notification.eventId);
+                            return prev;
+                        }
+                        console.log('Adding NEW_EVENT:', notification);
+                        const updated = [notification, ...prev].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 50);
+                        if (isAtBottom && notificationListRef.current) {
+                            notificationListRef.current.scrollTop = notificationListRef.current.scrollHeight;
+                        }
+                        return updated;
+                    });
+                    fetchNotifications();
+                });
+
+                return () => {
+                    removeListener();
+                    if (socketRef.current) {
+                        socketRef.current.off('connect');
+                        socketRef.current.off('connect_error');
+                        socketRef.current.off('disconnect');
+                        socketRef.current.off('USER_REWARDED');
+                        socketRef.current.off('NEW_EVENT');
+                    }
+                };
+            } catch (error) {
+                console.error('Failed to initialize socket:', error);
+                setSocketConnected(false);
             }
-            const notification = {
-                _id: data.notificationId,
-                userId: {
-                    _id: data.userId,
-                    fullname: data.fullname,
-                    img: data.img,
-                    titles: data.titles || [],
-                    points: data.points,
-                    winCount: data.winCount || 0
-                },
-                type: 'USER_REWARDED',
-                content: `Bạn đã được phát thưởng ${data.pointsAwarded} điểm cho sự kiện ${data.eventTitle} !`,
-                isRead: false,
-                createdAt: new Date(data.awardedAt),
-                eventId: data.eventId ? data.eventId.toString() : null
-            };
-            setNotifications((prev) => {
-                if (prev.some(n => n._id === notification._id)) {
-                    console.log('Duplicate USER_REWARDED ignored:', notification._id);
-                    return prev;
-                }
-                console.log('Adding USER_REWARDED:', notification);
-                const updated = [notification, ...prev].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 50);
-                if (isAtBottom && notificationListRef.current) {
-                    notificationListRef.current.scrollTop = notificationListRef.current.scrollHeight;
-                }
-                return updated;
-            });
-        });
+        };
 
-        socket.on('NEW_EVENT', (data) => {
-            console.log('Received NEW_EVENT:', JSON.stringify(data, null, 2));
-            const notification = {
-                _id: `temp_${Date.now()} `, // ID tạm thời
-                userId: data.createdBy || { fullname: 'Hệ thống', img: null },
-                type: 'NEW_EVENT',
-                content: `HOT!! ${data.type === 'event' ? 'sự kiện' : 'tin hot'}: ${data.title} `,
-                isRead: false,
-                createdAt: new Date(data.createdAt),
-                eventId: data._id ? data._id.toString() : null
-            };
-            setNotifications((prev) => {
-                if (prev.some(n => n.eventId === notification.eventId && n.type === 'NEW_EVENT')) {
-                    console.log('Duplicate NEW_EVENT ignored:', notification.eventId);
-                    return prev;
-                }
-                console.log('Adding NEW_EVENT:', notification);
-                const updated = [notification, ...prev].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 50);
-                if (isAtBottom && notificationListRef.current) {
-                    notificationListRef.current.scrollTop = notificationListRef.current.scrollHeight;
-                }
-                return updated;
-            });
-            fetchNotifications(); // Lấy lại danh sách để có notification._id thực
-        });
-
-        socket.on('connect_error', (error) => {
-            console.error('Socket.IO connection error:', error.message);
-            if (error.message.includes('Authentication error')) {
-                setNotificationError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
-                signOut({ redirect: false });
-                router.push('/login?error=SessionExpired');
-            } else {
-                setNotificationError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
-            }
-        });
-
-        socket.on('reconnect', () => {
-            console.log('Reconnected to Socket.IO');
-            socket.emit('joinRewardFeed');
-            socket.emit('joinEventFeed');
-            socket.emit('joinRoom', `user:${userId} `);
-        });
-
-        socket.on('disconnect', (reason) => {
-            console.log('Socket.IO disconnected:', reason);
-        });
+        initializeSocket();
 
         if (status === "authenticated") {
             fetchNotifications();
         }
 
         return () => {
-            console.log('Cleaning up Socket.IO connection');
-            socket.disconnect();
+            mountedRef.current = false;
         };
     }, [status, session, router]);
 

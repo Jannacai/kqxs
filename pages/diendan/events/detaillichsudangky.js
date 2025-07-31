@@ -6,17 +6,14 @@ import axios from 'axios';
 import moment from 'moment';
 import 'moment-timezone';
 import Image from 'next/image';
-import io from 'socket.io-client';
+import { getSocket, isSocketConnected, addConnectionListener } from '../../../utils/Socket';
+import { isValidObjectId } from '../../../utils/validation';
 import styles from '../../../styles/detailichsu.module.css';
 import UserInfoModal from '../modals/UserInfoModal';
 import PrivateChat from '../chatrieng';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
 const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
-
-const isValidObjectId = (id) => {
-    return /^[0-9a-fA-F]{24}$/.test(id);
-};
 
 const getDisplayName = (fullname) => {
     if (!fullname) return 'User';
@@ -42,7 +39,9 @@ export default function EventRegistrationsList({ eventId }) {
     const [selectedUser, setSelectedUser] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [privateChats, setPrivateChats] = useState([]);
+    const [socketConnected, setSocketConnected] = useState(false);
     const socketRef = useRef(null);
+    const mountedRef = useRef(true);
 
     const checkLotteryResult = (registration) => {
         if (registration.result && registration.result.isChecked) {
@@ -174,93 +173,111 @@ export default function EventRegistrationsList({ eventId }) {
     }, [status, fetchRegistrations]);
 
     useEffect(() => {
-        if (!eventId || !isValidObjectId(eventId)) {
+        if (!session?.accessToken || !eventId) {
             console.error('Invalid eventId for Socket.IO:', eventId);
             return;
         }
 
-        const socket = io(SOCKET_URL, {
-            query: session?.accessToken ? { token: session.accessToken } : {},
-            reconnectionAttempts: 5,
-            reconnectionDelay: 5000,
-        });
-        socketRef.current = socket;
+        mountedRef.current = true;
 
-        socket.on('connect', () => {
-            console.log('Socket.IO connected for registrations:', socket.id);
-            socket.emit('joinRoom', `event_${eventId}`);
-            socket.emit('joinPrivateRoom', session?.user?._id || session?.user?.id);
-        });
+        const initializeSocket = async () => {
+            try {
+                const socket = await getSocket();
+                if (!mountedRef.current) return;
 
-        socket.on('NEW_LOTTERY_REGISTRATION', (newRegistration) => {
-            console.log('Received NEW_LOTTERY_REGISTRATION:', newRegistration);
-            if (newRegistration?.eventId?._id === eventId) {
-                setRegistrations((prev) => [newRegistration, ...prev].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
-                setRegistrationCount((prev) => prev + 1);
-                if (newRegistration.userId?._id && isValidObjectId(newRegistration.userId._id)) {
-                    setUsersCache((prev) => ({
-                        ...prev,
-                        [newRegistration.userId._id]: newRegistration.userId,
-                    }));
-                }
+                socketRef.current = socket;
+                setSocketConnected(true);
+
+                // Thêm connection listener
+                const removeListener = addConnectionListener((connected) => {
+                    if (mountedRef.current) {
+                        setSocketConnected(connected);
+                    }
+                });
+
+                socket.on('connect', () => {
+                    console.log('Socket.IO connected for registrations:', socket.id);
+                    socket.emit('joinEvent', eventId);
+                    setSocketConnected(true);
+                });
+
+                socket.on('connect_error', (err) => {
+                    console.error('Socket.IO connection error:', err.message);
+                    setSocketConnected(false);
+                    setError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
+                });
+
+                socket.on('disconnect', () => {
+                    console.log('Socket.IO disconnected for registrations');
+                    setSocketConnected(false);
+                });
+
+                socket.on('NEW_REGISTRATION', (newRegistration) => {
+                    console.log('Received NEW_REGISTRATION:', JSON.stringify(newRegistration, null, 2));
+                    if (mountedRef.current && newRegistration.eventId === eventId) {
+                        setRegistrations((prev) => {
+                            if (prev.some((reg) => reg._id === newRegistration._id)) return prev;
+                            return [newRegistration, ...prev];
+                        });
+                        setRegistrationCount((prev) => prev + 1);
+                    }
+                });
+
+                socket.on('REGISTRATION_UPDATED', (updatedRegistration) => {
+                    console.log('Received REGISTRATION_UPDATED:', JSON.stringify(updatedRegistration, null, 2));
+                    if (mountedRef.current && updatedRegistration.eventId === eventId) {
+                        setRegistrations((prev) =>
+                            prev.map((reg) =>
+                                reg._id === updatedRegistration._id ? updatedRegistration : reg
+                            )
+                        );
+                    }
+                });
+
+                socket.on('USER_UPDATED', (data) => {
+                    console.log('Received USER_UPDATED:', data);
+                    if (mountedRef.current && data?._id && isValidObjectId(data._id)) {
+                        setUsersCache((prev) => ({ ...prev, [data._id]: data }));
+                    }
+                });
+
+                socket.on('PRIVATE_MESSAGE', (newMessage) => {
+                    console.log('Received PRIVATE_MESSAGE:', JSON.stringify(newMessage, null, 2));
+                    if (mountedRef.current) {
+                        setPrivateChats((prev) =>
+                            prev.map((chat) =>
+                                chat.receiver._id === newMessage.senderId || chat.receiver._id === newMessage.receiverId
+                                    ? { ...chat, messages: [...(chat.messages || []), newMessage] }
+                                    : chat
+                            )
+                        );
+                    }
+                });
+
+                return () => {
+                    removeListener();
+                    if (socketRef.current) {
+                        socketRef.current.off('connect');
+                        socketRef.current.off('connect_error');
+                        socketRef.current.off('disconnect');
+                        socketRef.current.off('NEW_REGISTRATION');
+                        socketRef.current.off('REGISTRATION_UPDATED');
+                        socketRef.current.off('USER_UPDATED');
+                        socketRef.current.off('PRIVATE_MESSAGE');
+                    }
+                };
+            } catch (error) {
+                console.error('Failed to initialize socket:', error);
+                setSocketConnected(false);
             }
-        });
+        };
 
-        socket.on('UPDATE_LOTTERY_REGISTRATION', (updatedRegistration) => {
-            console.log('Received UPDATE_LOTTERY_REGISTRATION:', updatedRegistration);
-            if (updatedRegistration?.eventId?._id === eventId) {
-                setRegistrations((prev) =>
-                    prev.map(reg => reg._id === updatedRegistration._id ? updatedRegistration : reg)
-                        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-                );
-                if (updatedRegistration.userId?._id && isValidObjectId(updatedRegistration.userId._id)) {
-                    setUsersCache((prev) => ({
-                        ...prev,
-                        [updatedRegistration.userId._id]: updatedRegistration.userId,
-                    }));
-                }
-            }
-        });
-
-        socket.on('LOTTERY_RESULT_CHECKED', (checkedRegistration) => {
-            console.log('Received LOTTERY_RESULT_CHECKED:', checkedRegistration);
-            if (checkedRegistration?.eventId?._id === eventId) {
-                setRegistrations((prev) =>
-                    prev.map(reg => reg._id === checkedRegistration._id ? checkedRegistration : reg)
-                        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-                );
-                if (checkedRegistration.userId?._id && isValidObjectId(checkedRegistration.userId._id)) {
-                    setUsersCache((prev) => ({
-                        ...prev,
-                        [checkedRegistration.userId._id]: checkedRegistration.userId,
-                    }));
-                }
-            }
-        });
-
-        socket.on('USER_UPDATED', (updatedUser) => {
-            console.log('Received USER_UPDATED:', updatedUser);
-            if (updatedUser?._id && isValidObjectId(updatedUser._id)) {
-                setUsersCache((prev) => ({ ...prev, [updatedUser._id]: updatedUser }));
-            }
-        });
-
-        socket.on('connect_error', (err) => {
-            console.error('Socket.IO connection error:', err.message);
-            if (err.message.includes('Authentication error')) {
-                setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
-                signOut({ redirect: false });
-                window.location.href = '/login?error=SessionExpired';
-            } else {
-                setError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
-            }
-        });
+        initializeSocket();
 
         return () => {
-            socketRef.current?.disconnect();
-            console.log('Socket.IO disconnected for registrations');
+            mountedRef.current = false;
         };
-    }, [eventId, session?.accessToken, session?.user?._id]);
+    }, [session?.accessToken, eventId]);
 
     if (status === 'loading') return <div className={styles.loading}>Đang tải...</div>;
 

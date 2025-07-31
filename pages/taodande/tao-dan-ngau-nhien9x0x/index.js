@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import styles from '../../../styles/NgauNhien9x.module.css';
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backendkqxs-1.onrender.com';
 import ThongKe from '../../../component/thongKe';
 import CongCuHot from '../../../component/CongCuHot';
 

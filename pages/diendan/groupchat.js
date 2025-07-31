@@ -7,16 +7,13 @@ import axios from 'axios';
 import moment from 'moment';
 import 'moment-timezone';
 import Image from 'next/image';
-import io from 'socket.io-client';
+import { getSocket, isSocketConnected, addConnectionListener } from '../../utils/Socket';
+import { isValidObjectId } from '../../utils/validation';
 import styles from '../../styles/groupchat.module.css';
 import PrivateChat from './chatrieng';
 import UserInfoModal from './modals/UserInfoModal';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
-
-const isValidObjectId = (id) => {
-    return /^[0-9a-fA-F]{24}$/.test(id);
-};
 
 const getDisplayName = (fullname) => {
     if (!fullname) return 'User';
@@ -57,8 +54,10 @@ export default function GroupChat({ session: serverSession }) {
     const [totalMessages, setTotalMessages] = useState(0);
     const [isRulesCollapsed, setIsRulesCollapsed] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [socketConnected, setSocketConnected] = useState(false);
     const socketRef = useRef(null);
     const messagesContainerRef = useRef(null);
+    const mountedRef = useRef(true);
 
     useEffect(() => {
         console.log('Session status:', status);
@@ -144,84 +143,115 @@ export default function GroupChat({ session: serverSession }) {
             return;
         }
 
-        const socket = io(API_BASE_URL, {
-            query: { token: session.accessToken },
-            reconnectionAttempts: 5,
-            reconnectionDelay: 5000,
-        });
-        socketRef.current = socket;
+        mountedRef.current = true;
 
-        socket.on('connect', () => {
-            console.log('Socket.IO connected for chat:', socket.id);
-            socket.emit('joinChat');
-            console.log('Joining private room for user:', userInfo._id);
-            socket.emit('joinPrivateRoom', userInfo._id);
-        });
+        const initializeSocket = async () => {
+            try {
+                const socket = await getSocket();
+                if (!mountedRef.current) return;
 
-        socket.on('connect_error', (err) => {
-            console.error('Socket.IO connection error:', err.message);
-            if (err.message.includes('Authentication error')) {
-                setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
-                signOut({ redirect: false });
-                router.push('/login?error=SessionExpired');
-            } else {
-                setFetchError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
-            }
-        });
+                socketRef.current = socket;
+                setSocketConnected(true);
 
-        socket.on('NEW_MESSAGE', (newMessage) => {
-            console.log('Received NEW_MESSAGE:', JSON.stringify(newMessage, null, 2));
-            if (
-                newMessage &&
-                newMessage.userId?._id &&
-                isValidObjectId(newMessage.userId._id) &&
-                newMessage.content
-            ) {
-                setUsersCache((prev) => ({
-                    ...prev,
-                    [newMessage.userId._id]: newMessage.userId,
-                }));
-                setMessages((prev) => {
-                    if (prev.some((msg) => msg._id === newMessage._id)) return prev;
-                    const updatedMessages = [newMessage, ...prev];
-                    setTotalMessages(updatedMessages.length);
-                    return updatedMessages;
+                // Thêm connection listener
+                const removeListener = addConnectionListener((connected) => {
+                    if (mountedRef.current) {
+                        setSocketConnected(connected);
+                    }
                 });
-            } else {
-                console.warn('Ignoring invalid NEW_MESSAGE:', newMessage);
-            }
-        });
 
-        socket.on('PRIVATE_MESSAGE', (newMessage) => {
-            console.log('Received PRIVATE_MESSAGE:', JSON.stringify(newMessage, null, 2));
-            setPrivateChats((prev) =>
-                prev.map((chat) =>
-                    chat.receiver._id === newMessage.senderId || chat.receiver._id === newMessage.receiverId
-                        ? { ...chat, messages: [...(chat.messages || []), newMessage] }
-                        : chat
-                )
-            );
-        });
+                socket.on('connect', () => {
+                    console.log('Socket.IO connected for chat:', socket.id);
+                    socket.emit('joinChat');
+                    console.log('Joining private room for user:', userInfo._id);
+                    socket.emit('joinPrivateRoom', userInfo._id);
+                    setSocketConnected(true);
+                });
 
-        socket.on('USER_UPDATED', (updatedUser) => {
-            console.log('Received USER_UPDATED:', updatedUser);
-            if (updatedUser?._id && isValidObjectId(updatedUser._id)) {
-                setUsersCache((prev) => ({ ...prev, [updatedUser._id]: updatedUser }));
-            }
-        });
+                socket.on('connect_error', (err) => {
+                    console.error('Socket.IO connection error:', err.message);
+                    setSocketConnected(false);
+                    if (err.message.includes('Authentication error')) {
+                        setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+                        signOut({ redirect: false });
+                        router.push('/login?error=SessionExpired');
+                    } else {
+                        setFetchError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
+                    }
+                });
 
-        socket.on('ONLINE_COUNT_UPDATED', ({ count }) => {
-            console.log('Received ONLINE_COUNT_UPDATED:', count);
-            setOnlineCount(count);
-        });
+                socket.on('disconnect', () => {
+                    console.log('Socket.IO disconnected for chat');
+                    setSocketConnected(false);
+                });
 
-        return () => {
-            if (socketRef.current) {
-                socketRef.current.disconnect();
-                console.log('Socket.IO disconnected for chat');
+                socket.on('NEW_MESSAGE', (newMessage) => {
+                    console.log('Received NEW_MESSAGE:', JSON.stringify(newMessage, null, 2));
+                    if (
+                        newMessage &&
+                        newMessage.userId?._id &&
+                        isValidObjectId(newMessage.userId._id) &&
+                        newMessage.content
+                    ) {
+                        setUsersCache((prev) => ({
+                            ...prev,
+                            [newMessage.userId._id]: newMessage.userId,
+                        }));
+                        setMessages((prev) => {
+                            if (prev.some((msg) => msg._id === newMessage._id)) return prev;
+                            const updatedMessages = [newMessage, ...prev];
+                            setTotalMessages(updatedMessages.length);
+                            return updatedMessages;
+                        });
+                    } else {
+                        console.warn('Ignoring invalid NEW_MESSAGE:', newMessage);
+                    }
+                });
+
+                socket.on('PRIVATE_MESSAGE', (newMessage) => {
+                    console.log('Received PRIVATE_MESSAGE:', JSON.stringify(newMessage, null, 2));
+                    setPrivateChats((prev) =>
+                        prev.map((chat) =>
+                            chat.receiver._id === newMessage.senderId || chat.receiver._id === newMessage.receiverId
+                                ? { ...chat, messages: [...(chat.messages || []), newMessage] }
+                                : chat
+                        )
+                    );
+                });
+
+                socket.on('USER_STATUS_UPDATED', (updatedUser) => {
+                    console.log('Received USER_STATUS_UPDATED:', updatedUser);
+                    if (updatedUser?._id && isValidObjectId(updatedUser._id)) {
+                        setUsersCache((prev) => ({
+                            ...prev,
+                            [updatedUser._id]: { ...prev[updatedUser._id], isOnline: updatedUser.isOnline, lastActive: updatedUser.lastActive },
+                        }));
+                    }
+                });
+
+                return () => {
+                    removeListener();
+                    if (socketRef.current) {
+                        socketRef.current.off('connect');
+                        socketRef.current.off('connect_error');
+                        socketRef.current.off('disconnect');
+                        socketRef.current.off('NEW_MESSAGE');
+                        socketRef.current.off('PRIVATE_MESSAGE');
+                        socketRef.current.off('USER_STATUS_UPDATED');
+                    }
+                };
+            } catch (error) {
+                console.error('Failed to initialize socket:', error);
+                setSocketConnected(false);
             }
         };
-    }, [session, userInfo]);
+
+        initializeSocket();
+
+        return () => {
+            mountedRef.current = false;
+        };
+    }, [session?.accessToken, userInfo?._id, router]);
 
     useEffect(() => {
         const fetchMissingUserDetails = async () => {

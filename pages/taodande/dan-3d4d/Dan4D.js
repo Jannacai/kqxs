@@ -24,7 +24,7 @@ const Dan4D = () => {
     const [showUndo, setShowUndo] = useState(false);
     const [loading, setLoading] = useState(false);
     const inputRef = useRef(null);
-    const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+    const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backendkqxs-1.onrender.com';
 
     const debouncedFetchLevels = useCallback(
         debounce(async (value) => {
