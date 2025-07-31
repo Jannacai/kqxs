@@ -12,7 +12,7 @@ import { useLottery } from '../../contexts/LotteryContext';
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // Cache 24 giờ
 const LIVE_CACHE_DURATION = 40 * 60 * 1000; // Cache 40 phút cho live data
 const ITEMS_PER_PAGE = 3;
-const VISIBLE_ITEMS = 2; // Chỉ render 2 items visible
+const VISIBLE_ITEMS = 3; // Render 3 items visible để match với ITEMS_PER_PAGE
 
 const KQXS = (props) => {
     const { liveData, isLiveDataComplete } = useLottery();
@@ -25,15 +25,15 @@ const KQXS = (props) => {
     const [hasTriggeredScraper, setHasTriggeredScraper] = useState(false);
     const [lastLiveUpdate, setLastLiveUpdate] = useState(null);
     const [loadedPages, setLoadedPages] = useState(new Set([1])); // Track loaded pages
-    const [visibleRange, setVisibleRange] = useState({ start: 0, end: VISIBLE_ITEMS });
     const [isInLiveWindow, setIsInLiveWindow] = useState(false);
+    const [totalRecords, setTotalRecords] = useState(0); // Tổng số records từ backend
+    const [pageData, setPageData] = useState({}); // Data theo page: {1: [...], 2: [...], ...}
     const intervalRef = useRef(null);
     const tableRef = useRef(null);
-    const observerRef = useRef(null);
     const router = useRouter();
 
-    const hour = 17;
-    const minutes1 = 10;
+    const hour = 19;
+    const minutes1 = 3;
     const minutes2 = 13;
 
     const dayof = props.dayofMT;
@@ -92,20 +92,24 @@ const KQXS = (props) => {
         return vietnamHours === 17 && vietnamMinutes >= 10 && vietnamMinutes <= 59;
     }, []);
 
-    // Tối ưu fetchData cho live window
+    // Tối ưu fetchData cho live window - tránh fetch không cần thiết
     const fetchData = useCallback(async (page = currentPage, forceRefresh = false) => {
-        // Trong live window, không fetch data mới
+        // Trong live window, không fetch data mới - chỉ sử dụng cached data
         if (isLiveWindowActive) {
             console.log('🔄 Live window active - sử dụng cached data');
             const CACHE_KEY_PAGE = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_${page}`;
             const cachedData = localStorage.getItem(CACHE_KEY_PAGE);
             if (cachedData) {
-                setData(JSON.parse(cachedData));
+                setPageData(prevPageData => ({
+                    ...prevPageData,
+                    [page]: JSON.parse(cachedData)
+                }));
             }
             setLoading(false);
             return;
         }
 
+        // Nếu không trong live window, fetch data bình thường
         try {
             const now = new Date();
             const vietnamTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
@@ -129,15 +133,10 @@ const KQXS = (props) => {
                 console.log(`📦 Cache hit: ${CACHE_KEY_PAGE}, age: ${Math.round(cacheAge / 1000 / 60)} phút`);
 
                 const cachedDataParsed = JSON.parse(cachedData);
-                if (page === 1) {
-                    setData(cachedDataParsed);
-                } else {
-                    setData(prevData => {
-                        const existingDates = prevData.map(item => item.drawDate);
-                        const newData = cachedDataParsed.filter(item => !existingDates.includes(item.drawDate));
-                        return [...prevData, ...newData];
-                    });
-                }
+                setPageData(prevPageData => ({
+                    ...prevPageData,
+                    [page]: cachedDataParsed
+                }));
                 setLoading(false);
                 return; // Không gọi API nếu cache còn valid
             }
@@ -154,7 +153,10 @@ const KQXS = (props) => {
                 console.log('🔄 Trong live window, không fetch data mới');
                 if (cachedData) {
                     const cachedDataParsed = JSON.parse(cachedData);
-                    setData(cachedDataParsed);
+                    setPageData(prevPageData => ({
+                        ...prevPageData,
+                        [page]: cachedDataParsed
+                    }));
                 }
                 setLoading(false);
                 return;
@@ -216,15 +218,25 @@ const KQXS = (props) => {
                 const hasNewData = JSON.stringify(finalData) !== JSON.stringify(cachedDataParsed);
 
                 if (hasNewData || !cachedData || forceRefresh) {
-                    // Nếu là page 1, thay thế toàn bộ data
+                    // Tách biệt data theo page thay vì append
+                    setPageData(prevPageData => ({
+                        ...prevPageData,
+                        [page]: finalData
+                    }));
+
+                    // Cập nhật totalRecords dựa trên số lượng data thực tế
                     if (page === 1) {
-                        setData(finalData);
+                        // Nếu là page 1, ước tính tổng số records dựa trên số ngày
+                        // Giả sử mỗi ngày có khoảng 2-3 tỉnh, và có khoảng 30-60 ngày dữ liệu
+                        const estimatedTotal = Math.max(30, finalData.length * 15); // Ước tính 15 ngày per page
+                        setTotalRecords(estimatedTotal);
+                        console.log(`📊 Ước tính totalRecords: ${estimatedTotal} dựa trên ${finalData.length} ngày`);
                     } else {
-                        // Nếu là page khác, append vào data hiện tại
-                        setData(prevData => {
-                            const existingDates = prevData.map(item => item.drawDate);
-                            const newData = finalData.filter(item => !existingDates.includes(item.drawDate));
-                            return [...prevData, ...newData];
+                        // Nếu là page khác, cập nhật totalRecords nếu cần
+                        setTotalRecords(prev => {
+                            const newTotal = Math.max(prev, page * ITEMS_PER_PAGE + finalData.length);
+                            console.log(`📊 Cập nhật totalRecords: ${prev} -> ${newTotal}`);
+                            return newTotal;
                         });
                     }
 
@@ -236,15 +248,19 @@ const KQXS = (props) => {
                     }
                     console.log('✅ Đã cập nhật data mới từ API cho page:', page);
                 } else if (cachedData) {
-                    if (page === 1) {
-                        setData(cachedDataParsed);
-                    } else {
-                        setData(prevData => {
-                            const existingDates = prevData.map(item => item.drawDate);
-                            const newData = cachedDataParsed.filter(item => !existingDates.includes(item.drawDate));
-                            return [...prevData, ...newData];
-                        });
+                    // Sử dụng cached data cho page này
+                    setPageData(prevPageData => ({
+                        ...prevPageData,
+                        [page]: cachedDataParsed
+                    }));
+
+                    // Cập nhật totalRecords nếu cần
+                    if (page === 1 && totalRecords === 0) {
+                        const estimatedTotal = Math.max(30, cachedDataParsed.length * 15);
+                        setTotalRecords(estimatedTotal);
+                        console.log(`📊 Ước tính totalRecords từ cache: ${estimatedTotal}`);
                     }
+
                     console.log('📦 Sử dụng cached data cho page:', page);
                 }
 
@@ -260,15 +276,10 @@ const KQXS = (props) => {
             } else {
                 console.log('📦 Sử dụng cached data (điều kiện không thỏa mãn) cho page:', page);
                 if (cachedData) {
-                    if (page === 1) {
-                        setData(JSON.parse(cachedData));
-                    } else {
-                        setData(prevData => {
-                            const existingDates = prevData.map(item => item.drawDate);
-                            const newData = JSON.parse(cachedData).filter(item => !existingDates.includes(item.drawDate));
-                            return [...prevData, ...newData];
-                        });
-                    }
+                    setPageData(prevPageData => ({
+                        ...prevPageData,
+                        [page]: JSON.parse(cachedData)
+                    }));
                 }
                 setLoading(false);
             }
@@ -297,29 +308,43 @@ const KQXS = (props) => {
 
     useEffect(() => {
         cleanOldCache();
-        // Trong live window, chỉ load cached data, không fetch API
+
+        // Tối ưu: Chỉ fetch data khi cần thiết
         if (isLiveWindowActive) {
             console.log('🔄 Live window active - chỉ load cached data');
             const CACHE_KEY_PAGE_1 = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_1`;
             const cachedData = localStorage.getItem(CACHE_KEY_PAGE_1);
             if (cachedData) {
-                setData(JSON.parse(cachedData));
+                const parsedData = JSON.parse(cachedData);
+                setPageData({ 1: parsedData });
+                // Khởi tạo totalRecords từ cached data
+                if (totalRecords === 0) {
+                    const estimatedTotal = Math.max(30, parsedData.length * 15);
+                    setTotalRecords(estimatedTotal);
+                    console.log(`📊 Khởi tạo totalRecords từ cache: ${estimatedTotal}`);
+                }
             }
             setLoading(false);
+        } else if (!isInLiveWindow) {
+            // Chỉ fetch data nếu không trong live window và không đang trong live window
+            console.log('🔄 Normal mode - fetch data từ API');
+            fetchData();
         } else {
-            // Chỉ fetch data nếu không trong live window
-            if (!isInLiveWindow) {
-                fetchData();
-            } else {
-                console.log('🔄 Trong live window, sử dụng cached data');
-                // Load cached data nếu có
-                const CACHE_KEY_PAGE_1 = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_1`;
-                const cachedData = localStorage.getItem(CACHE_KEY_PAGE_1);
-                if (cachedData) {
-                    setData(JSON.parse(cachedData));
+            console.log('🔄 Trong live window, sử dụng cached data');
+            // Load cached data nếu có
+            const CACHE_KEY_PAGE_1 = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_1`;
+            const cachedData = localStorage.getItem(CACHE_KEY_PAGE_1);
+            if (cachedData) {
+                const parsedData = JSON.parse(cachedData);
+                setPageData({ 1: parsedData });
+                // Khởi tạo totalRecords từ cached data
+                if (totalRecords === 0) {
+                    const estimatedTotal = Math.max(30, parsedData.length * 15);
+                    setTotalRecords(estimatedTotal);
+                    console.log(`📊 Khởi tạo totalRecords từ cache: ${estimatedTotal}`);
                 }
-                setLoading(false);
             }
+            setLoading(false);
         }
     }, [fetchData, isInLiveWindow, isLiveWindowActive]);
 
@@ -328,9 +353,18 @@ const KQXS = (props) => {
         if (isLiveDataComplete && liveData && Array.isArray(liveData) && liveData.some(item => item.drawDate === today) && !isLiveWindowActive) {
             console.log('🔄 Live data complete, cập nhật cache và force refresh');
 
-            setData(prevData => {
+            // Cập nhật pageData cho page 1
+            setPageData(prevPageData => {
+                const currentPage1Data = prevPageData[1] || [];
+
+                // Kiểm tra currentPage1Data có phải là array không
+                if (!Array.isArray(currentPage1Data)) {
+                    console.warn('currentPage1Data is not an array in live data update, using empty array:', currentPage1Data);
+                    return prevPageData;
+                }
+
                 // Loại bỏ dữ liệu cũ của ngày hôm nay
-                const filteredData = prevData.filter(item => item.drawDate !== today);
+                const filteredData = currentPage1Data.filter(item => item.drawDate !== today);
                 const formattedLiveData = {
                     drawDate: today,
                     drawDateRaw: new Date(today.split('/').reverse().join('-')),
@@ -364,7 +398,11 @@ const KQXS = (props) => {
                 localStorage.setItem(`${CACHE_KEY_PAGE_1}_time`, new Date().getTime().toString());
                 localStorage.setItem(UPDATE_KEY, new Date().getTime().toString());
                 setLastLiveUpdate(new Date().getTime());
-                return newData;
+
+                return {
+                    ...prevPageData,
+                    [1]: newData
+                };
             });
 
             setFilterTypes(prev => ({
@@ -512,22 +550,44 @@ const KQXS = (props) => {
         return { heads, tails };
     }, []);
 
-    const totalPages = Math.ceil(data.length / ITEMS_PER_PAGE);
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const endIndex = startIndex + ITEMS_PER_PAGE;
-    const currentData = data.slice(startIndex, endIndex);
+    // Đơn giản hóa virtual scrolling - chỉ render current page
+    const currentPageData = useMemo(() => {
+        const pageDataArray = pageData[currentPage];
+        if (!Array.isArray(pageDataArray)) {
+            console.warn(`pageData[${currentPage}] is not an array:`, pageDataArray);
+            return [];
+        }
+        return pageDataArray;
+    }, [pageData, currentPage]);
+
+    // Tính toán totalPages dựa trên totalRecords
+    const totalPages = Math.ceil(totalRecords / ITEMS_PER_PAGE);
+
+    // Fallback: Nếu totalPages = 0, ít nhất phải có 1 page
+    const effectiveTotalPages = Math.max(1, totalPages);
+
+    // Debug pagination
+    console.log('📊 Pagination Debug:', {
+        totalRecords,
+        ITEMS_PER_PAGE,
+        totalPages,
+        effectiveTotalPages,
+        currentPage,
+        pageDataKeys: Object.keys(pageData),
+        loadedPages: Array.from(loadedPages),
+        hasData: Object.keys(pageData).length > 0
+    });
 
     const goToPage = async (page) => {
-        if (page >= 1 && page <= totalPages) {
+        console.log(`🔄 goToPage called: page=${page}, totalPages=${effectiveTotalPages}, currentPage=${currentPage}`);
+
+        if (page >= 1 && page <= effectiveTotalPages) {
+            console.log(`✅ Chuyển đến page ${page}`);
             setCurrentPage(page);
             tableRef.current?.scrollIntoView({ behavior: 'smooth' });
 
             // Lazy load data cho page mới nếu chưa có
-            const startIndex = (page - 1) * ITEMS_PER_PAGE;
-            const endIndex = startIndex + ITEMS_PER_PAGE;
-            const hasDataForPage = data.slice(startIndex, endIndex).length > 0;
-
-            if (!hasDataForPage && !loadedPages.has(page)) {
+            if (!pageData[page] && !loadedPages.has(page)) {
                 console.log(`🔄 Lazy loading data cho page ${page}`);
                 setLoadingPage(true);
                 try {
@@ -536,7 +596,11 @@ const KQXS = (props) => {
                 } finally {
                     setLoadingPage(false);
                 }
+            } else {
+                console.log(`📦 Page ${page} đã có data hoặc đã được load`);
             }
+        } else {
+            console.warn(`❌ Không thể chuyển đến page ${page}: page < 1 hoặc page > ${effectiveTotalPages}`);
         }
     };
 
@@ -546,77 +610,10 @@ const KQXS = (props) => {
         }
     }, [currentPage]);
 
-    // Intersection Observer cho lazy rendering
-    useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting) {
-                        const index = parseInt(entry.target.dataset.index);
-                        setVisibleRange(prev => ({
-                            start: Math.max(0, index - 1),
-                            end: Math.min(data.length, index + VISIBLE_ITEMS)
-                        }));
-                    }
-                });
-            },
-            {
-                rootMargin: '50px',
-                threshold: 0.1
-            }
-        );
-
-        observerRef.current = observer;
-
-        // Observe tất cả các elements có data-index
-        const elements = document.querySelectorAll('[data-index]');
-        elements.forEach(el => observer.observe(el));
-
-        return () => {
-            if (observerRef.current) {
-                observerRef.current.disconnect();
-            }
-        };
-    }, [data.length]);
-
-    // Debounced scroll handler cho virtual scrolling
-    const handleScroll = useCallback(
-        debounce(() => {
-            if (!tableRef.current) return;
-
-            const rect = tableRef.current.getBoundingClientRect();
-            const windowHeight = window.innerHeight;
-
-            // Tính toán visible range dựa trên scroll position
-            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-            const containerTop = rect.top + scrollTop;
-            const containerHeight = rect.height;
-
-            const startIndex = Math.floor((scrollTop - containerTop) / 200); // Ước tính 200px per item
-            const endIndex = Math.min(data.length, startIndex + VISIBLE_ITEMS + 1);
-
-            setVisibleRange({
-                start: Math.max(0, startIndex),
-                end: endIndex
-            });
-        }, 100),
-        [data.length]
-    );
-
-    useEffect(() => {
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, [handleScroll]);
-
-    // Chỉ render visible items để tối ưu performance
-    const visibleData = useMemo(() => {
-        return data.slice(visibleRange.start, visibleRange.end);
-    }, [data, visibleRange]);
-
     // Preload next page khi user scroll gần cuối
     const shouldPreloadNextPage = useMemo(() => {
-        return visibleRange.end >= data.length - 1 && !loadedPages.has(currentPage + 1);
-    }, [visibleRange.end, data.length, loadedPages, currentPage]);
+        return currentPage < effectiveTotalPages && !loadedPages.has(currentPage + 1);
+    }, [currentPage, effectiveTotalPages, loadedPages]);
 
     useEffect(() => {
         if (shouldPreloadNextPage && !isInLiveWindow) {
@@ -625,8 +622,21 @@ const KQXS = (props) => {
         }
     }, [shouldPreloadNextPage, currentPage, isInLiveWindow, fetchData]);
 
-    const todayData = data.find(item => item.drawDate === today);
-    const provinces = todayData ? todayData.stations.map(station => ({
+    // Auto-create next page nếu cần
+    useEffect(() => {
+        if (currentPageData.length > 0 && currentPage === effectiveTotalPages && !isInLiveWindow) {
+            // Nếu đang ở page cuối và có data, tự động tạo page tiếp theo
+            const nextPage = currentPage + 1;
+            if (!pageData[nextPage] && !loadedPages.has(nextPage)) {
+                console.log(`🔄 Auto-creating next page: ${nextPage}`);
+                fetchData(nextPage);
+                setTotalRecords(prev => Math.max(prev, nextPage * ITEMS_PER_PAGE));
+            }
+        }
+    }, [currentPageData, currentPage, effectiveTotalPages, isInLiveWindow, pageData, loadedPages, fetchData]);
+
+    const todayData = currentPageData.find(item => item.drawDate === today);
+    const provinces = todayData && Array.isArray(todayData.stations) ? todayData.stations.map(station => ({
         tinh: station.tinh || station.station,
         tentinh: station.tentinh
     })) : [];
@@ -641,24 +651,34 @@ const KQXS = (props) => {
 
     return (
         <div ref={tableRef} className={`${styles.containerKQ} ${isLiveWindowActive ? styles.liveWindowActive : ''}`}>
-            {isLiveMode && isRunning && (
-                <div className={styles.liveResultContainer}>
-                    <LiveResult
-                        station={station}
-                        today={today}
-                        getHeadAndTailNumbers={getHeadAndTailNumbers}
-                        handleFilterChange={handleFilterChange}
-                        filterTypes={filterTypes}
-                        isLiveWindow={isRunning}
-                        provinces={provinces}
-                    />
-                </div>
-            )}
+            {/* Pre-allocate space cho LiveResult để tránh CLS */}
+            <div className={`${styles.liveResultPlaceholder} ${isLiveMode && isRunning ? styles.active : ''}`}>
+                {isLiveMode && isRunning && (
+                    <div className={styles.liveResultContainer}>
+                        <LiveResult
+                            station={station}
+                            today={today}
+                            getHeadAndTailNumbers={getHeadAndTailNumbers}
+                            handleFilterChange={handleFilterChange}
+                            filterTypes={filterTypes}
+                            isLiveWindow={isRunning}
+                            provinces={provinces}
+                        />
+                    </div>
+                )}
+            </div>
+
             <div className={`${isLiveWindowActive ? styles.liveOptimized : ''}`}>
-                {visibleData.map((dayData, index) => {
-                    const actualIndex = visibleRange.start + index;
+                {currentPageData.map((dayData, index) => {
+                    const actualIndex = (currentPage - 1) * ITEMS_PER_PAGE + index;
                     const tableKey = dayData.drawDate;
                     const currentFilter = filterTypes[tableKey] || 'all';
+
+                    // Kiểm tra dayData.stations có phải là array không
+                    if (!Array.isArray(dayData.stations)) {
+                        console.warn('dayData.stations is not an array:', dayData);
+                        return null; // Skip rendering this item
+                    }
 
                     const allHeads = Array(10).fill().map(() => []);
                     const allTails = Array(10).fill().map(() => []);
@@ -931,7 +951,7 @@ const KQXS = (props) => {
                 })}
             </div>
 
-            {data.length > 1 && !isLiveWindowActive && (
+            {effectiveTotalPages > 1 && !isLiveWindowActive && (
                 <div className={styles.pagination}>
                     <button
                         onClick={() => goToPage(currentPage - 1)}
@@ -940,10 +960,10 @@ const KQXS = (props) => {
                     >
                         {loadingPage ? 'Đang tải...' : 'Trước'}
                     </button>
-                    <span>Trang {currentPage} / {totalPages}</span>
+                    <span>Trang {currentPage} / {effectiveTotalPages}</span>
                     <button
                         onClick={() => goToPage(currentPage + 1)}
-                        disabled={currentPage === totalPages || loadingPage}
+                        disabled={currentPage === effectiveTotalPages || loadingPage}
                         className={styles.paginationButton}
                     >
                         {loadingPage ? 'Đang tải...' : 'Sau'}

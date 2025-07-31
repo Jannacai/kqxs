@@ -698,21 +698,33 @@
 
 /* Live result container */
 .liveResultContainer {
-	position: relative;
-	z-index: 10;
+	width: 100%;
 	margin-bottom: 20px;
-	/* border: 2px solid #e80000; */
-	border-radius: 8px;
-	/* background: linear-gradient(135deg, #fff 0%, #ffeca0 100%); */
-	box-shadow: 0px 8px 20px 0px rgba(232, 0, 0, 0.15);
+	/* border: 1px solid #e80000; */
+	/* border-radius: 8px; */
+	/* background: linear-gradient(135deg, #fff5e6 0%, #ffe6cc 100%); */
+	/* box-shadow: 0 4px 12px rgba(232, 0, 0, 0.15); */
+	/* animation: livePulse 2s ease-in-out infinite; */
+}
+
+/* Pre-allocate space cho LiveResult để tránh CLS */
+.liveResultPlaceholder {
+	min-height: 0;
+	transition: min-height 0.3s ease-in-out;
+	overflow: hidden;
+}
+
+.liveResultPlaceholder.active {
+	min-height: 600px;
+	/* Ước tính chiều cao của LiveResult */
 }
 
 /* Optimized rendering for live window */
 .liveOptimized {
-	contain: layout style;
-	will-change: transform;
+	opacity: 1;
+	transition: opacity 0.3s ease-in-out;
 }
 
 .liveOptimized * {
-	contain: layout style;
+	transition: all 0.2s ease-in-out;
 }
