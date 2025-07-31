@@ -114,7 +114,7 @@ const LiveResult = ({ getHeadAndTailNumbers, handleFilterChange, filterTypes, is
 
         const fetchInitialData = async (retry = 0) => {
             try {
-                const response = await fetch(`http://localhost:5000/api/kqxs/xsmb/sse/initial?station=${station}&date=${today}`);
+                const response = await fetch(`https://backendkqxs-1.onrender.com/api/kqxs/xsmb/sse/initial?station=${station}&date=${today}`);
                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                 const serverData = await response.json();
                 console.log('Dữ liệu từ /initial:', serverData);
@@ -181,7 +181,7 @@ const LiveResult = ({ getHeadAndTailNumbers, handleFilterChange, filterTypes, is
                 sseRef.current.close();
             }
 
-            sseRef.current = new EventSource(`http://localhost:5000/api/kqxs/xsmb/sse?station=${station}&date=${today}`);
+            sseRef.current = new EventSource(`https://backendkqxs-1.onrender.com/api/kqxs/xsmb/sse?station=${station}&date=${today}`);
             console
             console.log('Khởi tạo kết nối SSE cho ngày:', today);
 
@@ -307,7 +307,7 @@ const LiveResult = ({ getHeadAndTailNumbers, handleFilterChange, filterTypes, is
 
                 pollingInterval = setTimeout(async () => {
                     try {
-                        const response = await fetch(`http://localhost:5000/api/kqxs/xsmb/sse/initial?station=${station}&date=${today}`);
+                        const response = await fetch(`https://backendkqxs-1.onrender.com/api/kqxs/xsmb/sse/initial?station=${station}&date=${today}`);
                         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                         const serverData = await response.json();
                         console.log('Dữ liệu từ polling:', serverData);
