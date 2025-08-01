@@ -72,6 +72,28 @@ export default function PrivateChat({ receiver, socket, onClose, isMinimized: in
 
         mountedRef.current = true;
 
+        // Fetch lịch sử tin nhắn private
+        const fetchPrivateMessages = async () => {
+            try {
+                console.log('Fetching private messages for room:', [userInfo._id, receiver._id].sort().join('-'));
+                const res = await axios.get(
+                    `${API_BASE_URL}/api/groupchat/private/${receiver._id}`,
+                    { headers: { Authorization: `Bearer ${session.accessToken}` } }
+                );
+                console.log('Private messages fetched:', res.data);
+
+                // Sắp xếp theo thời gian tạo (cũ nhất trước, mới nhất sau)
+                const sortedMessages = res.data.messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+                setMessages(sortedMessages);
+                console.log('Private messages sorted and set, total:', sortedMessages.length);
+            } catch (err) {
+                console.error('Error fetching private messages:', err.message);
+                // Không set error vì có thể chưa có tin nhắn nào
+            }
+        };
+
+        fetchPrivateMessages();
+
         const initializeSocket = async () => {
             try {
                 let socketInstance = socketRef.current;
@@ -117,8 +139,28 @@ export default function PrivateChat({ receiver, socket, onClose, isMinimized: in
                     console.log('Received PRIVATE_MESSAGE:', JSON.stringify(newMessage, null, 2));
                     if (mountedRef.current) {
                         setMessages((prev) => {
-                            if (prev.some((msg) => msg._id === newMessage._id)) return prev;
-                            return [newMessage, ...prev];
+                            // Kiểm tra xem tin nhắn đã tồn tại chưa
+                            if (prev.some((msg) => msg._id === newMessage._id)) {
+                                console.log('Private message already exists, skipping:', newMessage._id);
+                                return prev;
+                            }
+
+                            // Kiểm tra xem có phải tin nhắn của chính mình không (để thay thế tin nhắn tạm thời)
+                            const isOwnMessage = userInfo?._id === newMessage.userId?._id;
+                            if (isOwnMessage) {
+                                // Tìm và thay thế tin nhắn tạm thời
+                                const hasTempMessage = prev.some(msg => msg.isTemp && msg.content === newMessage.content);
+                                if (hasTempMessage) {
+                                    console.log('Replacing temp private message with real message:', newMessage._id);
+                                    const filtered = prev.filter(msg => !(msg.isTemp && msg.content === newMessage.content));
+                                    return [...filtered, newMessage];
+                                }
+                            }
+
+                            // Thêm tin nhắn mới vào cuối array
+                            const updatedMessages = [...prev, newMessage];
+                            console.log('Added new private message, total:', updatedMessages.length);
+                            return updatedMessages;
                         });
                     }
                 });
@@ -186,30 +228,52 @@ export default function PrivateChat({ receiver, socket, onClose, isMinimized: in
             setError('Tin nhắn chứa từ ngữ không phù hợp');
             return;
         }
+
+        const messageContent = message.trim();
+        setMessage('');
+        setError('');
+
         try {
-            const res = await axios.post(
-                `${API_BASE_URL}/api/groupchat`,
-                { content: message, receiverId: receiver._id },
-                { headers: { Authorization: `Bearer ${session.accessToken}` } }
-            );
-            console.log('Private message sent:', res.data);
-            const newMessage = {
-                _id: res.data.chat._id,
-                content: message,
+            // Tạo tin nhắn tạm thời để hiển thị ngay lập tức
+            const tempMessage = {
+                _id: `temp_${Date.now()}`,
+                content: messageContent,
                 userId: { _id: userInfo._id, fullname: userInfo.fullname },
                 createdAt: new Date().toISOString(),
                 roomId: [userInfo._id, receiver._id].sort().join('-'),
+                isTemp: true
             };
-            setMessages((prev) => {
-                if (prev.some((msg) => msg._id === newMessage._id)) return prev;
-                return [newMessage, ...prev];
-            });
-            socketRef.current.emit('PRIVATE_MESSAGE', newMessage);
-            setMessage('');
-            setError('');
+
+            // Thêm tin nhắn tạm thời vào state
+            setMessages(prev => [...prev, tempMessage]);
+
+            const res = await axios.post(
+                `${API_BASE_URL}/api/groupchat`,
+                { content: messageContent, receiverId: receiver._id },
+                { headers: { Authorization: `Bearer ${session.accessToken}` } }
+            );
+
+            console.log('Private message sent:', res.data);
+
+            // Thay thế tin nhắn tạm thời bằng tin nhắn thật từ server
+            if (res.data.chat) {
+                setMessages(prev => {
+                    const filtered = prev.filter(msg => msg._id !== tempMessage._id);
+                    return [...filtered, res.data.chat];
+                });
+            }
+
+            // Emit socket event
+            if (socketRef.current) {
+                socketRef.current.emit('PRIVATE_MESSAGE', res.data.chat || tempMessage);
+            }
+
         } catch (err) {
             console.error('Error sending private message:', err.response?.data?.message || err.message);
             setError(err.response?.data?.message || 'Đã có lỗi khi gửi tin nhắn');
+
+            // Xóa tin nhắn tạm thời nếu gửi thất bại
+            setMessages(prev => prev.filter(msg => msg._id !== `temp_${Date.now()}`));
         }
     };
 

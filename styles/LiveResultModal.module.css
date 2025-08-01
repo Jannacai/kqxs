@@ -57,9 +57,10 @@
 	box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
 	border: 2px solid #e80000;
 	max-width: 60vw;
-	max-height: 80vh;
+	/* padding: 10px; */
 	width: 600px;
 	height: 600px;
+	max-height: 90vh;
 	transform: scale(0.8);
 	opacity: 0;
 	transition: all 0.3s ease;

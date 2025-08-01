@@ -15,7 +15,7 @@ const getUserId = () => {
 };
 
 export const apiMB = {
-    getLottery: async (station, date, dayof) => {
+    getLottery: async (station, date, dayof, pagination = {}) => {
         let url = `${API_BASE_URL}/api/kqxs`;
 
         if (dayof) {
@@ -30,6 +30,14 @@ export const apiMB = {
             url = `${API_BASE_URL}/api/kqxs/${station}-${date}`;
         } else {
             url = `${API_BASE_URL}/api/kqxs`;
+        }
+
+        // Thêm pagination parameters nếu có
+        if (pagination.page && pagination.limit) {
+            const urlParams = new URLSearchParams();
+            urlParams.append('page', pagination.page);
+            urlParams.append('limit', pagination.limit);
+            url += `?${urlParams.toString()}`;
         }
 
         try {

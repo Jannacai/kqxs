@@ -95,6 +95,147 @@
 	font-weight: 600;
 }
 
+.headerTop {
+	display: flex;
+	justify-content: space-evenly;
+	align-items: center;
+	margin-bottom: 10px;
+}
+
+/* Print Button Styles */
+.printContainer {
+	position: relative;
+	display: inline-block;
+}
+
+.printButton {
+	/* background: linear-gradient(135deg, #4caf50, #45a049); */
+	color: #000 #ccc;
+	border: 1px solid;
+	border-radius: 6px;
+	padding: 6px 10px;
+	text-transform: uppercase;
+	font-size: 18px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.3s ease;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.printButton:hover {
+	background: linear-gradient(135deg, #45a049, #4caf50);
+	transform: translateY(-1px);
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+	color: #fff;
+}
+
+.printButton:active {
+	transform: translateY(0);
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.printOptions {
+	position: absolute;
+	top: 100%;
+	right: 0;
+	background: white;
+	border: 2px solid #ddd;
+	border-radius: 8px;
+	padding: 16px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	z-index: 1000;
+	min-width: 200px;
+	margin-top: 8px;
+}
+
+.printOptionsHeader {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 12px;
+	font-weight: 600;
+	color: #333;
+}
+
+.closeButton {
+	background: none;
+	border: none;
+	font-size: 18px;
+	cursor: pointer;
+	color: #666;
+	padding: 2px;
+	border-radius: 4px;
+	transition: color 0.2s ease;
+}
+
+.closeButton:hover {
+	color: #333;
+}
+
+.printSizeOptions {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 8px;
+	margin-bottom: 12px;
+}
+
+.printSizeButton {
+	background: #f8f9fa;
+	border: 2px solid #e9ecef;
+	border-radius: 6px;
+	padding: 8px 12px;
+	font-size: 14px;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	color: #495057;
+}
+
+.printSizeButton:hover {
+	background: #e9ecef;
+	border-color: #adb5bd;
+}
+
+.printSizeButton:hover {
+	background: #007bff;
+	border-color: #007bff;
+	color: white;
+}
+
+.printSizeButton.selected {
+	background: #007bff;
+	border-color: #007bff;
+	color: white;
+}
+
+/* Mobile responsive cho print button */
+@media (max-width: 768px) {
+	.headerTop {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 10px;
+	}
+
+	.printButton {
+		display: none;
+		padding: 6px 12px;
+		font-size: 12px;
+	}
+
+	.printOptions {
+		right: -50px;
+		min-width: 180px;
+	}
+
+	.printSizeOptions {
+		grid-template-columns: 1fr;
+		gap: 6px;
+	}
+}
+
 .kqxs__action {
 	display: flex;
 	justify-content: center;
@@ -451,6 +592,8 @@
 		font-size: 12px;
 	}
 
+	/* .printButton {} */
+
 	.kqxs__title span {
 		font-weight: 700;
 	}
@@ -604,11 +747,11 @@
 }
 
 .lazyItem[data-index] {
-	opacity: 0.8;
+	/* opacity: 0.8; */
 }
 
 .lazyItem[data-index]:hover {
-	opacity: 1;
+	/* opacity: 1; */
 }
 
 /* Virtual scrolling placeholder */

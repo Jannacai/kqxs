@@ -117,9 +117,10 @@
 
 .running_number {
     display: inline-block;
-    font-size: 26px;
+    font-size: 22px;
     min-height: 28px;
-    padding: 8px 0;
+    line-height: 28px;
+    padding: 2px 0;
     vertical-align: middle;
 }
 
@@ -347,7 +348,7 @@
 }
 
 .tableXS tr:nth-child(odd):not(:first-child) {
-    background-color: #61c1d01f;
+    background-color: #cccccc29;
 }
 
 .prizeNumber {
@@ -507,7 +508,7 @@
 }
 
 .tableKey tr:nth-child(odd) {
-    background-color: #61c1d01f;
+    background-color: #cccccc29;
 }
 
 .tableKey td:first-child {

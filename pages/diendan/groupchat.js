@@ -81,9 +81,11 @@ export default function GroupChat({ session: serverSession }) {
                     : { 'Content-Type': 'application/json' };
                 const res = await axios.get(`${API_BASE_URL}/api/groupchat`, { headers });
                 console.log('Messages fetched:', res.data);
-                const sortedMessages = res.data.messages.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                // Sắp xếp theo thời gian tạo (cũ nhất trước, mới nhất sau)
+                const sortedMessages = res.data.messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
                 setMessages(sortedMessages);
                 setTotalMessages(sortedMessages.length);
+                console.log('Messages sorted and set, total:', sortedMessages.length);
             } catch (err) {
                 console.error('Error fetching messages:', err.message);
                 setFetchError('Không thể tải tin nhắn. Vui lòng thử lại.');
@@ -198,9 +200,30 @@ export default function GroupChat({ session: serverSession }) {
                             [newMessage.userId._id]: newMessage.userId,
                         }));
                         setMessages((prev) => {
-                            if (prev.some((msg) => msg._id === newMessage._id)) return prev;
-                            const updatedMessages = [newMessage, ...prev];
+                            // Kiểm tra xem tin nhắn đã tồn tại chưa
+                            if (prev.some((msg) => msg._id === newMessage._id)) {
+                                console.log('Message already exists, skipping:', newMessage._id);
+                                return prev;
+                            }
+                            
+                            // Kiểm tra xem có phải tin nhắn của chính mình không (để thay thế tin nhắn tạm thời)
+                            const isOwnMessage = userInfo?._id === newMessage.userId._id;
+                            if (isOwnMessage) {
+                                // Tìm và thay thế tin nhắn tạm thời
+                                const hasTempMessage = prev.some(msg => msg.isTemp && msg.content === newMessage.content);
+                                if (hasTempMessage) {
+                                    console.log('Replacing temp message with real message:', newMessage._id);
+                                    const filtered = prev.filter(msg => !(msg.isTemp && msg.content === newMessage.content));
+                                    const updatedMessages = [...filtered, newMessage];
+                                    setTotalMessages(updatedMessages.length);
+                                    return updatedMessages;
+                                }
+                            }
+                            
+                            // Thêm tin nhắn mới vào cuối array (vì sẽ được reverse khi hiển thị)
+                            const updatedMessages = [...prev, newMessage];
                             setTotalMessages(updatedMessages.length);
+                            console.log('Added new message to chat, total messages:', updatedMessages.length);
                             return updatedMessages;
                         });
                     } else {
@@ -315,24 +338,55 @@ export default function GroupChat({ session: serverSession }) {
             setError('Tin nhắn chứa từ ngữ không phù hợp');
             return;
         }
+        
+        const messageContent = message.trim();
+        setMessage('');
+        setError('');
+        
         try {
             const headers = session?.accessToken
                 ? { Authorization: `Bearer ${session.accessToken}`, 'Content-Type': 'application/json' }
                 : { 'Content-Type': 'application/json' };
+            
+            // Tạo tin nhắn tạm thời để hiển thị ngay lập tức
+            const tempMessage = {
+                _id: `temp_${Date.now()}`,
+                content: messageContent,
+                userId: { _id: userInfo._id, fullname: userInfo.fullname, role: userInfo.role },
+                createdAt: new Date().toISOString(),
+                isTemp: true
+            };
+            
+            // Thêm tin nhắn tạm thời vào state
+            setMessages(prev => [...prev, tempMessage]);
+            setTotalMessages(prev => prev + 1);
+            
             const res = await axios.post(
                 `${API_BASE_URL}/api/groupchat`,
-                { content: message },
+                { content: messageContent },
                 { headers }
             );
+            
             console.log('Message submission response:', JSON.stringify(res.data, null, 2));
-            setMessage('');
-            setError('');
+            
+            // Thay thế tin nhắn tạm thời bằng tin nhắn thật từ server
+            if (res.data.message) {
+                setMessages(prev => {
+                    const filtered = prev.filter(msg => msg._id !== tempMessage._id);
+                    return [...filtered, res.data.message];
+                });
+            }
+            
             if (messagesContainerRef.current) {
                 messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
             }
         } catch (err) {
             console.error('Error submitting message:', err.message, err.response?.data);
             setError(err.response?.data?.message || 'Đã có lỗi khi gửi tin nhắn');
+            
+            // Xóa tin nhắn tạm thời nếu gửi thất bại
+            setMessages(prev => prev.filter(msg => msg._id !== `temp_${Date.now()}`));
+            setTotalMessages(prev => Math.max(0, prev - 1));
         }
     };
 
@@ -463,12 +517,12 @@ export default function GroupChat({ session: serverSession }) {
                                         className={`${styles.avatar} ${getAvatarClass(displayUser?.role)}`}
                                         onClick={() => handleShowDetails(displayUser)}
                                         role="button"
-                                        aria-label={`Xem chi tiết ${getDisplayName(displayUser.fullname)}`}
+                                        aria-label={`Xem chi tiết ${getDisplayName(displayUser?.fullname || 'User')}`}
                                     >
                                         {displayUser?.img ? (
                                             <Image
                                                 src={displayUser.img}
-                                                alt={getDisplayName(displayUser.fullname)}
+                                                alt={getDisplayName(displayUser?.fullname || 'User')}
                                                 className={styles.avatarImage}
                                                 width={40}
                                                 height={40}
@@ -489,7 +543,7 @@ export default function GroupChat({ session: serverSession }) {
                                                 className={`${styles.username} ${getAvatarClass(displayUser?.role)}`}
                                                 onClick={() => handleShowDetails(displayUser)}
                                                 role="button"
-                                                aria-label={`Xem chi tiết ${getDisplayName(displayUser.fullname)}`}
+                                                aria-label={`Xem chi tiết ${getDisplayName(displayUser?.fullname || 'User')}`}
                                             >
                                                 {getDisplayName(displayUser?.fullname || 'User')}
                                             </span>

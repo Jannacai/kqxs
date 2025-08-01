@@ -1,5 +1,6 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backendkqxs-1.onrender.com';
 const API_BASE_URL2 = process.env.NEXT_PUBLIC_BACKEND_URL2 || 'https://scraper-1-fewd.onrender.com';
+const DAYS_PER_PAGE = 3; // Số ngày mỗi trang
 
 const getUserId = () => {
     if (typeof window !== 'undefined') {
@@ -14,14 +15,14 @@ const getUserId = () => {
 };
 
 export const apiMN = {
-    getLottery: async (station, date, tinh, dayof) => {
+    getLottery: async (station, date, tinh, dayof, pagination = {}) => {
         let url = `${API_BASE_URL}/api/ketqua/xsmn`;
 
         if (dayof) {
             if (!dayof || dayof.trim() === '') {
                 throw new Error('dayOfWeek cannot be empty');
             }
-            url = `${API_BASE_URL}/api/ketqua/${station}/${dayof}`;
+            url = `${API_BASE_URL}/api/ketqua/xsmn/${dayof}`;
         } else if (station && date) {
             if (!station || !date || station.trim() === '' || date.trim() === '') {
                 throw new Error('Station and date cannot be empty');
@@ -36,6 +37,15 @@ export const apiMN = {
             url = `${API_BASE_URL}/api/ketqua/xsmn`;
         }
 
+        // Thêm pagination parameters nếu có
+        if (pagination.page && pagination.limit) {
+            const urlParams = new URLSearchParams();
+            urlParams.append('page', pagination.page);
+            urlParams.append('limit', pagination.limit);
+            urlParams.append('daysPerPage', pagination.daysPerPage || DAYS_PER_PAGE);
+            url += `?${urlParams.toString()}`;
+        }
+
         const response = await fetch(url, {
             cache: 'no-store',
             headers: {
@@ -43,9 +53,11 @@ export const apiMN = {
                 'x-user-id': getUserId(),
             },
         });
+
         if (!response.ok) {
             throw new Error('KHÔNG GỌI ĐƯỢC API VÌ KHÔNG CÓ DỮ LIỆU HOẶC LỖI....');
         }
+
         return response.json();
     },
 

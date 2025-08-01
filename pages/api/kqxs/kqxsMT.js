@@ -1,5 +1,6 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backendkqxs-1.onrender.com';
 const API_BASE_URL2 = process.env.NEXT_PUBLIC_BACKEND_URL2 || 'https://scraper-1-fewd.onrender.com';
+const DAYS_PER_PAGE = 3; // Số ngày mỗi trang
 
 // Hàm tạo userId ngẫu nhiên nếu không có hệ thống đăng nhập
 const getUserId = () => {
@@ -15,7 +16,7 @@ const getUserId = () => {
 };
 
 export const apiMT = {
-    getLottery: async (station, date, tinh, dayof) => {
+    getLottery: async (station, date, tinh, dayof, pagination = {}) => {
         let url = `${API_BASE_URL}/api/ketquaxs/xsmt`;
 
         if (dayof) {
@@ -35,6 +36,15 @@ export const apiMT = {
             url = `${API_BASE_URL}/api/ketquaxs/${station}/tinh/${tinh}`;
         } else {
             url = `${API_BASE_URL}/api/ketquaxs/xsmt`;
+        }
+
+        // Thêm pagination parameters nếu có
+        if (pagination.page && pagination.limit) {
+            const urlParams = new URLSearchParams();
+            urlParams.append('page', pagination.page);
+            urlParams.append('limit', pagination.limit);
+            urlParams.append('daysPerPage', DAYS_PER_PAGE || 3);
+            url += `?${urlParams.toString()}`;
         }
 
         const response = await fetch(url, {

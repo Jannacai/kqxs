@@ -1,46 +1,33 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import styles from '../../styles/LIVEMN.module.css';
 import { getFilteredNumber } from "../../library/utils/filterUtils";
 import React from 'react';
 import { useLottery } from '../../contexts/LotteryContext';
 
-
-const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange, filterTypes, isLiveWindow }) => {
+const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFilterChange = null, filterTypes = null, isLiveWindow, isModal = false, isForum = false }) => {
+    const [modalFilter, setModalFilter] = useState('all');
     const { liveData, setLiveData, setIsLiveDataComplete } = useLottery() || { liveData: null, setLiveData: null, setIsLiveDataComplete: null };
     const [isTodayLoading, setIsTodayLoading] = useState(true);
     const [error, setError] = useState(null);
     const [retryCount, setRetryCount] = useState(0);
-    const [animatingPrizes, setAnimatingPrizes] = useState({}); // { tinh: prizeType }
+    const [animatingPrizes, setAnimatingPrizes] = useState({});
+    const [sseStatus, setSseStatus] = useState({});
     const mountedRef = useRef(false);
-    const sseRefs = useRef({}); // { tinh: EventSource }
+    const sseRefs = useRef({});
+    const sseSetupRef = useRef(false);
+    const updateTimeoutRef = useRef(null);
+    const initialDataCache = useRef(new Map());
+    const cacheTimeout = 1 * 60 * 1000;
+    const prizeCache = useRef(new Map());
+    const prizeCacheTimeout = 20 * 1000;
+    const sseConnectionPool = useRef(new Map());
+    const sseReconnectDelay = 1000;
 
-    const maxRetries = 50;
-    const retryInterval = 2000;
-    const fetchMaxRetries = 3;
-    const fetchRetryInterval = 5000;
-    const pollingIntervalMs = 2000;
-    const regularPollingIntervalMs = 7000;
-
-    const prizeDigits = {
-        specialPrize_0: 6,
-        firstPrize_0: 5,
-        secondPrize_0: 5,
-        threePrizes_0: 5,
-        threePrizes_1: 5,
-        fourPrizes_0: 5,
-        fourPrizes_1: 5,
-        fourPrizes_2: 5,
-        fourPrizes_3: 5,
-        fourPrizes_4: 5,
-        fourPrizes_5: 5,
-        fourPrizes_6: 5,
-        fivePrizes_0: 4,
-        sixPrizes_0: 4,
-        sixPrizes_1: 4,
-        sixPrizes_2: 4,
-        sevenPrizes_0: 3,
-        eightPrizes_0: 2,
-    };
+    const today = useMemo(() => new Date().toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+    }).replace(/\//g, '-'), []);
 
     const provincesByDay = useMemo(() => ({
         0: [
@@ -82,12 +69,19 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     }), []);
 
     const emptyResult = useMemo(() => {
-        const dayOfWeekIndex = new Date().getDay();
+        const targetDate = new Date(today.split('-').reverse().join('-'));
+        const dayOfWeekIndex = targetDate.getDay();
         const provinces = provincesByDay[dayOfWeekIndex] || provincesByDay[6];
+        console.log('📊 Xác định tỉnh cho client:', {
+            today,
+            dayOfWeekIndex,
+            provinces: provinces.map(p => p.tinh),
+            availableProvinces: provincesByDay[dayOfWeekIndex] ? provincesByDay[dayOfWeekIndex].map(p => p.tinh) : []
+        });
         return provinces.map(province => ({
             drawDate: today,
             station: station,
-            dayOfWeek: new Date().toLocaleString('vi-VN', { weekday: 'long' }),
+            dayOfWeek: targetDate.toLocaleString('vi-VN', { weekday: 'long' }),
             tentinh: province.tentinh,
             tinh: province.tinh,
             year: new Date().getFullYear(),
@@ -112,14 +106,318 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             eightPrizes_0: '...',
             lastUpdated: 0,
         }));
-    }, [today, station]);
+    }, [today, station, provincesByDay]);
+
+    const tableKey = today + station;
+    const currentFilter = isModal ? modalFilter : (filterTypes && filterTypes[tableKey]) || 'all';
+
+    const processedLiveData = useMemo(() => {
+        if (!liveData || !Array.isArray(liveData)) return [];
+        return liveData.map(item => ({
+            ...item,
+            filteredPrizes: Object.keys(item).reduce((acc, key) => {
+                if (key.includes('Prize') && item[key] !== '...' && item[key] !== '***') {
+                    acc[key] = getFilteredNumber(item[key], currentFilter);
+                }
+                return acc;
+            }, {})
+        }));
+    }, [liveData, currentFilter]);
+
+    const renderPrizeValue = useCallback((tinh, prizeType, digits = 5) => {
+        const isAnimating = animatingPrizes[tinh] === prizeType && processedLiveData.find(item => item.tinh === tinh)?.[prizeType] === '...';
+        const className = `${styles.running_number} ${styles[`running_${digits}`]}`;
+        const prizeValue = processedLiveData.find(item => item.tinh === tinh)?.[prizeType] || '...';
+        const filteredValue = processedLiveData.find(item => item.tinh === tinh)?.filteredPrizes?.[prizeType] || getFilteredNumber(prizeValue, currentFilter);
+        const displayDigits = currentFilter === 'last2' ? 2 : currentFilter === 'last3' ? 3 : digits;
+        const isSpecialOrEighth = prizeType === 'specialPrize_0' || prizeType === 'eightPrizes_0';
+
+        return (
+            <span className={`${className} ${isSpecialOrEighth ? styles.highlight : ''}`} data-status={isAnimating ? 'animating' : 'static'}>
+                {isAnimating ? (
+                    <span className={styles.digit_container}>
+                        {Array.from({ length: displayDigits }).map((_, i) => (
+                            <span key={i} className={styles.digit} data-status="animating" data-index={i}></span>
+                        ))}
+                    </span>
+                ) : prizeValue === '...' ? (
+                    <span className={styles.ellipsis}></span>
+                ) : (
+                    <span className={styles.digit_container}>
+                        {filteredValue
+                            .padStart(displayDigits, '0')
+                            .split('')
+                            .map((digit, i) => (
+                                <span key={i} className={`${styles.digit12} ${isSpecialOrEighth ? styles.highlight1 : ''}`} data-status="static" data-index={i}>
+                                    {digit}
+                                </span>
+                            ))}
+                    </span>
+                )}
+            </span>
+        );
+    }, [animatingPrizes, processedLiveData, currentFilter]);
+
+    const maxRetries = 50;
+    const retryInterval = 2000;
+    const fetchMaxRetries = 3;
+    const fetchRetryInterval = 5000;
+    const prizeDigits = {
+        specialPrize_0: 6,
+        firstPrize_0: 5,
+        secondPrize_0: 5,
+        threePrizes_0: 5,
+        threePrizes_1: 5,
+        fourPrizes_0: 5,
+        fourPrizes_1: 5,
+        fourPrizes_2: 5,
+        fourPrizes_3: 5,
+        fourPrizes_4: 5,
+        fourPrizes_5: 5,
+        fourPrizes_6: 5,
+        fivePrizes_0: 4,
+        sixPrizes_0: 4,
+        sixPrizes_1: 4,
+        sixPrizes_2: 4,
+        sevenPrizes_0: 3,
+        eightPrizes_0: 2,
+    };
+
+    const getCachedOrFetchInitialData = useCallback(async (province, targetDate) => {
+        const cacheKey = `${station}:${province.tinh}:${targetDate}`;
+        const cached = initialDataCache.current.get(cacheKey);
+
+        if (cached && Date.now() - cached.timestamp < cacheTimeout) {
+            console.log(`📦 Sử dụng cached data cho ${province.tinh} (cache age: ${Math.round((Date.now() - cached.timestamp) / 1000)}s)`);
+            const mergedData = { ...cached.data };
+            const prizeTypes = [
+                'eightPrizes_0', 'sevenPrizes_0', 'sixPrizes_0', 'sixPrizes_1', 'sixPrizes_2',
+                'fivePrizes_0', 'fourPrizes_0', 'fourPrizes_1', 'fourPrizes_2', 'fourPrizes_3',
+                'fourPrizes_4', 'fourPrizes_5', 'fourPrizes_6', 'threePrizes_0', 'threePrizes_1',
+                'secondPrize_0', 'firstPrize_0', 'specialPrize_0'
+            ];
+
+            prizeTypes.forEach(prizeType => {
+                const prizeCacheKey = `${station}:${province.tinh}:${prizeType}`;
+                const prizeCached = prizeCache.current.get(prizeCacheKey);
+                if (prizeCached && Date.now() - prizeCached.timestamp < prizeCacheTimeout) {
+                    mergedData[prizeType] = prizeCached.value;
+                    console.log(`📦 Sử dụng cached prize ${prizeType} = ${prizeCached.value} cho ${province.tinh}`);
+                }
+            });
+
+            return mergedData;
+        }
+
+        try {
+            const response = await fetch(
+                `http://localhost:5000/api/ketqua/xsmn/sse/initial?station=${station}&tinh=${province.tinh}&date=${targetDate.replace(/\//g, '-')}`
+            );
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            const serverData = await response.json();
+
+            initialDataCache.current.set(cacheKey, {
+                data: serverData,
+                timestamp: Date.now()
+            });
+
+            const prizeTypes = [
+                'eightPrizes_0', 'sevenPrizes_0', 'sixPrizes_0', 'sixPrizes_1', 'sixPrizes_2',
+                'fivePrizes_0', 'fourPrizes_0', 'fourPrizes_1', 'fourPrizes_2', 'fourPrizes_3',
+                'fourPrizes_4', 'fourPrizes_5', 'fourPrizes_6', 'threePrizes_0', 'threePrizes_1',
+                'secondPrize_0', 'firstPrize_0', 'specialPrize_0'
+            ];
+
+            prizeTypes.forEach(prizeType => {
+                if (serverData[prizeType] && serverData[prizeType] !== '...' && serverData[prizeType] !== '***') {
+                    const prizeCacheKey = `${station}:${province.tinh}:${prizeType}`;
+                    prizeCache.current.set(prizeCacheKey, {
+                        value: serverData[prizeType],
+                        timestamp: Date.now()
+                    });
+                }
+            });
+
+            console.log(`📡 Fetched fresh data cho ${province.tinh}:`, serverData);
+            return serverData;
+        } catch (error) {
+            console.error(`❌ Lỗi fetch data cho ${province.tinh}:`, error);
+            if (cached) {
+                console.log(`🔄 Fallback to cached data cho ${province.tinh}`);
+                return cached.data;
+            }
+            throw error;
+        }
+    }, [station]);
+
+    const localStorageRef = useRef(new Map());
+    const localStorageTimeoutRef = useRef(null);
+    const LIVE_DATA_TTL = 40 * 60 * 1000;
+
+    const debouncedLocalStorageUpdate = useCallback((key, value) => {
+        localStorageRef.current.set(key, value);
+
+        if (localStorageTimeoutRef.current) {
+            clearTimeout(localStorageTimeoutRef.current);
+        }
+
+        localStorageTimeoutRef.current = setTimeout(() => {
+            localStorageRef.current.forEach((value, key) => {
+                try {
+                    const dataWithTimestamp = {
+                        data: value,
+                        timestamp: Date.now(),
+                        ttl: LIVE_DATA_TTL
+                    };
+                    localStorage.setItem(key, JSON.stringify(dataWithTimestamp));
+                } catch (error) {
+                    console.error('❌ Lỗi lưu localStorage:', error);
+                }
+            });
+            localStorageRef.current.clear();
+        }, 100);
+    }, []);
+
+    const cleanupOldLiveData = useCallback(() => {
+        try {
+            const now = Date.now();
+            const keysToRemove = [];
+
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('liveData:')) {
+                    try {
+                        const storedData = localStorage.getItem(key);
+                        if (storedData) {
+                            const parsed = JSON.parse(storedData);
+                            if (parsed.timestamp && (now - parsed.timestamp > LIVE_DATA_TTL)) {
+                                keysToRemove.push(key);
+                            }
+                        }
+                    } catch (error) {
+                        keysToRemove.push(key);
+                    }
+                }
+            }
+
+            keysToRemove.forEach(key => {
+                localStorage.removeItem(key);
+                console.log(`🧹 Đã xóa liveData cũ: ${key}`);
+            });
+
+            if (keysToRemove.length > 0) {
+                console.log(`🧹 Đã cleanup ${keysToRemove.length} liveData entries`);
+            }
+        } catch (error) {
+            console.error('❌ Lỗi cleanup liveData:', error);
+        }
+    }, []);
+
+    useEffect(() => {
+        const cleanupInterval = setInterval(cleanupOldLiveData, 10 * 60 * 1000);
+        return () => clearInterval(cleanupInterval);
+    }, [cleanupOldLiveData]);
+
+    const animationTimeoutsRef = useRef(new Map());
+
+    const setAnimationWithTimeout = useCallback((tinh, prizeType) => {
+        if (animationTimeoutsRef.current.has(`${tinh}-${prizeType}`)) {
+            clearTimeout(animationTimeoutsRef.current.get(`${tinh}-${prizeType}`));
+        }
+
+        requestAnimationFrame(() => {
+            setAnimatingPrizes(prev => ({
+                ...prev,
+                [tinh]: prizeType
+            }));
+        });
+
+        const timeoutId = setTimeout(() => {
+            requestAnimationFrame(() => {
+                setAnimatingPrizes(prev => {
+                    const newState = { ...prev };
+                    if (newState[tinh] === prizeType) {
+                        delete newState[tinh];
+                    }
+                    return newState;
+                });
+            });
+            animationTimeoutsRef.current.delete(`${tinh}-${prizeType}`);
+        }, 2000);
+
+        animationTimeoutsRef.current.set(`${tinh}-${prizeType}`, timeoutId);
+    }, []);
+
+    const batchUpdateRef = useRef(new Map());
+    const batchTimeoutRef = useRef(null);
+
+    const batchUpdateLiveData = useCallback((tinh, prizeType, value) => {
+        const key = `${tinh}-${prizeType}`;
+        batchUpdateRef.current.set(key, { tinh, prizeType, value });
+
+        if (value && value !== '...' && value !== '***') {
+            const prizeCacheKey = `${station}:${tinh}:${prizeType}`;
+            prizeCache.current.set(prizeCacheKey, {
+                value: value,
+                timestamp: Date.now()
+            });
+            console.log(`📦 Cached prize ${prizeType} = ${value} cho ${tinh}`);
+        }
+
+        if (batchTimeoutRef.current) {
+            clearTimeout(batchTimeoutRef.current);
+        }
+
+        batchTimeoutRef.current = setTimeout(() => {
+            if (batchUpdateRef.current.size > 0 && setLiveData) {
+                console.log('🔄 Bắt đầu batch update với:', Array.from(batchUpdateRef.current.values()));
+                setLiveData(prev => {
+                    console.log('🔄 Prev liveData:', prev);
+                    const updatedData = prev.map(item => {
+                        let updatedItem = { ...item };
+                        let hasChanges = false;
+
+                        batchUpdateRef.current.forEach(({ tinh: updateTinh, prizeType: updatePrizeType, value: updateValue }) => {
+                            if (item.tinh === updateTinh) {
+                                console.log(`🔄 Cập nhật ${updatePrizeType} = ${updateValue} cho ${updateTinh}`);
+                                updatedItem[updatePrizeType] = updateValue;
+                                hasChanges = true;
+                            }
+                        });
+
+                        if (hasChanges) {
+                            updatedItem.lastUpdated = Date.now();
+                            debouncedLocalStorageUpdate(`liveData:${station}:${item.tinh}:${today}`, updatedItem);
+                        }
+
+                        return updatedItem;
+                    });
+
+                    const isComplete = updatedData.every(item =>
+                        Object.values(item).every(val => typeof val === 'string' && val !== '...' && val !== '***')
+                    );
+                    setIsLiveDataComplete(isComplete);
+                    setIsTodayLoading(false);
+                    setRetryCount(0);
+                    setError(null);
+
+                    console.log('🔄 Batch update liveData:', updatedData);
+                    return updatedData;
+                });
+
+                batchUpdateRef.current.clear();
+            }
+        }, 50);
+    }, [setLiveData, debouncedLocalStorageUpdate, station, today]);
 
     useEffect(() => {
         mountedRef.current = true;
+        console.log('🔄 LiveResult component mounted');
         return () => {
+            console.log('🔄 LiveResult component unmounting');
             mountedRef.current = false;
             Object.values(sseRefs.current).forEach(sse => {
-                console.log('Đóng kết nối SSE...');
+                console.log('🔌 Đóng kết nối SSE...');
                 sse.close();
             });
             sseRefs.current = {};
@@ -127,34 +425,90 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
     }, []);
 
     useEffect(() => {
+        console.log('🎯 LiveResult useEffect triggered:', {
+            setLiveData: !!setLiveData,
+            setIsLiveDataComplete: !!setIsLiveDataComplete,
+            isLiveWindow,
+            station,
+            today,
+            mountedRef: mountedRef.current
+        });
+
         if (!setLiveData || !setIsLiveDataComplete || !isLiveWindow) {
-            setLiveData(emptyResult);
-            setIsTodayLoading(true);
-            setError(null);
+            console.log('⚠️ Early return - không thiết lập SSE vì điều kiện không đủ');
+            setTimeout(() => {
+                if (mountedRef.current) {
+                    setLiveData(emptyResult);
+                    setIsTodayLoading(true);
+                    setError(null);
+                }
+            }, 0);
             return;
         }
 
-        let pollingInterval;
+        if (sseSetupRef.current) {
+            console.log('⚠️ SSE đã được thiết lập, bỏ qua');
+            return;
+        }
+
+        if (typeof window !== 'undefined' && window.__NEXT_DATA__?.buildId !== window.__NEXT_DATA__?.buildId) {
+            console.log('⚠️ Đang trong Fast Refresh, bỏ qua thiết lập SSE');
+            return;
+        }
+
+        console.log('✅ Bắt đầu thiết lập SSE cho XSMN');
+        sseSetupRef.current = true;
 
         const fetchInitialData = async (retry = 0) => {
             try {
                 const dayOfWeekIndex = new Date().getDay();
                 const provinces = provincesByDay[dayOfWeekIndex] || provincesByDay[6];
+                console.log('📊 Lấy dữ liệu ban đầu cho provinces:', provinces.map(p => p.tinh));
+
                 const results = await Promise.all(
                     provinces.map(async (province) => {
                         const cachedData = localStorage.getItem(`liveData:${station}:${province.tinh}:${today}`);
-                        let initialData = cachedData ? JSON.parse(cachedData) : {
-                            ...emptyResult.find(item => item.tinh === province.tinh),
-                            lastUpdated: 0,
-                        };
+                        let initialData;
+
+                        if (cachedData) {
+                            try {
+                                const parsed = JSON.parse(cachedData);
+                                if (parsed.data && parsed.timestamp) {
+                                    const now = Date.now();
+                                    if (now - parsed.timestamp > LIVE_DATA_TTL) {
+                                        initialData = {
+                                            ...emptyResult.find(item => item.tinh === province.tinh),
+                                            lastUpdated: 0,
+                                        };
+                                    } else {
+                                        initialData = {
+                                            ...parsed.data,
+                                            lastUpdated: parsed.timestamp,
+                                        };
+                                    }
+                                } else {
+                                    initialData = {
+                                        ...parsed,
+                                        lastUpdated: parsed.lastUpdated || 0,
+                                    };
+                                }
+                            } catch (error) {
+                                console.error('❌ Lỗi parse cached data:', error);
+                                initialData = {
+                                    ...emptyResult.find(item => item.tinh === province.tinh),
+                                    lastUpdated: 0,
+                                };
+                            }
+                        } else {
+                            initialData = {
+                                ...emptyResult.find(item => item.tinh === province.tinh),
+                                lastUpdated: 0,
+                            };
+                        }
 
                         try {
-                            const response = await fetch(
-                                `https://backendkqxs-1.onrender.com/api/ketqua/xsmn/sse/initial?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
-                            );
-                            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-                            const serverData = await response.json();
-                            console.log(`Dữ liệu từ /initial cho ${province.tinh}:`, serverData);
+                            const serverData = await getCachedOrFetchInitialData(province, today);
+                            console.log(`📡 Dữ liệu từ /initial cho ${province.tinh}:`, serverData);
 
                             const updatedData = { ...initialData };
                             let shouldUpdate = !initialData.lastUpdated || serverData.lastUpdated > initialData.lastUpdated;
@@ -170,7 +524,7 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                             }
                             return updatedData;
                         } catch (err) {
-                            console.error(`Lỗi khi lấy dữ liệu ban đầu cho ${province.tinh} (lần ${retry + 1}):`, err.message);
+                            console.error(`❌ Lỗi khi lấy dữ liệu ban đầu cho ${province.tinh} (lần ${retry + 1}):`, err.message);
                             return initialData;
                         }
                     })
@@ -185,10 +539,10 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                     setIsTodayLoading(false);
                     setRetryCount(0);
                     setError(null);
-                    console.log('Đã cập nhật dữ liệu ban đầu:', results);
+                    console.log('✅ Đã cập nhật dữ liệu ban đầu:', results);
                 }
             } catch (err) {
-                console.error('Lỗi khi lấy dữ liệu ban đầu:', err.message);
+                console.error('❌ Lỗi khi lấy dữ liệu ban đầu:', err.message);
                 if (retry < fetchMaxRetries) {
                     setTimeout(() => {
                         if (mountedRef.current) {
@@ -200,7 +554,28 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                     const provinces = provincesByDay[dayOfWeekIndex] || provincesByDay[6];
                     const results = provinces.map(province => {
                         const cachedData = localStorage.getItem(`liveData:${station}:${province.tinh}:${today}`);
-                        return cachedData ? JSON.parse(cachedData) : emptyResult.find(item => item.tinh === province.tinh);
+                        if (cachedData) {
+                            try {
+                                const parsed = JSON.parse(cachedData);
+                                if (parsed.data && parsed.timestamp) {
+                                    const now = Date.now();
+                                    if (now - parsed.timestamp > LIVE_DATA_TTL) {
+                                        return emptyResult.find(item => item.tinh === province.tinh);
+                                    } else {
+                                        return {
+                                            ...parsed.data,
+                                            lastUpdated: parsed.timestamp,
+                                        };
+                                    }
+                                } else {
+                                    return parsed;
+                                }
+                            } catch (error) {
+                                console.error('❌ Lỗi parse cached data trong fallback:', error);
+                                return emptyResult.find(item => item.tinh === province.tinh);
+                            }
+                        }
+                        return emptyResult.find(item => item.tinh === province.tinh);
                     });
                     setLiveData(results);
                     setIsLiveDataComplete(false);
@@ -211,12 +586,24 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
         };
 
         const connectSSE = () => {
-            const dayOfWeekIndex = new Date().getDay();
+            if (!mountedRef.current) {
+                console.log('⚠️ Component đã unmount, bỏ qua thiết lập SSE');
+                return;
+            }
+
+            const targetDate = new Date(today.split('-').reverse().join('-'));
+            const dayOfWeekIndex = targetDate.getDay();
             const provinces = provincesByDay[dayOfWeekIndex] || provincesByDay[6];
+            console.log('🔌 Thiết lập SSE cho provinces:', provinces.map(p => p.tinh));
 
             provinces.forEach(province => {
+                if (!mountedRef.current) {
+                    console.log('⚠️ Component đã unmount, bỏ qua thiết lập SSE cho', province.tinh);
+                    return;
+                }
+
                 if (!station || !today || !/^\d{2}-\d{2}-\d{4}$/.test(today)) {
-                    console.warn('Invalid station or today value:', { station, today });
+                    console.warn('⚠️ Invalid station or today value:', { station, today });
                     if (mountedRef.current) {
                         setError('Dữ liệu đang tải...');
                         setIsTodayLoading(false);
@@ -224,221 +611,240 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
                     return;
                 }
 
+                const connectionKey = `${province.tinh}:${today}`;
+
+                if (sseConnectionPool.current.has(connectionKey)) {
+                    const existingConnection = sseConnectionPool.current.get(connectionKey);
+                    if (existingConnection.readyState === EventSource.OPEN) {
+                        console.log(`🔌 SSE connection cho ${province.tinh} đã tồn tại và đang hoạt động`);
+                        sseRefs.current[province.tinh] = existingConnection;
+                        return;
+                    } else {
+                        existingConnection.close();
+                        sseConnectionPool.current.delete(connectionKey);
+                    }
+                }
+
+                if (sseRefs.current[province.tinh] && sseRefs.current[province.tinh].readyState !== EventSource.CLOSED) {
+                    console.log(`🔌 SSE connection cho ${province.tinh} đã tồn tại và đang hoạt động`);
+                    return;
+                }
+
                 if (sseRefs.current[province.tinh]) {
+                    console.log(`🔌 Đóng kết nối SSE cũ cho ${province.tinh}`);
                     sseRefs.current[province.tinh].close();
                 }
 
-                sseRefs.current[province.tinh] = new EventSource(
-                    `https://backendkqxs-1.onrender.com/api/ketqua/xsmn/sse?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
-                );
-                console.log(`Khởi tạo kết nối SSE cho tỉnh ${province.tinh}, ngày: ${today}`);
+                const sseUrl = `http://localhost:5000/api/ketqua/xsmn/sse?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`;
+                console.log(`🔌 Tạo SSE connection cho ${province.tinh}:`, sseUrl);
 
-                sseRefs.current[province.tinh].onopen = () => {
-                    console.log(`SSE connection opened for ${province.tinh}`);
+                try {
+                    const newConnection = new EventSource(sseUrl);
+                    sseRefs.current[province.tinh] = newConnection;
+                    sseConnectionPool.current.set(connectionKey, newConnection);
+                    setSseStatus(prev => ({ ...prev, [province.tinh]: 'connecting' }));
+                    console.log(`✅ SSE connection created for ${province.tinh}`);
+
+                    newConnection.onopen = () => {
+                        console.log(`🟢 SSE connection opened for ${province.tinh}`);
+                        setSseStatus(prev => ({ ...prev, [province.tinh]: 'connected' }));
+                        if (mountedRef.current) {
+                            setError(null);
+                            setRetryCount(0);
+                        }
+                    };
+
+                    newConnection.onerror = () => {
+                        console.log(`🔴 SSE error for ${province.tinh}, reconnecting... Retry count: ${retryCount + 1}`);
+                        setSseStatus(prev => ({ ...prev, [province.tinh]: 'error' }));
+                        if (mountedRef.current) {
+                            setError('Đang kết nối lại SSE...');
+                        }
+
+                        if (sseRefs.current[province.tinh]) {
+                            sseRefs.current[province.tinh].close();
+                            sseRefs.current[province.tinh] = null;
+                        }
+                        sseConnectionPool.current.delete(connectionKey);
+
+                        if (retryCount < maxRetries && mountedRef.current) {
+                            setTimeout(() => {
+                                if (mountedRef.current) {
+                                    setRetryCount(prev => prev + 1);
+                                    retrySSEForProvince(province.tinh);
+                                }
+                            }, sseReconnectDelay);
+                        } else if (mountedRef.current) {
+                            setError('Mất kết nối SSE, vui lòng refresh trang...');
+                        }
+                    };
+
+                    const prizeTypes = [
+                        'eightPrizes_0', 'sevenPrizes_0',
+                        'sixPrizes_0', 'sixPrizes_1', 'sixPrizes_2',
+                        'fivePrizes_0',
+                        'fourPrizes_0', 'fourPrizes_1', 'fourPrizes_2', 'fourPrizes_3', 'fourPrizes_4', 'fourPrizes_5', 'fourPrizes_6',
+                        'threePrizes_0', 'threePrizes_1',
+                        'secondPrize_0', 'firstPrize_0', 'specialPrize_0'
+                    ];
+
+                    prizeTypes.forEach(prizeType => {
+                        sseRefs.current[province.tinh].addEventListener(prizeType, (event) => {
+                            try {
+                                const data = JSON.parse(event.data);
+                                console.log(`📡 Nhận sự kiện SSE: ${prizeType} = ${data[prizeType]} (tỉnh ${province.tinh})`, data);
+                                if (data && data[prizeType] && mountedRef.current) {
+                                    console.log(`🚀 Cập nhật ngay lập tức: ${prizeType} = ${data[prizeType]} (tỉnh ${province.tinh})`);
+                                    batchUpdateLiveData(province.tinh, prizeType, data[prizeType]);
+                                    if (data[prizeType] !== '...' && data[prizeType] !== '***') {
+                                        setAnimationWithTimeout(province.tinh, prizeType);
+                                    }
+                                }
+                            } catch (error) {
+                                console.error(`❌ Lỗi xử lý sự kiện ${prizeType} (tỉnh ${province.tinh}):`, error);
+                            }
+                        });
+                    });
+
+                    sseRefs.current[province.tinh].addEventListener('full', (event) => {
+                        try {
+                            const data = JSON.parse(event.data);
+                            console.log(`📡 Nhận sự kiện SSE full (tỉnh ${province.tinh}):`, data);
+                            if (data && mountedRef.current) {
+                                batchUpdateLiveData(province.tinh, 'full', data);
+                                setIsTodayLoading(false);
+                                setRetryCount(0);
+                                setError(null);
+                            }
+                        } catch (error) {
+                            console.error(`❌ Lỗi xử lý sự kiện full (tỉnh ${province.tinh}):`, error);
+                        }
+                    });
+
+                    sseRefs.current[province.tinh].addEventListener('canary', (event) => {
+                        console.log(`📡 Received canary message for ${province.tinh}:`, event.data);
+                    });
+                } catch (error) {
+                    console.error(`❌ Lỗi tạo SSE cho ${province.tinh}:`, error);
+                    setSseStatus(prev => ({ ...prev, [province.tinh]: 'error' }));
+                }
+            });
+        };
+
+        const retrySSEForProvince = (tinh) => {
+            if (!mountedRef.current) return;
+
+            console.log(`🔄 Retry SSE cho tỉnh ${tinh}`);
+
+            if (sseRefs.current[tinh]) {
+                sseRefs.current[tinh].close();
+                sseRefs.current[tinh] = null;
+            }
+
+            const sseUrl = `http://localhost:5000/api/ketqua/xsmn/sse?station=${station}&tinh=${tinh}&date=${today.replace(/\//g, '-')}`;
+            console.log(`🔌 Tạo SSE connection mới cho ${tinh}:`, sseUrl);
+
+            try {
+                sseRefs.current[tinh] = new EventSource(sseUrl);
+                setSseStatus(prev => ({ ...prev, [tinh]: 'connecting' }));
+
+                sseRefs.current[tinh].onopen = () => {
+                    console.log(`🟢 SSE connection reopened for ${tinh}`);
+                    setSseStatus(prev => ({ ...prev, [tinh]: 'connected' }));
                     if (mountedRef.current) {
                         setError(null);
-                    }
-                };
-
-                sseRefs.current[province.tinh].onerror = () => {
-                    console.log(`SSE error for ${province.tinh}, reconnecting... Retry count: ${retryCount + 1}`);
-                    if (mountedRef.current) {
-                        setError('Đang kết nối lại...');
-                    }
-                    sseRefs.current[province.tinh].close();
-                    sseRefs.current[province.tinh] = null;
-                    if (retryCount < maxRetries) {
-                        setTimeout(() => {
-                            if (mountedRef.current) {
-                                setRetryCount(prev => prev + 1);
-                                connectSSE();
-                            }
-                        }, retryInterval);
-                    } else if (mountedRef.current) {
-                        setError('Mất kết nối trực tiếp, đang sử dụng polling...');
+                        setRetryCount(0);
                     }
                 };
 
                 const prizeTypes = [
-                    'specialPrize_0', 'firstPrize_0', 'secondPrize_0',
-                    'threePrizes_0', 'threePrizes_1',
-                    'fourPrizes_0', 'fourPrizes_1', 'fourPrizes_2', 'fourPrizes_3', 'fourPrizes_4', 'fourPrizes_5', 'fourPrizes_6',
-                    'fivePrizes_0',
+                    'eightPrizes_0', 'sevenPrizes_0',
                     'sixPrizes_0', 'sixPrizes_1', 'sixPrizes_2',
-                    'sevenPrizes_0', 'eightPrizes_0'
+                    'fivePrizes_0',
+                    'fourPrizes_0', 'fourPrizes_1', 'fourPrizes_2', 'fourPrizes_3', 'fourPrizes_4', 'fourPrizes_5', 'fourPrizes_6',
+                    'threePrizes_0', 'threePrizes_1',
+                    'secondPrize_0', 'firstPrize_0', 'specialPrize_0'
                 ];
 
                 prizeTypes.forEach(prizeType => {
-                    sseRefs.current[province.tinh].addEventListener(prizeType, (event) => {
+                    sseRefs.current[tinh].addEventListener(prizeType, (event) => {
                         try {
                             const data = JSON.parse(event.data);
-                            console.log(`Nhận sự kiện SSE: ${prizeType} = ${data[prizeType]} (tỉnh ${province.tinh})`, data);
                             if (data && data[prizeType] && mountedRef.current) {
-                                setLiveData(prev => {
-                                    const updatedData = prev.map(item => {
-                                        if (item.tinh !== province.tinh) return item;
-                                        if (data[prizeType] === '...' && item[prizeType] !== '...' && item[prizeType] !== '***') {
-                                            console.warn(`Bỏ qua ${prizeType} = "..." vì đã có giá trị: ${item[prizeType]}`);
-                                            return item;
-                                        }
-                                        const updatedItem = {
-                                            ...item,
-                                            [prizeType]: data[prizeType],
-                                            tentinh: data.tentinh || item.tentinh,
-                                            year: data.year || item.year,
-                                            month: data.month || item.month,
-                                            lastUpdated: data.lastUpdated || Date.now(),
-                                        };
-                                        localStorage.setItem(`liveData:${station}:${province.tinh}:${today}`, JSON.stringify(updatedItem));
-                                        return updatedItem;
-                                    });
-                                    const isComplete = updatedData.every(item =>
-                                        Object.values(item).every(val => typeof val === 'string' && val !== '...' && val !== '***')
-                                    );
-                                    setIsLiveDataComplete(isComplete);
-                                    setIsTodayLoading(false);
-                                    setRetryCount(0);
-                                    setError(null);
-                                    console.log('Cập nhật liveData từ SSE:', updatedData);
-                                    return updatedData;
-                                });
+                                console.log(`🚀 Cập nhật ngay lập tức (retry): ${prizeType} = ${data[prizeType]} (tỉnh ${tinh})`);
+                                batchUpdateLiveData(tinh, prizeType, data[prizeType]);
+                                if (data[prizeType] !== '...' && data[prizeType] !== '***') {
+                                    setAnimationWithTimeout(tinh, prizeType);
+                                }
                             }
                         } catch (error) {
-                            console.error(`Lỗi xử lý sự kiện ${prizeType} (tỉnh ${province.tinh}):`, error);
+                            console.error(`❌ Lỗi xử lý sự kiện ${prizeType} (tỉnh ${tinh}):`, error);
                         }
                     });
                 });
-
-                sseRefs.current[province.tinh].addEventListener('full', (event) => {
-                    try {
-                        const data = JSON.parse(event.data);
-                        console.log(`Nhận sự kiện SSE full (tỉnh ${province.tinh}):`, data);
-                        if (data && mountedRef.current) {
-                            setLiveData(prev => {
-                                const updatedData = prev.map(item => {
-                                    if (item.tinh !== province.tinh) return item;
-                                    const updatedItem = { ...item };
-                                    let shouldUpdate = false;
-                                    for (const key in data) {
-                                        if (data[key] !== '...' || !updatedItem[key] || updatedItem[key] === '...' || updatedItem[key] === '***') {
-                                            updatedItem[key] = data[key];
-                                            shouldUpdate = true;
-                                        }
-                                    }
-                                    if (shouldUpdate) {
-                                        updatedItem.lastUpdated = data.lastUpdated || Date.now();
-                                        localStorage.setItem(`liveData:${station}:${province.tinh}:${today}`, JSON.stringify(updatedItem));
-                                    }
-                                    return updatedItem;
-                                });
-                                const isComplete = updatedData.every(item =>
-                                    Object.values(item).every(val => typeof val === 'string' && val !== '...' && val !== '***')
-                                );
-                                setIsLiveDataComplete(isComplete);
-                                console.log('Cập nhật liveData từ SSE full:', updatedData);
-                                return updatedData;
-                            });
-                            setIsTodayLoading(false);
-                            setRetryCount(0);
-                            setError(null);
-                        }
-                    } catch (error) {
-                        console.error(`Lỗi xử lý sự kiện full (tỉnh ${province.tinh}):`, error);
-                    }
-                });
-
-                sseRefs.current[province.tinh].addEventListener('canary', (event) => {
-                    console.log(`Received canary message for ${province.tinh}:`, event.data);
-                });
-            });
-        };
-
-        const startPolling = () => {
-            const poll = () => {
-                const dayOfWeekIndex = new Date().getDay();
-                const provinces = provincesByDay[dayOfWeekIndex] || provincesByDay[6];
-                const isIncomplete = (liveData || emptyResult).some(item =>
-                    Object.values(item).some(val => typeof val === 'string' && (val === '...' || val === '***'))
-                );
-                const interval = isIncomplete ? pollingIntervalMs : regularPollingIntervalMs;
-
-                pollingInterval = setTimeout(async () => {
-                    try {
-                        const results = await Promise.all(
-                            provinces.map(async province => {
-                                const response = await fetch(
-                                    `https://backendkqxs-1.onrender.com/api/ketqua/xsmn/sse/initial?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`
-                                );
-                                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-                                const serverData = await response.json();
-                                console.log(`Dữ liệu từ polling cho ${province.tinh}:`, serverData);
-                                return { province: province.tinh, data: serverData };
-                            })
-                        );
-
-                        if (mountedRef.current) {
-                            setLiveData(prev => {
-                                const currentData = Array.isArray(prev) && prev.length > 0 ? prev : emptyResult;
-                                const updatedData = currentData.map(item => {
-                                    const serverData = results.find(r => r.province === item.tinh)?.data;
-                                    if (!serverData) return item;
-                                    const updatedItem = { ...item };
-                                    let shouldUpdate = !item.lastUpdated || serverData.lastUpdated > item.lastUpdated;
-                                    for (const key in serverData) {
-                                        if (serverData[key] !== '...' || !updatedItem[key] || updatedItem[key] === '...' || updatedItem[key] === '***') {
-                                            updatedItem[key] = serverData[key];
-                                            shouldUpdate = true;
-                                        }
-                                    }
-                                    if (shouldUpdate) {
-                                        updatedItem.lastUpdated = serverData.lastUpdated || Date.now();
-                                        localStorage.setItem(`liveData:${station}:${item.tinh}:${today}`, JSON.stringify(updatedItem));
-                                    }
-                                    return updatedItem;
-                                });
-                                const isComplete = updatedData.every(item =>
-                                    Object.values(item).every(val => typeof val === 'string' && val !== '...' && val !== '***')
-                                );
-                                setIsLiveDataComplete(isComplete);
-                                console.log('Cập nhật liveData từ polling:', updatedData);
-                                return updatedData;
-                            });
-                            setError(null);
-                        }
-                    } catch (error) {
-                        console.error('Lỗi khi polling dữ liệu:', error);
-                        if (mountedRef.current) {
-                            setError('Không thể lấy dữ liệu, đang thử lại...');
-                        }
-                    }
-                    if (mountedRef.current) {
-                        poll();
-                    }
-                }, interval);
-            };
-
-            poll();
+            } catch (error) {
+                console.error(`❌ Lỗi tạo SSE cho ${tinh}:`, error);
+                setSseStatus(prev => ({ ...prev, [tinh]: 'error' }));
+            }
         };
 
         if (!Array.isArray(liveData)) {
-            setLiveData(emptyResult);
+            setTimeout(() => {
+                if (mountedRef.current) {
+                    setLiveData(emptyResult);
+                }
+            }, 0);
         }
 
         fetchInitialData();
         connectSSE();
-        startPolling();
 
         return () => {
+            if (updateTimeoutRef.current) {
+                clearTimeout(updateTimeoutRef.current);
+                updateTimeoutRef.current = null;
+            }
+
+            if (localStorageTimeoutRef.current) {
+                clearTimeout(localStorageTimeoutRef.current);
+                localStorageTimeoutRef.current = null;
+            }
+
+            if (batchTimeoutRef.current) {
+                clearTimeout(batchTimeoutRef.current);
+                batchTimeoutRef.current = null;
+            }
+
+            animationTimeoutsRef.current.forEach((timeoutId) => {
+                clearTimeout(timeoutId);
+            });
+            animationTimeoutsRef.current.clear();
+
+            batchUpdateRef.current.clear();
+
+            const now = Date.now();
+            for (const [key, value] of prizeCache.current.entries()) {
+                if (now - value.timestamp > prizeCacheTimeout) {
+                    prizeCache.current.delete(key);
+                }
+            }
+
+            for (const [key, value] of initialDataCache.current.entries()) {
+                if (now - value.timestamp > cacheTimeout) {
+                    initialDataCache.current.delete(key);
+                }
+            }
+
             Object.values(sseRefs.current).forEach(sse => {
-                console.log('Đóng kết nối SSE trong cleanup...');
+                console.log('🔌 Đóng kết nối SSE trong cleanup...');
                 sse.close();
             });
             sseRefs.current = {};
-            if (pollingInterval) {
-                clearTimeout(pollingInterval);
-            }
+
+            sseConnectionPool.current.clear();
+            sseSetupRef.current = false;
         };
-    }, [isLiveWindow, station, today, setLiveData, setIsLiveDataComplete, provincesByDay, emptyResult]);
+    }, [isLiveWindow, station, today, setLiveData, setIsLiveDataComplete, provincesByDay, emptyResult, debouncedLocalStorageUpdate, batchUpdateLiveData, setAnimationWithTimeout, getCachedOrFetchInitialData]);
 
     useEffect(() => {
         if (!liveData || !liveData.length) {
@@ -455,24 +861,36 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             'secondPrize_0', 'firstPrize_0', 'specialPrize_0'
         ];
 
-        liveData.forEach(stationData => {
-            const currentPrize = animatingPrizes[stationData.tinh];
-            if (!currentPrize || stationData[currentPrize] !== '...') {
-                const nextPrize = animationQueue.find(prize => stationData[prize] === '...') || null;
-                setAnimatingPrizes(prev => ({
-                    ...prev,
-                    [stationData.tinh]: nextPrize
-                }));
-            }
-        });
-    }, [liveData, animatingPrizes]);
+        setAnimatingPrizes(prev => {
+            const newAnimatingPrizes = { ...prev };
+            let hasChanges = false;
 
-    if (!liveData || !liveData.length) {
+            processedLiveData.forEach(stationData => {
+                const currentPrize = prev[stationData.tinh];
+                if (!currentPrize || stationData[currentPrize] !== '...') {
+                    const nextPrize = animationQueue.find(prize => stationData[prize] === '...') || null;
+                    if (nextPrize !== currentPrize) {
+                        newAnimatingPrizes[stationData.tinh] = nextPrize;
+                        hasChanges = true;
+                    }
+                }
+            });
+
+            return hasChanges ? newAnimatingPrizes : prev;
+        });
+    }, [liveData]);
+
+    useEffect(() => {
+        console.log('🔄 LiveResult component re-render với liveData:', liveData);
+    }, [liveData]);
+
+    useEffect(() => {
+        console.log('🔄 ProcessedLiveData updated:', processedLiveData);
+    }, [processedLiveData]);
+
+    if (!processedLiveData || !processedLiveData.length) {
         return <div className={styles.error}>Đang tải dữ liệu...</div>;
     }
-
-    const tableKey = today + station;
-    const currentFilter = filterTypes[tableKey] || 'all';
 
     const getPrizeNumbers = (stationData) => {
         const lastTwoNumbers = [];
@@ -483,324 +901,524 @@ const LiveResult = ({ station, today, getHeadAndTailNumbers, handleFilterChange,
             }
         };
 
-        addNumber(stationData.specialPrize_0, true);
-        addNumber(stationData.firstPrize_0);
-        addNumber(stationData.secondPrize_0);
-        for (let i = 0; i < 2; i++) addNumber(stationData[`threePrizes_${i}`]);
-        for (let i = 0; i < 7; i++) addNumber(stationData[`fourPrizes_${i}`]);
-        addNumber(stationData.fivePrizes_0);
-        for (let i = 0; i < 3; i++) addNumber(stationData[`sixPrizes_${i}`]);
-        addNumber(stationData.sevenPrizes_0);
         addNumber(stationData.eightPrizes_0, false, true);
+        addNumber(stationData.sevenPrizes_0);
+        addNumber(stationData.sixPrizes_0);
+        addNumber(stationData.sixPrizes_1);
+        addNumber(stationData.sixPrizes_2);
+        addNumber(stationData.fivePrizes_0);
+        addNumber(stationData.fourPrizes_0);
+        addNumber(stationData.fourPrizes_1);
+        addNumber(stationData.fourPrizes_2);
+        addNumber(stationData.fourPrizes_3);
+        addNumber(stationData.fourPrizes_4);
+        addNumber(stationData.fourPrizes_5);
+        addNumber(stationData.fourPrizes_6);
+        addNumber(stationData.threePrizes_0);
+        addNumber(stationData.threePrizes_1);
+        addNumber(stationData.secondPrize_0);
+        addNumber(stationData.firstPrize_0);
+        addNumber(stationData.specialPrize_0, true);
 
-        const heads = Array(10).fill().map(() => []);
-        const tails = Array(10).fill().map(() => []);
+        return lastTwoNumbers;
+    };
 
-        lastTwoNumbers.forEach(item => {
-            const last2 = item.num;
-            if (last2.length === 2) {
-                const head = parseInt(last2[0], 10);
-                const tail = parseInt(last2[1], 10);
-                if (!isNaN(head) && !isNaN(tail)) {
-                    heads[head].push(item);
-                    tails[tail].push(item);
-                }
-            }
+    const allHeads = [];
+    const allTails = [];
+
+    for (let i = 0; i < 10; i++) {
+        const heads = [];
+        const tails = [];
+
+        processedLiveData.forEach(stationData => {
+            const prizeNumbers = getPrizeNumbers(stationData);
+            const headNumbers = prizeNumbers.filter(item => item.num.startsWith(i.toString()));
+            const tailNumbers = prizeNumbers.filter(item => item.num.endsWith(i.toString()));
+
+            heads.push(headNumbers);
+            tails.push(tailNumbers);
         });
 
-        return { heads, tails };
-    };
+        allHeads.push(heads);
+        allTails.push(tails);
+    }
 
-    const allHeads = Array(10).fill().map(() => []);
-    const allTails = Array(10).fill().map(() => []);
-    const stationsData = liveData.map(stationData => {
-        const { heads, tails } = getPrizeNumbers(stationData);
-        for (let i = 0; i < 10; i++) {
-            allHeads[i].push(heads[i]);
-            allTails[i].push(tails[i]);
-        }
-        return { tentinh: stationData.tentinh, station: stationData.station, tinh: stationData.tinh };
-    });
-
-    const renderPrizeValue = (tinh, prizeType, digits = 5) => {
-        const isAnimating = animatingPrizes[tinh] === prizeType && liveData.find(item => item.tinh === tinh)?.[prizeType] === '...';
-        const className = `${styles.running_number} ${styles[`running_${digits}`]}`;
-        const isSpecialOrEighth = prizeType === 'specialPrize_0' || prizeType === 'eightPrizes_0';
-
-        return (
-            <span className={className} data-status={isAnimating ? 'animating' : 'static'}>
-                {isAnimating ? (
-                    <span className={styles.digit_container}>
-                        {Array.from({ length: digits }).map((_, i) => (
-                            <span key={i} className={styles.digit} data-status="animating" data-index={i}></span>
-                        ))}
-                    </span>
-                ) : liveData.find(item => item.tinh === tinh)?.[prizeType] === '...' ? (
-                    <span className={styles.ellipsis}></span>
-                ) : (
-                    <span className={styles.digit_container}>
-                        {getFilteredNumber(liveData.find(item => item.tinh === tinh)?.[prizeType] || '...', currentFilter)
-                            .padStart(digits, '0')
-                            .split('')
-                            .map((digit, i) => (
-                                <span key={i} className={`${styles.digit12} ${isSpecialOrEighth ? styles.highlight1 : ''}`} data-status="static" data-index={i}>
-                                    {digit}
-                                </span>
-                            ))}
-                    </span>
-                )}
-            </span>
-        );
-    };
+    const stationsData = processedLiveData.filter(item => item && item.tinh);
 
     return (
-        <div className={styles.containerKQs}>
+        <div className={`${styles.containerKQs} ${isModal ? styles.modalContainer : ''} ${isForum ? styles.forumContainer : ''}`}>
             {error && <div className={styles.error}>{error}</div>}
             {isTodayLoading && (
                 <div className={styles.loading}>Đang chờ kết quả ngày {today}...</div>
             )}
-            <div className={styles.kqxs} style={{ '--num-columns': liveData.length }}>
-                <div className={styles.header}>
-                    <div className={styles.tructiep}><span className={styles.kqxs__title1}>Tường thuật trực tiếp...</span></div>
-                    <h1 className={styles.kqxs__title}>XSMN - Kết quả Xổ số Miền Nam - SXMN {today}</h1>
-                    <div className={styles.kqxs__action}>
-                        <a className={styles.kqxs__actionLink} href="#!">XSMN</a>
-                        <a className={`${styles.kqxs__actionLink} ${styles.dayOfWeek}`} href="#!">{liveData[0]?.dayOfWeek}</a>
-                        <a className={styles.kqxs__actionLink} href="#!">{today}</a>
+
+            {isModal && isForum ? (
+                <div className={styles.modalLayout}>
+                    <div className={styles.modalMainContent}>
+                        <div className={styles.modalTableContainer}>
+                            <table className={styles.modalResultsTable}>
+                                <thead>
+                                    <tr>
+                                        <th>Giải</th>
+                                        {processedLiveData.map(stationData => (
+                                            <th key={stationData.tinh}>{stationData.tentinh}</th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td className={styles.modalPrizeLabel}>G8</td>
+                                        {processedLiveData.map(stationData => (
+                                            <td key={stationData.tinh}>
+                                                <div className={styles.modalPrizeContainer}>
+                                                    <span className={`${styles.modalPrizeNumber} ${styles.eighth}`}>
+                                                        {renderPrizeValue(stationData.tinh, 'eightPrizes_0', 2)}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                        ))}
+                                    </tr>
+                                    <tr>
+                                        <td className={styles.modalPrizeLabel}>G7</td>
+                                        {processedLiveData.map(stationData => (
+                                            <td key={stationData.tinh}>
+                                                <div className={styles.modalPrizeContainer}>
+                                                    <span className={styles.modalPrizeNumber}>
+                                                        {renderPrizeValue(stationData.tinh, 'sevenPrizes_0', 3)}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                        ))}
+                                    </tr>
+                                    <tr>
+                                        <td className={styles.modalPrizeLabel}>G6</td>
+                                        {processedLiveData.map(stationData => (
+                                            <td key={stationData.tinh}>
+                                                <div className={styles.modalPrizeContainer}>
+                                                    {[0, 1, 2].map(idx => (
+                                                        <span key={idx} className={styles.modalPrizeNumber}>
+                                                            {renderPrizeValue(stationData.tinh, `sixPrizes_${idx}`, 4)}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </td>
+                                        ))}
+                                    </tr>
+                                    <tr>
+                                        <td className={styles.modalPrizeLabel}>G5</td>
+                                        {processedLiveData.map(stationData => (
+                                            <td key={stationData.tinh}>
+                                                <div className={styles.modalPrizeContainer}>
+                                                    <span className={styles.modalPrizeNumber}>
+                                                        {renderPrizeValue(stationData.tinh, 'fivePrizes_0', 4)}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                        ))}
+                                    </tr>
+                                    <tr>
+                                        <td className={styles.modalPrizeLabel}>G4</td>
+                                        {processedLiveData.map(stationData => (
+                                            <td key={stationData.tinh}>
+                                                <div className={styles.modalPrizeContainer}>
+                                                    {[0, 1, 2, 3, 4, 5, 6].map(idx => (
+                                                        <span key={idx} className={styles.modalPrizeNumber}>
+                                                            {renderPrizeValue(stationData.tinh, `fourPrizes_${idx}`, 5)}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </td>
+                                        ))}
+                                    </tr>
+                                    <tr>
+                                        <td className={styles.modalPrizeLabel}>G3</td>
+                                        {processedLiveData.map(stationData => (
+                                            <td key={stationData.tinh}>
+                                                <div className={styles.modalPrizeContainer}>
+                                                    {[0, 1].map(idx => (
+                                                        <span key={idx} className={styles.modalPrizeNumber}>
+                                                            {renderPrizeValue(stationData.tinh, `threePrizes_${idx}`, 5)}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </td>
+                                        ))}
+                                    </tr>
+                                    <tr>
+                                        <td className={styles.modalPrizeLabel}>G2</td>
+                                        {processedLiveData.map(stationData => (
+                                            <td key={stationData.tinh}>
+                                                <div className={styles.modalPrizeContainer}>
+                                                    <span className={styles.modalPrizeNumber}>
+                                                        {renderPrizeValue(stationData.tinh, 'secondPrize_0', 5)}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                        ))}
+                                    </tr>
+                                    <tr>
+                                        <td className={styles.modalPrizeLabel}>G1</td>
+                                        {processedLiveData.map(stationData => (
+                                            <td key={stationData.tinh}>
+                                                <div className={styles.modalPrizeContainer}>
+                                                    <span className={styles.modalPrizeNumber}>
+                                                        {renderPrizeValue(stationData.tinh, 'firstPrize_0', 5)}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                        ))}
+                                    </tr>
+                                    <tr>
+                                        <td className={styles.modalPrizeLabel}>ĐB</td>
+                                        {processedLiveData.map(stationData => (
+                                            <td key={stationData.tinh}>
+                                                <div className={styles.modalPrizeContainer}>
+                                                    <span className={`${styles.modalPrizeNumber} ${styles.special}`}>
+                                                        {renderPrizeValue(stationData.tinh, 'specialPrize_0', 6)}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                        ))}
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className={styles.modalAction}>
+                            <div aria-label="Tùy chọn lọc số" className={styles.modalFilterOptions} role="radiogroup">
+                                <div className={styles.modalOptionInput}>
+                                    <input
+                                        id={`modalFilterAll-${tableKey}`}
+                                        type="radio"
+                                        name={`modalFilterOption-${tableKey}`}
+                                        value="all"
+                                        checked={modalFilter === 'all'}
+                                        onChange={() => setModalFilter('all')}
+                                    />
+                                    <label htmlFor={`modalFilterAll-${tableKey}`}>Đầy Đủ</label>
+                                </div>
+                                <div className={styles.modalOptionInput}>
+                                    <input
+                                        id={`modalFilterTwo-${tableKey}`}
+                                        type="radio"
+                                        name={`modalFilterOption-${tableKey}`}
+                                        value="last2"
+                                        checked={modalFilter === 'last2'}
+                                        onChange={() => setModalFilter('last2')}
+                                    />
+                                    <label htmlFor={`modalFilterTwo-${tableKey}`}>2 Số Đuôi</label>
+                                </div>
+                                <div className={styles.modalOptionInput}>
+                                    <input
+                                        id={`modalFilterThree-${tableKey}`}
+                                        type="radio"
+                                        name={`modalFilterOption-${tableKey}`}
+                                        value="last3"
+                                        checked={modalFilter === 'last3'}
+                                        onChange={() => setModalFilter('last3')}
+                                    />
+                                    <label htmlFor={`modalFilterThree-${tableKey}`}>3 Số Đuôi</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className={styles.modalSidebar}>
+                        <div className={styles.modalStatsTablesContainer}>
+                            <div className={styles.modalStatsTableWrapper}>
+                                <div className={styles.modalStatsTableHeader}>Đầu</div>
+                                <div className={styles.modalStatsTableContent}>
+                                    {Array.from({ length: 10 }, (_, i) => (
+                                        <div key={`head-${i}`} className={styles.modalStatsTableRow}>
+                                            <div className={styles.modalStatsNumber}>{i}</div>
+                                            <div className={styles.modalStatsNumbers}>
+                                                {allHeads[i].map((headNumbers, index) => (
+                                                    headNumbers.map((item, numIdx) => (
+                                                        <span
+                                                            key={numIdx}
+                                                            className={`${styles.modalStatsPrize} ${item.isEighth ? styles.eighth : ''} ${item.isSpecial ? styles.special : ''}`}
+                                                        >
+                                                            {item.num}
+                                                            {numIdx < headNumbers.length - 1 && ', '}
+                                                        </span>
+                                                    ))
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className={styles.modalStatsTableWrapper}>
+                                <div className={styles.modalStatsTableHeader}>Đuôi</div>
+                                <div className={styles.modalStatsTableContent}>
+                                    {Array.from({ length: 10 }, (_, i) => (
+                                        <div key={`tail-${i}`} className={styles.modalStatsTableRow}>
+                                            <div className={styles.modalStatsNumber}>{i}</div>
+                                            <div className={styles.modalStatsNumbers}>
+                                                {allTails[i].map((tailNumbers, index) => (
+                                                    tailNumbers.map((item, numIdx) => (
+                                                        <span
+                                                            key={numIdx}
+                                                            className={`${styles.modalStatsPrize} ${item.isEighth ? styles.eighth : ''} ${item.isSpecial ? styles.special : ''}`}
+                                                        >
+                                                            {item.num}
+                                                            {numIdx < tailNumbers.length - 1 && ', '}
+                                                        </span>
+                                                    ))
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <table className={styles.tableXS}>
-                    <thead>
-                        <tr>
-                            <th></th>
-                            {liveData.map(stationData => (
-                                <th key={stationData.tinh} className={styles.stationName}>
-                                    {stationData.tentinh}
-                                </th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td className={`${styles.tdTitle} ${styles.highlight}`}>G8</td>
-                            {liveData.map(item => (
-                                <td key={item.tinh} className={styles.rowXS}>
-                                    <span className={`${styles.span4} ${styles.highlight}`}>
-                                        {renderPrizeValue(item.tinh, 'eightPrizes_0', 2)}
-                                    </span>
-                                </td>
-                            ))}
-                        </tr>
-                        <tr>
-                            <td className={styles.tdTitle}>G7</td>
-                            {liveData.map(item => (
-                                <td key={item.tinh} className={styles.rowXS}>
-                                    <span className={styles.span4}>
-                                        {renderPrizeValue(item.tinh, 'sevenPrizes_0', 3)}
-                                    </span>
-                                </td>
-                            ))}
-                        </tr>
-                        <tr>
-                            <td className={styles.tdTitle}>G6</td>
-                            {liveData.map(item => (
-                                <td key={item.tinh} className={styles.rowXS}>
-                                    {[0, 1, 2].map(idx => (
-                                        <span key={idx} className={styles.span3}>
-                                            {renderPrizeValue(item.tinh, `sixPrizes_${idx}`, 4)}
-                                        </span>
-                                    ))}
-                                </td>
-                            ))}
-                        </tr>
-                        <tr>
-                            <td className={`${styles.tdTitle} ${styles.g3}`}>G5</td>
-                            {liveData.map(item => (
-                                <td key={item.tinh} className={styles.rowXS}>
-                                    <span className={`${styles.span3} ${styles.g3}`}>
-                                        {renderPrizeValue(item.tinh, 'fivePrizes_0', 4)}
-                                    </span>
-                                </td>
-                            ))}
-                        </tr>
-                        <tr>
-                            <td className={styles.tdTitle}>G4</td>
-                            {liveData.map(item => (
-                                <td key={item.tinh} className={styles.rowXS}>
-                                    {[0, 1, 2, 3, 4, 5, 6].map(idx => (
-                                        <span key={idx} className={styles.span4}>
-                                            {renderPrizeValue(item.tinh, `fourPrizes_${idx}`, 5)}
-                                        </span>
-                                    ))}
-                                </td>
-                            ))}
-                        </tr>
-                        <tr>
-                            <td className={`${styles.tdTitle} ${styles.g3}`}>G3</td>
-                            {liveData.map(item => (
-                                <td key={item.tinh} className={styles.rowXS}>
-                                    {[0, 1].map(idx => (
-                                        <span key={idx} className={`${styles.span3} ${styles.g3}`}>
-                                            {renderPrizeValue(item.tinh, `threePrizes_${idx}`, 5)}
-                                        </span>
-                                    ))}
-                                </td>
-                            ))}
-                        </tr>
-                        <tr>
-                            <td className={styles.tdTitle}>G2</td>
-                            {liveData.map(item => (
-                                <td key={item.tinh} className={styles.rowXS}>
-                                    <span className={styles.span1}>
-                                        {renderPrizeValue(item.tinh, 'secondPrize_0', 5)}
-                                    </span>
-                                </td>
-                            ))}
-                        </tr>
-                        <tr>
-                            <td className={styles.tdTitle}>G1</td>
-                            {liveData.map(item => (
-                                <td key={item.tinh} className={styles.rowXS}>
-                                    <span className={styles.span1}>
-                                        {renderPrizeValue(item.tinh, 'firstPrize_0', 5)}
-                                    </span>
-                                </td>
-                            ))}
-                        </tr>
-                        <tr>
-                            <td className={`${styles.tdTitle} ${styles.highlight}`}>ĐB</td>
-                            {liveData.map(item => (
-                                <td key={item.tinh} className={styles.rowXS}>
-                                    <span className={`${styles.span1} ${styles.highlight} ${styles.gdb}`}>
-                                        {renderPrizeValue(item.tinh, 'specialPrize_0', 6)}
-                                    </span>
-                                </td>
-                            ))}
-                        </tr>
-                    </tbody>
-                </table>
-                <div className={styles.action}>
-                    <div aria-label="Tùy chọn lọc số" className={styles.filter__options} role="radiogroup">
-                        <div className={styles.optionInput}>
-                            <input
-                                id={`filterAll-${tableKey}`}
-                                type="radio"
-                                name={`filterOption-${tableKey}`}
-                                value="all"
-                                checked={currentFilter === 'all'}
-                                onChange={() => handleFilterChange(tableKey, 'all')}
-                            />
-                            <label htmlFor={`filterAll-${tableKey}`}>Đầy Đủ</label>
-                        </div>
-                        <div className={styles.optionInput}>
-                            <input
-                                id={`filterTwo-${tableKey}`}
-                                type="radio"
-                                name={`filterOption-${tableKey}`}
-                                value="last2"
-                                checked={currentFilter === 'last2'}
-                                onChange={() => handleFilterChange(tableKey, 'last2')}
-                            />
-                            <label htmlFor={`filterTwo-${tableKey}`}>2 Số Đuôi</label>
-                        </div>
-                        <div className={styles.optionInput}>
-                            <input
-                                id={`filterThree-${tableKey}`}
-                                type="radio"
-                                name={`filterOption-${tableKey}`}
-                                value="last3"
-                                checked={currentFilter === 'last3'}
-                                onChange={() => handleFilterChange(tableKey, 'last3')}
-                            />
-                            <label htmlFor={`filterThree-${tableKey}`}>3 Số Đuôi</label>
+            ) : (
+                <div className={styles.kqxs} style={{ '--num-columns': processedLiveData.length }}>
+                    <div className={styles.header}>
+                        <div className={styles.tructiep}><span className={styles.kqxs__title1}>Tường thuật trực tiếp...</span></div>
+                        <h1 className={styles.kqxs__title}>XSMN - Kết quả Xổ số Miền Nam - SXMN {today}</h1>
+                        <div className={styles.kqxs__action}>
+                            <a className={styles.kqxs__actionLink} href="#!">XSMN</a>
+                            <a className={`${styles.kqxs__actionLink} ${styles.dayOfWeek}`} href="#!">{processedLiveData[0]?.dayOfWeek}</a>
+                            <a className={styles.kqxs__actionLink} href="#!">{today}</a>
                         </div>
                     </div>
-                </div>
-            </div>
-            <div className={styles.TKe_container}>
-                <div className={styles.TKe_content}>
-                    <div className={styles.TKe_contentTitle}>
-                        <span className={styles.title}>Bảng Lô Tô - </span>
-                        <span className={styles.desc}>Miền Nam</span>
-                        <span className={styles.dayOfWeek}>{`${liveData[0]?.dayOfWeek} - `}</span>
-                        <span className={styles.desc}>{today}</span>
-                    </div>
-                    <table className={styles.tableKey} style={{ '--num-columns': liveData.length }}>
+                    <table className={styles.tableXS}>
                         <thead>
                             <tr>
-                                <th className={styles.t_h}>Đầu</th>
-                                {stationsData.map(station => (
-                                    <th key={station.tinh}>{station.tentinh}</th>
+                                <th></th>
+                                {processedLiveData.map(stationData => (
+                                    <th key={stationData.tinh} className={styles.stationName}>
+                                        {stationData.tentinh}
+                                    </th>
                                 ))}
                             </tr>
                         </thead>
                         <tbody>
-                            {Array.from({ length: 10 }, (_, idx) => (
-                                <tr key={idx}>
-                                    <td className={styles.t_h}>{idx}</td>
-                                    {allHeads[idx].map((headNumbers, index) => (
-                                        <td key={index}>
-                                            {headNumbers.length > 0 ? (
-                                                headNumbers.map((item, numIdx) => (
-                                                    <span
-                                                        key={numIdx}
-                                                        className={item.isEighth || item.isSpecial ? styles.highlight1 : ''}
-                                                    >
-                                                        {item.num}
-                                                        {numIdx < headNumbers.length - 1 && ', '}
-                                                    </span>
-                                                ))
-                                            ) : '-'}
-                                        </td>
-                                    ))}
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-                <div className={styles.TKe_content}>
-                    <div className={styles.TKe_contentTitle}>
-                        <span className={styles.title}>Bảng Lô Tô - </span>
-                        <span className={styles.desc}>Miền Nam</span>
-                        <span className={styles.dayOfWeek}>{`${liveData[0]?.dayOfWeek} - `}</span>
-                        <span className={styles.desc}>{today}</span>
-                    </div>
-                    <table className={styles.tableKey} style={{ '--num-columns': liveData.length }}>
-                        <thead>
                             <tr>
-                                <th className={styles.t_h}>Đuôi</th>
-                                {stationsData.map(station => (
-                                    <th key={station.tinh}>{station.tentinh}</th>
+                                <td className={`${styles.tdTitle} ${styles.highlight}`}>G8</td>
+                                {processedLiveData.map(item => (
+                                    <td key={item.tinh} className={styles.rowXS}>
+                                        <span className={`${styles.span4} ${styles.highlight}`}>
+                                            {renderPrizeValue(item.tinh, 'eightPrizes_0', 2)}
+                                        </span>
+                                    </td>
                                 ))}
                             </tr>
-                        </thead>
-                        <tbody>
-                            {Array.from({ length: 10 }, (_, idx) => (
-                                <tr key={idx}>
-                                    <td className={styles.t_h}>{idx}</td>
-                                    {allTails[idx].map((tailNumbers, index) => (
-                                        <td key={index}>
-                                            {tailNumbers.length > 0 ? (
-                                                tailNumbers.map((item, numIdx) => (
-                                                    <span
-                                                        key={numIdx}
-                                                        className={item.isEighth || item.isSpecial ? styles.highlight1 : ''}
-                                                    >
-                                                        {item.num}
-                                                        {numIdx < tailNumbers.length - 1 && ', '}
-                                                    </span>
-                                                ))
-                                            ) : '-'}
-                                        </td>
-                                    ))}
-                                </tr>
-                            ))}
+                            <tr>
+                                <td className={styles.tdTitle}>G7</td>
+                                {processedLiveData.map(item => (
+                                    <td key={item.tinh} className={styles.rowXS}>
+                                        <span className={styles.span4}>
+                                            {renderPrizeValue(item.tinh, 'sevenPrizes_0', 3)}
+                                        </span>
+                                    </td>
+                                ))}
+                            </tr>
+                            <tr>
+                                <td className={styles.tdTitle}>G6</td>
+                                {processedLiveData.map(item => (
+                                    <td key={item.tinh} className={styles.rowXS}>
+                                        {[0, 1, 2].map(idx => (
+                                            <span key={idx} className={styles.span3}>
+                                                {renderPrizeValue(item.tinh, `sixPrizes_${idx}`, 4)}
+                                            </span>
+                                        ))}
+                                    </td>
+                                ))}
+                            </tr>
+                            <tr>
+                                <td className={`${styles.tdTitle} ${styles.g3}`}>G5</td>
+                                {processedLiveData.map(item => (
+                                    <td key={item.tinh} className={styles.rowXS}>
+                                        <span className={`${styles.span3} ${styles.g3}`}>
+                                            {renderPrizeValue(item.tinh, 'fivePrizes_0', 4)}
+                                        </span>
+                                    </td>
+                                ))}
+                            </tr>
+                            <tr>
+                                <td className={styles.tdTitle}>G4</td>
+                                {processedLiveData.map(item => (
+                                    <td key={item.tinh} className={styles.rowXS}>
+                                        {[0, 1, 2, 3, 4, 5, 6].map(idx => (
+                                            <span key={idx} className={styles.span4}>
+                                                {renderPrizeValue(item.tinh, `fourPrizes_${idx}`, 5)}
+                                            </span>
+                                        ))}
+                                    </td>
+                                ))}
+                            </tr>
+                            <tr>
+                                <td className={`${styles.tdTitle} ${styles.g3}`}>G3</td>
+                                {processedLiveData.map(item => (
+                                    <td key={item.tinh} className={styles.rowXS}>
+                                        {[0, 1].map(idx => (
+                                            <span key={idx} className={`${styles.span3} ${styles.g3}`}>
+                                                {renderPrizeValue(item.tinh, `threePrizes_${idx}`, 5)}
+                                            </span>
+                                        ))}
+                                    </td>
+                                ))}
+                            </tr>
+                            <tr>
+                                <td className={styles.tdTitle}>G2</td>
+                                {processedLiveData.map(item => (
+                                    <td key={item.tinh} className={styles.rowXS}>
+                                        <span className={styles.span1}>
+                                            {renderPrizeValue(item.tinh, 'secondPrize_0', 5)}
+                                        </span>
+                                    </td>
+                                ))}
+                            </tr>
+                            <tr>
+                                <td className={styles.tdTitle}>G1</td>
+                                {processedLiveData.map(item => (
+                                    <td key={item.tinh} className={styles.rowXS}>
+                                        <span className={styles.span1}>
+                                            {renderPrizeValue(item.tinh, 'firstPrize_0', 5)}
+                                        </span>
+                                    </td>
+                                ))}
+                            </tr>
+                            <tr>
+                                <td className={`${styles.tdTitle} ${styles.highlight}`}>ĐB</td>
+                                {processedLiveData.map(item => (
+                                    <td key={item.tinh} className={styles.rowXS}>
+                                        <span className={`${styles.span1} ${styles.highlight} ${styles.gdb}`}>
+                                            {renderPrizeValue(item.tinh, 'specialPrize_0', 6)}
+                                        </span>
+                                    </td>
+                                ))}
+                            </tr>
                         </tbody>
                     </table>
+                    <div className={styles.action}>
+                        <div aria-label="Tùy chọn lọc số" className={styles.filter__options} role="radiogroup">
+                            <div className={styles.optionInput}>
+                                <input
+                                    id={`filterAll-${tableKey}`}
+                                    type="radio"
+                                    name={`filterOption-${tableKey}`}
+                                    value="all"
+                                    checked={currentFilter === 'all'}
+                                    onChange={() => handleFilterChange && handleFilterChange(tableKey, 'all')}
+                                />
+                                <label htmlFor={`filterAll-${tableKey}`}>Đầy Đủ</label>
+                            </div>
+                            <div className={styles.optionInput}>
+                                <input
+                                    id={`filterTwo-${tableKey}`}
+                                    type="radio"
+                                    name={`filterOption-${tableKey}`}
+                                    value="last2"
+                                    checked={currentFilter === 'last2'}
+                                    onChange={() => handleFilterChange && handleFilterChange(tableKey, 'last2')}
+                                />
+                                <label htmlFor={`filterTwo-${tableKey}`}>2 Số Đuôi</label>
+                            </div>
+                            <div className={styles.optionInput}>
+                                <input
+                                    id={`filterThree-${tableKey}`}
+                                    type="radio"
+                                    name={`filterOption-${tableKey}`}
+                                    value="last3"
+                                    checked={currentFilter === 'last3'}
+                                    onChange={() => handleFilterChange && handleFilterChange(tableKey, 'last3')}
+                                />
+                                <label htmlFor={`filterThree-${tableKey}`}>3 Số Đuôi</label>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            )}
+
+            {!isForum && !isModal && (
+                <div className={styles.TKe_container}>
+                    <div className={styles.TKe_content}>
+                        <div className={styles.TKe_contentTitle}>
+                            <span className={styles.title}>Bảng Lô Tô - </span>
+                            <span className={styles.desc}>Miền Nam</span>
+                            <span className={styles.dayOfWeek}>{`${processedLiveData[0]?.dayOfWeek} - `}</span>
+                            <span className={styles.desc}>{today}</span>
+                        </div>
+                        <table className={styles.tableKey} style={{ '--num-columns': processedLiveData.length }}>
+                            <thead>
+                                <tr>
+                                    <th className={styles.t_h}>Đầu</th>
+                                    {processedLiveData.map(station => (
+                                        <th key={station.tinh}>{station.tentinh}</th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {Array.from({ length: 10 }, (_, idx) => (
+                                    <tr key={idx}>
+                                        <td className={styles.t_h}>{idx}</td>
+                                        {allHeads[idx].map((headNumbers, index) => (
+                                            <td key={index}>
+                                                {headNumbers.length > 0 ? (
+                                                    headNumbers.map((item, numIdx) => (
+                                                        <span
+                                                            key={numIdx}
+                                                            className={item.isEighth || item.isSpecial ? styles.highlight1 : ''}
+                                                        >
+                                                            {item.num}
+                                                            {numIdx < headNumbers.length - 1 && ', '}
+                                                        </span>
+                                                    ))
+                                                ) : '-'}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className={styles.TKe_content}>
+                        <div className={styles.TKe_contentTitle}>
+                            <span className={styles.title}>Bảng Lô Tô - </span>
+                            <span className={styles.desc}>Miền Nam</span>
+                            <span className={styles.dayOfWeek}>{`${processedLiveData[0]?.dayOfWeek} - `}</span>
+                            <span className={styles.desc}>{today}</span>
+                        </div>
+                        <table className={styles.tableKey} style={{ '--num-columns': processedLiveData.length }}>
+                            <thead>
+                                <tr>
+                                    <th className={styles.t_h}>Đuôi</th>
+                                    {processedLiveData.map(station => (
+                                        <th key={station.tinh}>{station.tentinh}</th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {Array.from({ length: 10 }, (_, idx) => (
+                                    <tr key={idx}>
+                                        <td className={styles.t_h}>{idx}</td>
+                                        {allTails[idx].map((tailNumbers, index) => (
+                                            <td key={index}>
+                                                {tailNumbers.length > 0 ? (
+                                                    tailNumbers.map((item, numIdx) => (
+                                                        <span
+                                                            key={numIdx}
+                                                            className={item.isEighth || item.isSpecial ? styles.highlight1 : ''}
+                                                        >
+                                                            {item.num}
+                                                            {numIdx < tailNumbers.length - 1 && ', '}
+                                                        </span>
+                                                    ))
+                                                ) : '-'}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
         </div>
     );
-};
+});
 
-export default React.memo(LiveResult);
+export default LiveResult;

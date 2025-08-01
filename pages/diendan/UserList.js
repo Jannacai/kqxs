@@ -348,12 +348,12 @@ export default function UserList({ session: serverSession }) {
                                     className={`${styles.avatar} ${getAvatarClass(user.role)}`}
                                     onClick={() => handleShowDetails(user)}
                                     role="button"
-                                    aria-label={`Xem chi tiết ${getDisplayName(user.fullname)}`}
+                                    aria-label={`Xem chi tiết ${getDisplayName(user?.fullname || 'User')}`}
                                 >
                                     {user?.img ? (
                                         <Image
                                             src={user.img}
-                                            alt={getDisplayName(user.fullname)}
+                                            alt={getDisplayName(user?.fullname || 'User')}
                                             className={styles.avatarImage}
                                             width={32}
                                             height={32}
@@ -370,7 +370,7 @@ export default function UserList({ session: serverSession }) {
                                 </div>
                                 <div className={styles.newUserInfo}>
                                     <span className={styles.newUserName}>
-                                        {getDisplayName(user.fullname)}
+                                        {getDisplayName(user?.fullname || 'User')}
                                     </span>
                                     <span className={styles.newUserTime}>
                                         {moment.tz(user.createdAt, 'Asia/Ho_Chi_Minh').fromNow()}
@@ -404,12 +404,12 @@ export default function UserList({ session: serverSession }) {
                                     className={`${styles.avatar} ${getAvatarClass(user.role)}`}
                                     onClick={() => handleShowDetails(user)}
                                     role="button"
-                                    aria-label={`Xem chi tiết ${getDisplayName(user.fullname)}`}
+                                    aria-label={`Xem chi tiết ${getDisplayName(user?.fullname || 'User')}`}
                                 >
                                     {user?.img ? (
                                         <Image
                                             src={user.img}
-                                            alt={getDisplayName(user.fullname)}
+                                            alt={getDisplayName(user?.fullname || 'User')}
                                             className={styles.avatarImage}
                                             width={32}
                                             height={32}
@@ -426,7 +426,7 @@ export default function UserList({ session: serverSession }) {
                                 </div>
                                 <div className={styles.userInfo}>
                                     <span className={styles.userName}>
-                                        {getDisplayName(user.fullname)}
+                                        {getDisplayName(user?.fullname || 'User')}
                                     </span>
                                     <span className={styles.userStatus}>
                                         <span className={styles.onlineIndicator}>🟢</span>
@@ -461,12 +461,12 @@ export default function UserList({ session: serverSession }) {
                                     className={`${styles.avatar} ${getAvatarClass(user.role)}`}
                                     onClick={() => handleShowDetails(user)}
                                     role="button"
-                                    aria-label={`Xem chi tiết ${getDisplayName(user.fullname)}`}
+                                    aria-label={`Xem chi tiết ${getDisplayName(user?.fullname || 'User')}`}
                                 >
                                     {user?.img ? (
                                         <Image
                                             src={user.img}
-                                            alt={getDisplayName(user.fullname)}
+                                            alt={getDisplayName(user?.fullname || 'User')}
                                             className={styles.avatarImage}
                                             width={32}
                                             height={32}
@@ -483,7 +483,7 @@ export default function UserList({ session: serverSession }) {
                                 </div>
                                 <div className={styles.userInfo}>
                                     <span className={styles.userName}>
-                                        {getDisplayName(user.fullname)}
+                                        {getDisplayName(user?.fullname || 'User')}
                                     </span>
                                     <span className={styles.userStatus}>
                                         {user.isOnline

@@ -9,10 +9,65 @@ import Skeleton from 'react-loading-skeleton';
 import React from 'react';
 import { useLottery } from '../../contexts/LotteryContext';
 
+// Print Button Component - Tối ưu hiệu suất
+const PrintButton = React.memo(({ onPrint, selectedDate }) => {
+    const [showPrintOptions, setShowPrintOptions] = useState(false);
+    const [selectedSize, setSelectedSize] = useState('A4');
+
+    const printSizes = useMemo(() => [
+        { value: 'A4', label: 'A4 (210×297mm)' },
+        { value: 'A5', label: 'A5 (148×210mm)' },
+        { value: 'A6', label: 'A6 (105×148mm)' },
+        { value: 'A7', label: 'A7 (74×105mm)' }
+    ], []);
+
+    return (
+        <div className={styles.printContainer}>
+            <button
+                className={styles.printButton}
+                onClick={() => setShowPrintOptions(!showPrintOptions)}
+                title="In kết quả"
+            >
+                🖨️ In
+            </button>
+
+            {showPrintOptions && (
+                <div className={styles.printOptions}>
+                    <div className={styles.printOptionsHeader}>
+                        <span>Chọn kích thước giấy:</span>
+                        <button
+                            className={styles.closeButton}
+                            onClick={() => setShowPrintOptions(false)}
+                        >
+                            ✕
+                        </button>
+                    </div>
+                    <div className={styles.printSizeOptions}>
+                        {printSizes.map(size => (
+                            <button
+                                key={size.value}
+                                className={`${styles.printSizeButton} ${selectedSize === size.value ? styles.selected : ''}`}
+                                onClick={() => {
+                                    setSelectedSize(size.value);
+                                    onPrint(size.value, selectedDate);
+                                }}
+                            >
+                                {size.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+});
+
+PrintButton.displayName = 'PrintButton';
+
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // Cache 24 giờ
 const LIVE_CACHE_DURATION = 40 * 60 * 1000; // Cache 40 phút cho live data
-const ITEMS_PER_PAGE = 3;
-const VISIBLE_ITEMS = 3; // Render 3 items visible để match với ITEMS_PER_PAGE
+const DAYS_PER_PAGE = 3; // Mỗi trang chứa 3 ngày gần nhất
+const VISIBLE_ITEMS = 3; // Render 3 items visible để match với DAYS_PER_PAGE
 
 const KQXS = (props) => {
     const { liveData, isLiveDataComplete } = useLottery();
@@ -26,14 +81,14 @@ const KQXS = (props) => {
     const [lastLiveUpdate, setLastLiveUpdate] = useState(null);
     const [loadedPages, setLoadedPages] = useState(new Set([1])); // Track loaded pages
     const [isInLiveWindow, setIsInLiveWindow] = useState(false);
-    const [totalRecords, setTotalRecords] = useState(0); // Tổng số records từ backend
+    const [totalDays, setTotalDays] = useState(0); // Tổng số ngày từ backend
     const [pageData, setPageData] = useState({}); // Data theo page: {1: [...], 2: [...], ...}
     const intervalRef = useRef(null);
     const tableRef = useRef(null);
     const router = useRouter();
 
-    const hour = 17;
-    const minutes1 = 10;
+    const hour = 8;
+    const minutes1 = 42;
     const minutes2 = 13;
 
     const dayof = props.dayofMT;
@@ -73,11 +128,12 @@ const KQXS = (props) => {
         const now = new Date().getTime();
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
-            if (key.endsWith('_time')) {
+            if (key && key.endsWith('_time')) {
                 const cacheTime = parseInt(localStorage.getItem(key));
                 if (now - cacheTime > CACHE_DURATION) {
                     localStorage.removeItem(key);
                     localStorage.removeItem(key.replace('_time', ''));
+                    console.log(`🧹 Đã xóa cache hết hạn: ${key}`);
                 }
             }
         }
@@ -122,8 +178,8 @@ const KQXS = (props) => {
             // Cập nhật live window state
             setIsInLiveWindow(isUpdateWindow);
 
-            // Cache key với page
-            const CACHE_KEY_PAGE = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_${page}`;
+            // Cache key với page và daysPerPage
+            const CACHE_KEY_PAGE = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_${page}_days_${DAYS_PER_PAGE}`;
             const cachedData = localStorage.getItem(CACHE_KEY_PAGE);
             const cachedTime = localStorage.getItem(`${CACHE_KEY_PAGE}_time`);
             const cacheAge = cachedTime ? now.getTime() - parseInt(cachedTime) : Infinity;
@@ -139,6 +195,10 @@ const KQXS = (props) => {
                 }));
                 setLoading(false);
                 return; // Không gọi API nếu cache còn valid
+            } else if (cachedData && cacheAge >= CACHE_DURATION) {
+                console.log(`⏰ Cache expired: ${CACHE_KEY_PAGE}, age: ${Math.round(cacheAge / 1000 / 60)} phút`);
+            } else if (!cachedData) {
+                console.log(`❌ Cache miss: ${CACHE_KEY_PAGE}`);
             }
 
             // Logic cache invalidation thông minh - chỉ gọi API khi thực sự cần
@@ -171,13 +231,46 @@ const KQXS = (props) => {
                     cacheAge: Math.round(cacheAge / 1000 / 60) + ' phút',
                     lastLiveUpdate: lastLiveUpdate ? Math.round((now.getTime() - lastLiveUpdate) / 1000 / 60) + ' phút' : 'null',
                     page,
-                    limit: ITEMS_PER_PAGE
+                    daysPerPage: DAYS_PER_PAGE
                 });
 
-                const result = await apiMT.getLottery(station, date, tinh, dayof, {
-                    page,
-                    limit: ITEMS_PER_PAGE
-                });
+                // Thêm retry logic cho API call
+                let result;
+                let retryCount = 0;
+                const maxRetries = 3;
+
+                while (retryCount < maxRetries) {
+                    try {
+                        result = await apiMT.getLottery(station, date, tinh, dayof, {
+                            page,
+                            limit: DAYS_PER_PAGE * 10, // Lấy nhiều records để đảm bảo có đủ data
+                            daysPerPage: DAYS_PER_PAGE
+                        });
+                        break; // Thành công, thoát loop
+                    } catch (error) {
+                        retryCount++;
+                        console.warn(`🔄 API call failed (attempt ${retryCount}/${maxRetries}):`, error.message);
+
+                        if (retryCount >= maxRetries) {
+                            console.error('❌ API call failed after all retries');
+                            // Fallback to cache nếu có
+                            if (cachedData) {
+                                console.log('📦 Fallback to cached data');
+                                const cachedDataParsed = JSON.parse(cachedData);
+                                setPageData(prevPageData => ({
+                                    ...prevPageData,
+                                    [page]: cachedDataParsed
+                                }));
+                                setLoading(false);
+                                return;
+                            }
+                            throw error; // Re-throw nếu không có cache fallback
+                        }
+
+                        // Wait before retry
+                        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+                    }
+                }
                 const dataArray = Array.isArray(result) ? result : [result];
 
                 const formattedData = dataArray.map(item => ({
@@ -207,11 +300,25 @@ const KQXS = (props) => {
                     return dateB - dateA;
                 });
 
+                // Backend đã trả về đúng 3 ngày cho page này, không cần slice nữa
                 const finalData = sortedDates.map(date => ({
                     drawDate: date,
                     stations: groupedByDate[date],
                     dayOfWeek: groupedByDate[date][0].dayOfWeek,
                 }));
+
+                console.log(`📊 Page ${page} data:`, {
+                    totalRecords: dataArray.length,
+                    uniqueDates: sortedDates.length,
+                    finalDataLength: finalData.length,
+                    dates: sortedDates,
+                    backendDaysPerPage: DAYS_PER_PAGE,
+                    firstDate: sortedDates[0] || 'N/A',
+                    lastDate: sortedDates[sortedDates.length - 1] || 'N/A',
+                    currentTime: new Date().toLocaleDateString('vi-VN'),
+                    cacheStatus: cachedData ? 'hit' : 'miss',
+                    forceRefresh: forceRefresh
+                });
 
                 // Kiểm tra dữ liệu mới
                 const cachedDataParsed = cachedData ? JSON.parse(cachedData) : [];
@@ -224,18 +331,18 @@ const KQXS = (props) => {
                         [page]: finalData
                     }));
 
-                    // Cập nhật totalRecords dựa trên số lượng data thực tế
+                    // Cập nhật totalDays dựa trên số lượng ngày thực tế
                     if (page === 1) {
-                        // Nếu là page 1, ước tính tổng số records dựa trên số ngày
-                        // Giả sử mỗi ngày có khoảng 2-3 tỉnh, và có khoảng 30-60 ngày dữ liệu
-                        const estimatedTotal = Math.max(30, finalData.length * 15); // Ước tính 15 ngày per page
-                        setTotalRecords(estimatedTotal);
-                        console.log(`📊 Ước tính totalRecords: ${estimatedTotal} dựa trên ${finalData.length} ngày`);
+                        // Nếu là page 1, ước tính tổng số ngày dựa trên số ngày có sẵn
+                        // Backend đã trả về đúng 3 ngày cho page 1, ước tính tổng số ngày
+                        const estimatedTotalDays = Math.max(30, sortedDates.length * 10); // Ước tính dựa trên số ngày có sẵn
+                        setTotalDays(estimatedTotalDays);
+                        console.log(`📊 Ước tính totalDays: ${estimatedTotalDays} dựa trên ${sortedDates.length} ngày có sẵn`);
                     } else {
-                        // Nếu là page khác, cập nhật totalRecords nếu cần
-                        setTotalRecords(prev => {
-                            const newTotal = Math.max(prev, page * ITEMS_PER_PAGE + finalData.length);
-                            console.log(`📊 Cập nhật totalRecords: ${prev} -> ${newTotal}`);
+                        // Nếu là page khác, cập nhật totalDays nếu cần
+                        setTotalDays(prev => {
+                            const newTotal = Math.max(prev, page * DAYS_PER_PAGE + finalData.length);
+                            console.log(`📊 Cập nhật totalDays: ${prev} -> ${newTotal}`);
                             return newTotal;
                         });
                     }
@@ -246,7 +353,7 @@ const KQXS = (props) => {
                         localStorage.setItem(UPDATE_KEY, now.getTime().toString());
                         setLastLiveUpdate(now.getTime());
                     }
-                    console.log('✅ Đã cập nhật data mới từ API cho page:', page);
+                    console.log('✅ Đã cập nhật data mới từ API cho page:', page, 'với', finalData.length, 'ngày');
                 } else if (cachedData) {
                     // Sử dụng cached data cho page này
                     setPageData(prevPageData => ({
@@ -254,11 +361,11 @@ const KQXS = (props) => {
                         [page]: cachedDataParsed
                     }));
 
-                    // Cập nhật totalRecords nếu cần
-                    if (page === 1 && totalRecords === 0) {
-                        const estimatedTotal = Math.max(30, cachedDataParsed.length * 15);
-                        setTotalRecords(estimatedTotal);
-                        console.log(`📊 Ước tính totalRecords từ cache: ${estimatedTotal}`);
+                    // Cập nhật totalDays nếu cần
+                    if (page === 1 && totalDays === 0) {
+                        const estimatedTotalDays = Math.max(30, cachedDataParsed.length * 2);
+                        setTotalDays(estimatedTotalDays);
+                        console.log(`📊 Ước tính totalDays từ cache: ${estimatedTotalDays}`);
                     }
 
                     console.log('📦 Sử dụng cached data cho page:', page);
@@ -312,16 +419,16 @@ const KQXS = (props) => {
         // Tối ưu: Chỉ fetch data khi cần thiết
         if (isLiveWindowActive) {
             console.log('🔄 Live window active - chỉ load cached data');
-            const CACHE_KEY_PAGE_1 = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_1`;
+            const CACHE_KEY_PAGE_1 = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_1_days_${DAYS_PER_PAGE}`;
             const cachedData = localStorage.getItem(CACHE_KEY_PAGE_1);
             if (cachedData) {
                 const parsedData = JSON.parse(cachedData);
                 setPageData({ 1: parsedData });
-                // Khởi tạo totalRecords từ cached data
-                if (totalRecords === 0) {
-                    const estimatedTotal = Math.max(30, parsedData.length * 15);
-                    setTotalRecords(estimatedTotal);
-                    console.log(`📊 Khởi tạo totalRecords từ cache: ${estimatedTotal}`);
+                // Khởi tạo totalDays từ cached data
+                if (totalDays === 0) {
+                    const estimatedTotalDays = Math.max(30, parsedData.length * 2);
+                    setTotalDays(estimatedTotalDays);
+                    console.log(`📊 Khởi tạo totalDays từ cache: ${estimatedTotalDays}`);
                 }
             }
             setLoading(false);
@@ -332,16 +439,16 @@ const KQXS = (props) => {
         } else {
             console.log('🔄 Trong live window, sử dụng cached data');
             // Load cached data nếu có
-            const CACHE_KEY_PAGE_1 = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_1`;
+            const CACHE_KEY_PAGE_1 = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_1_days_${DAYS_PER_PAGE}`;
             const cachedData = localStorage.getItem(CACHE_KEY_PAGE_1);
             if (cachedData) {
                 const parsedData = JSON.parse(cachedData);
                 setPageData({ 1: parsedData });
-                // Khởi tạo totalRecords từ cached data
-                if (totalRecords === 0) {
-                    const estimatedTotal = Math.max(30, parsedData.length * 15);
-                    setTotalRecords(estimatedTotal);
-                    console.log(`📊 Khởi tạo totalRecords từ cache: ${estimatedTotal}`);
+                // Khởi tạo totalDays từ cached data
+                if (totalDays === 0) {
+                    const estimatedTotalDays = Math.max(30, parsedData.length * 2);
+                    setTotalDays(estimatedTotalDays);
+                    console.log(`📊 Khởi tạo totalDays từ cache: ${estimatedTotalDays}`);
                 }
             }
             setLoading(false);
@@ -355,13 +462,14 @@ const KQXS = (props) => {
 
             // Cập nhật pageData cho page 1
             setPageData(prevPageData => {
-                const currentPage1Data = prevPageData[1] || [];
+                // Đảm bảo currentPage1Data luôn là array
+                const currentPage1Data = Array.isArray(prevPageData[1]) ? prevPageData[1] : [];
 
-                // Kiểm tra currentPage1Data có phải là array không
-                if (!Array.isArray(currentPage1Data)) {
-                    console.warn('currentPage1Data is not an array in live data update, using empty array:', currentPage1Data);
-                    return prevPageData;
-                }
+                console.log('📊 Updating pageData[1] with live data:', {
+                    currentPage1DataLength: currentPage1Data.length,
+                    liveDataLength: liveData.length,
+                    today
+                });
 
                 // Loại bỏ dữ liệu cũ của ngày hôm nay
                 const filteredData = currentPage1Data.filter(item => item.drawDate !== today);
@@ -393,7 +501,7 @@ const KQXS = (props) => {
                 );
 
                 // Chỉ cache cho page 1
-                const CACHE_KEY_PAGE_1 = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_1`;
+                const CACHE_KEY_PAGE_1 = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_1_days_${DAYS_PER_PAGE}`;
                 localStorage.setItem(CACHE_KEY_PAGE_1, JSON.stringify(newData));
                 localStorage.setItem(`${CACHE_KEY_PAGE_1}_time`, new Date().getTime().toString());
                 localStorage.setItem(UPDATE_KEY, new Date().getTime().toString());
@@ -550,32 +658,59 @@ const KQXS = (props) => {
         return { heads, tails };
     }, []);
 
+    // Helper function để kiểm tra pageData an toàn
+    const getPageDataSafely = useCallback((page) => {
+        const data = pageData[page];
+        return Array.isArray(data) ? data : [];
+    }, [pageData]);
+
+    // Helper function để kiểm tra pageData có tồn tại không
+    const hasPageData = useCallback((page) => {
+        const data = pageData[page];
+        return data && Array.isArray(data) && data.length > 0;
+    }, [pageData]);
+
+    // Khởi tạo pageData với cấu trúc đúng
+    useEffect(() => {
+        // Đảm bảo pageData luôn có cấu trúc đúng
+        setPageData(prevPageData => {
+            const newPageData = { ...prevPageData };
+
+            // Đảm bảo page 1 luôn có array
+            if (!Array.isArray(newPageData[1])) {
+                newPageData[1] = [];
+                console.log('📊 Khởi tạo pageData[1] với array rỗng');
+            }
+
+            return newPageData;
+        });
+    }, []);
+
     // Đơn giản hóa virtual scrolling - chỉ render current page
     const currentPageData = useMemo(() => {
-        const pageDataArray = pageData[currentPage];
-        if (!Array.isArray(pageDataArray)) {
-            console.warn(`pageData[${currentPage}] is not an array:`, pageDataArray);
-            return [];
-        }
-        return pageDataArray;
-    }, [pageData, currentPage]);
+        return getPageDataSafely(currentPage);
+    }, [getPageDataSafely, currentPage]);
 
     // Tính toán totalPages dựa trên totalRecords
-    const totalPages = Math.ceil(totalRecords / ITEMS_PER_PAGE);
+    const totalPages = Math.ceil(totalDays / DAYS_PER_PAGE);
 
     // Fallback: Nếu totalPages = 0, ít nhất phải có 1 page
     const effectiveTotalPages = Math.max(1, totalPages);
 
     // Debug pagination
     console.log('📊 Pagination Debug:', {
-        totalRecords,
-        ITEMS_PER_PAGE,
+        totalDays,
+        DAYS_PER_PAGE,
         totalPages,
         effectiveTotalPages,
         currentPage,
         pageDataKeys: Object.keys(pageData),
         loadedPages: Array.from(loadedPages),
-        hasData: Object.keys(pageData).length > 0
+        hasData: Object.keys(pageData).length > 0,
+        currentPageDataLength: currentPageData.length,
+        hasPage1Data: hasPageData(1),
+        hasCurrentPageData: hasPageData(currentPage),
+        currentPageDays: currentPageData.map(day => day.drawDate)
     });
 
     const goToPage = async (page) => {
@@ -587,7 +722,7 @@ const KQXS = (props) => {
             tableRef.current?.scrollIntoView({ behavior: 'smooth' });
 
             // Lazy load data cho page mới nếu chưa có
-            if (!pageData[page] && !loadedPages.has(page)) {
+            if (!hasPageData(page) && !loadedPages.has(page)) {
                 console.log(`🔄 Lazy loading data cho page ${page}`);
                 setLoadingPage(true);
                 try {
@@ -627,13 +762,13 @@ const KQXS = (props) => {
         if (currentPageData.length > 0 && currentPage === effectiveTotalPages && !isInLiveWindow) {
             // Nếu đang ở page cuối và có data, tự động tạo page tiếp theo
             const nextPage = currentPage + 1;
-            if (!pageData[nextPage] && !loadedPages.has(nextPage)) {
+            if (!hasPageData(nextPage) && !loadedPages.has(nextPage)) {
                 console.log(`🔄 Auto-creating next page: ${nextPage}`);
                 fetchData(nextPage);
-                setTotalRecords(prev => Math.max(prev, nextPage * ITEMS_PER_PAGE));
+                setTotalDays(prev => Math.max(prev, nextPage * DAYS_PER_PAGE));
             }
         }
-    }, [currentPageData, currentPage, effectiveTotalPages, isInLiveWindow, pageData, loadedPages, fetchData]);
+    }, [currentPageData, currentPage, effectiveTotalPages, isInLiveWindow, hasPageData, loadedPages, fetchData]);
 
     const todayData = currentPageData.find(item => item.drawDate === today);
     const provinces = todayData && Array.isArray(todayData.stations) ? todayData.stations.map(station => ({
@@ -641,13 +776,395 @@ const KQXS = (props) => {
         tentinh: station.tentinh
     })) : [];
 
-    if (loading) {
-        return (
-            <div className={styles.containerKQ}>
-                <Skeleton count={6} height={30} />
+    // Tối ưu print functions với useMemo và useCallback
+    const fontSizes = useMemo(() => ({
+        A4: {
+            title: '28px',
+            subtitle: '20px',
+            subtitle1: '28px',
+            header: '28px',
+            prizeLabel: '20px',
+            prizeValue: '28px',
+            specialPrize: '30px',
+            footer: '15px',
+            cellPadding: '1px',
+            rowHeight: '30px',
+            numberSpacing: '5px'
+        },
+        A5: {
+            title: '20px',
+            subtitle: '14px',
+            subtitle1: '20px',
+
+            header: '18px',
+            prizeLabel: '18px',
+            prizeValue: '20px',
+            specialPrize: '23px',
+            footer: '10px',
+            cellPadding: '0px',
+            rowHeight: '30px',
+            numberSpacing: '0px'
+        },
+        A6: {
+            title: '24px',
+            subtitle: '20px',
+            subtitle1: '24px',
+            header: '24px',
+            prizeLabel: '12px',
+            prizeValue: '30px',
+            specialPrize: '30px',
+            footer: '14px',
+            cellPadding: '0px',
+            rowHeight: '40px',
+            numberSpacing: '0px'
+        },
+        A7: {
+            title: '24px',
+            subtitle: '10px',
+            subtitle1: '24px',
+            header: '20px',
+            prizeLabel: '10px',
+            prizeValue: '30px',
+            specialPrize: '30px',
+            footer: '16px',
+            cellPadding: '0px',
+            rowHeight: '30px',
+            numberSpacing: '0px'
+        }
+    }), []);
+
+    const generatePrintContent = useCallback((size, selectedDate = null) => {
+        const sizes = fontSizes[size];
+
+        // Tìm ngày được chọn hoặc fallback về ngày đầu tiên
+        const targetDayData = selectedDate
+            ? currentPageData.find(day => day.drawDate === selectedDate)
+            : currentPageData[0];
+
+        const generateTableRow = (prizeLabel, allStationsData, isSpecial = false) => {
+            if (!allStationsData || allStationsData.length === 0) return '';
+
+            let rowHTML = `
+            <tr>
+                <td class="tdTitle ${prizeLabel === 'G8' || prizeLabel === 'ĐB' ? 'highlight' : ''} ${prizeLabel === 'G5' || prizeLabel === 'G3' ? 'g3' : ''
+                }" style="padding: ${sizes.cellPadding}; font-size: ${sizes.prizeLabel}; font-weight: bold; width: 5%; border: 2px solid #000; text-align: center; background-color: #f8f9fa;">
+                    ${prizeLabel}
+                </td>
+        `;
+
+            allStationsData.forEach((stationData) => {
+                let prizeData = [];
+                let maxItems = 1;
+
+                switch (prizeLabel) {
+                    case 'G8':
+                        prizeData = stationData.eightPrizes || [];
+                        break;
+                    case 'G7':
+                        prizeData = stationData.sevenPrizes || [];
+                        break;
+                    case 'G6':
+                        prizeData = stationData.sixPrizes || [];
+                        maxItems = 3;
+                        break;
+                    case 'G5':
+                        prizeData = stationData.fivePrizes || [];
+                        maxItems = 3;
+                        break;
+                    case 'G4':
+                        prizeData = stationData.fourPrizes || [];
+                        maxItems = 7;
+                        break;
+                    case 'G3':
+                        prizeData = stationData.threePrizes || [];
+                        maxItems = 2;
+                        break;
+                    case 'G2':
+                        prizeData = stationData.secondPrize || [];
+                        break;
+                    case 'G1':
+                        prizeData = stationData.firstPrize || [];
+                        break;
+                    case 'ĐB':
+                        prizeData = stationData.specialPrize || [];
+                        break;
+                    default:
+                        prizeData = [];
+                }
+
+                const currentFilter = filterTypes[allStationsData[0]?.drawDate] || 'all';
+                let numbersHTML = prizeData
+                    .slice(0, maxItems)
+                    .map((num, idx) => `
+                    <span class="prizeNumber ${prizeLabel === 'G8' || prizeLabel === 'ĐB' ? 'highlight' : ''
+                        } ${prizeLabel === 'ĐB' ? 'gdb' : ''} ${prizeLabel === 'G5' || prizeLabel === 'G3' ? 'g3' : ''
+                        }" style="font-size: ${isSpecial ? sizes.specialPrize : sizes.prizeValue
+                        }; font-weight: bold; display: block;">
+                        ${num ? getFilteredNumber(num, currentFilter) : '-'}
+                    </span>
+                `)
+                    .join('');
+
+                rowHTML += `
+                <td class="rowXS" style="padding: ${sizes.cellPadding}; border: 2px solid #000; text-align: center; vertical-align: middle; min-width: 100px; line-height: 1.5;">
+                    ${numbersHTML}
+                </td>
+            `;
+            });
+
+            rowHTML += '</tr>';
+            return rowHTML;
+        };
+
+        if (!targetDayData || !Array.isArray(targetDayData.stations) || targetDayData.stations.length === 0) {
+            return '<div>Không có dữ liệu để in</div>';
+        }
+
+        let stations = [...targetDayData.stations];
+
+        if (stations.length <= 1) {
+            currentPageData.forEach((otherDayData) => {
+                if (Array.isArray(otherDayData.stations)) {
+                    otherDayData.stations.forEach((station) => {
+                        const existingStation = stations.find((s) => s.tentinh === station.tentinh);
+                        if (!existingStation) {
+                            stations.push(station);
+                        }
+                    });
+                }
+            });
+        }
+
+        let printHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Kết Quả Xổ Số Miền Trung - ${targetDayData?.drawDate || 'N/A'} </title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    margin: 0;
+                    padding: 0;
+                }
+                .containerKQ {
+                    padding: 5px;
+                }
+                .header {
+                    text-align: center;
+                    margin-bottom: 0px;
+                    line-height: 1.0;
+                }
+                .kqxs__title {
+                    font-size: ${sizes.title};
+                    font-weight: bold;
+                    margin-bottom: 1px;
+                    line-height: 1.0;
+                }
+                .tableXS {
+                    width: 100%;
+                    border-collapse: collapse;
+                    table-layout: fixed;
+                    margin-bottom: 0px;
+                }
+                .tableXS th,
+                .tableXS td {
+                    border: 2px solid #000;
+                    text-align: center;
+                    vertical-align: middle;
+                }
+                .tableXS th:first-child {
+                    width: 5%;
+                }
+                .tableXS th:not(:first-child) {
+                    width: ${100 / (stations.length + 1)}%;
+                }
+                .stationName {
+                    font-size: ${sizes.header};
+                    background-color: #e9ecef;
+                    font-weight: bold;
+                    padding: ${sizes.cellPadding};
+                }
+                .tdTitle {
+                    font-size: ${sizes.prizeLabel};
+                    font-weight: bold;
+                    background-color: #f8f9fa;
+                    padding: ${sizes.cellPadding};
+                }
+                .rowXS {
+                    padding: ${sizes.cellPadding};
+                    line-height: 1.5;
+                }
+                .prizeNumber {
+                    font-size: ${sizes.prizeValue};
+                    font-weight: bold;
+                    display: block;
+                }
+                .highlight {
+                    color: #ff0000;
+                }
+                .gdb {
+                    font-size: ${sizes.specialPrize};
+                }
+                .g3 {
+                    color: #0066cc;
+                }
+                .footer {
+                    text-align: center;
+                    margin-top: 5px;
+                    font-size: ${sizes.footer};
+                    color: #666;
+                    line-height: 1.1;
+                }
+                @media print {
+                    @page {
+                        size: ${size};
+                        margin: 8mm;
+                    }
+                    .tableXS th:first-child {
+                        width: 5% !important;
+                    }
+                    .tableXS th:not(:first-child) {
+                        width: ${100 / (stations.length + 1)}% !important;
+                    }
+                }
+                @media screen {
+                    body {
+                        max-width: ${size === 'A4' ? '210mm' : size === 'A5' ? '148mm' : size === 'A6' ? '105mm' : '74mm'};
+                        margin: 10px auto;
+                        background: white;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="containerKQ">
+                <div class="header">
+                    <h1 class="kqxs__title">KẾT QUẢ XỔ SỐ MIỀN TRUNG - XSMB.WIN</h1>
+                    <p class="kqxs__title" style="font-size: ${sizes.subtitle1}; margin-bottom: 0px; line-height: 1.0;">Ngày: ${targetDayData?.drawDate || 'N/A'}</p>
+                    <p style="font-size: ${sizes.subtitle}; color: #666; margin-bottom: 0px; line-height: 1.0;">In từ XSMB.WIN - ${new Date().toLocaleDateString('vi-VN')}</p>
+                </div>
+                <table class="tableXS">
+                    <thead>
+                        <tr>
+                            <th class="stationName"></th>
+                            ${stations
+                .map(
+                    (station) => `
+                                <th class="stationName">${station.tentinh || `Tỉnh ${stations.indexOf(station) + 1}`}</th>
+                            `
+                )
+                .join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${[
+                { label: 'G8', highlight: true },
+                { label: 'G7' },
+                { label: 'G6' },
+                { label: 'G5', g3: true },
+                { label: 'G4' },
+                { label: 'G3', g3: true },
+                { label: 'G2' },
+                { label: 'G1' },
+                { label: 'ĐB', highlight: true, isSpecial: true },
+            ]
+                .map(({ label, highlight, g3, isSpecial }) => {
+                    const hasData = stations.some((station) => {
+                        let prizeData = [];
+                        switch (label) {
+                            case 'G8':
+                                prizeData = station.eightPrizes || [];
+                                break;
+                            case 'G7':
+                                prizeData = station.sevenPrizes || [];
+                                break;
+                            case 'G6':
+                                prizeData = station.sixPrizes || [];
+                                break;
+                            case 'G5':
+                                prizeData = station.fivePrizes || [];
+                                break;
+                            case 'G4':
+                                prizeData = station.fourPrizes || [];
+                                break;
+                            case 'G3':
+                                prizeData = station.threePrizes || [];
+                                break;
+                            case 'G2':
+                                prizeData = station.secondPrize || [];
+                                break;
+                            case 'G1':
+                                prizeData = station.firstPrize || [];
+                                break;
+                            case 'ĐB':
+                                prizeData = station.specialPrize || [];
+                                break;
+                            default:
+                                prizeData = [];
+                        }
+                        return prizeData.length > 0;
+                    });
+                    return hasData ? generateTableRow(label, stations, isSpecial) : '';
+                })
+                .join('')}
+                    </tbody>
+                </table>
+                <div class="footer">
+                    <p style="margin: 1px 0; line-height: 1.1;">Nguồn: xsmb.win - Truy cập ngay để xem kết quả trực tiếp nhanh nhất - chính xác nhất</p>
+                    <p style="margin: 1px 0; line-height: 1.1;">Chú ý: Thông tin chỉ mang tính chất tham khảo</p>
+                    <p style="margin: 1px 0; line-height: 1.1;">💥CHÚC MỌI NGƯỜI 1 NGÀY THUẬN LỢI VÀ THÀNH CÔNG💥</p>
+                </div>
             </div>
-        );
-    }
+        </body>
+        </html>
+    `;
+
+        return printHTML;
+    }, [currentPageData, fontSizes, filterTypes, getFilteredNumber, currentPage]);
+
+    const handlePrint = useCallback(
+        (size, selectedDate = null) => {
+            try {
+                const printWindow = window.open('', '_blank', 'width=800,height=600');
+
+                if (!printWindow) {
+                    alert('Không thể mở cửa sổ in. Vui lòng cho phép popup.');
+                    return;
+                }
+
+                const printContent = generatePrintContent(size, selectedDate);
+                const targetDate = selectedDate || currentPageData[0]?.drawDate || 'N/A';
+
+                printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Kết quả XSMT - ${targetDate}</title>
+                    <meta charset="UTF-8">
+                </head>
+                <body>
+                    ${printContent}
+                </body>
+                </html>
+            `);
+
+                printWindow.document.close();
+
+                setTimeout(() => {
+                    printWindow.focus();
+                    printWindow.print();
+                    setTimeout(() => {
+                        printWindow.close();
+                    }, 1000);
+                }, 100);
+            } catch (error) {
+                console.error('Lỗi khi in:', error);
+                alert('Có lỗi xảy ra khi in. Vui lòng thử lại.');
+            }
+        },
+        [generatePrintContent]
+    );
 
     return (
         <div ref={tableRef} className={`${styles.containerKQ} ${isLiveWindowActive ? styles.liveWindowActive : ''}`}>
@@ -670,7 +1187,7 @@ const KQXS = (props) => {
 
             <div className={`${isLiveWindowActive ? styles.liveOptimized : ''}`}>
                 {currentPageData.map((dayData, index) => {
-                    const actualIndex = (currentPage - 1) * ITEMS_PER_PAGE + index;
+                    const actualIndex = (currentPage - 1) * DAYS_PER_PAGE + index;
                     const tableKey = dayData.drawDate;
                     const currentFilter = filterTypes[tableKey] || 'all';
 
@@ -680,9 +1197,28 @@ const KQXS = (props) => {
                         return null; // Skip rendering this item
                     }
 
+                    // Lấy tất cả tỉnh từ ngày hiện tại và các ngày khác
+                    let allStations = [...dayData.stations];
+
+                    // Nếu chỉ có 1 tỉnh, thử lấy từ các ngày khác
+                    if (allStations.length <= 1) {
+                        console.log('⚠️ Web display: Chỉ có 1 tỉnh, thử lấy từ ngày khác...');
+                        currentPageData.forEach(otherDayData => {
+                            if (Array.isArray(otherDayData.stations)) {
+                                otherDayData.stations.forEach(station => {
+                                    const existingStation = allStations.find(s => s.tentinh === station.tentinh);
+                                    if (!existingStation) {
+                                        allStations.push(station);
+                                    }
+                                });
+                            }
+                        });
+                        console.log('✅ Web display: Tìm thấy tổng cộng', allStations.length, 'tỉnh');
+                    }
+
                     const allHeads = Array(10).fill().map(() => []);
                     const allTails = Array(10).fill().map(() => []);
-                    const stationsData = dayData.stations.map(stationData => {
+                    const stationsData = allStations.map(stationData => {
                         const { heads, tails } = getHeadAndTailNumbers(stationData);
                         for (let i = 0; i < 10; i++) {
                             allHeads[i].push(heads[i]);
@@ -695,7 +1231,10 @@ const KQXS = (props) => {
                         <div key={tableKey} data-index={actualIndex} className={styles.lazyItem}>
                             <div className={styles.kqxs}>
                                 <div className={styles.header}>
-                                    <h1 className={styles.kqxs__title}>XSMT - Kết quả Xổ số Miền Trung - SXMT {dayData.drawDate}</h1>
+                                    <div className={styles.headerTop}>
+                                        <h1 className={styles.kqxs__title}>XSMT - Kết quả Xổ số Miền Trung - SXMT {dayData.drawDate}</h1>
+                                        <PrintButton onPrint={handlePrint} selectedDate={dayData.drawDate} />
+                                    </div>
                                     <div className={styles.kqxs__action}>
                                         <a className={`${styles.kqxs__actionLink} `} href="#!">XSMT</a>
                                         <a className={`${styles.kqxs__actionLink} ${styles.dayOfWeek} `} href="#!">{dayData.dayOfWeek}</a>
@@ -706,9 +1245,9 @@ const KQXS = (props) => {
                                     <thead>
                                         <tr>
                                             <th></th>
-                                            {dayData.stations.map(stationData => (
+                                            {allStations.map(stationData => (
                                                 <th key={stationData.tinh || stationData.station} className={styles.stationName}>
-                                                    {stationData.tentinh || `Tỉnh ${dayData.stations.indexOf(stationData) + 1} `}
+                                                    {stationData.tentinh || `Tỉnh ${allStations.indexOf(stationData) + 1} `}
                                                 </th>
                                             ))}
                                         </tr>
@@ -716,7 +1255,7 @@ const KQXS = (props) => {
                                     <tbody>
                                         <tr>
                                             <td className={`${styles.tdTitle} ${styles.highlight} `}>G8</td>
-                                            {dayData.stations.map(stationData => (
+                                            {allStations.map(stationData => (
                                                 <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
                                                     <span className={`${styles.prizeNumber} ${styles.highlight} `}>
                                                         {(stationData.eightPrizes || [])[0] ? getFilteredNumber(stationData.eightPrizes[0], currentFilter) : '-'}
@@ -726,7 +1265,7 @@ const KQXS = (props) => {
                                         </tr>
                                         <tr>
                                             <td className={styles.tdTitle}>G7</td>
-                                            {dayData.stations.map(stationData => (
+                                            {allStations.map(stationData => (
                                                 <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
                                                     <span className={styles.prizeNumber}>
                                                         {(stationData.sevenPrizes || [])[0] ? getFilteredNumber(stationData.sevenPrizes[0], currentFilter) : '-'}
@@ -736,7 +1275,7 @@ const KQXS = (props) => {
                                         </tr>
                                         <tr>
                                             <td className={styles.tdTitle}>G6</td>
-                                            {dayData.stations.map(stationData => (
+                                            {allStations.map(stationData => (
                                                 <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
                                                     {(stationData.sixPrizes || []).slice(0, 3).map((kq, idx) => (
                                                         <span key={idx} className={styles.prizeNumber}>
@@ -749,7 +1288,7 @@ const KQXS = (props) => {
                                         </tr>
                                         <tr>
                                             <td className={`${styles.tdTitle} ${styles.g3} `}>G5</td>
-                                            {dayData.stations.map(stationData => (
+                                            {allStations.map(stationData => (
                                                 <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
                                                     {(stationData.fivePrizes || []).slice(0, 3).map((kq, idx) => (
                                                         <span key={idx} className={`${styles.prizeNumber} ${styles.g3} `}>
@@ -775,7 +1314,7 @@ const KQXS = (props) => {
                                         </tr>
                                         <tr>
                                             <td className={`${styles.tdTitle} ${styles.g3} `}>G3</td>
-                                            {dayData.stations.map(stationData => (
+                                            {allStations.map(stationData => (
                                                 <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
                                                     {(stationData.threePrizes || []).slice(0, 2).map((kq, idx) => (
                                                         <span key={idx} className={`${styles.prizeNumber} ${styles.g3} `}>
@@ -788,7 +1327,7 @@ const KQXS = (props) => {
                                         </tr>
                                         <tr>
                                             <td className={styles.tdTitle}>G2</td>
-                                            {dayData.stations.map(stationData => (
+                                            {allStations.map(stationData => (
                                                 <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
                                                     <span className={styles.prizeNumber}>
                                                         {(stationData.secondPrize || [])[0] ? getFilteredNumber(stationData.secondPrize[0], currentFilter) : '-'}
@@ -798,7 +1337,7 @@ const KQXS = (props) => {
                                         </tr>
                                         <tr>
                                             <td className={styles.tdTitle}>G1</td>
-                                            {dayData.stations.map(stationData => (
+                                            {allStations.map(stationData => (
                                                 <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
                                                     <span className={styles.prizeNumber}>
                                                         {(stationData.firstPrize || [])[0] ? getFilteredNumber(stationData.firstPrize[0], currentFilter) : '-'}
@@ -808,7 +1347,7 @@ const KQXS = (props) => {
                                         </tr>
                                         <tr>
                                             <td className={`${styles.tdTitle} ${styles.highlight} `}>ĐB</td>
-                                            {dayData.stations.map(stationData => (
+                                            {allStations.map(stationData => (
                                                 <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
                                                     <span className={`${styles.prizeNumber} ${styles.highlight} ${styles.gdb} `}>
                                                         {(stationData.specialPrize || [])[0] ? getFilteredNumber(stationData.specialPrize[0], currentFilter) : '-'}
@@ -960,7 +1499,10 @@ const KQXS = (props) => {
                     >
                         {loadingPage ? 'Đang tải...' : 'Trước'}
                     </button>
-                    <span>Trang {currentPage} / {effectiveTotalPages}</span>
+                    <span>
+                        Trang {currentPage} / {effectiveTotalPages}
+                        ({currentPageData.length} ngày hiện tại)
+                    </span>
                     <button
                         onClick={() => goToPage(currentPage + 1)}
                         disabled={currentPage === effectiveTotalPages || loadingPage}
