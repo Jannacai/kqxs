@@ -17,6 +17,7 @@ import UserList from './UserList';
 import NavBarDienDan from './navbarDiendan';
 import UserAvatar from '../../component/UserAvatar';
 import LiveResultButton from '../../components/LiveResultButton';
+import VietnamTimeDisplay from '../../components/VietnamTimeDisplay';
 
 export default function DienDan({ session }) {
     console.log('Session in DienDan:', JSON.stringify(session, null, 2));
@@ -441,6 +442,9 @@ export default function DienDan({ session }) {
                 isForum={true}
                 position="bottom-right"
             />
+
+            {/* Vietnam Time Display */}
+            <VietnamTimeDisplay />
         </div>
     </>
     );

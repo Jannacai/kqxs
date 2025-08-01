@@ -117,7 +117,7 @@
 
 .running_number {
 	display: inline-block;
-	font-size: 22px;
+	font-size: 23px;
 	min-height: 28px;
 	line-height: 28px;
 	padding: 2px 0;
@@ -233,6 +233,7 @@
 }
 
 @keyframes blink {
+
 	0%,
 	100% {
 		opacity: 1;
@@ -423,11 +424,11 @@
 	border: 2px solid #ccc;
 }
 
-.optionInput input[type='radio']:checked + label::before {
+.optionInput input[type='radio']:checked+label::before {
 	border: 2px solid #000;
 }
 
-.optionInput input[type='radio']:checked + label::after {
+.optionInput input[type='radio']:checked+label::after {
 	content: '';
 	position: absolute;
 	display: inline-block;
@@ -701,7 +702,7 @@
 		margin: 0 auto;
 	}
 
-	.optionInput input[type='radio']:checked + label::after {
+	.optionInput input[type='radio']:checked+label::after {
 		content: '';
 		position: absolute;
 		display: inline-block;
@@ -835,14 +836,14 @@
 	transform: translateY(-1px);
 }
 
-.modalOptionInput input[type='radio']:checked + label {
+.modalOptionInput input[type='radio']:checked+label {
 	background: #2d3483;
 	color: white;
 	border-color: #2d3483;
 	box-shadow: 0 2px 4px rgba(45, 52, 131, 0.3);
 }
 
-.modalOptionInput input[type='radio']:checked + label::before {
+.modalOptionInput input[type='radio']:checked+label::before {
 	content: '';
 	position: absolute;
 	top: 50%;
@@ -1638,7 +1639,7 @@
 		font-size: 10px;
 	}
 
-	.modalOptionInput input[type='radio']:checked + label::before {
+	.modalOptionInput input[type='radio']:checked+label::before {
 		left: 4px;
 		width: 3px;
 		height: 3px;

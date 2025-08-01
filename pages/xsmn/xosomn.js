@@ -100,7 +100,7 @@ const KQXS = (props) => {
 
     const startHour = hour;
     const startMinute = minutes1;
-    const duration = 30 * 60 * 1000;
+    const duration = 50 * 60 * 1000;
 
     const today = new Date().toLocaleDateString('vi-VN', {
         day: '2-digit',

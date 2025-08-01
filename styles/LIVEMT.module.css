@@ -336,8 +336,9 @@
 }
 
 .tableXS td.tdTitle.highlight {
-	color: red;
+	color: #ff0000;
 	font-size: 24px;
+	font-weight: bold;
 }
 
 .tableXS td.rowXS {
@@ -361,7 +362,28 @@
 }
 
 .prizeNumber.highlight {
-	color: red;
+	color: #ff0000;
+	font-weight: bold;
+}
+
+.highlight1 {
+	color: #ff0000;
+	font-weight: bold;
+}
+
+.digit12 {
+	display: inline-block;
+	/* width: 25px; */
+	/* height: 25px; */
+	line-height: 25px;
+	text-align: center;
+	font-size: 24px;
+	padding: 2px 0;
+	font-weight: 800;
+}
+
+.digit_container {
+	display: inline-flex;
 }
 
 .prizeNumber.gdb {
@@ -1201,15 +1223,17 @@
 }
 
 .modalPrizeNumber.eighth {
-	color: #e80000;
+	color: #ff0000;
 	background: #fff5f5;
 	border-color: #ffcccc;
+	font-weight: bold;
 }
 
 .modalPrizeNumber.special {
-	color: #e80000;
+	color: #ff0000;
 	background: #fff5f5;
 	border-color: #ffcccc;
+	font-weight: bold;
 }
 
 .modalPrizeContainer {
@@ -1294,13 +1318,13 @@
 }
 
 .modalStatsPrize.eighth {
-	color: #e80000;
-	font-weight: 600;
+	color: #ff0000;
+	font-weight: bold;
 }
 
 .modalStatsPrize.special {
-	color: #e80000;
-	font-weight: 600;
+	color: #ff0000;
+	font-weight: bold;
 }
 
 /* ===== CSS cho LiveResultOptimized ===== */
@@ -1480,17 +1504,17 @@
 }
 
 .optimizedStatsEighthPrize {
-	color: #e80000;
+	color: #ff0000;
 	background: #fff5f5;
 	border-color: #ffcccc;
-	font-weight: 600;
+	font-weight: bold;
 }
 
 .optimizedStatsSpecialPrize {
-	color: #e80000;
+	color: #ff0000;
 	background: #fff5f5;
 	border-color: #ffcccc;
-	font-weight: 600;
+	font-weight: bold;
 }
 
 /* Responsive cho LiveResultOptimized */

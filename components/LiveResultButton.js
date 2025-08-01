@@ -28,15 +28,21 @@ const LiveResultButton = ({
             if (testHour !== null) {
                 currentHour = testHour;
             } else {
+                // Lấy giờ Việt Nam (UTC+7) - đảm bảo chính xác cho tất cả người dùng trên thế giới
                 const now = new Date();
-                currentHour = now.getHours();
+                const vietnamTime = new Intl.DateTimeFormat('en-US', {
+                    timeZone: 'Asia/Ho_Chi_Minh',
+                    hour: 'numeric',
+                    hour12: false
+                }).format(now);
+                currentHour = parseInt(vietnamTime);
             }
 
-            // XSMN hiển thị từ 16h-16h59
+            // XSMN hiển thị từ 16h-16h59 (giờ Việt Nam)
             if (station === 'xsmn') {
                 setShouldShow(currentHour === 16);
             }
-            // XSMT hiển thị từ 17h-17h59
+            // XSMT hiển thị từ 17h-17h59 (giờ Việt Nam)
             else if (station === 'xsmt') {
                 setShouldShow(currentHour === 17);
             }
