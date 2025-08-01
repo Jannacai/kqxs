@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styles from '../styles/LiveResultModal.module.css';
 import LiveResult from '../pages/xsmt/LiveResult';
+import LiveResultMN from '../pages/xsmn/LiveResult';
 
 const LiveResultModal = ({ isOpen, onClose, isForum = false, ...props }) => {
     const [isAnimating, setIsAnimating] = useState(false);
@@ -58,7 +59,7 @@ const LiveResultModal = ({ isOpen, onClose, isForum = false, ...props }) => {
             >
                 <div className={`${styles.modalHeader} ${isForum ? styles.forumHeader : ''}`}>
                     <h2 id="modal-title" className={`${styles.modalTitle} ${isForum ? styles.forumTitle : ''}`}>
-                        Xổ số Miền Trung Trực tiếp
+                        {props.station === 'xsmn' ? 'Xổ số Miền Nam Trực tiếp' : 'Xổ số Miền Trung Trực tiếp'}
                     </h2>
                     <button
                         className={`${styles.closeButton} ${isForum ? styles.forumCloseButton : ''}`}
@@ -69,12 +70,21 @@ const LiveResultModal = ({ isOpen, onClose, isForum = false, ...props }) => {
                     </button>
                 </div>
                 <div className={`${styles.modalBody} ${isForum ? styles.forumBody : ''}`}>
-                    <LiveResult
-                        isModal={true}
-                        isForum={isForum}
-                        station={props.station}
-                        isLiveWindow={props.isLiveWindow}
-                    />
+                    {props.station === 'xsmn' ? (
+                        <LiveResultMN
+                            isModal={true}
+                            isForum={isForum}
+                            station={props.station}
+                            isLiveWindow={props.isLiveWindow}
+                        />
+                    ) : (
+                        <LiveResult
+                            isModal={true}
+                            isForum={isForum}
+                            station={props.station}
+                            isLiveWindow={props.isLiveWindow}
+                        />
+                    )}
                 </div>
             </div>
         </div>

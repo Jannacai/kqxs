@@ -17,6 +17,7 @@ import UserList from './UserList';
 import NavBarDienDan from './navbarDiendan';
 import UserAvatar from '../../component/UserAvatar';
 import LiveResultButton from '../../components/LiveResultButton';
+import TimeDebug from '../../components/TimeDebug';
 
 export default function DienDan({ session }) {
     console.log('Session in DienDan:', JSON.stringify(session, null, 2));
@@ -430,6 +431,20 @@ export default function DienDan({ session }) {
                 isForum={true}
                 position="bottom-left"
             />
+
+            {/* Live XSMN Button */}
+            <LiveResultButton
+                station="xsmn"
+                isLiveWindow={true}
+                buttonText="Xem XSMN Live"
+                buttonStyle="secondary"
+                size="medium"
+                isForum={true}
+                position="bottom-right"
+            />
+
+            {/* Debug Component */}
+            <TimeDebug />
         </div>
     </>
     );

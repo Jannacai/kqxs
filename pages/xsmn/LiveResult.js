@@ -211,7 +211,7 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
 
         try {
             const response = await fetch(
-                `http://localhost:5000/api/ketqua/xsmn/sse/initial?station=${station}&tinh=${province.tinh}&date=${targetDate.replace(/\//g, '-')}`
+                `https://backendkqxs-1.onrender.com/api/ketqua/xsmn/sse/initial?station=${station}&tinh=${province.tinh}&date=${targetDate.replace(/\//g, '-')}`
             );
             if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
             const serverData = await response.json();
@@ -635,7 +635,7 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                     sseRefs.current[province.tinh].close();
                 }
 
-                const sseUrl = `http://localhost:5000/api/ketqua/xsmn/sse?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`;
+                const sseUrl = `https://backendkqxs-1.onrender.com/api/ketqua/xsmn/sse?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`;
                 console.log(`🔌 Tạo SSE connection cho ${province.tinh}:`, sseUrl);
 
                 try {
@@ -741,7 +741,7 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                 sseRefs.current[tinh] = null;
             }
 
-            const sseUrl = `http://localhost:5000/api/ketqua/xsmn/sse?station=${station}&tinh=${tinh}&date=${today.replace(/\//g, '-')}`;
+            const sseUrl = `https://backendkqxs-1.onrender.com/api/ketqua/xsmn/sse?station=${station}&tinh=${tinh}&date=${today.replace(/\//g, '-')}`;
             console.log(`🔌 Tạo SSE connection mới cho ${tinh}:`, sseUrl);
 
             try {

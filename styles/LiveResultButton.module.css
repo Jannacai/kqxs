@@ -65,13 +65,20 @@
 	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 	border-radius: 12px;
 	backdrop-filter: blur(10px);
-	background: linear-gradient(135deg, #e80000 0%, #ff4444 100%);
 	color: white;
 	font-weight: 700;
 	text-transform: uppercase;
 	letter-spacing: 0.5px;
 	min-width: 200px;
 	justify-content: center;
+}
+
+.forumButton.primary {
+	background: linear-gradient(135deg, #e80000 0%, #ff4444 100%);
+}
+
+.forumButton.secondary {
+	background: linear-gradient(135deg, #2d3483 0%, #4a90e2 100%);
 }
 
 /* Forum Button Positions */
@@ -135,7 +142,14 @@
 
 .forumButton:hover {
 	transform: translateY(-3px) scale(1.05);
+}
+
+.forumButton.primary:hover {
 	box-shadow: 0 12px 32px rgba(232, 0, 0, 0.4);
+}
+
+.forumButton.secondary:hover {
+	box-shadow: 0 12px 32px rgba(45, 52, 131, 0.4);
 }
 
 /* Active State */
@@ -148,10 +162,23 @@
 	transform: translateY(-1px) scale(1.02);
 }
 
+.forumButton.primary:active {
+	box-shadow: 0 8px 20px rgba(232, 0, 0, 0.3);
+}
+
+.forumButton.secondary:active {
+	box-shadow: 0 8px 20px rgba(45, 52, 131, 0.3);
+}
+
 /* Focus State */
 .liveResultButton:focus {
 	outline: 2px solid rgba(255, 255, 255, 0.5);
 	outline-offset: 2px;
+}
+
+.forumButton:focus {
+	outline: 3px solid rgba(255, 255, 255, 0.7);
+	outline-offset: 3px;
 }
 
 /* Animations */
@@ -191,6 +218,14 @@
 		font-size: 14px;
 	}
 
+	.bottomLeft {
+		left: 15px;
+	}
+
+	.bottomRight {
+		right: 15px;
+	}
+
 	.buttonIcon {
 		font-size: 16px;
 	}
@@ -212,7 +247,14 @@
 		padding: 8px 12px;
 		font-size: 12px;
 		bottom: 10px;
+	}
+
+	.bottomLeft {
 		left: 10px;
+	}
+
+	.bottomRight {
+		right: 10px;
 	}
 
 	.buttonText {
@@ -235,6 +277,15 @@
 	animation: spin 1s linear infinite;
 }
 
+.forumButton.loading {
+	pointer-events: none;
+	opacity: 0.8;
+}
+
+.forumButton.loading .buttonIcon {
+	animation: spin 1s linear infinite;
+}
+
 @keyframes spin {
 	from {
 		transform: rotate(0deg);
@@ -251,6 +302,12 @@
 	pointer-events: none;
 }
 
+.forumButton:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+	pointer-events: none;
+}
+
 /* High Contrast Mode */
 @media (prefers-contrast: high) {
 	.liveResultButton {
@@ -259,6 +316,22 @@
 
 	.forumButton {
 		border: 2px solid white;
+	}
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+	.forumButton {
+		backdrop-filter: blur(15px);
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+	}
+
+	.forumButton.primary {
+		background: linear-gradient(135deg, #d10000 0%, #e63333 100%);
+	}
+
+	.forumButton.secondary {
+		background: linear-gradient(135deg, #1a1f5a 0%, #3a7bc8 100%);
 	}
 }
 
@@ -274,5 +347,118 @@
 
 	.pulse {
 		animation: none;
+	}
+}
+
+/* Print Mode */
+@media print {
+	.forumButton {
+		display: none;
+	}
+}
+
+/* Screen Reader Support */
+@media (prefers-reduced-motion: reduce) {
+	.forumButton {
+		animation: none;
+	}
+}
+
+/* High DPI Displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+	.forumButton {
+		backdrop-filter: blur(20px);
+	}
+}
+
+/* Touch Devices */
+@media (hover: none) and (pointer: coarse) {
+	.forumButton {
+		min-height: 44px;
+		min-width: 44px;
+	}
+
+	.forumButton:hover {
+		transform: none;
+	}
+}
+
+/* Keyboard Navigation */
+.forumButton:focus-visible {
+	outline: 3px solid rgba(255, 255, 255, 0.8);
+	outline-offset: 4px;
+}
+
+/* Reduced Data Mode */
+@media (prefers-reduced-data: reduce) {
+	.forumButton {
+		backdrop-filter: none;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+	}
+}
+
+/* Forced Colors Mode */
+@media (forced-colors: active) {
+	.forumButton {
+		border: 2px solid ButtonText;
+		background: ButtonFace;
+		color: ButtonText;
+	}
+}
+
+/* Inverted Colors Mode */
+@media (inverted-colors: inverted) {
+	.forumButton {
+		filter: invert(1);
+	}
+}
+
+/* Monochrome Mode */
+@media (monochrome) {
+	.forumButton {
+		background: #666;
+		color: white;
+	}
+}
+
+/* Grid Layout Support */
+@supports (display: grid) {
+	.forumButton {
+		display: inline-grid;
+		grid-template-columns: auto 1fr auto;
+		align-items: center;
+		gap: 8px;
+	}
+}
+
+/* Flexbox Layout Support */
+@supports (display: flex) {
+	.forumButton {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+	}
+}
+
+/* Landscape Mode */
+@media (max-height: 500px) and (orientation: landscape) {
+	.forumButton {
+		bottom: 10px;
+		min-width: 120px;
+		padding: 6px 10px;
+		font-size: 12px;
+	}
+
+	.bottomLeft {
+		left: 10px;
+	}
+
+	.bottomRight {
+		right: 10px;
+	}
+
+	.buttonText {
+		display: none;
 	}
 }
