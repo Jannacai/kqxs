@@ -102,6 +102,12 @@
 	right: 20px;
 }
 
+.static {
+	position: static;
+	display: inline-block;
+	margin: 5px;
+}
+
 /* Button Elements */
 .buttonIcon {
 	font-size: 18px;

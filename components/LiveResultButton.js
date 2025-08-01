@@ -10,17 +10,28 @@ const LiveResultButton = ({
     buttonStyle = "primary",
     size = "medium",
     isForum = false,
-    position = "bottom-left"
+    position = "bottom-left",
+    testHour = null
 }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [shouldShow, setShouldShow] = useState(false);
+    const [isClient, setIsClient] = useState(false);
 
     // Kiểm tra thời gian hiển thị nút
     useEffect(() => {
+        setIsClient(true);
+
         const checkTimeAndShow = () => {
-            const now = new Date();
-            const currentHour = now.getHours();
-            
+            let currentHour;
+
+            // Nếu có testHour, sử dụng để test
+            if (testHour !== null) {
+                currentHour = testHour;
+            } else {
+                const now = new Date();
+                currentHour = now.getHours();
+            }
+
             // XSMN hiển thị từ 16h-16h59
             if (station === 'xsmn') {
                 setShouldShow(currentHour === 16);
@@ -38,19 +49,12 @@ const LiveResultButton = ({
         // Kiểm tra ngay lập tức
         checkTimeAndShow();
 
-        // Cập nhật mỗi phút để đảm bảo chính xác
-        const interval = setInterval(checkTimeAndShow, 60000);
-
-        return () => clearInterval(interval);
-    }, [station]);
-
-    // Debug: Log thời gian hiện tại và trạng thái hiển thị (chỉ trong development)
-    useEffect(() => {
-        if (process.env.NODE_ENV === 'development') {
-            const now = new Date();
-            console.log(`[LiveResultButton ${station}] Current time: ${now.toLocaleTimeString()}, Hour: ${now.getHours()}, Should show: ${shouldShow}`);
+        // Chỉ set interval nếu không phải test mode
+        if (testHour === null) {
+            const interval = setInterval(checkTimeAndShow, 60000);
+            return () => clearInterval(interval);
         }
-    }, [shouldShow, station]);
+    }, [station, testHour]);
 
     const handleToggleModal = () => {
         const newState = !isModalOpen;
@@ -80,8 +84,8 @@ const LiveResultButton = ({
         return `${baseClass} ${styleClass} ${sizeClass} ${forumClass} ${forumStyleClass} ${positionClass}`;
     };
 
-    // Nếu không nên hiển thị, return null
-    if (!shouldShow) {
+    // Nếu chưa load client hoặc không nên hiển thị, return null
+    if (!isClient || !shouldShow) {
         return null;
     }
 

@@ -17,7 +17,6 @@ import UserList from './UserList';
 import NavBarDienDan from './navbarDiendan';
 import UserAvatar from '../../component/UserAvatar';
 import LiveResultButton from '../../components/LiveResultButton';
-import TimeDebug from '../../components/TimeDebug';
 
 export default function DienDan({ session }) {
     console.log('Session in DienDan:', JSON.stringify(session, null, 2));
@@ -442,9 +441,6 @@ export default function DienDan({ session }) {
                 isForum={true}
                 position="bottom-right"
             />
-
-            {/* Debug Component */}
-            <TimeDebug />
         </div>
     </>
     );
