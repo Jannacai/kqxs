@@ -5,6 +5,11 @@ const LotteryContext = createContext();
 export const LotteryProvider = ({ children }) => {
     const [liveData, setLiveData] = useState([]);
     const [isLiveDataComplete, setIsLiveDataComplete] = useState(false);
+
+    // Context riêng cho XSMB
+    const [xsmbLiveData, setXsmbLiveData] = useState([]);
+    const [isXsmbLiveDataComplete, setIsXsmbLiveDataComplete] = useState(false);
+
     const [filterTypes, setFilterTypes] = useState({
         '25-07-2025xsmt': 'all', // Giá trị mặc định cho ngày 25-07-2025, trạm xsmt
     });
@@ -20,6 +25,11 @@ export const LotteryProvider = ({ children }) => {
                 setLiveData,
                 isLiveDataComplete,
                 setIsLiveDataComplete,
+                // XSMB context
+                xsmbLiveData,
+                setXsmbLiveData,
+                isXsmbLiveDataComplete,
+                setIsXsmbLiveDataComplete,
                 filterTypes,
                 handleFilterChange,
             }}

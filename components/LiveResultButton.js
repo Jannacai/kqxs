@@ -46,6 +46,11 @@ const LiveResultButton = ({
             else if (station === 'xsmt') {
                 setShouldShow(currentHour === 17);
             }
+            // XSMB hiển thị từ 18h-18h59 (giờ Việt Nam) hoặc mặc định (trừ khi đang trong giờ XSMN/XSMT)
+            else if (station === 'xsmb') {
+                // Luôn hiển thị XSMB trừ khi đang trong giờ XSMN (16h) hoặc XSMT (17h)
+                setShouldShow(currentHour !== 16 && currentHour !== 17);
+            }
             // Các trường hợp khác không hiển thị
             else {
                 setShouldShow(false);
@@ -100,10 +105,10 @@ const LiveResultButton = ({
             <button
                 className={getButtonClassName()}
                 onClick={handleToggleModal}
-                aria-label={isModalOpen ? `Đóng xem xổ số ${station === 'xsmn' ? 'Miền Nam' : 'Miền Trung'} trực tiếp` : `Mở xem xổ số ${station === 'xsmn' ? 'Miền Nam' : 'Miền Trung'} trực tiếp`}
-                title={isModalOpen ? `Đóng kết quả xổ số ${station === 'xsmn' ? 'Miền Nam' : 'Miền Trung'} trực tiếp` : `Xem kết quả xổ số ${station === 'xsmn' ? 'Miền Nam' : 'Miền Trung'} trực tiếp`}
+                aria-label={isModalOpen ? `Đóng xem xổ số ${station === 'xsmn' ? 'Miền Nam' : station === 'xsmt' ? 'Miền Trung' : 'Miền Bắc'} trực tiếp` : `Mở xem xổ số ${station === 'xsmn' ? 'Miền Nam' : station === 'xsmt' ? 'Miền Trung' : 'Miền Bắc'} trực tiếp`}
+                title={isModalOpen ? `Đóng kết quả xổ số ${station === 'xsmn' ? 'Miền Nam' : station === 'xsmt' ? 'Miền Trung' : 'Miền Bắc'} trực tiếp` : `Xem kết quả xổ số ${station === 'xsmn' ? 'Miền Nam' : station === 'xsmt' ? 'Miền Trung' : 'Miền Bắc'} trực tiếp`}
             >
-                <span className={styles.buttonIcon}>{isModalOpen ? '✕' : (station === 'xsmn' ? '🎲' : '🎯')}</span>
+                <span className={styles.buttonIcon}>{isModalOpen ? '✕' : (station === 'xsmn' ? '🎲' : station === 'xsmt' ? '🎯' : '🎲')}</span>
                 <span className={styles.buttonText}>
                     {isModalOpen ? `Đóng ${station.toUpperCase()} Live` : buttonText}
                 </span>

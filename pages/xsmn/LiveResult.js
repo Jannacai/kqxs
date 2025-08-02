@@ -17,9 +17,9 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
     const sseSetupRef = useRef(false);
     const updateTimeoutRef = useRef(null);
     const initialDataCache = useRef(new Map());
-    const cacheTimeout = 1 * 60 * 1000;
+    const cacheTimeout = 30 * 1000; // Giảm xuống 30 giây
     const prizeCache = useRef(new Map());
-    const prizeCacheTimeout = 20 * 1000;
+    const prizeCacheTimeout = 15 * 1000; // Giảm xuống 15 giây
     const sseConnectionPool = useRef(new Map());
     const sseReconnectDelay = 1000;
 
@@ -206,12 +206,19 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                 }
             });
 
-            return mergedData;
+            // Force fetch fresh data nếu cache quá cũ (trên 15 giây)
+            const cacheAge = Date.now() - cached.timestamp;
+            if (cacheAge > 15 * 1000) {
+                console.log(`🔄 Cache quá cũ (${Math.round(cacheAge / 1000)}s), force fetch fresh data cho ${province.tinh}`);
+                // Không return cached data, tiếp tục fetch fresh data
+            } else {
+                return mergedData;
+            }
         }
 
         try {
             const response = await fetch(
-                `http://localhost:5000/api/ketqua/xsmn/sse/initial?station=${station}&tinh=${province.tinh}&date=${targetDate.replace(/\//g, '-')}`
+                `https://backendkqxs-1.onrender.com/api/ketqua/xsmn/sse/initial?station=${station}&tinh=${province.tinh}&date=${targetDate.replace(/\//g, '-')}`
             );
             if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
             const serverData = await response.json();
@@ -315,7 +322,18 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
 
     useEffect(() => {
         const cleanupInterval = setInterval(cleanupOldLiveData, 10 * 60 * 1000);
-        return () => clearInterval(cleanupInterval);
+
+        // Tự động invalidate cache mỗi 30 giây để đảm bảo dữ liệu mới nhất
+        const cacheInvalidationInterval = setInterval(() => {
+            console.log('🔄 Auto invalidate cache để đảm bảo dữ liệu mới nhất');
+            initialDataCache.current.clear();
+            prizeCache.current.clear();
+        }, 30 * 1000);
+
+        return () => {
+            clearInterval(cleanupInterval);
+            clearInterval(cacheInvalidationInterval);
+        };
     }, [cleanupOldLiveData]);
 
     const animationTimeoutsRef = useRef(new Map());
@@ -362,6 +380,14 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                 timestamp: Date.now()
             });
             console.log(`📦 Cached prize ${prizeType} = ${value} cho ${tinh}`);
+
+            // Invalidate initial data cache khi có dữ liệu mới
+            const initialCacheKey = `${station}:${tinh}:${today}`;
+            const cachedInitialData = initialDataCache.current.get(initialCacheKey);
+            if (cachedInitialData) {
+                console.log(`🔄 Invalidating initial cache cho ${tinh} do có dữ liệu mới`);
+                initialDataCache.current.delete(initialCacheKey);
+            }
         }
 
         if (batchTimeoutRef.current) {
@@ -382,6 +408,12 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                                 console.log(`🔄 Cập nhật ${updatePrizeType} = ${updateValue} cho ${updateTinh}`);
                                 updatedItem[updatePrizeType] = updateValue;
                                 hasChanges = true;
+
+                                // Trigger animation cho dữ liệu mới nếu component đang mounted
+                                if (mountedRef.current && updateValue && updateValue !== '...' && updateValue !== '***') {
+                                    console.log(`🎬 Trigger animation cho ${updatePrizeType} = ${updateValue} (${updateTinh})`);
+                                    setAnimationWithTimeout(updateTinh, updatePrizeType);
+                                }
                             }
                         });
 
@@ -413,14 +445,40 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
     useEffect(() => {
         mountedRef.current = true;
         console.log('🔄 LiveResult component mounted');
+
+        // Reset animation state khi component mount
+        setAnimatingPrizes({});
+        console.log('🔄 Reset animation state');
+
         return () => {
             console.log('🔄 LiveResult component unmounting');
             mountedRef.current = false;
+
+            // Clear tất cả animation timeouts
+            console.log('🧹 Clear animation timeouts...');
+            animationTimeoutsRef.current.forEach((timeoutId) => {
+                clearTimeout(timeoutId);
+            });
+            animationTimeoutsRef.current.clear();
+
+            // Clear batch update timeout
+            if (batchTimeoutRef.current) {
+                clearTimeout(batchTimeoutRef.current);
+                batchTimeoutRef.current = null;
+            }
+
+            // Clear batch update ref
+            batchUpdateRef.current.clear();
+
+            // Đóng tất cả SSE connections
             Object.values(sseRefs.current).forEach(sse => {
                 console.log('🔌 Đóng kết nối SSE...');
                 sse.close();
             });
             sseRefs.current = {};
+
+            // Reset SSE setup flag
+            sseSetupRef.current = false;
         };
     }, []);
 
@@ -458,6 +516,10 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
 
         console.log('✅ Bắt đầu thiết lập SSE cho XSMN');
         sseSetupRef.current = true;
+
+        // Reset animation state khi bắt đầu SSE setup
+        setAnimatingPrizes({});
+        console.log('🔄 Reset animation state cho SSE setup');
 
         const fetchInitialData = async (retry = 0) => {
             try {
@@ -512,11 +574,36 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
 
                             const updatedData = { ...initialData };
                             let shouldUpdate = !initialData.lastUpdated || serverData.lastUpdated > initialData.lastUpdated;
+                            let hasNewData = false;
+
                             for (const key in serverData) {
                                 if (serverData[key] !== '...' || !updatedData[key] || updatedData[key] === '...' || updatedData[key] === '***') {
                                     updatedData[key] = serverData[key];
                                     shouldUpdate = true;
+
+                                    // Kiểm tra nếu có dữ liệu mới và component đang mounted
+                                    if (serverData[key] !== '...' && serverData[key] !== '***' && mountedRef.current) {
+                                        hasNewData = true;
+                                        console.log(`🎬 Có dữ liệu mới: ${key} = ${serverData[key]} cho ${province.tinh}`);
+                                    }
                                 }
+                            }
+
+                            // Trigger animation cho dữ liệu mới nếu có
+                            if (hasNewData && mountedRef.current) {
+                                const prizeTypes = [
+                                    'eightPrizes_0', 'sevenPrizes_0', 'sixPrizes_0', 'sixPrizes_1', 'sixPrizes_2',
+                                    'fivePrizes_0', 'fourPrizes_0', 'fourPrizes_1', 'fourPrizes_2', 'fourPrizes_3',
+                                    'fourPrizes_4', 'fourPrizes_5', 'fourPrizes_6', 'threePrizes_0', 'threePrizes_1',
+                                    'secondPrize_0', 'firstPrize_0', 'specialPrize_0'
+                                ];
+
+                                prizeTypes.forEach(prizeType => {
+                                    if (serverData[prizeType] && serverData[prizeType] !== '...' && serverData[prizeType] !== '***') {
+                                        console.log(`🎬 Trigger animation cho dữ liệu có sẵn: ${prizeType} = ${serverData[prizeType]} (${province.tinh})`);
+                                        setAnimationWithTimeout(province.tinh, prizeType);
+                                    }
+                                });
                             }
                             if (shouldUpdate) {
                                 updatedData.lastUpdated = serverData.lastUpdated || Date.now();
@@ -635,7 +722,7 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                     sseRefs.current[province.tinh].close();
                 }
 
-                const sseUrl = `http://localhost:5000/api/ketqua/xsmn/sse?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`;
+                const sseUrl = `https://backendkqxs-1.onrender.com/api/ketqua/xsmn/sse?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`;
                 console.log(`🔌 Tạo SSE connection cho ${province.tinh}:`, sseUrl);
 
                 try {
@@ -695,8 +782,17 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                                 console.log(`📡 Nhận sự kiện SSE: ${prizeType} = ${data[prizeType]} (tỉnh ${province.tinh})`, data);
                                 if (data && data[prizeType] && mountedRef.current) {
                                     console.log(`🚀 Cập nhật ngay lập tức: ${prizeType} = ${data[prizeType]} (tỉnh ${province.tinh})`);
+
+                                    // Force invalidate cache khi có dữ liệu mới từ SSE
+                                    const initialCacheKey = `${station}:${province.tinh}:${today}`;
+                                    if (initialDataCache.current.has(initialCacheKey)) {
+                                        console.log(`🔄 Force invalidate cache cho ${province.tinh} do SSE update`);
+                                        initialDataCache.current.delete(initialCacheKey);
+                                    }
+
                                     batchUpdateLiveData(province.tinh, prizeType, data[prizeType]);
                                     if (data[prizeType] !== '...' && data[prizeType] !== '***') {
+                                        console.log(`🎬 Trigger animation từ SSE cho ${prizeType} = ${data[prizeType]} (${province.tinh})`);
                                         setAnimationWithTimeout(province.tinh, prizeType);
                                     }
                                 }
@@ -741,7 +837,7 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                 sseRefs.current[tinh] = null;
             }
 
-            const sseUrl = `http://localhost:5000/api/ketqua/xsmn/sse?station=${station}&tinh=${tinh}&date=${today.replace(/\//g, '-')}`;
+            const sseUrl = `https://backendkqxs-1.onrender.com/api/ketqua/xsmn/sse?station=${station}&tinh=${tinh}&date=${today.replace(/\//g, '-')}`;
             console.log(`🔌 Tạo SSE connection mới cho ${tinh}:`, sseUrl);
 
             try {
@@ -774,6 +870,7 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                                 console.log(`🚀 Cập nhật ngay lập tức (retry): ${prizeType} = ${data[prizeType]} (tỉnh ${tinh})`);
                                 batchUpdateLiveData(tinh, prizeType, data[prizeType]);
                                 if (data[prizeType] !== '...' && data[prizeType] !== '***') {
+                                    console.log(`🎬 Trigger animation từ retry SSE cho ${prizeType} = ${data[prizeType]} (${tinh})`);
                                     setAnimationWithTimeout(tinh, prizeType);
                                 }
                             }

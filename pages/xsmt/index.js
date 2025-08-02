@@ -98,9 +98,23 @@ const KQXS = (props) => {
 
     const startHour = hour;
     const startMinute = minutes1;
-    const duration = 50 * 60 * 1000;
+    const duration = 30 * 60 * 1000;
 
-    const today = new Date().toLocaleDateString('vi-VN', {
+    // BỔ SUNG: Helper function để lấy thời gian Việt Nam - TỐI ƯU
+    let cachedVietnamTime = null;
+    let lastCacheTime = 0;
+    const CACHE_TIME_DURATION = 1000; // Cache 1 giây
+
+    const getVietnamTime = () => {
+        const now = Date.now();
+        if (!cachedVietnamTime || (now - lastCacheTime) > CACHE_TIME_DURATION) {
+            cachedVietnamTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+            lastCacheTime = now;
+        }
+        return cachedVietnamTime;
+    };
+
+    const today = getVietnamTime().toLocaleDateString('vi-VN', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
@@ -141,11 +155,10 @@ const KQXS = (props) => {
 
     // Tối ưu cho live window - tắt tất cả logic không cần thiết
     const isLiveWindowActive = useMemo(() => {
-        const now = new Date();
-        const vietnamTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+        const vietnamTime = getVietnamTime();
         const vietnamHours = vietnamTime.getHours();
         const vietnamMinutes = vietnamTime.getMinutes();
-        return vietnamHours === 17 && vietnamMinutes >= 10 && vietnamMinutes <= 59;
+        return vietnamHours === 17 && vietnamMinutes >= 10 && vietnamMinutes <= 40;
     }, []);
 
     // Tối ưu fetchData cho live window - tránh fetch không cần thiết
@@ -167,13 +180,13 @@ const KQXS = (props) => {
 
         // Nếu không trong live window, fetch data bình thường
         try {
-            const now = new Date();
-            const vietnamTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+            const vietnamTime = getVietnamTime();
             const vietnamHours = vietnamTime.getHours();
             const vietnamMinutes = vietnamTime.getMinutes();
-            const isUpdateWindow = vietnamHours === 17 && vietnamMinutes >= 10 && vietnamMinutes <= 59;
-            const isPostLiveWindow = vietnamHours > 17 || (vietnamHours === 17 && vietnamMinutes > 59);
+            const isUpdateWindow = vietnamHours === 17 && vietnamMinutes >= 10 && vietnamMinutes <= 40;
+            const isPostLiveWindow = vietnamHours > 17 || (vietnamHours === 17 && vietnamMinutes > 40);
             const hasUpdatedToday = localStorage.getItem(UPDATE_KEY);
+            const now = vietnamTime; // Sử dụng vietnamTime thay vì tạo mới
 
             // Cập nhật live window state
             setIsInLiveWindow(isUpdateWindow);
@@ -206,7 +219,8 @@ const KQXS = (props) => {
                 forceRefresh || // Force refresh từ live data
                 (!cachedData || cacheAge >= CACHE_DURATION) || // Cache hết hạn hoặc không có
                 (isPostLiveWindow && !hasUpdatedToday) || // Sau live window và chưa update
-                (lastLiveUpdate && (now.getTime() - lastLiveUpdate) > LIVE_CACHE_DURATION); // Live data cũ
+                (lastLiveUpdate && (vietnamTime.getTime() - lastLiveUpdate) > LIVE_CACHE_DURATION) || // Live data cũ
+                (vietnamHours === 17 && vietnamMinutes >= 35); // Sau 17h35 - force lấy kết quả mới
 
             // Trong live window, không fetch data mới
             if (isUpdateWindow) {
@@ -455,6 +469,34 @@ const KQXS = (props) => {
         }
     }, [fetchData, isInLiveWindow, isLiveWindowActive]);
 
+    // BỔ SUNG: useEffect riêng để xử lý xóa cache vào 17h35 - TỐI ƯU
+    useEffect(() => {
+        let cacheCleared = false; // Flag để tránh clear cache nhiều lần
+        const checkAndClearCache = () => {
+            const vietnamTime = getVietnamTime();
+            const vietnamHours = vietnamTime.getHours();
+            const vietnamMinutes = vietnamTime.getMinutes();
+            // Chỉ check vào phút 35 để giảm số lần check
+            if (vietnamHours === 17 && vietnamMinutes === 35 && !cacheCleared) {
+                console.log('🕐 17h35 - Xóa cache để lấy kết quả mới từ database');
+                const todayCacheKey = `xsmt_data_${station}_${today}_null`;
+                localStorage.removeItem(todayCacheKey);
+                localStorage.removeItem(`${todayCacheKey}_time`);
+                localStorage.removeItem(UPDATE_KEY);
+                fetchData(true);
+                cacheCleared = true; // Mark as cleared
+                console.log('✅ Đã xóa cache và force refresh để lấy kết quả mới');
+            }
+            // Reset flag khi qua 17h36
+            if (vietnamHours === 17 && vietnamMinutes === 36) {
+                cacheCleared = false;
+            }
+        };
+        checkAndClearCache();
+        const intervalId = setInterval(checkAndClearCache, 60 * 1000); // Check every minute
+        return () => clearInterval(intervalId);
+    }, [station, today, fetchData]);
+
     // Tối ưu useEffect cho liveData - chỉ update khi không trong live window
     useEffect(() => {
         if (isLiveDataComplete && liveData && Array.isArray(liveData) && liveData.some(item => item.drawDate === today) && !isLiveWindowActive) {
@@ -587,6 +629,8 @@ const KQXS = (props) => {
 
             const provinces = todayData[dayOfWeekIndex] || [];
 
+            // BỔ SUNG: Scheduler đã tự động kích hoạt scraper lúc 17h14
+            // Không cần kích hoạt thủ công nữa
             if (
                 isLive &&
                 vietnamHours === hour &&
@@ -595,7 +639,9 @@ const KQXS = (props) => {
                 !hasTriggeredScraper &&
                 provinces.length > 0
             ) {
-                triggerScraperDebounced(today, station, provinces);
+                // Scheduler đã tự động chạy lúc 17h14
+                console.log('🕐 17h14 - Scheduler đã tự động kích hoạt scraper XSMT');
+                setHasTriggeredScraper(true);
             }
         };
 

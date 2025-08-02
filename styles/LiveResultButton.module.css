@@ -27,6 +27,11 @@
 	color: white;
 }
 
+.xsmb {
+	background: linear-gradient(135deg, #8b4513 0%, #d2691e 100%);
+	color: white;
+}
+
 .success {
 	background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
 	color: white;
@@ -79,6 +84,10 @@
 
 .forumButton.secondary {
 	background: linear-gradient(135deg, #2d3483 0%, #4a90e2 100%);
+}
+
+.forumButton.xsmb {
+	background: linear-gradient(135deg, #8b4513 0%, #d2691e 100%);
 }
 
 /* Forum Button Positions */
@@ -158,6 +167,10 @@
 	box-shadow: 0 12px 32px rgba(45, 52, 131, 0.4);
 }
 
+.forumButton.xsmb:hover {
+	box-shadow: 0 12px 32px rgba(139, 69, 19, 0.4);
+}
+
 /* Active State */
 .liveResultButton:active {
 	transform: translateY(0);
@@ -174,6 +187,10 @@
 
 .forumButton.secondary:active {
 	box-shadow: 0 8px 20px rgba(45, 52, 131, 0.3);
+}
+
+.forumButton.xsmb:active {
+	box-shadow: 0 8px 20px rgba(139, 69, 19, 0.3);
 }
 
 /* Focus State */

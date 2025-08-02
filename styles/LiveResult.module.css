@@ -1,0 +1,26 @@
+/* Responsive cho modal */
+@media (max-width: 768px) {
+	.modalLayout {
+		flex-direction: column;
+		gap: 15px;
+	}
+
+	.modalSidebar {
+		max-width: none;
+		min-width: 0;
+	}
+
+	.modalPrizeNumber {
+		font-size: 14px;
+		padding: 3px 6px;
+	}
+
+	.modalFilterOptions {
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.modalStatsTableContent {
+		max-height: 150px;
+	}
+}

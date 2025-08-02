@@ -823,8 +823,8 @@
 }
 
 .liveWindowActive .kqxs {
-	background: linear-gradient(45deg, #ffeca0 0%, #fff4c3 50%, #ffeca0 100%);
-	animation: livePulse 2s ease-in-out infinite;
+	/* background: linear-gradient(45deg, #ffeca0 0%, #fff4c3 50%, #ffeca0 100%); */
+	/* animation: livePulse 2s ease-in-out infinite; */
 }
 
 @keyframes livePulse {

@@ -8,7 +8,7 @@
 	/* background-color: rgba(0, 0, 0, 0.5); */
 	display: flex;
 	align-items: center;
-	margin-left: 300px;
+	margin-left: 220px;
 	z-index: 1000;
 	opacity: 0;
 	transition: opacity 0.3s ease;
@@ -19,7 +19,11 @@
 
 .modalOverlay.active {
 	opacity: 1;
-	animation: liveGlow 2s infinite alternate;
+}
+
+/* Chỉ bật hiệu ứng live khi có class liveMode */
+.modalOverlay.active.liveMode {
+	animation: liveGlow 2s ease-in-out infinite alternate;
 }
 
 @keyframes liveGlow {
@@ -82,8 +86,12 @@
 			transparent 30%,
 			rgba(232, 0, 0, 0.1) 50%,
 			transparent 70%);
-	animation: liveBorder 4s infinite;
 	pointer-events: none;
+}
+
+/* Chỉ bật hiệu ứng live khi có class liveMode */
+.modalContent.liveMode::before {
+	animation: liveBorder 3s ease-in-out infinite;
 }
 
 @keyframes liveBorder {
@@ -124,7 +132,7 @@
 			transparent 30%,
 			rgba(45, 52, 131, 0.1) 50%,
 			transparent 70%);
-	animation: liveBorder 5s infinite;
+	/* Tắt hiệu ứng liveBorder */
 	pointer-events: none;
 }
 
@@ -152,7 +160,11 @@
 			transparent,
 			rgba(255, 255, 255, 0.3),
 			transparent);
-	animation: liveShine 3s infinite;
+}
+
+/* Chỉ bật hiệu ứng live khi có class liveMode */
+.modalHeader.liveMode::before {
+	animation: liveShine 4s ease-in-out infinite;
 }
 
 @keyframes liveShine {
@@ -183,7 +195,11 @@
 			transparent,
 			rgba(255, 255, 255, 0.2),
 			transparent);
-	animation: liveShine 4s infinite;
+}
+
+/* Chỉ bật hiệu ứng live khi có class liveMode */
+.forumHeader.liveMode::before {
+	animation: liveShine 4s ease-in-out infinite;
 }
 
 .modalTitle {
@@ -195,13 +211,18 @@
 }
 
 .modalTitle::after {
-	content: '🔴 LIVE';
+	content: '';
 	font-size: 12px;
 	background: rgba(255, 255, 255, 0.2);
 	padding: 2px 8px;
 	border-radius: 12px;
 	margin-left: 10px;
-	animation: livePulse 2s infinite;
+}
+
+/* Chỉ hiển thị và bật hiệu ứng LIVE khi có class liveMode */
+.modalTitle.liveMode::after {
+	content: '🔴 LIVE';
+	animation: livePulse 2s ease-in-out infinite;
 }
 
 @keyframes livePulse {
@@ -223,13 +244,18 @@
 }
 
 .forumTitle::after {
-	content: '🔴 LIVE';
+	content: '';
 	font-size: 10px;
 	background: rgba(255, 255, 255, 0.2);
 	padding: 2px 6px;
 	border-radius: 10px;
 	margin-left: 8px;
-	animation: livePulse 2s infinite;
+}
+
+/* Chỉ hiển thị và bật hiệu ứng LIVE khi có class liveMode */
+.forumTitle.liveMode::after {
+	content: '🔴 LIVE';
+	animation: livePulse 2s ease-in-out infinite;
 }
 
 .closeButton {
@@ -278,8 +304,12 @@
 	right: 0;
 	height: 2px;
 	background: linear-gradient(90deg, #e80000, #ff4444, #e80000);
-	animation: liveProgress 3s infinite;
 	z-index: 1;
+}
+
+/* Chỉ bật hiệu ứng live khi có class liveMode */
+.modalBody.liveMode::before {
+	animation: liveProgress 3s ease-in-out infinite;
 }
 
 @keyframes liveProgress {
@@ -305,8 +335,12 @@
 	right: 0;
 	height: 2px;
 	background: linear-gradient(90deg, #2d3483, #4a90e2, #2d3483);
-	animation: liveProgress 4s infinite;
 	z-index: 1;
+}
+
+/* Chỉ bật hiệu ứng live khi có class liveMode */
+.forumBody.liveMode::before {
+	animation: liveProgress 3s ease-in-out infinite;
 }
 
 /* Layout 2 cột cho forum modal */
@@ -487,5 +521,73 @@
 	.modalStatsTable th,
 	.modalStatsTable td {
 		padding: 3px 4px;
+	}
+}
+
+/* Modal cho XSMB với layout mới */
+.forumContent.xsmb {
+	max-width: 60vw;
+	max-height: 90vh;
+	width: 1200px;
+	height: 700px;
+}
+
+.forumBody.xsmb {
+	height: calc(100% - 60px);
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+}
+
+.forumBody.xsmb .live {
+	height: 100%;
+	overflow: hidden;
+}
+
+.forumBody.xsmb .modalLayout {
+	height: 100%;
+	overflow: hidden;
+}
+
+.forumBody.xsmb .kqxsModal {
+	height: 100%;
+	overflow: hidden;
+}
+
+.forumBody.xsmb .compactTable {
+	flex: 1;
+	overflow: auto;
+	padding: 10px;
+}
+
+.forumBody.xsmb .statsPanel {
+	height: 100%;
+	overflow: auto;
+	padding: 10px;
+	border-left: 1px solid #e0e0e0;
+}
+
+/* Responsive cho modal XSMB */
+@media (max-width: 1200px) {
+	.forumContent.xsmb {
+		width: 95vw;
+		height: 90vh;
+	}
+}
+
+@media (max-width: 768px) {
+	.forumContent.xsmb {
+		width: 98vw;
+		height: 95vh;
+	}
+
+	.forumBody.xsmb .modalLayout {
+		flex-direction: column;
+	}
+
+	.forumBody.xsmb .statsPanel {
+		border-left: none;
+		border-top: 1px solid #e0e0e0;
+		max-height: 40%;
 	}
 }

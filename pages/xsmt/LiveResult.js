@@ -398,6 +398,12 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                 timestamp: Date.now()
             });
             console.log(`📦 Cached prize ${prizeType} = ${value} cho ${tinh}`);
+
+            // Trigger animation cho dữ liệu mới
+            if (mountedRef.current) {
+                console.log(`🎬 Trigger animation cho ${prizeType} = ${value} (${tinh})`);
+                setAnimationWithTimeout(tinh, prizeType);
+            }
         }
 
         if (batchTimeoutRef.current) {
@@ -418,6 +424,12 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                                 console.log(`🔄 Cập nhật ${updatePrizeType} = ${updateValue} cho ${updateTinh}`);
                                 updatedItem[updatePrizeType] = updateValue;
                                 hasChanges = true;
+
+                                // Trigger animation cho dữ liệu mới nếu component đang mounted
+                                if (mountedRef.current && updateValue && updateValue !== '...' && updateValue !== '***') {
+                                    console.log(`🎬 Trigger animation cho ${updatePrizeType} = ${updateValue} (${updateTinh})`);
+                                    setAnimationWithTimeout(updateTinh, updatePrizeType);
+                                }
                             }
                         });
 
@@ -451,14 +463,39 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
     useEffect(() => {
         mountedRef.current = true;
         console.log('🔄 LiveResult component mounted');
+
+        // Reset animation state khi component mount
+        setAnimatingPrizes({});
+        console.log('🔄 Reset animation state');
         return () => {
             console.log('🔄 LiveResult component unmounting');
             mountedRef.current = false;
+
+            // Clear tất cả animation timeouts
+            console.log('🧹 Clear animation timeouts...');
+            animationTimeoutsRef.current.forEach((timeoutId) => {
+                clearTimeout(timeoutId);
+            });
+            animationTimeoutsRef.current.clear();
+
+            // Clear batch update timeout
+            if (batchTimeoutRef.current) {
+                clearTimeout(batchTimeoutRef.current);
+                batchTimeoutRef.current = null;
+            }
+
+            // Clear batch update ref
+            batchUpdateRef.current.clear();
+
+            // Đóng tất cả SSE connections
             Object.values(sseRefs.current).forEach(sse => {
                 console.log('🔌 Đóng kết nối SSE...');
                 sse.close();
             });
             sseRefs.current = {};
+
+            // Reset SSE setup flag
+            sseSetupRef.current = false;
         };
     }, []);
 
@@ -499,6 +536,10 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
 
         console.log('✅ Bắt đầu thiết lập SSE cho XSMT');
         sseSetupRef.current = true;
+
+        // Reset animation state khi bắt đầu SSE setup
+        setAnimatingPrizes({});
+        console.log('🔄 Reset animation state cho SSE setup');
 
         const fetchInitialData = async (retry = 0) => {
             try {
@@ -559,11 +600,36 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
 
                             const updatedData = { ...initialData };
                             let shouldUpdate = !initialData.lastUpdated || serverData.lastUpdated > initialData.lastUpdated;
+                            let hasNewData = false;
+
                             for (const key in serverData) {
                                 if (serverData[key] !== '...' || !updatedData[key] || updatedData[key] === '...' || updatedData[key] === '***') {
                                     updatedData[key] = serverData[key];
                                     shouldUpdate = true;
+
+                                    // Kiểm tra nếu có dữ liệu mới và component đang mounted
+                                    if (serverData[key] !== '...' && serverData[key] !== '***' && mountedRef.current) {
+                                        hasNewData = true;
+                                        console.log(`🎬 Có dữ liệu mới: ${key} = ${serverData[key]} cho ${province.tinh}`);
+                                    }
                                 }
+                            }
+
+                            // Trigger animation cho dữ liệu mới nếu có
+                            if (hasNewData && mountedRef.current) {
+                                const prizeTypes = [
+                                    'eightPrizes_0', 'sevenPrizes_0', 'sixPrizes_0', 'sixPrizes_1', 'sixPrizes_2',
+                                    'fivePrizes_0', 'fourPrizes_0', 'fourPrizes_1', 'fourPrizes_2', 'fourPrizes_3',
+                                    'fourPrizes_4', 'fourPrizes_5', 'fourPrizes_6', 'threePrizes_0', 'threePrizes_1',
+                                    'secondPrize_0', 'firstPrize_0', 'specialPrize_0'
+                                ];
+
+                                prizeTypes.forEach(prizeType => {
+                                    if (serverData[prizeType] && serverData[prizeType] !== '...' && serverData[prizeType] !== '***') {
+                                        console.log(`🎬 Trigger animation cho dữ liệu có sẵn: ${prizeType} = ${serverData[prizeType]} (${province.tinh})`);
+                                        setAnimationWithTimeout(province.tinh, prizeType);
+                                    }
+                                });
                             }
                             if (shouldUpdate) {
                                 updatedData.lastUpdated = serverData.lastUpdated || Date.now();
@@ -759,6 +825,7 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
 
                                     // Thêm animation cho giải mới
                                     if (data[prizeType] !== '...' && data[prizeType] !== '***') {
+                                        console.log(`🎬 Trigger animation từ SSE cho ${prizeType} = ${data[prizeType]} (${province.tinh})`);
                                         setAnimationWithTimeout(province.tinh, prizeType);
                                     }
                                 }

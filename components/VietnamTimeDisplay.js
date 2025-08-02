@@ -7,10 +7,10 @@ const VietnamTimeDisplay = () => {
 
     useEffect(() => {
         setIsClient(true);
-        
+
         const updateTime = () => {
             const now = new Date();
-            const vietnamTimeString = now.toLocaleString('vi-VN', { 
+            const vietnamTimeString = now.toLocaleString('vi-VN', {
                 timeZone: 'Asia/Ho_Chi_Minh',
                 year: 'numeric',
                 month: '2-digit',
@@ -36,7 +36,7 @@ const VietnamTimeDisplay = () => {
     return (
         <div style={{
             position: 'fixed',
-            bottom: '10px',
+            bottom: '0px',
             left: '10px',
             background: 'rgba(0,0,0,0.8)',
             color: 'white',

@@ -89,7 +89,7 @@ const KQXS = (props) => {
 
     const hour = 16;
     const minutes1 = 10;
-    const minutes2 = 12;
+    // const minutes2 = 12;
 
     let dayof;
     const station = props.station || "xsmn";
@@ -100,9 +100,23 @@ const KQXS = (props) => {
 
     const startHour = hour;
     const startMinute = minutes1;
-    const duration = 50 * 60 * 1000;
+    const duration = 40 * 60 * 1000;
 
-    const today = new Date().toLocaleDateString('vi-VN', {
+    // BỔ SUNG: Helper function để lấy thời gian Việt Nam - TỐI ƯU
+    let cachedVietnamTime = null;
+    let lastCacheTime = 0;
+    const CACHE_TIME_DURATION = 1000; // Cache 1 giây
+
+    const getVietnamTime = () => {
+        const now = Date.now();
+        if (!cachedVietnamTime || (now - lastCacheTime) > CACHE_TIME_DURATION) {
+            cachedVietnamTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+            lastCacheTime = now;
+        }
+        return cachedVietnamTime;
+    };
+
+    const today = getVietnamTime().toLocaleDateString('vi-VN', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
@@ -142,11 +156,10 @@ const KQXS = (props) => {
     };
 
     const isLiveWindowActive = useMemo(() => {
-        const now = new Date();
-        const vietnamTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+        const vietnamTime = getVietnamTime();
         const vietnamHours = vietnamTime.getHours();
         const vietnamMinutes = vietnamTime.getMinutes();
-        return vietnamHours === 16 && vietnamMinutes >= 10 && vietnamMinutes <= 59;
+        return vietnamHours === 16 && vietnamMinutes >= 10 && vietnamMinutes <= 40;
     }, []);
 
     const fetchData = useCallback(async (page = currentPage, forceRefresh = false) => {
@@ -165,13 +178,13 @@ const KQXS = (props) => {
         }
 
         try {
-            const now = new Date();
-            const vietnamTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+            const vietnamTime = getVietnamTime();
             const vietnamHours = vietnamTime.getHours();
             const vietnamMinutes = vietnamTime.getMinutes();
-            const isUpdateWindow = vietnamHours === 16 && vietnamMinutes >= 10 && vietnamMinutes <= 59;
-            const isPostLiveWindow = vietnamHours > 16 || (vietnamHours === 16 && vietnamMinutes > 59);
+            const isUpdateWindow = vietnamHours === 16 && vietnamMinutes >= 10 && vietnamMinutes <= 40;
+            const isPostLiveWindow = vietnamHours > 16 || (vietnamHours === 16 && vietnamMinutes > 40);
             const hasUpdatedToday = localStorage.getItem(UPDATE_KEY);
+            const now = vietnamTime; // Sử dụng vietnamTime thay vì tạo mới
 
             setIsInLiveWindow(isUpdateWindow);
 
@@ -199,7 +212,8 @@ const KQXS = (props) => {
                 forceRefresh ||
                 (!cachedData || cacheAge >= CACHE_DURATION) ||
                 (isPostLiveWindow && !hasUpdatedToday) ||
-                (lastLiveUpdate && (now.getTime() - lastLiveUpdate) > LIVE_CACHE_DURATION);
+                (lastLiveUpdate && (now.getTime() - lastLiveUpdate) > LIVE_CACHE_DURATION) ||
+                (vietnamHours === 16 && vietnamMinutes >= 40); // Sau 16h40 - force lấy kết quả mới
 
             if (isUpdateWindow) {
                 console.log('🔄 Trong live window, không fetch data mới');
@@ -427,6 +441,34 @@ const KQXS = (props) => {
         }
     }, [fetchData, isInLiveWindow, isLiveWindowActive]);
 
+    // BỔ SUNG: useEffect riêng để xử lý xóa cache vào 16h40 - TỐI ƯU
+    useEffect(() => {
+        let cacheCleared = false; // Flag để tránh clear cache nhiều lần
+        const checkAndClearCache = () => {
+            const vietnamTime = getVietnamTime();
+            const vietnamHours = vietnamTime.getHours();
+            const vietnamMinutes = vietnamTime.getMinutes();
+            // Chỉ check vào phút 40 để giảm số lần check
+            if (vietnamHours === 16 && vietnamMinutes === 40 && !cacheCleared) {
+                console.log('🕐 16h40 - Xóa cache để lấy kết quả mới từ database');
+                const todayCacheKey = `xsmn_data_${station}_${today}_null`;
+                localStorage.removeItem(todayCacheKey);
+                localStorage.removeItem(`${todayCacheKey}_time`);
+                localStorage.removeItem(UPDATE_KEY);
+                fetchData(true);
+                cacheCleared = true; // Mark as cleared
+                console.log('✅ Đã xóa cache và force refresh để lấy kết quả mới');
+            }
+            // Reset flag khi qua 16h41
+            if (vietnamHours === 16 && vietnamMinutes === 41) {
+                cacheCleared = false;
+            }
+        };
+        checkAndClearCache();
+        const intervalId = setInterval(checkAndClearCache, 60 * 1000); // Check every minute
+        return () => clearInterval(intervalId);
+    }, [station, today, fetchData]);
+
     useEffect(() => {
         if (isLiveDataComplete && liveData && Array.isArray(liveData) && liveData.some(item => item.drawDate === today) && !isLiveWindowActive) {
             console.log('🔄 Live data complete, cập nhật cache và force refresh');
@@ -510,58 +552,8 @@ const KQXS = (props) => {
                 localStorage.removeItem(UPDATE_KEY);
             }
 
-            const dayOfWeekIndex = vietnamTime.getDay();
-            const todayData = {
-                1: [
-                    { tinh: 'tphcm', tentinh: 'TP.HCM' },
-                    { tinh: 'dong-thap', tentinh: 'Đồng Tháp' },
-                    { tinh: 'ca-mau', tentinh: 'Cà Mau' },
-                ],
-                2: [
-                    { tinh: 'ben-tre', tentinh: 'Bến Tre' },
-                    { tinh: 'vung-tau', tentinh: 'Vũng Tàu' },
-                    { tinh: 'bac-lieu', tentinh: 'Bạc Liêu' },
-                ],
-                3: [
-                    { tinh: 'dong-nai', tentinh: 'Đồng Nai' },
-                    { tinh: 'can-tho', tentinh: 'Cần Thơ' },
-                    { tinh: 'soc-trang', tentinh: 'Sóc Trăng' },
-                ],
-                4: [
-                    { tinh: 'tay-ninh', tentinh: 'Tây Ninh' },
-                    { tinh: 'an-giang', tentinh: 'An Giang' },
-                    { tinh: 'binh-thuan', tentinh: 'Bình Thuận' },
-                ],
-                5: [
-                    { tinh: 'vinh-long', tentinh: 'Vĩnh Long' },
-                    { tinh: 'binh-duong', tentinh: 'Bình Dương' },
-                    { tinh: 'tra-vinh', tentinh: 'Trà Vinh' },
-                ],
-                6: [
-                    { tinh: 'tphcm', tentinh: 'TP.HCM' },
-                    { tinh: 'long-an', tentinh: 'Long An' },
-                    { tinh: 'binh-phuoc', tentinh: 'Bình Phước' },
-                    { tinh: 'hau-giang', tentinh: 'Hậu Giang' },
-                ],
-                0: [
-                    { tinh: 'tien-giang', tentinh: 'Tiền Giang' },
-                    { tinh: 'kien-giang', tentinh: 'Kiên Giang' },
-                    { tinh: 'da-lat', tentinh: 'Đà Lạt' },
-                ],
-            };
-
-            const provinces = todayData[dayOfWeekIndex] || [];
-
-            if (
-                isLive &&
-                vietnamHours === hour &&
-                vietnamMinutes === minutes2 &&
-                vietnamSeconds <= 5 &&
-                !hasTriggeredScraper &&
-                provinces.length > 0
-            ) {
-                triggerScraperDebounced(today, station, provinces);
-            }
+            // XSMN Scheduler đã được tự động hóa - không cần kích hoạt thủ công
+            console.log('🔄 XSMN Scheduler đã được tự động hóa - không cần kích hoạt thủ công');
         };
 
         checkTime();

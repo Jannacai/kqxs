@@ -443,6 +443,17 @@ export default function DienDan({ session }) {
                 position="bottom-right"
             />
 
+            {/* Live XSMB Button */}
+            <LiveResultButton
+                station="xsmb"
+                isLiveWindow={true}
+                buttonText="Xem XSMB Live"
+                buttonStyle="xsmb"
+                size="medium"
+                isForum={true}
+                position="bottom-left"
+            />
+
             {/* Vietnam Time Display */}
             <VietnamTimeDisplay />
         </div>
