@@ -637,8 +637,7 @@ const KQXS = (props) => {
                 !hasTriggeredScraper &&
                 provinces.length > 0
             ) {
-                console.log('🕐 17h14 - Scraper XSMT tự động đã được kích hoạt trên server');
-                setHasTriggeredScraper(true);
+                triggerScraperDebounced(today, station, provinces);
             }
         };
 

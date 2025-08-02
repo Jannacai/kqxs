@@ -359,8 +359,8 @@ const KQXS = (props) => {
     const [lastLiveUpdate, setLastLiveUpdate] = useState(null);
 
     const hour = 18;
-    const minute1 = 10; // Bắt đầu khung giờ trực tiếp
-    const minute2 = 14; // Thời điểm scraper tự động kích hoạt
+    const minute1 = 10; // Thời điểm kích hoạt scraperBắt đầu khung giờ trực tiếp
+    const minute2 = 14; // 
 
     const router = useRouter();
     const dayof = props.data4;
@@ -375,7 +375,7 @@ const KQXS = (props) => {
         year: 'numeric',
     });
 
-    const duration = 25 * 60 * 1000; // 25 phút cho khung giờ trực tiếp
+    const duration = 25 * 60 * 1000; // 22 phút cho khung giờ trực tiếp
 
     const CACHE_KEY = `xsmb_data_${station}_${date || 'null'}_${dayof || 'null'}`;
 
@@ -416,13 +416,13 @@ const KQXS = (props) => {
             // Tạo thời gian bắt đầu và kết thúc theo giờ Việt Nam
             const startTime = new Date(vietnamTime);
             startTime.setHours(hour, minute1, 0, 0); // 18:10
-            const endTime = new Date(startTime.getTime() + duration); // 18:35
+            const endTime = new Date(startTime.getTime() + duration); // 18:32
 
             // Kiểm tra khung giờ trực tiếp
             const isLive = vietnamTime >= startTime && vietnamTime <= endTime;
             setIsLiveWindow(prev => prev !== isLive ? isLive : prev);
 
-            // Log thông tin về scraper tự động (không kích hoạt)
+            // Kích hoạt scraper
             if (
                 isLive &&
                 vietnamHours === hour &&
@@ -430,9 +430,22 @@ const KQXS = (props) => {
                 vietnamSeconds <= 5 &&
                 !hasTriggeredScraper
             ) {
-                console.log('🕐 18h14 - Scraper tự động đã được kích hoạt trên server');
-                setHasTriggeredScraper(true);
+                apiMB.triggerScraper(today, station)
+                    .then((data) => {
+                        if (process.env.NODE_ENV !== 'production') {
+                            console.log('Scraper kích hoạt thành công:', data.message);
+                        }
+                        setHasTriggeredScraper(true);
+                    })
+                    .catch((error) => {
+                        if (process.env.NODE_ENV !== 'production') {
+                            console.error('Lỗi khi kích hoạt scraper:', error.message);
+                        }
+                    });
             }
+
+            // BỔ SUNG: Xóa cache vào lúc 18h35 để lấy kết quả mới - ĐÃ CHUYỂN SANG useEffect RIÊNG
+            // Logic này đã được xử lý trong useEffect riêng để tối ưu hiệu suất
 
             // Reset lúc 00:00 +07:00
             if (vietnamHours === 0 && vietnamMinutes === 0 && vietnamSeconds === 0) {
