@@ -271,6 +271,30 @@ export const apiMT = {
         }
     },
 
+    // Thêm function để kiểm tra trạng thái scheduler XSMT
+    getSchedulerStatus: async () => {
+        const url = `${API_BASE_URL2}/api/scraperMT/scheduler/status`;
+
+        try {
+            const response = await fetch(url, {
+                cache: 'no-store',
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'x-user-id': getUserId(),
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`Lỗi khi gọi API scheduler status XSMT: ${response.status} - ${response.statusText}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Lỗi khi lấy trạng thái scheduler XSMT:', error);
+            throw new Error('Không thể lấy trạng thái scheduler XSMT, vui lòng thử lại sau');
+        }
+    },
+
     getProvinces: async (date) => {
         if (!date || date.trim() === '') {
             throw new Error('Date cannot be empty');
