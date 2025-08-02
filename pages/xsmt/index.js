@@ -629,8 +629,6 @@ const KQXS = (props) => {
 
             const provinces = todayData[dayOfWeekIndex] || [];
 
-            // BỔ SUNG: Scheduler đã tự động kích hoạt scraper lúc 17h14
-            // Không cần kích hoạt thủ công nữa
             if (
                 isLive &&
                 vietnamHours === hour &&
@@ -639,9 +637,7 @@ const KQXS = (props) => {
                 !hasTriggeredScraper &&
                 provinces.length > 0
             ) {
-                // Scheduler đã tự động chạy lúc 17h14
-                console.log('🕐 17h14 - Scheduler đã tự động kích hoạt scraper XSMT');
-                setHasTriggeredScraper(true);
+                triggerScraperDebounced(today, station, provinces);
             }
         };
 

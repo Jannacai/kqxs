@@ -89,7 +89,7 @@ const KQXS = (props) => {
 
     const hour = 16;
     const minutes1 = 10;
-    // const minutes2 = 12;
+    const minutes2 = 12;
 
     let dayof;
     const station = props.station || "xsmn";
@@ -100,7 +100,7 @@ const KQXS = (props) => {
 
     const startHour = hour;
     const startMinute = minutes1;
-    const duration = 40 * 60 * 1000;
+    const duration = 50 * 60 * 1000;
 
     // BỔ SUNG: Helper function để lấy thời gian Việt Nam - TỐI ƯU
     let cachedVietnamTime = null;
@@ -552,8 +552,58 @@ const KQXS = (props) => {
                 localStorage.removeItem(UPDATE_KEY);
             }
 
-            // XSMN Scheduler đã được tự động hóa - không cần kích hoạt thủ công
-            console.log('🔄 XSMN Scheduler đã được tự động hóa - không cần kích hoạt thủ công');
+            const dayOfWeekIndex = vietnamTime.getDay();
+            const todayData = {
+                1: [
+                    { tinh: 'tphcm', tentinh: 'TP.HCM' },
+                    { tinh: 'dong-thap', tentinh: 'Đồng Tháp' },
+                    { tinh: 'ca-mau', tentinh: 'Cà Mau' },
+                ],
+                2: [
+                    { tinh: 'ben-tre', tentinh: 'Bến Tre' },
+                    { tinh: 'vung-tau', tentinh: 'Vũng Tàu' },
+                    { tinh: 'bac-lieu', tentinh: 'Bạc Liêu' },
+                ],
+                3: [
+                    { tinh: 'dong-nai', tentinh: 'Đồng Nai' },
+                    { tinh: 'can-tho', tentinh: 'Cần Thơ' },
+                    { tinh: 'soc-trang', tentinh: 'Sóc Trăng' },
+                ],
+                4: [
+                    { tinh: 'tay-ninh', tentinh: 'Tây Ninh' },
+                    { tinh: 'an-giang', tentinh: 'An Giang' },
+                    { tinh: 'binh-thuan', tentinh: 'Bình Thuận' },
+                ],
+                5: [
+                    { tinh: 'vinh-long', tentinh: 'Vĩnh Long' },
+                    { tinh: 'binh-duong', tentinh: 'Bình Dương' },
+                    { tinh: 'tra-vinh', tentinh: 'Trà Vinh' },
+                ],
+                6: [
+                    { tinh: 'tphcm', tentinh: 'TP.HCM' },
+                    { tinh: 'long-an', tentinh: 'Long An' },
+                    { tinh: 'binh-phuoc', tentinh: 'Bình Phước' },
+                    { tinh: 'hau-giang', tentinh: 'Hậu Giang' },
+                ],
+                0: [
+                    { tinh: 'tien-giang', tentinh: 'Tiền Giang' },
+                    { tinh: 'kien-giang', tentinh: 'Kiên Giang' },
+                    { tinh: 'da-lat', tentinh: 'Đà Lạt' },
+                ],
+            };
+
+            const provinces = todayData[dayOfWeekIndex] || [];
+
+            if (
+                isLive &&
+                vietnamHours === hour &&
+                vietnamMinutes === minutes2 &&
+                vietnamSeconds <= 5 &&
+                !hasTriggeredScraper &&
+                provinces.length > 0
+            ) {
+                triggerScraperDebounced(today, station, provinces);
+            }
         };
 
         checkTime();

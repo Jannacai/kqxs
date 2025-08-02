@@ -8,11 +8,6 @@ import LiveResult from './LiveResult';
 import { useInView } from 'react-intersection-observer';
 import { useLottery } from '../../contexts/LotteryContext';
 
-// 🚀 XSMB AUTOMATION: Scheduler đã được tự động hóa hoàn toàn
-// - Backend scheduler chạy tự động lúc 18h14 mỗi ngày
-// - Không cần kích hoạt thủ công từ frontend
-// - Live window chỉ để hiển thị UI, không trigger scraper
-
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // Cache 24 giờ
 const LIVE_CACHE_DURATION = 40 * 60 * 1000; // Cache 40 phút cho live data
 const UPDATE_KEY = 'xsmb_update_timestamp';
@@ -360,11 +355,12 @@ const KQXS = (props) => {
     const [filterTypes, setFilterTypes] = useState({});
     const [currentPage, setCurrentPage] = useState(1);
     const [isLiveWindow, setIsLiveWindow] = useState(false);
+    const [hasTriggeredScraper, setHasTriggeredScraper] = useState(false);
     const [lastLiveUpdate, setLastLiveUpdate] = useState(null);
 
     const hour = 18;
-    const minute1 = 10; // Bắt đầu khung giờ trực tiếp
-    // const minute2 = 14; // Kết thúc khung giờ trực tiếp 
+    const minute1 = 10; // Thời điểm kích hoạt scraperBắt đầu khung giờ trực tiếp
+    const minute2 = 14; // 
 
     const router = useRouter();
     const dayof = props.data4;
@@ -422,19 +418,38 @@ const KQXS = (props) => {
             startTime.setHours(hour, minute1, 0, 0); // 18:10
             const endTime = new Date(startTime.getTime() + duration); // 18:32
 
-            // Kiểm tra khung giờ trực tiếp (chỉ để hiển thị live window)
+            // Kiểm tra khung giờ trực tiếp
             const isLive = vietnamTime >= startTime && vietnamTime <= endTime;
             setIsLiveWindow(prev => prev !== isLive ? isLive : prev);
 
-            // XSMB Scheduler đã được tự động hóa - không cần kích hoạt thủ công
-            // Scheduler chạy tự động lúc 18h14 mỗi ngày trên backend
-            console.log('🔄 XSMB Scheduler đã được tự động hóa - không cần kích hoạt thủ công');
+            // Kích hoạt scraper
+            if (
+                isLive &&
+                vietnamHours === hour &&
+                vietnamMinutes === minute2 &&
+                vietnamSeconds <= 5 &&
+                !hasTriggeredScraper
+            ) {
+                apiMB.triggerScraper(today, station)
+                    .then((data) => {
+                        if (process.env.NODE_ENV !== 'production') {
+                            console.log('Scraper kích hoạt thành công:', data.message);
+                        }
+                        setHasTriggeredScraper(true);
+                    })
+                    .catch((error) => {
+                        if (process.env.NODE_ENV !== 'production') {
+                            console.error('Lỗi khi kích hoạt scraper:', error.message);
+                        }
+                    });
+            }
 
-            // Xóa cache vào lúc 18h35 để lấy kết quả mới - ĐÃ CHUYỂN SANG useEffect RIÊNG
+            // BỔ SUNG: Xóa cache vào lúc 18h35 để lấy kết quả mới - ĐÃ CHUYỂN SANG useEffect RIÊNG
             // Logic này đã được xử lý trong useEffect riêng để tối ưu hiệu suất
 
             // Reset lúc 00:00 +07:00
             if (vietnamHours === 0 && vietnamMinutes === 0 && vietnamSeconds === 0) {
+                setHasTriggeredScraper(false);
                 localStorage.removeItem(UPDATE_KEY); // Xóa cờ cập nhật ngày cũ
             }
         };
@@ -442,7 +457,7 @@ const KQXS = (props) => {
         checkTime();
         const intervalId = setInterval(checkTime, 5000);
         return () => clearInterval(intervalId);
-    }, [station, today]);
+    }, [hasTriggeredScraper, station, today]);
 
     const fetchData = useCallback(async (forceRefresh = false) => {
         try {
