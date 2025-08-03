@@ -4,8 +4,6 @@ import styles from '../../styles/kqxsMT.module.css';
 import { getFilteredNumber } from "../../library/utils/filterUtils";
 import { useRouter } from 'next/router';
 import LiveResult from './LiveResult';
-import { debounce } from 'lodash';
-import Skeleton from 'react-loading-skeleton';
 import React from 'react';
 import { useLottery } from '../../contexts/LotteryContext';
 
@@ -28,7 +26,7 @@ const PrintButton = React.memo(({ onPrint, selectedDate }) => {
                 onClick={() => setShowPrintOptions(!showPrintOptions)}
                 title="In kết quả"
             >
-                🖨️ In
+                🖨️ In Vé Dò
             </button>
 
             {showPrintOptions && (
@@ -65,9 +63,7 @@ const PrintButton = React.memo(({ onPrint, selectedDate }) => {
 PrintButton.displayName = 'PrintButton';
 
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // Cache 24 giờ
-const LIVE_CACHE_DURATION = 40 * 60 * 1000; // Cache 40 phút cho live data
 const DAYS_PER_PAGE = 3; // Mỗi trang chứa 3 ngày gần nhất
-const VISIBLE_ITEMS = 3; // Render 3 items visible để match với DAYS_PER_PAGE
 
 const KQXS = (props) => {
     const { liveData, isLiveDataComplete } = useLottery();
@@ -75,17 +71,19 @@ const KQXS = (props) => {
     const [loading, setLoading] = useState(true);
     const [loadingPage, setLoadingPage] = useState(false);
     const [filterTypes, setFilterTypes] = useState({});
-    const [isRunning, setIsRunning] = useState(false);
+    const [isLiveWindow, setIsLiveWindow] = useState(false); // ✅ Đồng bộ với XSMB
     const [currentPage, setCurrentPage] = useState(1);
     const [hasTriggeredScraper, setHasTriggeredScraper] = useState(false);
     const [lastLiveUpdate, setLastLiveUpdate] = useState(null);
     const [loadedPages, setLoadedPages] = useState(new Set([1])); // Track loaded pages
-    const [isInLiveWindow, setIsInLiveWindow] = useState(false);
     const [totalDays, setTotalDays] = useState(0); // Tổng số ngày từ backend
     const [pageData, setPageData] = useState({}); // Data theo page: {1: [...], 2: [...], ...}
     const intervalRef = useRef(null);
     const tableRef = useRef(null);
     const router = useRouter();
+
+    // ✅ TỐI ƯU: Sử dụng useRef để tham chiếu đến fetchData - giống XSMB
+    const fetchDataRef = useRef();
 
     const hour = 17;
     const minutes1 = 10;
@@ -98,7 +96,7 @@ const KQXS = (props) => {
 
     const startHour = hour;
     const startMinute = minutes1;
-    const duration = 30 * 60 * 1000;
+    const duration = 30 * 60 * 1000; // 30 phút
 
     // BỔ SUNG: Helper function để lấy thời gian Việt Nam - TỐI ƯU
     let cachedVietnamTime = null;
@@ -123,279 +121,44 @@ const KQXS = (props) => {
     const CACHE_KEY = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}`;
     const UPDATE_KEY = `xsmt_updated_${today}`; // Cờ để theo dõi cập nhật ngày hiện tại
 
-    const triggerScraperDebounced = useCallback(
-        debounce((today, station, provinces) => {
-            apiMT.triggerScraper(today, station, provinces)
-                .then((data) => {
-                    console.log('Scraper kích hoạt thành công:', data.message);
-                    setHasTriggeredScraper(true);
-                    fetchData();
-                })
-                .catch((error) => {
-                    console.error('Lỗi khi kích hoạt scraper:', error.message);
-                });
-        }, 1000),
-        []
-    );
-
+    // ✅ TỐI ƯU: Logic cache đơn giản và hiệu quả
     const cleanOldCache = () => {
         const now = new Date().getTime();
+        const keysToRemove = [];
+
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
-            if (key && key.endsWith('_time')) {
+            if (key && (key.includes('xsmt_data') || key.includes('xsmt_updated'))) {
                 const cacheTime = parseInt(localStorage.getItem(key));
                 if (now - cacheTime > CACHE_DURATION) {
-                    localStorage.removeItem(key);
-                    localStorage.removeItem(key.replace('_time', ''));
-                    console.log(`🧹 Đã xóa cache hết hạn: ${key}`);
+                    keysToRemove.push(key);
                 }
             }
         }
+
+        keysToRemove.forEach(key => {
+            localStorage.removeItem(key);
+            console.log(`🧹 Đã xóa cache hết hạn: ${key}`);
+        });
     };
 
-    // Tối ưu cho live window - tắt tất cả logic không cần thiết
-    const isLiveWindowActive = useMemo(() => {
-        const vietnamTime = getVietnamTime();
-        const vietnamHours = vietnamTime.getHours();
-        const vietnamMinutes = vietnamTime.getMinutes();
-        return vietnamHours === 17 && vietnamMinutes >= 10 && vietnamMinutes <= 40;
-    }, []);
+    // ✅ TỐI ƯU: Loại bỏ isLiveWindowActive - dư thừa vì đã có isLiveWindow
 
-    // Tối ưu fetchData cho live window - tránh fetch không cần thiết
+    // ✅ TỐI ƯU: Logic fetchData đơn giản và hiệu quả
     const fetchData = useCallback(async (page = currentPage, forceRefresh = false) => {
-        // Trong live window, không fetch data mới - chỉ sử dụng cached data
-        if (isLiveWindowActive) {
-            console.log('🔄 Live window active - sử dụng cached data');
-            const CACHE_KEY_PAGE = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_${page}`;
-            const cachedData = localStorage.getItem(CACHE_KEY_PAGE);
-            if (cachedData) {
-                setPageData(prevPageData => ({
-                    ...prevPageData,
-                    [page]: JSON.parse(cachedData)
-                }));
-            }
-            setLoading(false);
-            return;
-        }
-
-        // Nếu không trong live window, fetch data bình thường
         try {
             const vietnamTime = getVietnamTime();
-            const vietnamHours = vietnamTime.getHours();
-            const vietnamMinutes = vietnamTime.getMinutes();
-            const isUpdateWindow = vietnamHours === 17 && vietnamMinutes >= 10 && vietnamMinutes <= 40;
-            const isPostLiveWindow = vietnamHours > 17 || (vietnamHours === 17 && vietnamMinutes > 40);
-            const hasUpdatedToday = localStorage.getItem(UPDATE_KEY);
-            const now = vietnamTime; // Sử dụng vietnamTime thay vì tạo mới
+            const now = vietnamTime.getTime();
 
-            // Cập nhật live window state
-            setIsInLiveWindow(isUpdateWindow);
+            // Cache key đơn giản
+            const CACHE_KEY = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_${page}`;
+            const cachedData = localStorage.getItem(CACHE_KEY);
+            const cachedTime = localStorage.getItem(`${CACHE_KEY}_time`);
+            const cacheAge = cachedTime ? now - parseInt(cachedTime) : Infinity;
 
-            // Cache key với page và daysPerPage
-            const CACHE_KEY_PAGE = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_${page}_days_${DAYS_PER_PAGE}`;
-            const cachedData = localStorage.getItem(CACHE_KEY_PAGE);
-            const cachedTime = localStorage.getItem(`${CACHE_KEY_PAGE}_time`);
-            const cacheAge = cachedTime ? now.getTime() - parseInt(cachedTime) : Infinity;
-
-            // Cache-first strategy: Ưu tiên cache trước
-            if (cachedData && cacheAge < CACHE_DURATION && !forceRefresh) {
-                console.log(`📦 Cache hit: ${CACHE_KEY_PAGE}, age: ${Math.round(cacheAge / 1000 / 60)} phút`);
-
-                const cachedDataParsed = JSON.parse(cachedData);
-                setPageData(prevPageData => ({
-                    ...prevPageData,
-                    [page]: cachedDataParsed
-                }));
-                setLoading(false);
-                return; // Không gọi API nếu cache còn valid
-            } else if (cachedData && cacheAge >= CACHE_DURATION) {
-                console.log(`⏰ Cache expired: ${CACHE_KEY_PAGE}, age: ${Math.round(cacheAge / 1000 / 60)} phút`);
-            } else if (!cachedData) {
-                console.log(`❌ Cache miss: ${CACHE_KEY_PAGE}`);
-            }
-
-            // Logic cache invalidation thông minh - chỉ gọi API khi thực sự cần
-            const shouldFetchFromAPI =
-                forceRefresh || // Force refresh từ live data
-                (!cachedData || cacheAge >= CACHE_DURATION) || // Cache hết hạn hoặc không có
-                (isPostLiveWindow && !hasUpdatedToday) || // Sau live window và chưa update
-                (lastLiveUpdate && (vietnamTime.getTime() - lastLiveUpdate) > LIVE_CACHE_DURATION) || // Live data cũ
-                (vietnamHours === 17 && vietnamMinutes >= 35); // Sau 17h35 - force lấy kết quả mới
-
-            // Trong live window, không fetch data mới
-            if (isUpdateWindow) {
-                console.log('🔄 Trong live window, không fetch data mới');
-                if (cachedData) {
-                    const cachedDataParsed = JSON.parse(cachedData);
-                    setPageData(prevPageData => ({
-                        ...prevPageData,
-                        [page]: cachedDataParsed
-                    }));
-                }
-                setLoading(false);
-                return;
-            }
-
-            if (shouldFetchFromAPI) {
-                console.log('Fetching from API', {
-                    forceRefresh,
-                    isUpdateWindow,
-                    isPostLiveWindow,
-                    hasUpdatedToday: !!hasUpdatedToday,
-                    cacheAge: Math.round(cacheAge / 1000 / 60) + ' phút',
-                    lastLiveUpdate: lastLiveUpdate ? Math.round((now.getTime() - lastLiveUpdate) / 1000 / 60) + ' phút' : 'null',
-                    page,
-                    daysPerPage: DAYS_PER_PAGE
-                });
-
-                // Thêm retry logic cho API call
-                let result;
-                let retryCount = 0;
-                const maxRetries = 3;
-
-                while (retryCount < maxRetries) {
-                    try {
-                        result = await apiMT.getLottery(station, date, tinh, dayof, {
-                            page,
-                            limit: DAYS_PER_PAGE * 10, // Lấy nhiều records để đảm bảo có đủ data
-                            daysPerPage: DAYS_PER_PAGE
-                        });
-                        break; // Thành công, thoát loop
-                    } catch (error) {
-                        retryCount++;
-                        console.warn(`🔄 API call failed (attempt ${retryCount}/${maxRetries}):`, error.message);
-
-                        if (retryCount >= maxRetries) {
-                            console.error('❌ API call failed after all retries');
-                            // Fallback to cache nếu có
-                            if (cachedData) {
-                                console.log('📦 Fallback to cached data');
-                                const cachedDataParsed = JSON.parse(cachedData);
-                                setPageData(prevPageData => ({
-                                    ...prevPageData,
-                                    [page]: cachedDataParsed
-                                }));
-                                setLoading(false);
-                                return;
-                            }
-                            throw error; // Re-throw nếu không có cache fallback
-                        }
-
-                        // Wait before retry
-                        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
-                    }
-                }
-                const dataArray = Array.isArray(result) ? result : [result];
-
-                const formattedData = dataArray.map(item => ({
-                    ...item,
-                    drawDate: new Date(item.drawDate).toLocaleDateString('vi-VN', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                    }),
-                    drawDateRaw: new Date(item.drawDate),
-                    tentinh: item.tentinh || `Tỉnh ${dataArray.indexOf(item) + 1} `,
-                    tinh: item.tinh || item.station,
-                }));
-
-                const groupedByDate = formattedData.reduce((acc, item) => {
-                    const dateKey = item.drawDate;
-                    if (!acc[dateKey]) {
-                        acc[dateKey] = [];
-                    }
-                    acc[dateKey].push(item);
-                    return acc;
-                }, {});
-
-                const sortedDates = Object.keys(groupedByDate).sort((a, b) => {
-                    const dateA = new Date(groupedByDate[a][0].drawDateRaw);
-                    const dateB = new Date(groupedByDate[b][0].drawDateRaw);
-                    return dateB - dateA;
-                });
-
-                // Backend đã trả về đúng 3 ngày cho page này, không cần slice nữa
-                const finalData = sortedDates.map(date => ({
-                    drawDate: date,
-                    stations: groupedByDate[date],
-                    dayOfWeek: groupedByDate[date][0].dayOfWeek,
-                }));
-
-                console.log(`📊 Page ${page} data:`, {
-                    totalRecords: dataArray.length,
-                    uniqueDates: sortedDates.length,
-                    finalDataLength: finalData.length,
-                    dates: sortedDates,
-                    backendDaysPerPage: DAYS_PER_PAGE,
-                    firstDate: sortedDates[0] || 'N/A',
-                    lastDate: sortedDates[sortedDates.length - 1] || 'N/A',
-                    currentTime: new Date().toLocaleDateString('vi-VN'),
-                    cacheStatus: cachedData ? 'hit' : 'miss',
-                    forceRefresh: forceRefresh
-                });
-
-                // Kiểm tra dữ liệu mới
-                const cachedDataParsed = cachedData ? JSON.parse(cachedData) : [];
-                const hasNewData = JSON.stringify(finalData) !== JSON.stringify(cachedDataParsed);
-
-                if (hasNewData || !cachedData || forceRefresh) {
-                    // Tách biệt data theo page thay vì append
-                    setPageData(prevPageData => ({
-                        ...prevPageData,
-                        [page]: finalData
-                    }));
-
-                    // Cập nhật totalDays dựa trên số lượng ngày thực tế
-                    if (page === 1) {
-                        // Nếu là page 1, ước tính tổng số ngày dựa trên số ngày có sẵn
-                        // Backend đã trả về đúng 3 ngày cho page 1, ước tính tổng số ngày
-                        const estimatedTotalDays = Math.max(30, sortedDates.length * 10); // Ước tính dựa trên số ngày có sẵn
-                        setTotalDays(estimatedTotalDays);
-                        console.log(`📊 Ước tính totalDays: ${estimatedTotalDays} dựa trên ${sortedDates.length} ngày có sẵn`);
-                    } else {
-                        // Nếu là page khác, cập nhật totalDays nếu cần
-                        setTotalDays(prev => {
-                            const newTotal = Math.max(prev, page * DAYS_PER_PAGE + finalData.length);
-                            console.log(`📊 Cập nhật totalDays: ${prev} -> ${newTotal}`);
-                            return newTotal;
-                        });
-                    }
-
-                    localStorage.setItem(CACHE_KEY_PAGE, JSON.stringify(finalData));
-                    localStorage.setItem(`${CACHE_KEY_PAGE}_time`, now.getTime().toString());
-                    if (isPostLiveWindow || forceRefresh) {
-                        localStorage.setItem(UPDATE_KEY, now.getTime().toString());
-                        setLastLiveUpdate(now.getTime());
-                    }
-                    console.log('✅ Đã cập nhật data mới từ API cho page:', page, 'với', finalData.length, 'ngày');
-                } else if (cachedData) {
-                    // Sử dụng cached data cho page này
-                    setPageData(prevPageData => ({
-                        ...prevPageData,
-                        [page]: cachedDataParsed
-                    }));
-
-                    // Cập nhật totalDays nếu cần
-                    if (page === 1 && totalDays === 0) {
-                        const estimatedTotalDays = Math.max(30, cachedDataParsed.length * 2);
-                        setTotalDays(estimatedTotalDays);
-                        console.log(`📊 Ước tính totalDays từ cache: ${estimatedTotalDays}`);
-                    }
-
-                    console.log('📦 Sử dụng cached data cho page:', page);
-                }
-
-                setFilterTypes(prevFilters => ({
-                    ...prevFilters,
-                    ...finalData.reduce((acc, item) => {
-                        acc[item.drawDate] = prevFilters[item.drawDate] || 'all';
-                        return acc;
-                    }, {}),
-                }));
-
-                setLoading(false);
-            } else {
-                console.log('📦 Sử dụng cached data (điều kiện không thỏa mãn) cho page:', page);
+            // Trong live window, chỉ sử dụng cache
+            if (isLiveWindow) {
+                console.log('🔄 Live window active - sử dụng cached data');
                 if (cachedData) {
                     setPageData(prevPageData => ({
                         ...prevPageData,
@@ -403,12 +166,131 @@ const KQXS = (props) => {
                     }));
                 }
                 setLoading(false);
+                return;
             }
+
+            // Cache-first strategy
+            if (cachedData && cacheAge < CACHE_DURATION && !forceRefresh) {
+                console.log(`📦 Cache hit: ${CACHE_KEY}`);
+                setPageData(prevPageData => ({
+                    ...prevPageData,
+                    [page]: JSON.parse(cachedData)
+                }));
+                setLoading(false);
+                return;
+            }
+
+            // Fetch từ API
+            console.log('🔄 Fetching from API for page:', page);
+            const result = await apiMT.getLottery(station, date, tinh, dayof, {
+                page,
+                limit: DAYS_PER_PAGE * 10,
+                daysPerPage: DAYS_PER_PAGE
+            });
+
+            const dataArray = Array.isArray(result) ? result : [result];
+            const formattedData = dataArray.map(item => ({
+                ...item,
+                drawDate: new Date(item.drawDate).toLocaleDateString('vi-VN', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                }),
+                drawDateRaw: new Date(item.drawDate),
+                tentinh: item.tentinh || `Tỉnh ${dataArray.indexOf(item) + 1}`,
+                tinh: item.tinh || item.station,
+            }));
+
+            const groupedByDate = formattedData.reduce((acc, item) => {
+                const dateKey = item.drawDate;
+                if (!acc[dateKey]) acc[dateKey] = [];
+                acc[dateKey].push(item);
+                return acc;
+            }, {});
+
+            const sortedDates = Object.keys(groupedByDate).sort((a, b) => {
+                const dateA = new Date(groupedByDate[a][0].drawDateRaw);
+                const dateB = new Date(groupedByDate[b][0].drawDateRaw);
+                return dateB - dateA;
+            });
+
+            const finalData = sortedDates.map(date => ({
+                drawDate: date,
+                stations: groupedByDate[date],
+                dayOfWeek: groupedByDate[date][0].dayOfWeek,
+            }));
+
+            // Cập nhật state
+            setPageData(prevPageData => ({
+                ...prevPageData,
+                [page]: finalData
+            }));
+
+            // ✅ TỐI ƯU: Chỉ tạo cache nếu không vừa clear cache - giống XSMB
+            const justClearedCache = localStorage.getItem('just_cleared_cache');
+            if (!justClearedCache) {
+                localStorage.setItem(CACHE_KEY, JSON.stringify(finalData));
+                localStorage.setItem(`${CACHE_KEY}_time`, now.toString());
+                console.log('✅ Đã tạo cache mới');
+            } else {
+                console.log('🔄 Vừa clear cache, không tạo cache mới');
+                localStorage.removeItem('just_cleared_cache');
+            }
+
+            // Cập nhật totalDays
+            if (page === 1) {
+                setTotalDays(Math.max(30, sortedDates.length * 10));
+            }
+
+            setFilterTypes(prevFilters => ({
+                ...prevFilters,
+                ...finalData.reduce((acc, item) => {
+                    acc[item.drawDate] = prevFilters[item.drawDate] || 'all';
+                    return acc;
+                }, {}),
+            }));
+
+            setLoading(false);
         } catch (error) {
             console.error('Error fetching lottery data:', error);
             setLoading(false);
         }
-    }, [station, date, tinh, dayof, currentPage, lastLiveUpdate, isLiveWindowActive]);
+    }, [station, date, tinh, dayof, currentPage, isLiveWindow]);
+
+    // ✅ TỐI ƯU: Cập nhật ref khi fetchData thay đổi - giống XSMB
+    useEffect(() => {
+        fetchDataRef.current = fetchData;
+    }, [fetchData]);
+
+    // ✅ TỐI ƯU: Hàm clear cache đơn giản và hiệu quả - giống XSMB
+    const clearCacheForToday = useCallback(() => {
+        const keysToRemove = [
+            `xsmt_data_${station}_${today}_null`,
+            `xsmt_data_${station}_null_null`,
+            CACHE_KEY,
+            `${CACHE_KEY}_time`
+        ];
+
+        // ✅ TỐI ƯU: Batch operations
+        const operations = [
+            ...keysToRemove.map(key => ({ type: 'remove', key })),
+            { type: 'remove', key: UPDATE_KEY },
+            { type: 'set', key: 'just_cleared_cache', value: Date.now().toString() }
+        ];
+
+        // Batch localStorage operations
+        operations.forEach(({ type, key, value }) => {
+            if (type === 'remove') {
+                localStorage.removeItem(key);
+            } else if (type === 'set') {
+                localStorage.setItem(key, value);
+            }
+        });
+
+        console.log('🗑️ Đã xóa cache cho ngày hôm nay');
+    }, [station, today, CACHE_KEY]);
+
+    // ✅ TỐI ƯU: Loại bỏ clearCacheAtSpecificTime - dư thừa vì đã có clear khi LiveResult ẩn đi
 
     const isLiveMode = useMemo(() => {
         if (!props.data3) return true;
@@ -427,128 +309,76 @@ const KQXS = (props) => {
         return inputDayOfWeek && inputDayOfWeek === todayDayOfWeek;
     }, [props.data3, today]);
 
+    // ✅ TỐI ƯU: useEffect đơn giản để khởi tạo data
     useEffect(() => {
         cleanOldCache();
 
-        // Tối ưu: Chỉ fetch data khi cần thiết
-        if (isLiveWindowActive) {
-            console.log('🔄 Live window active - chỉ load cached data');
-            const CACHE_KEY_PAGE_1 = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_1_days_${DAYS_PER_PAGE}`;
-            const cachedData = localStorage.getItem(CACHE_KEY_PAGE_1);
-            if (cachedData) {
-                const parsedData = JSON.parse(cachedData);
-                setPageData({ 1: parsedData });
-                // Khởi tạo totalDays từ cached data
-                if (totalDays === 0) {
-                    const estimatedTotalDays = Math.max(30, parsedData.length * 2);
-                    setTotalDays(estimatedTotalDays);
-                    console.log(`📊 Khởi tạo totalDays từ cache: ${estimatedTotalDays}`);
-                }
+        // Khởi tạo data từ cache hoặc API
+        const CACHE_KEY = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_1`;
+        const cachedData = localStorage.getItem(CACHE_KEY);
+
+        if (cachedData && isLiveWindow) {
+            console.log('🔄 Live window active - sử dụng cached data');
+            const parsedData = JSON.parse(cachedData);
+            setPageData({ 1: parsedData });
+            if (totalDays === 0) {
+                setTotalDays(Math.max(30, parsedData.length * 2));
             }
             setLoading(false);
-        } else if (!isInLiveWindow) {
-            // Chỉ fetch data nếu không trong live window và không đang trong live window
-            console.log('🔄 Normal mode - fetch data từ API');
-            fetchData();
         } else {
-            console.log('🔄 Trong live window, sử dụng cached data');
-            // Load cached data nếu có
-            const CACHE_KEY_PAGE_1 = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_1_days_${DAYS_PER_PAGE}`;
-            const cachedData = localStorage.getItem(CACHE_KEY_PAGE_1);
-            if (cachedData) {
-                const parsedData = JSON.parse(cachedData);
-                setPageData({ 1: parsedData });
-                // Khởi tạo totalDays từ cached data
-                if (totalDays === 0) {
-                    const estimatedTotalDays = Math.max(30, parsedData.length * 2);
-                    setTotalDays(estimatedTotalDays);
-                    console.log(`📊 Khởi tạo totalDays từ cache: ${estimatedTotalDays}`);
-                }
-            }
-            setLoading(false);
+            console.log('🔄 Fetching initial data');
+            fetchData();
         }
-    }, [fetchData, isInLiveWindow, isLiveWindowActive]);
+    }, [fetchData, isLiveWindow]);
 
-    // BỔ SUNG: useEffect riêng để xử lý xóa cache vào 17h35 - TỐI ƯU
+    // ✅ TỐI ƯU: Loại bỏ useEffect clear cache - dư thừa vì đã có clear khi LiveResult ẩn đi
+
+    // ✅ TỐI ƯU: Cập nhật cache khi liveData đầy đủ - loại bỏ clear cache dư thừa
     useEffect(() => {
-        let cacheCleared = false; // Flag để tránh clear cache nhiều lần
-        const checkAndClearCache = () => {
-            const vietnamTime = getVietnamTime();
-            const vietnamHours = vietnamTime.getHours();
-            const vietnamMinutes = vietnamTime.getMinutes();
-            // Chỉ check vào phút 35 để giảm số lần check
-            if (vietnamHours === 17 && vietnamMinutes === 35 && !cacheCleared) {
-                console.log('🕐 17h35 - Xóa cache để lấy kết quả mới từ database');
-                const todayCacheKey = `xsmt_data_${station}_${today}_null`;
-                localStorage.removeItem(todayCacheKey);
-                localStorage.removeItem(`${todayCacheKey}_time`);
-                localStorage.removeItem(UPDATE_KEY);
-                fetchData(true);
-                cacheCleared = true; // Mark as cleared
-                console.log('✅ Đã xóa cache và force refresh để lấy kết quả mới');
-            }
-            // Reset flag khi qua 17h36
-            if (vietnamHours === 17 && vietnamMinutes === 36) {
-                cacheCleared = false;
-            }
-        };
-        checkAndClearCache();
-        const intervalId = setInterval(checkAndClearCache, 60 * 1000); // Check every minute
-        return () => clearInterval(intervalId);
-    }, [station, today, fetchData]);
+        if (isLiveDataComplete && liveData && liveData.drawDate === today) {
+            console.log('🔄 Live data complete, cập nhật cache');
 
-    // Tối ưu useEffect cho liveData - chỉ update khi không trong live window
-    useEffect(() => {
-        if (isLiveDataComplete && liveData && Array.isArray(liveData) && liveData.some(item => item.drawDate === today) && !isLiveWindowActive) {
-            console.log('🔄 Live data complete, cập nhật cache và force refresh');
-
-            // Cập nhật pageData cho page 1
             setPageData(prevPageData => {
-                // Đảm bảo currentPage1Data luôn là array
+                // Loại bỏ dữ liệu cũ của ngày hôm nay và thêm liveData
                 const currentPage1Data = Array.isArray(prevPageData[1]) ? prevPageData[1] : [];
-
-                console.log('📊 Updating pageData[1] with live data:', {
-                    currentPage1DataLength: currentPage1Data.length,
-                    liveDataLength: liveData.length,
-                    today
-                });
-
-                // Loại bỏ dữ liệu cũ của ngày hôm nay
                 const filteredData = currentPage1Data.filter(item => item.drawDate !== today);
                 const formattedLiveData = {
-                    drawDate: today,
-                    drawDateRaw: new Date(today.split('/').reverse().join('-')),
-                    dayOfWeek: new Date().toLocaleString('vi-VN', { weekday: 'long' }),
-                    stations: liveData.map(item => ({
-                        ...item,
-                        tentinh: item.tentinh || `Tỉnh ${liveData.indexOf(item) + 1}`,
-                        tinh: item.tinh || item.station || station,
-                        specialPrize: [item.specialPrize_0],
-                        firstPrize: [item.firstPrize_0],
-                        secondPrize: [item.secondPrize_0],
-                        threePrizes: [item.threePrizes_0, item.threePrizes_1],
-                        fourPrizes: [
-                            item.fourPrizes_0, item.fourPrizes_1, item.fourPrizes_2,
-                            item.fourPrizes_3, item.fourPrizes_4, item.fourPrizes_5,
-                            item.fourPrizes_6
-                        ],
-                        fivePrizes: [item.fivePrizes_0],
-                        sixPrizes: [item.sixPrizes_0, item.sixPrizes_1, item.sixPrizes_2],
-                        sevenPrizes: [item.sevenPrizes_0],
-                        eightPrizes: [item.eightPrizes_0],
-                    })),
+                    ...liveData,
+                    drawDate: new Date(liveData.drawDate).toLocaleDateString('vi-VN', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                    }),
+                    specialPrize: [liveData.specialPrize_0],
+                    firstPrize: [liveData.firstPrize_0],
+                    secondPrize: [liveData.secondPrize_0],
+                    threePrizes: [
+                        liveData.threePrizes_0, liveData.threePrizes_1, liveData.threePrizes_2,
+                        liveData.threePrizes_3, liveData.threePrizes_4, liveData.threePrizes_5,
+                    ],
+                    fourPrizes: [
+                        liveData.fourPrizes_0, liveData.fourPrizes_1, liveData.fourPrizes_2, liveData.fourPrizes_3,
+                    ],
+                    fivePrizes: [
+                        liveData.fivePrizes_0, liveData.fivePrizes_1, liveData.fivePrizes_2,
+                        liveData.fivePrizes_3, liveData.fivePrizes_4, liveData.fivePrizes_5,
+                    ],
+                    sixPrizes: [liveData.sixPrizes_0, liveData.sixPrizes_1, liveData.sixPrizes_2],
+                    sevenPrizes: [
+                        liveData.sevenPrizes_0, liveData.sevenPrizes_1, liveData.sevenPrizes_2, liveData.sevenPrizes_3,
+                    ],
                 };
                 const newData = [formattedLiveData, ...filteredData].sort((a, b) =>
                     new Date(b.drawDate.split('/').reverse().join('-')) - new Date(a.drawDate.split('/').reverse().join('-'))
                 );
 
-                // Chỉ cache cho page 1
-                const CACHE_KEY_PAGE_1 = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_1_days_${DAYS_PER_PAGE}`;
-                localStorage.setItem(CACHE_KEY_PAGE_1, JSON.stringify(newData));
-                localStorage.setItem(`${CACHE_KEY_PAGE_1}_time`, new Date().getTime().toString());
-                localStorage.setItem(UPDATE_KEY, new Date().getTime().toString());
-                setLastLiveUpdate(new Date().getTime());
+                // Lưu cache mới
+                localStorage.setItem(CACHE_KEY, JSON.stringify(newData));
+                localStorage.setItem(`${CACHE_KEY}_time`, getVietnamTime().getTime().toString());
+                localStorage.setItem(UPDATE_KEY, getVietnamTime().getTime().toString());
+                setLastLiveUpdate(getVietnamTime().getTime());
 
+                console.log('✅ Đã cập nhật cache với live data mới');
                 return {
                     ...prevPageData,
                     [1]: newData
@@ -557,97 +387,173 @@ const KQXS = (props) => {
 
             setFilterTypes(prev => ({
                 ...prev,
-                [today]: prev[today] || 'all',
+                [`${liveData.drawDate}${liveData.station}`]: prev[`${liveData.drawDate}${liveData.station}`] || 'all',
             }));
-
-            // Force refresh từ API sau 5 phút để đảm bảo data consistency (chỉ page 1)
-            setTimeout(() => {
-                console.log('🔄 Force refresh từ API sau live window (page 1)');
-                fetchData(1, true);
-            }, 5 * 60 * 1000); // 5 phút
         }
-    }, [isLiveDataComplete, liveData, today, station, fetchData, isLiveWindowActive]);
+    }, [isLiveDataComplete, liveData, today, CACHE_KEY]);
 
+    // ✅ TỐI ƯU: Logic kích hoạt LiveResult - giống XSMB 100%
     useEffect(() => {
+        let cacheClearedForLiveWindow = false; // Flag tránh clear cache nhiều lần khi LiveResult ẩn đi
+        let lastCheckMinute = -1; // Tránh check cùng 1 phút nhiều lần
+        let isActive = true; // Flag để tránh memory leak
+
         const checkTime = () => {
-            // Lấy thời gian theo múi giờ Việt Nam (+07:00)
-            const now = new Date();
-            const vietnamTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
-            const vietnamHours = vietnamTime.getHours();
-            const vietnamMinutes = vietnamTime.getMinutes();
-            const vietnamSeconds = vietnamTime.getSeconds();
+            if (!isActive) return;
 
-            // Tạo thời gian bắt đầu và kết thúc theo giờ Việt Nam
-            const startTime = new Date(vietnamTime);
-            startTime.setHours(startHour, startMinute, 0, 0); // 17:10
-            const endTime = new Date(startTime.getTime() + duration); // 17:35
+            try {
+                const vietnamTime = getVietnamTime();
+                const vietnamHours = vietnamTime.getHours();
+                const vietnamMinutes = vietnamTime.getMinutes();
+                const vietnamSeconds = vietnamTime.getSeconds();
 
-            // Kiểm tra khung giờ trực tiếp
-            const isLive = vietnamTime >= startTime && vietnamTime <= endTime;
-            setIsRunning(prev => prev !== isLive ? isLive : prev);
+                // Tạo thời gian bắt đầu và kết thúc
+                const startTime = new Date(vietnamTime);
+                startTime.setHours(startHour, startMinute, 0, 0); // 17:10
+                const endTime = new Date(startTime.getTime() + duration); // 17:40
 
-            // Reset lúc 00:00 +07:00
-            if (vietnamHours === 0 && vietnamMinutes === 0 && vietnamSeconds === 0) {
-                setHasTriggeredScraper(false);
-                localStorage.removeItem(UPDATE_KEY); // Xóa cờ cập nhật ngày cũ
-            }
+                // Kiểm tra khung giờ trực tiếp
+                const isLive = vietnamTime >= startTime && vietnamTime <= endTime;
+                const wasLiveWindow = isLiveWindow;
 
-            const dayOfWeekIndex = vietnamTime.getDay();
-            const todayData = {
-                1: [
-                    { tinh: 'hue', tentinh: 'Huế' },
-                    { tinh: 'phu-yen', tentinh: 'Phú Yên' },
-                ],
-                2: [
-                    { tinh: 'dak-lak', tentinh: 'Đắk Lắk' },
-                    { tinh: 'quang-nam', tentinh: 'Quảng Nam' },
-                ],
-                3: [
-                    { tinh: 'da-nang', tentinh: 'Đà Nẵng' },
-                    { tinh: 'khanh-hoa', tentinh: 'Khánh Hòa' },
-                ],
-                4: [
-                    { tinh: 'binh-dinh', tentinh: 'Bình Định' },
-                    { tinh: 'quang-tri', tentinh: 'Quảng Trị' },
-                    { tinh: 'quang-binh', tentinh: 'Quảng Bình' },
-                ],
-                5: [
-                    { tinh: 'gia-lai', tentinh: 'Gia Lai' },
-                    { tinh: 'ninh-thuan', tentinh: 'Ninh Thuận' },
-                ],
-                6: [
-                    { tinh: 'da-nang', tentinh: 'Đà Nẵng' },
-                    { tinh: 'quang-ngai', tentinh: 'Quảng Ngãi' },
-                    { tinh: 'dak-nong', tentinh: 'Đắk Nông' },
-                ],
-                0: [
-                    { tinh: 'hue', tentinh: 'Huế' },
-                    { tinh: 'kon-tum', tentinh: 'Kon Tum' },
-                    { tinh: 'khanh-hoa', tentinh: 'Khánh Hòa' },
-                ],
-            };
+                // Debug log để kiểm tra logic
+                console.log('🕐 CheckTime debug:', {
+                    currentTime: vietnamTime.toLocaleTimeString(),
+                    startTime: startTime.toLocaleTimeString(),
+                    endTime: endTime.toLocaleTimeString(),
+                    isLive,
+                    wasLiveWindow,
+                    isLiveWindow,
+                    cacheClearedForLiveWindow
+                });
 
-            const provinces = todayData[dayOfWeekIndex] || [];
+                // ✅ TỐI ƯU: Chỉ check khi thực sự cần
+                const currentMinute = vietnamHours * 60 + vietnamMinutes;
+                if (currentMinute === lastCheckMinute) {
+                    return; // Bỏ qua nếu đã check phút này
+                }
+                lastCheckMinute = currentMinute;
 
-            if (
-                isLive &&
-                vietnamHours === hour &&
-                vietnamMinutes === minutes2 &&
-                vietnamSeconds <= 5 &&
-                !hasTriggeredScraper &&
-                provinces.length > 0
-            ) {
-                triggerScraperDebounced(today, station, provinces);
+                setIsLiveWindow(isLive); // ✅ Đồng bộ với XSMB
+
+                // Log chỉ khi thay đổi
+                if (wasLiveWindow !== isLive) {
+                    console.log('Debug - Live window changed:', {
+                        vietnamTime: vietnamTime.toLocaleTimeString(),
+                        isLive,
+                        wasLiveWindow
+                    });
+                }
+
+                // ✅ TỐI ƯU: Clear cache khi LiveResult ẩn đi - ĐÂY LÀ CƠ CHẾ DUY NHẤT
+                if (wasLiveWindow && !isLive && wasLiveWindow !== undefined && !cacheClearedForLiveWindow) {
+                    console.log('🔄 LiveResult ẩn đi - Clear cache để hiển thị kết quả mới');
+                    console.log('Debug - Thông tin clear cache:', {
+                        wasLiveWindow,
+                        isLive,
+                        cacheClearedForLiveWindow,
+                        vietnamTime: vietnamTime.toLocaleTimeString(),
+                        startTime: startTime.toLocaleTimeString(),
+                        endTime: endTime.toLocaleTimeString()
+                    });
+                    clearCacheForToday();
+                    setTimeout(() => {
+                        if (isActive && fetchDataRef.current) {
+                            console.log('🔄 Force refresh sau khi clear cache');
+                            fetchDataRef.current(1, true);
+                        }
+                    }, 2000);
+                    cacheClearedForLiveWindow = true;
+                }
+
+                // Test case: Force clear cache để debug
+                if (process.env.NODE_ENV === 'development' && vietnamHours === 23 && vietnamMinutes === 59) {
+                    console.log('🧪 Test case: Force clear cache');
+                    clearCacheForToday();
+                }
+
+                // Test case: Force clear cache mỗi phút để debug
+                if (process.env.NODE_ENV === 'development' && vietnamSeconds === 0) {
+                    console.log('🧪 Test case: Force clear cache mỗi phút');
+                    clearCacheForToday();
+                }
+
+                // Reset flag khi LiveResult xuất hiện lại
+                if (isLive) {
+                    cacheClearedForLiveWindow = false;
+                }
+
+                // ✅ TỐI ƯU: Loại bỏ kiểm tra trạng thái không cần thiết - Scheduler tự động chạy
+                if (
+                    isLive &&
+                    vietnamHours === hour &&
+                    vietnamMinutes === minutes2 &&
+                    vietnamSeconds <= 5 &&
+                    !hasTriggeredScraper
+                ) {
+                    // Scheduler tự động kích hoạt, chỉ log để debug
+                    if (isActive && process.env.NODE_ENV !== 'production') {
+                        console.log('🕐 Đang trong khung giờ kích hoạt scheduler (17h14)');
+                    }
+                    if (isActive) {
+                        setHasTriggeredScraper(true);
+                    }
+                }
+
+                // Reset lúc 00:00
+                if (vietnamHours === 0 && vietnamMinutes === 0 && vietnamSeconds === 0) {
+                    setHasTriggeredScraper(false);
+                    localStorage.removeItem(UPDATE_KEY);
+                    cacheClearedForLiveWindow = false;
+                }
+            } catch (error) {
+                console.error('Lỗi trong checkTime:', error);
             }
         };
 
         checkTime();
-        intervalRef.current = setInterval(checkTime, 5000);
-        return () => {
-            clearInterval(intervalRef.current);
-            triggerScraperDebounced.cancel();
+
+        // ✅ TỐI ƯU: Interval thông minh - chậm hơn khi không trong live window
+        const getIntervalTime = () => {
+            try {
+                const vietnamTime = getVietnamTime();
+                const vietnamHours = vietnamTime.getHours();
+                const vietnamMinutes = vietnamTime.getMinutes();
+
+                const startTime = new Date(vietnamTime);
+                startTime.setHours(startHour, startMinute, 0, 0);
+                const endTime = new Date(startTime.getTime() + duration);
+                const isLive = vietnamTime >= startTime && vietnamTime <= endTime;
+
+                return isLive ? 5000 : 30000; // 5s khi live, 30s khi không live
+            } catch (error) {
+                console.error('Lỗi khi tính interval:', error);
+                return 30000; // Fallback to 30s
+            }
         };
-    }, [hasTriggeredScraper, station, today, triggerScraperDebounced]);
+
+        let intervalId = setInterval(checkTime, getIntervalTime());
+
+        // ✅ TỐI ƯU: Thay đổi interval khi cần
+        const updateInterval = () => {
+            if (!isActive) return;
+            try {
+                clearInterval(intervalId);
+                intervalId = setInterval(checkTime, getIntervalTime());
+            } catch (error) {
+                console.error('Lỗi khi update interval:', error);
+            }
+        };
+
+        // Update interval mỗi phút
+        const intervalUpdateId = setInterval(updateInterval, 60000);
+
+        return () => {
+            isActive = false;
+            clearInterval(intervalId);
+            clearInterval(intervalUpdateId);
+        };
+    }, [hasTriggeredScraper]); // ✅ TỐI ƯU: Loại bỏ clearCacheForToday khỏi dependencies
 
     const handleFilterChange = useCallback((key, value) => {
         setFilterTypes((prev) => ({
@@ -793,15 +699,15 @@ const KQXS = (props) => {
     }, [currentPage, effectiveTotalPages, loadedPages]);
 
     useEffect(() => {
-        if (shouldPreloadNextPage && !isInLiveWindow) {
+        if (shouldPreloadNextPage && !isLiveWindow) {
             console.log('🔄 Preloading next page:', currentPage + 1);
             fetchData(currentPage + 1);
         }
-    }, [shouldPreloadNextPage, currentPage, isInLiveWindow, fetchData]);
+    }, [shouldPreloadNextPage, currentPage, isLiveWindow, fetchData]);
 
     // Auto-create next page nếu cần
     useEffect(() => {
-        if (currentPageData.length > 0 && currentPage === effectiveTotalPages && !isInLiveWindow) {
+        if (currentPageData.length > 0 && currentPage === effectiveTotalPages && !isLiveWindow) {
             // Nếu đang ở page cuối và có data, tự động tạo page tiếp theo
             const nextPage = currentPage + 1;
             if (!hasPageData(nextPage) && !loadedPages.has(nextPage)) {
@@ -810,13 +716,9 @@ const KQXS = (props) => {
                 setTotalDays(prev => Math.max(prev, nextPage * DAYS_PER_PAGE));
             }
         }
-    }, [currentPageData, currentPage, effectiveTotalPages, isInLiveWindow, hasPageData, loadedPages, fetchData]);
+    }, [currentPageData, currentPage, effectiveTotalPages, isLiveWindow, hasPageData, loadedPages, fetchData]);
 
     const todayData = currentPageData.find(item => item.drawDate === today);
-    const provinces = todayData && Array.isArray(todayData.stations) ? todayData.stations.map(station => ({
-        tinh: station.tinh || station.station,
-        tentinh: station.tentinh
-    })) : [];
 
     // Tối ưu print functions với useMemo và useCallback
     const fontSizes = useMemo(() => ({
@@ -1209,25 +1111,19 @@ const KQXS = (props) => {
     );
 
     return (
-        <div ref={tableRef} className={`${styles.containerKQ} ${isLiveWindowActive ? styles.liveWindowActive : ''}`}>
-            {/* Pre-allocate space cho LiveResult để tránh CLS */}
-            <div className={`${styles.liveResultPlaceholder} ${isLiveMode && isRunning ? styles.active : ''}`}>
-                {isLiveMode && isRunning && (
-                    <div className={styles.liveResultContainer}>
-                        <LiveResult
-                            station={station}
-                            today={today}
-                            getHeadAndTailNumbers={getHeadAndTailNumbers}
-                            handleFilterChange={handleFilterChange}
-                            filterTypes={filterTypes}
-                            isLiveWindow={isRunning}
-                            provinces={provinces}
-                        />
-                    </div>
-                )}
-            </div>
+        <div ref={tableRef} className={styles.containerKQ}>
+            {isLiveMode && isLiveWindow && (
+                <LiveResult
+                    station={station}
+                    today={today}
+                    getHeadAndTailNumbers={getHeadAndTailNumbers}
+                    handleFilterChange={handleFilterChange}
+                    filterTypes={filterTypes}
+                    isLiveWindow={isLiveWindow}
+                />
+            )}
 
-            <div className={`${isLiveWindowActive ? styles.liveOptimized : ''}`}>
+            <div>
                 {currentPageData.map((dayData, index) => {
                     const actualIndex = (currentPage - 1) * DAYS_PER_PAGE + index;
                     const tableKey = dayData.drawDate;
@@ -1532,7 +1428,7 @@ const KQXS = (props) => {
                 })}
             </div>
 
-            {effectiveTotalPages > 1 && !isLiveWindowActive && (
+            {effectiveTotalPages > 1 && !isLiveWindow && (
                 <div className={styles.pagination}>
                     <button
                         onClick={() => goToPage(currentPage - 1)}
@@ -1551,6 +1447,28 @@ const KQXS = (props) => {
                         className={styles.paginationButton}
                     >
                         {loadingPage ? 'Đang tải...' : 'Sau'}
+                    </button>
+                </div>
+            )}
+
+            {/* Test button để trigger clear cache */}
+            {process.env.NODE_ENV === 'development' && (
+                <div style={{ marginTop: '20px', textAlign: 'center' }}>
+                    <button
+                        onClick={() => {
+                            console.log('🧪 Test: Force clear cache');
+                            clearCacheForToday();
+                        }}
+                        style={{
+                            padding: '10px 20px',
+                            backgroundColor: '#ff6b6b',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '5px',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        Test Clear Cache
                     </button>
                 </div>
             )}

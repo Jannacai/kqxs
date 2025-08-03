@@ -213,6 +213,7 @@ export const apiMN = {
         return response.json();
     },
 
+    // ✅ CẬP NHẬT: Sử dụng endpoint scheduler mới thay vì trigger thủ công
     triggerScraper: async (date, station, provinces) => {
         if (!date || !station || date.trim() === '' || station.trim() === '') {
             throw new Error('Date and station cannot be empty');
@@ -221,7 +222,8 @@ export const apiMN = {
             throw new Error('Provinces must be a non-empty array');
         }
 
-        const url = `https://scraper-1-fewd.onrender.com/api/scraperMN/scrapeMN`;
+        const url = `${API_BASE_URL2}/api/scraperMN/scheduler/trigger`;
+
         try {
             const response = await fetch(url, {
                 method: 'POST',
@@ -231,15 +233,72 @@ export const apiMN = {
                 },
                 body: JSON.stringify({ date, station, provinces }),
             });
+
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.message || `Lỗi khi gọi API scraper: ${response.status} - ${response.statusText}`);
+                throw new Error(errorData.message || `Lỗi khi gọi API XSMN scheduler: ${response.status} - ${response.statusText}`);
             }
+
             const data = await response.json();
             return data;
         } catch (error) {
-            console.error('Lỗi khi kích hoạt scraper:', error);
-            throw new Error('Không thể kích hoạt scraper, vui lòng thử lại sau');
+            console.error('Lỗi khi kích hoạt scraper XSMN qua scheduler:', error);
+            throw new Error('Không thể kích hoạt scraper XSMN, vui lòng thử lại sau');
+        }
+    },
+
+    // ✅ MỚI: Kiểm tra trạng thái XSMN scheduler
+    getSchedulerStatus: async () => {
+        const url = `${API_BASE_URL2}/api/scraperMN/scheduler/status`;
+
+        try {
+            const response = await fetch(url, {
+                cache: 'no-store',
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'x-user-id': getUserId(),
+                },
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `Lỗi khi gọi API XSMN scheduler status: ${response.status} - ${response.statusText}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Lỗi khi lấy trạng thái XSMN scheduler:', error);
+            throw new Error('Không thể lấy trạng thái XSMN scheduler, vui lòng thử lại sau');
+        }
+    },
+
+    // ✅ MỚI: Điều khiển XSMN scheduler
+    controlScheduler: async (action) => {
+        if (!action || !['start', 'stop'].includes(action)) {
+            throw new Error('Action không hợp lệ. Chỉ chấp nhận: start, stop');
+        }
+
+        const url = `${API_BASE_URL2}/api/scraperMN/scheduler/control`;
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-user-id': getUserId(),
+                },
+                body: JSON.stringify({ action }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `Lỗi khi điều khiển XSMN scheduler: ${response.status} - ${response.statusText}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Lỗi khi điều khiển XSMN scheduler:', error);
+            throw new Error('Không thể điều khiển XSMN scheduler, vui lòng thử lại sau');
         }
     },
 };

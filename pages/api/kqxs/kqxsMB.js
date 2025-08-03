@@ -18,25 +18,37 @@ export const apiMB = {
     getLottery: async (station, date, dayof, pagination = {}) => {
         let url = `${API_BASE_URL}/api/kqxs`;
 
+        // ✅ CẢI THIỆN: Logic API call đúng với backend
         if (dayof) {
+            // Logic theo thứ trong tuần
             if (!dayof || dayof.trim() === '') {
                 throw new Error('dayOfWeek cannot be empty');
             }
             url = `${API_BASE_URL}/api/kqxs/xsmb/${dayof}`;
         } else if (station && date) {
+            // Logic theo ngày cụ thể - sử dụng query parameter
             if (!station || !date || station.trim() === '' || date.trim() === '') {
                 throw new Error('Station and date cannot be empty');
             }
-            url = `${API_BASE_URL}/api/kqxs/${station}-${date}`;
+            url = `${API_BASE_URL}/api/kqxs/xsmb?date=${date}`;
         } else {
-            url = `${API_BASE_URL}/api/kqxs`;
+            // Logic lấy tất cả
+            url = `${API_BASE_URL}/api/kqxs/xsmb`;
         }
 
-        // Thêm pagination parameters nếu có
+        // ✅ CẢI THIỆN: Thêm pagination parameters nếu có
+        const urlParams = new URLSearchParams();
         if (pagination.page && pagination.limit) {
-            const urlParams = new URLSearchParams();
             urlParams.append('page', pagination.page);
             urlParams.append('limit', pagination.limit);
+        }
+
+        // Thêm date parameter nếu có (cho trường hợp theo ngày)
+        if (date && !dayof) {
+            urlParams.append('date', date);
+        }
+
+        if (urlParams.toString()) {
             url += `?${urlParams.toString()}`;
         }
 
@@ -278,12 +290,13 @@ export const apiMB = {
         return response.json();
     },
 
+    // ✅ CẬP NHẬT: Sử dụng endpoint scheduler mới thay vì trigger thủ công
     triggerScraper: async (date, station) => {
         if (!date || !station || date.trim() === '' || station.trim() === '') {
             throw new Error('Date and station cannot be empty');
         }
 
-        const url = `http://localhost:4000/api/scraper/scrape`;
+        const url = `${API_BASE_URL2}/api/scraper/scheduler/trigger`;
 
         try {
             const response = await fetch(url, {
@@ -297,14 +310,69 @@ export const apiMB = {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.message || `Lỗi khi gọi API scraper: ${response.status} - ${response.statusText}`);
+                throw new Error(errorData.message || `Lỗi khi gọi API scheduler: ${response.status} - ${response.statusText}`);
             }
 
             const data = await response.json();
             return data;
         } catch (error) {
-            console.error('Lỗi khi kích hoạt scraper:', error);
+            console.error('Lỗi khi kích hoạt scraper qua scheduler:', error);
             throw new Error('Không thể kích hoạt scraper, vui lòng thử lại sau');
+        }
+    },
+
+    // ✅ MỚI: Kiểm tra trạng thái scheduler
+    getSchedulerStatus: async () => {
+        const url = `${API_BASE_URL2}/api/scraper/scheduler/status`;
+
+        try {
+            const response = await fetch(url, {
+                cache: 'no-store',
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'x-user-id': getUserId(),
+                },
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `Lỗi khi gọi API scheduler status: ${response.status} - ${response.statusText}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Lỗi khi lấy trạng thái scheduler:', error);
+            throw new Error('Không thể lấy trạng thái scheduler, vui lòng thử lại sau');
+        }
+    },
+
+    // ✅ MỚI: Điều khiển scheduler
+    controlScheduler: async (action) => {
+        if (!action || !['start', 'stop'].includes(action)) {
+            throw new Error('Action không hợp lệ. Chỉ chấp nhận: start, stop');
+        }
+
+        const url = `${API_BASE_URL2}/api/scraper/scheduler/control`;
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-user-id': getUserId(),
+                },
+                body: JSON.stringify({ action }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `Lỗi khi điều khiển scheduler: ${response.status} - ${response.statusText}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Lỗi khi điều khiển scheduler:', error);
+            throw new Error('Không thể điều khiển scheduler, vui lòng thử lại sau');
         }
     },
 

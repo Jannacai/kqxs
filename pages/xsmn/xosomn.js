@@ -28,7 +28,7 @@ const PrintButton = React.memo(({ onPrint, selectedDate }) => {
                 onClick={() => setShowPrintOptions(!showPrintOptions)}
                 title="In kết quả"
             >
-                🖨️ In
+                🖨️ In Vé Dò
             </button>
 
             {showPrintOptions && (
@@ -125,20 +125,21 @@ const KQXS = (props) => {
     const CACHE_KEY = `xsmn_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}`;
     const UPDATE_KEY = `xsmn_updated_${today}`; // Cờ để theo dõi cập nhật ngày hiện tại
 
-    const triggerScraperDebounced = useCallback(
-        debounce((today, station, provinces) => {
-            apiMN.triggerScraper(today, station, provinces)
-                .then((data) => {
-                    console.log('Scraper kích hoạt thành công:', data.message);
-                    setHasTriggeredScraper(true);
-                    fetchData();
-                })
-                .catch((error) => {
-                    console.error('Lỗi khi kích hoạt scraper:', error.message);
-                });
-        }, 1000),
-        []
-    );
+    // ✅ TỐI ƯU: Loại bỏ triggerScraperDebounced - Scheduler tự động chạy
+    // const triggerScraperDebounced = useCallback(
+    //     debounce((today, station, provinces) => {
+    //         apiMN.triggerScraper(today, station, provinces)
+    //             .then((data) => {
+    //                 console.log('Scraper kích hoạt thành công:', data.message);
+    //                 setHasTriggeredScraper(true);
+    //                 fetchData();
+    //             })
+    //             .catch((error) => {
+    //                 console.error('Lỗi khi kích hoạt scraper:', error.message);
+    //             });
+    //     }, 1000),
+    //     []
+    // );
 
     const cleanOldCache = () => {
         const now = new Date().getTime();
@@ -594,6 +595,7 @@ const KQXS = (props) => {
 
             const provinces = todayData[dayOfWeekIndex] || [];
 
+            // ✅ TỐI ƯU: Loại bỏ kích hoạt thủ công - Scheduler tự động chạy
             if (
                 isLive &&
                 vietnamHours === hour &&
@@ -602,7 +604,12 @@ const KQXS = (props) => {
                 !hasTriggeredScraper &&
                 provinces.length > 0
             ) {
-                triggerScraperDebounced(today, station, provinces);
+                // Scheduler tự động kích hoạt, chỉ log để debug
+                if (process.env.NODE_ENV !== 'production') {
+                    console.log('🕐 Đang trong khung giờ kích hoạt XSMN scheduler (16h12)');
+                    console.log(`📋 Provinces cho hôm nay: ${provinces.map(p => p.tentinh).join(', ')}`);
+                }
+                setHasTriggeredScraper(true);
             }
         };
 
@@ -610,9 +617,9 @@ const KQXS = (props) => {
         intervalRef.current = setInterval(checkTime, 5000);
         return () => {
             clearInterval(intervalRef.current);
-            triggerScraperDebounced.cancel();
+            // triggerScraperDebounced.cancel(); // Đã loại bỏ
         };
-    }, [hasTriggeredScraper, station, today, triggerScraperDebounced]);
+    }, [hasTriggeredScraper, station, today]);
 
     const handleFilterChange = useCallback((key, value) => {
         setFilterTypes((prev) => ({
