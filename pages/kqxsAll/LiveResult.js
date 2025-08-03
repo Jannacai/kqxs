@@ -421,7 +421,7 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                 if (!isLiveHour && currentStation === 'xsmb' && isModal) {
                     console.log('🕐 Không phải giờ live XSMB và đang ở modal, gọi API cache...');
                     // Không gửi ngày hiện tại, chỉ lấy bản mới nhất
-                    const response = await fetch(`http://localhost:5000/api/kqxs/xsmb/latest`);
+                    const response = await fetch(`https://backendkqxs-1.onrender.com/api/kqxs/xsmb/latest`);
                     if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                     const serverData = await response.json();
 
@@ -479,7 +479,7 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                 // Tiếp tục với SSE cho cả trang chính và modal trong giờ live
                 console.log('🔄 Tiếp tục với SSE cho XSMB...');
 
-                const response = await fetch(`http://localhost:5000/api/kqxs/xsmb/sse/initial?station=${currentStation}&date=${today}`);
+                const response = await fetch(`https://backendkqxs-1.onrender.com/api/kqxs/xsmb/sse/initial?station=${currentStation}&date=${today}`);
                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                 const serverData = await response.json();
 
@@ -613,7 +613,7 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                 sseRef.current.close();
             }
 
-            const sseUrl = `http://localhost:5000/api/kqxs/xsmb/sse?station=${currentStation}&date=${today}`;
+            const sseUrl = `https://backendkqxs-1.onrender.com/api/kqxs/xsmb/sse?station=${currentStation}&date=${today}`;
             console.log(`�� Tạo SSE connection cho XSMB:`, sseUrl);
 
             try {

@@ -358,29 +358,6 @@ const KQXS = (props) => {
     const [hasTriggeredScraper, setHasTriggeredScraper] = useState(false);
     const [lastLiveUpdate, setLastLiveUpdate] = useState(null);
 
-    // ✅ DEBUG: Log component mount/unmount
-    useEffect(() => {
-        console.log('🚀 KQXS Component mounted with props:', {
-            station: props.station,
-            data3: props.data3,
-            data4: props.data4
-        });
-
-        return () => {
-            console.log('🛑 KQXS Component unmounted');
-        };
-    }, []);
-
-    // ✅ DEBUG: Log props khi component mount và khi props thay đổi
-    useEffect(() => {
-        console.log('🔍 KQXS Props changed:', {
-            station: props.station,
-            data3: props.data3,
-            data4: props.data4,
-            data: props.data
-        });
-    }, [props.station, props.data3, props.data4, props.data]);
-
     // ✅ TỐI ƯU: Sử dụng useRef để tham chiếu đến fetchData
     const fetchDataRef = useRef();
 
@@ -397,11 +374,7 @@ const KQXS = (props) => {
         year: 'numeric',
     });
 
-    // ✅ TỐI ƯU: Chuyển CACHE_KEY thành computed value để cập nhật khi props thay đổi
-    const CACHE_KEY = useMemo(() =>
-        `xsmb_data_${station}_${props.data3 || 'null'}_${props.data4 || 'null'}`,
-        [station, props.data3, props.data4]
-    );
+    const CACHE_KEY = `xsmb_data_${station}_${date || 'null'}_${dayof || 'null'}`;
 
     // Hàm kiểm tra ngày hợp lệ
     const isValidDate = (dateStr) => {
@@ -438,14 +411,16 @@ const KQXS = (props) => {
         }
     }, []);
 
-    // ✅ TỐI ƯU: Hàm clear cache đơn giản và hiệu quả - chỉ clear key hiện tại
+    // ✅ TỐI ƯU: Hàm clear cache đơn giản và hiệu quả
     const clearCacheForToday = useCallback(() => {
         const keysToRemove = [
+            `xsmb_data_${station}_${today}_null`,
+            `xsmb_data_${station}_null_null`,
             CACHE_KEY,
             `${CACHE_KEY}_time`
         ];
 
-        // ✅ TỐI ƯU: Batch operations - chỉ clear cache của key hiện tại
+        // ✅ TỐI ƯU: Batch operations
         const operations = [
             ...keysToRemove.map(key => ({ type: 'remove', key })),
             { type: 'remove', key: UPDATE_KEY },
@@ -453,8 +428,8 @@ const KQXS = (props) => {
         ];
 
         batchLocalStorageOperation(operations);
-        console.log('🗑️ Đã xóa cache cho key hiện tại:', CACHE_KEY);
-    }, [CACHE_KEY, batchLocalStorageOperation]);
+        console.log('🗑️ Đã xóa cache cho ngày hôm nay');
+    }, [station, today, CACHE_KEY, batchLocalStorageOperation]);
 
     // ✅ TỐI ƯU: Cache cleanup function - chỉ chạy khi cần
     const cleanOldCache = useCallback(() => {
@@ -493,25 +468,12 @@ const KQXS = (props) => {
     }, [cleanOldCache]);
 
     const fetchData = useCallback(async (forceRefresh = false) => {
-        console.log('🚀 Bắt đầu fetchData:', {
-            station,
-            date: props.data3,
-            dayof: props.data4,
-            forceRefresh,
-            CACHE_KEY,
-            props: {
-                station: props.station,
-                data3: props.data3,
-                data4: props.data4
-            }
-        });
-
         try {
             const vietnamTime = getVietnamTimeCached();
             const vietnamHours = vietnamTime.getHours();
             const vietnamMinutes = vietnamTime.getMinutes();
 
-            // ✅ Tối ƯU: Logic thời gian chính xác cho múi giờ Việt Nam
+            // ✅ TỐI ƯU: Logic thời gian chính xác cho múi giờ Việt Nam
             const isUpdateWindow = vietnamHours === 18 && vietnamMinutes >= 10 && vietnamMinutes <= 33;
             const isAfterUpdateWindow = vietnamHours > 18 || (vietnamHours === 18 && vietnamMinutes > 33);
             const isPostLiveWindow = vietnamHours > 18 || (vietnamHours === 18 && vietnamMinutes > 33);
@@ -567,7 +529,7 @@ const KQXS = (props) => {
                 (lastLiveUpdateTime && (vietnamTime.getTime() - lastLiveUpdateTime) > LIVE_CACHE_DURATION); // Live data cũ
 
             // Kiểm tra ngày hợp lệ
-            if (props.data3 && !isValidDate(props.data3)) {
+            if (date && !isValidDate(date)) {
                 setData([]);
                 setLoading(false);
                 setError('DỮ LIỆU CHƯA CÓ. VUI LÒNG THỬ LẠI SAU.');
@@ -575,7 +537,7 @@ const KQXS = (props) => {
             }
 
             // Không gọi API nếu là ngày hiện tại và chưa đến khung giờ trực tiếp
-            if (props.data3 === today && !isUpdateWindow && !isAfterUpdateWindow) {
+            if (date === today && !isUpdateWindow && !isAfterUpdateWindow) {
                 if (cachedData) {
                     setData(JSON.parse(cachedData));
                     setLoading(false);
@@ -589,7 +551,7 @@ const KQXS = (props) => {
 
             // Làm mới cache nếu cần thiết
             if (shouldFetchFromAPI) {
-                console.log('🌐 Fetching from API', {
+                console.log('Fetching from API', {
                     forceRefresh,
                     isUpdateWindow,
                     isPostLiveWindow,
@@ -605,13 +567,7 @@ const KQXS = (props) => {
 
                 while (retryCount < maxRetries) {
                     try {
-                        console.log(`🌐 API call attempt ${retryCount + 1}/${maxRetries}:`, {
-                            station,
-                            date: props.data3,
-                            dayof: props.data4
-                        });
-                        result = await apiMB.getLottery(station, props.data3, props.data4);
-                        console.log('✅ API call thành công:', result);
+                        result = await apiMB.getLottery(station, date, dayof);
                         break; // Thành công, thoát loop
                     } catch (error) {
                         retryCount++;
@@ -700,8 +656,8 @@ const KQXS = (props) => {
                         year: 'numeric',
                     });
                     const matchesStation = item.station === station;
-                    const matchesDate = !props.data3 || itemDate === props.data3;
-                    const matchesDayOfWeek = !props.data4 || item.dayOfWeek.toLowerCase() === dayMap[props.data4.toLowerCase()]?.toLowerCase();
+                    const matchesDate = !date || itemDate === date;
+                    const matchesDayOfWeek = !dayof || item.dayOfWeek.toLowerCase() === dayMap[dayof.toLowerCase()]?.toLowerCase();
                     return matchesStation && matchesDate && matchesDayOfWeek;
                 });
 
@@ -736,40 +692,12 @@ const KQXS = (props) => {
             setError('Không thể tải dữ liệu, vui lòng thử lại sau.');
             setLoading(false);
         }
-    }, [station, props.data3, props.data4, props.data, today, lastLiveUpdate, CACHE_KEY, getVietnamTimeCached, cleanOldCache]);
+    }, [station, date, dayof, props.data, today, lastLiveUpdate, CACHE_KEY, getVietnamTimeCached, cleanOldCache]);
 
     // ✅ TỐI ƯU: Cập nhật ref khi fetchData thay đổi
     useEffect(() => {
         fetchDataRef.current = fetchData;
     }, [fetchData]);
-
-    // ✅ TỐI ƯU: Re-fetch data khi props thay đổi
-    useEffect(() => {
-        console.log('🔄 Props thay đổi, bắt đầu fetch data mới:', {
-            station,
-            data3: props.data3,
-            data4: props.data4,
-            CACHE_KEY
-        });
-
-        // Reset states khi props thay đổi
-        setData([]);
-        setLoading(true);
-        setError(null);
-        setCurrentPage(1);
-
-        // Clear cache cũ khi chuyển sang ngày/thứ khác
-        console.log('🔄 Props thay đổi:', {
-            station,
-            data3: props.data3,
-            data4: props.data4,
-            CACHE_KEY
-        });
-        clearCacheForToday();
-
-        // Fetch data mới
-        fetchData();
-    }, [station, props.data3, props.data4, clearCacheForToday, fetchData]); // ✅ QUAN TRỌNG: Thêm dependencies để re-fetch khi props thay đổi
 
     // ✅ TỐI ƯU: Constants đồng bộ với LiveResult.js - MÚI GIỜ VIỆT NAM
     // ⚠️ QUAN TRỌNG: Tất cả client trên thế giới đều tuân theo múi giờ Việt Nam
@@ -928,7 +856,10 @@ const KQXS = (props) => {
         };
     }, [hasTriggeredScraper, station, today, checkLiveWindow]); // ✅ TỐI ƯU: Loại bỏ clearCacheForToday vì chỉ dùng trong LiveResult ẩn đi
 
-    // ✅ ĐÃ XÓA: useEffect cũ chỉ chạy một lần khi mount - thay thế bằng useEffect mới với dependencies
+    useEffect(() => {
+        // ✅ TỐI ƯU: Chỉ fetch data khi mount, không fetch lại mỗi lần
+        fetchData();
+    }, []); // Loại bỏ fetchData khỏi dependency để tránh re-render
 
     // ✅ TỐI ƯU: Memoize các giá trị tính toán để tránh tính lại
     const isLiveMode = useMemo(() => {
@@ -1386,4 +1317,4 @@ const KQXS = (props) => {
     );
 };
 
-export default KQXS;
+export default React.memo(KQXS);
