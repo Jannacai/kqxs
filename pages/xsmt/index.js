@@ -1,11 +1,12 @@
 import { apiMT } from "../api/kqxs/kqxsMT";
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import styles from '../../styles/kqxsMT.module.css';
 import { getFilteredNumber } from "../../library/utils/filterUtils";
 import { useRouter } from 'next/router';
 import LiveResult from './LiveResult';
 import React from 'react';
 import { useLottery } from '../../contexts/LotteryContext';
+import { useInView } from 'react-intersection-observer';
 
 // Print Button Component - Tối ưu hiệu suất
 const PrintButton = React.memo(({ onPrint, selectedDate }) => {
@@ -65,52 +66,158 @@ PrintButton.displayName = 'PrintButton';
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // Cache 24 giờ
 const DAYS_PER_PAGE = 3; // Mỗi trang chứa 3 ngày gần nhất
 
+// Cấu hình khung giờ trực tiếp
+const LIVE_WINDOW_CONFIG = {
+    hour: 17, // 17h
+    startMinute: 10, // 17h29
+    endMinute: 40, // 17h59
+    duration: 25 * 60 * 1000, // 30 phút
+    scraperTriggerMinute: 14, // 17h14
+};
+
+// Component Lô Tô - Tối ưu với useInView
+const LoToTable = React.memo(({ dayData, stationsData, allHeads, allTails }) => {
+    const { ref, inView } = useInView({
+        triggerOnce: true,
+        threshold: 0.1,
+    });
+
+    return (
+        <div ref={ref} className={styles.TKe_container}>
+            {inView ? (
+                <>
+                    <div className={styles.TKe_content}>
+                        <div className={styles.TKe_contentTitle}>
+                            <span className={styles.title}>Thống kê lô tô theo Đầu - </span>
+                            <span className={styles.dayOfWeek}>{`${dayData.dayOfWeek} - `}</span>
+                            <span className={styles.desc}>{dayData.drawDate}</span>
+                        </div>
+                        <table className={styles.tableKey}>
+                            <thead>
+                                <tr>
+                                    <th className={styles.t_h}>Đầu</th>
+                                    {stationsData.map(station => (
+                                        <th key={station.station}>
+                                            {station.tentinh || `Tỉnh ${stationsData.indexOf(station) + 1}`}
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {Array.from({ length: 10 }, (_, idx) => (
+                                    <tr key={idx}>
+                                        <td className={styles.t_h}>{idx}</td>
+                                        {allHeads[idx].map((headNumbers, stationIdx) => (
+                                            <td key={stationIdx}>
+                                                {headNumbers.map((item, numIdx) => (
+                                                    <span
+                                                        key={numIdx}
+                                                        className={
+                                                            item.isEighth || item.isSpecial
+                                                                ? styles.highlightPrize
+                                                                : ''
+                                                        }
+                                                    >
+                                                        {item.num}
+                                                        {numIdx < headNumbers.length - 1 && ', '}
+                                                    </span>
+                                                ))}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className={styles.TKe_content}>
+                        <div className={styles.TKe_contentTitle}>
+                            <span className={styles.title}>Thống kê lô tô theo Đuôi - </span>
+                            <span className={styles.dayOfWeek}>{`${dayData.dayOfWeek} - `}</span>
+                            <span className={styles.desc}>{dayData.drawDate}</span>
+                        </div>
+                        <table className={styles.tableKey}>
+                            <thead>
+                                <tr>
+                                    <th className={styles.t_h}>Đuôi</th>
+                                    {stationsData.map(station => (
+                                        <th key={station.station}>
+                                            {station.tentinh || `Tỉnh ${stationsData.indexOf(station) + 1}`}
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {Array.from({ length: 10 }, (_, idx) => (
+                                    <tr key={idx}>
+                                        <td className={styles.t_h}>{idx}</td>
+                                        {allTails[idx].map((tailNumbers, stationIdx) => (
+                                            <td key={stationIdx}>
+                                                {tailNumbers.map((item, numIdx) => (
+                                                    <span
+                                                        key={numIdx}
+                                                        className={
+                                                            item.isEighth || item.isSpecial
+                                                                ? styles.highlightPrize
+                                                                : ''
+                                                        }
+                                                    >
+                                                        {item.num}
+                                                        {numIdx < tailNumbers.length - 1 && ', '}
+                                                    </span>
+                                                ))}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </>
+            ) : (
+                <div className={styles.placeholder}>Đang tải bảng lô tô...</div>
+            )}
+        </div>
+    );
+});
+
+LoToTable.displayName = 'LoToTable';
+
 const KQXS = (props) => {
     const { liveData, isLiveDataComplete } = useLottery();
     const [data, setData] = useState(props.data || []);
     const [loading, setLoading] = useState(true);
     const [loadingPage, setLoadingPage] = useState(false);
     const [filterTypes, setFilterTypes] = useState({});
-    const [isLiveWindow, setIsLiveWindow] = useState(false); // ✅ Đồng bộ với XSMB
+    const [isLiveWindow, setIsLiveWindow] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [hasTriggeredScraper, setHasTriggeredScraper] = useState(false);
     const [lastLiveUpdate, setLastLiveUpdate] = useState(null);
-    const [loadedPages, setLoadedPages] = useState(new Set([1])); // Track loaded pages
-    const [totalDays, setTotalDays] = useState(0); // Tổng số ngày từ backend
-    const [pageData, setPageData] = useState({}); // Data theo page: {1: [...], 2: [...], ...}
+    const [loadedPages, setLoadedPages] = useState(new Set([1]));
+    const [totalDays, setTotalDays] = useState(0);
+    const [pageData, setPageData] = useState({});
     const intervalRef = useRef(null);
     const tableRef = useRef(null);
     const router = useRouter();
-
-    // ✅ TỐI ƯU: Sử dụng useRef để tham chiếu đến fetchData - giống XSMB
     const fetchDataRef = useRef();
-
-    const hour = 12;
-    const minutes1 = 16;
-    const minutes2 = 14;
 
     const dayof = props.dayofMT;
     const station = props.station || "xsmt";
     const date = props.data3;
     const tinh = props.tinh;
 
-    const startHour = hour;
-    const startMinute = minutes1;
-    const duration = 30 * 60 * 1000; // 30 phút
-
-    // BỔ SUNG: Helper function để lấy thời gian Việt Nam - TỐI ƯU
+    // Helper function để lấy thời gian Việt Nam - Tối ưu với cache
     let cachedVietnamTime = null;
     let lastCacheTime = 0;
     const CACHE_TIME_DURATION = 1000; // Cache 1 giây
 
-    const getVietnamTime = () => {
+    const getVietnamTime = useCallback(() => {
         const now = Date.now();
         if (!cachedVietnamTime || (now - lastCacheTime) > CACHE_TIME_DURATION) {
             cachedVietnamTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
             lastCacheTime = now;
         }
         return cachedVietnamTime;
-    };
+    }, []);
 
     const today = getVietnamTime().toLocaleDateString('vi-VN', {
         day: '2-digit',
@@ -119,44 +226,97 @@ const KQXS = (props) => {
     }).replace(/\//g, '/');
 
     const CACHE_KEY = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}`;
-    const UPDATE_KEY = `xsmt_updated_${today}`; // Cờ để theo dõi cập nhật ngày hiện tại
+    const UPDATE_KEY = `xsmt_updated_${today}`;
 
-    // ✅ TỐI ƯU: Logic cache đơn giản và hiệu quả
-    const cleanOldCache = () => {
+    // Batch localStorage operations
+    const batchLocalStorageOperation = useCallback((operations) => {
+        try {
+            operations.forEach(({ type, key, value }) => {
+                if (type === 'remove') {
+                    localStorage.removeItem(key);
+                } else if (type === 'set') {
+                    localStorage.setItem(key, value);
+                }
+            });
+        } catch (error) {
+            console.error('LocalStorage operation failed:', error);
+        }
+    }, []);
+
+    // Xóa cache hết hạn
+    const cleanOldCache = useCallback(() => {
         const now = new Date().getTime();
-        const keysToRemove = [];
+        const operations = [];
 
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
             if (key && (key.includes('xsmt_data') || key.includes('xsmt_updated'))) {
                 const cacheTime = parseInt(localStorage.getItem(key));
                 if (now - cacheTime > CACHE_DURATION) {
-                    keysToRemove.push(key);
+                    operations.push({ type: 'remove', key });
                 }
             }
         }
 
-        keysToRemove.forEach(key => {
-            localStorage.removeItem(key);
-            console.log(`🧹 Đã xóa cache hết hạn: ${key}`);
-        });
-    };
+        if (operations.length > 0) {
+            batchLocalStorageOperation(operations);
+            console.log(`🧹 Đã xóa ${operations.length} cache hết hạn`);
+        }
+    }, [batchLocalStorageOperation]);
 
-    // ✅ TỐI ƯU: Loại bỏ isLiveWindowActive - dư thừa vì đã có isLiveWindow
+    // Xóa cache ngày hiện tại
+    const clearCacheForToday = useCallback(() => {
+        const keysToRemove = [
+            `xsmt_data_${station}_${today}_null`,
+            `xsmt_data_${station}_null_null`,
+            CACHE_KEY,
+            `${CACHE_KEY}_time`
+        ];
+        const operations = [
+            ...keysToRemove.map(key => ({ type: 'remove', key })),
+            { type: 'remove', key: UPDATE_KEY },
+            { type: 'set', key: 'just_cleared_cache', value: Date.now().toString() }
+        ];
+        batchLocalStorageOperation(operations);
+        console.log('🗑️ Đã xóa cache cho ngày hôm nay');
+    }, [station, today, CACHE_KEY, batchLocalStorageOperation]);
 
-    // ✅ TỐI ƯU: Logic fetchData đơn giản và hiệu quả
+    // Kiểm tra live window
+    const checkLiveWindow = useCallback(() => {
+        const vietnamTime = getVietnamTime();
+        const vietnamHours = vietnamTime.getHours();
+        const vietnamMinutes = vietnamTime.getMinutes();
+        const vietnamSeconds = vietnamTime.getSeconds();
+
+        const startTime = new Date(vietnamTime);
+        startTime.setHours(LIVE_WINDOW_CONFIG.hour, LIVE_WINDOW_CONFIG.startMinute, 0, 0);
+        const endTime = new Date(startTime.getTime() + LIVE_WINDOW_CONFIG.duration);
+
+        const isLive = vietnamTime >= startTime && vietnamTime <= endTime;
+        return { isLive, wasLiveWindow: isLiveWindow, vietnamHours, vietnamMinutes, vietnamSeconds, vietnamTime };
+    }, [isLiveWindow, getVietnamTime]);
+
+    // Tính toán thời gian interval động
+    const getIntervalTime = useCallback(() => {
+        try {
+            const { isLive } = checkLiveWindow();
+            return isLive ? 5000 : 30000; // 5s khi live, 30s khi không live
+        } catch (error) {
+            console.error('Lỗi khi tính interval:', error);
+            return 30000;
+        }
+    }, [checkLiveWindow]);
+
+    // Fetch data với retry logic
     const fetchData = useCallback(async (page = currentPage, forceRefresh = false) => {
         try {
             const vietnamTime = getVietnamTime();
             const now = vietnamTime.getTime();
-
-            // Cache key đơn giản
-            const CACHE_KEY = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_${page}`;
-            const cachedData = localStorage.getItem(CACHE_KEY);
-            const cachedTime = localStorage.getItem(`${CACHE_KEY}_time`);
+            const CACHE_KEY_PAGE = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_${page}`;
+            const cachedData = localStorage.getItem(CACHE_KEY_PAGE);
+            const cachedTime = localStorage.getItem(`${CACHE_KEY_PAGE}_time`);
             const cacheAge = cachedTime ? now - parseInt(cachedTime) : Infinity;
 
-            // Trong live window, chỉ sử dụng cache
             if (isLiveWindow) {
                 console.log('🔄 Live window active - sử dụng cached data');
                 if (cachedData) {
@@ -169,9 +329,8 @@ const KQXS = (props) => {
                 return;
             }
 
-            // Cache-first strategy
             if (cachedData && cacheAge < CACHE_DURATION && !forceRefresh) {
-                console.log(`📦 Cache hit: ${CACHE_KEY}`);
+                console.log(`📦 Cache hit: ${CACHE_KEY_PAGE}`);
                 setPageData(prevPageData => ({
                     ...prevPageData,
                     [page]: JSON.parse(cachedData)
@@ -180,13 +339,42 @@ const KQXS = (props) => {
                 return;
             }
 
-            // Fetch từ API
+            if (forceRefresh) {
+                console.log('🔄 Force refresh - bỏ qua cache');
+            }
+
             console.log('🔄 Fetching from API for page:', page);
-            const result = await apiMT.getLottery(station, date, tinh, dayof, {
-                page,
-                limit: DAYS_PER_PAGE * 10,
-                daysPerPage: DAYS_PER_PAGE
-            });
+            let result;
+            let retryCount = 0;
+            const maxRetries = 3;
+
+            while (retryCount < maxRetries) {
+                try {
+                    result = await apiMT.getLottery(station, date, tinh, dayof, {
+                        page,
+                        limit: DAYS_PER_PAGE * 10,
+                        daysPerPage: DAYS_PER_PAGE
+                    });
+                    break;
+                } catch (error) {
+                    retryCount++;
+                    console.warn(`🔄 API call failed (attempt ${retryCount}/${maxRetries}):`, error.message);
+                    if (retryCount >= maxRetries) {
+                        console.error('❌ API call failed after all retries');
+                        if (cachedData) {
+                            console.log('📦 Fallback to cached data');
+                            setPageData(prevPageData => ({
+                                ...prevPageData,
+                                [page]: JSON.parse(cachedData)
+                            }));
+                            setLoading(false);
+                            return;
+                        }
+                        throw error;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+                }
+            }
 
             const dataArray = Array.isArray(result) ? result : [result];
             const formattedData = dataArray.map(item => ({
@@ -220,24 +408,25 @@ const KQXS = (props) => {
                 dayOfWeek: groupedByDate[date][0].dayOfWeek,
             }));
 
-            // Cập nhật state
             setPageData(prevPageData => ({
                 ...prevPageData,
                 [page]: finalData
             }));
 
-            // ✅ TỐI ƯU: Chỉ tạo cache nếu không vừa clear cache - giống XSMB
+            // ✅ Sửa logic tạo cache mới để xử lý forceRefresh
             const justClearedCache = localStorage.getItem('just_cleared_cache');
-            if (!justClearedCache) {
-                localStorage.setItem(CACHE_KEY, JSON.stringify(finalData));
-                localStorage.setItem(`${CACHE_KEY}_time`, now.toString());
-                console.log('✅ Đã tạo cache mới');
+            if (forceRefresh || !justClearedCache) {
+                const operations = [
+                    { type: 'set', key: CACHE_KEY_PAGE, value: JSON.stringify(finalData) },
+                    { type: 'set', key: `${CACHE_KEY_PAGE}_time`, value: now.toString() }
+                ];
+                batchLocalStorageOperation(operations);
+                console.log('✅ Đã tạo cache mới' + (forceRefresh ? ' (force refresh)' : ''));
             } else {
                 console.log('🔄 Vừa clear cache, không tạo cache mới');
                 localStorage.removeItem('just_cleared_cache');
             }
 
-            // Cập nhật totalDays
             if (page === 1) {
                 setTotalDays(Math.max(30, sortedDates.length * 10));
             }
@@ -255,42 +444,17 @@ const KQXS = (props) => {
             console.error('Error fetching lottery data:', error);
             setLoading(false);
         }
-    }, [station, date, tinh, dayof, currentPage, isLiveWindow]);
+    }, [station, date, tinh, dayof, currentPage, isLiveWindow, batchLocalStorageOperation]);
 
-    // ✅ TỐI ƯU: Cập nhật ref khi fetchData thay đổi - giống XSMB
     useEffect(() => {
         fetchDataRef.current = fetchData;
     }, [fetchData]);
 
-    // ✅ TỐI ƯU: Hàm clear cache đơn giản và hiệu quả - giống XSMB
-    const clearCacheForToday = useCallback(() => {
-        const keysToRemove = [
-            `xsmt_data_${station}_${today}_null`,
-            `xsmt_data_${station}_null_null`,
-            CACHE_KEY,
-            `${CACHE_KEY}_time`
-        ];
-
-        // ✅ TỐI ƯU: Batch operations
-        const operations = [
-            ...keysToRemove.map(key => ({ type: 'remove', key })),
-            { type: 'remove', key: UPDATE_KEY },
-            { type: 'set', key: 'just_cleared_cache', value: Date.now().toString() }
-        ];
-
-        // Batch localStorage operations
-        operations.forEach(({ type, key, value }) => {
-            if (type === 'remove') {
-                localStorage.removeItem(key);
-            } else if (type === 'set') {
-                localStorage.setItem(key, value);
-            }
-        });
-
-        console.log('🗑️ Đã xóa cache cho ngày hôm nay');
-    }, [station, today, CACHE_KEY]);
-
-    // ✅ TỐI ƯU: Loại bỏ clearCacheAtSpecificTime - dư thừa vì đã có clear khi LiveResult ẩn đi
+    useEffect(() => {
+        cleanOldCache();
+        const cleanupInterval = setInterval(cleanOldCache, 60 * 60 * 1000);
+        return () => clearInterval(cleanupInterval);
+    }, [cleanOldCache]);
 
     const isLiveMode = useMemo(() => {
         if (!props.data3) return true;
@@ -309,13 +473,10 @@ const KQXS = (props) => {
         return inputDayOfWeek && inputDayOfWeek === todayDayOfWeek;
     }, [props.data3, today]);
 
-    // ✅ TỐI ƯU: useEffect đơn giản để khởi tạo data
     useEffect(() => {
         cleanOldCache();
-
-        // Khởi tạo data từ cache hoặc API
-        const CACHE_KEY = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_1`;
-        const cachedData = localStorage.getItem(CACHE_KEY);
+        const CACHE_KEY_PAGE = `xsmt_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_1`;
+        const cachedData = localStorage.getItem(CACHE_KEY_PAGE);
 
         if (cachedData && isLiveWindow) {
             console.log('🔄 Live window active - sử dụng cached data');
@@ -329,17 +490,13 @@ const KQXS = (props) => {
             console.log('🔄 Fetching initial data');
             fetchData();
         }
-    }, [fetchData, isLiveWindow]);
+    }, [fetchData, isLiveWindow, cleanOldCache]);
 
-    // ✅ TỐI ƯU: Loại bỏ useEffect clear cache - dư thừa vì đã có clear khi LiveResult ẩn đi
-
-    // ✅ TỐI ƯU: Cập nhật cache khi liveData đầy đủ - loại bỏ clear cache dư thừa
     useEffect(() => {
         if (isLiveDataComplete && liveData && liveData.drawDate === today) {
             console.log('🔄 Live data complete, cập nhật cache');
 
             setPageData(prevPageData => {
-                // Loại bỏ dữ liệu cũ của ngày hôm nay và thêm liveData
                 const currentPage1Data = Array.isArray(prevPageData[1]) ? prevPageData[1] : [];
                 const filteredData = currentPage1Data.filter(item => item.drawDate !== today);
                 const formattedLiveData = {
@@ -372,10 +529,12 @@ const KQXS = (props) => {
                     new Date(b.drawDate.split('/').reverse().join('-')) - new Date(a.drawDate.split('/').reverse().join('-'))
                 );
 
-                // Lưu cache mới
-                localStorage.setItem(CACHE_KEY, JSON.stringify(newData));
-                localStorage.setItem(`${CACHE_KEY}_time`, getVietnamTime().getTime().toString());
-                localStorage.setItem(UPDATE_KEY, getVietnamTime().getTime().toString());
+                const operations = [
+                    { type: 'set', key: CACHE_KEY, value: JSON.stringify(newData) },
+                    { type: 'set', key: `${CACHE_KEY}_time`, value: getVietnamTime().getTime().toString() },
+                    { type: 'set', key: UPDATE_KEY, value: getVietnamTime().getTime().toString() }
+                ];
+                batchLocalStorageOperation(operations);
                 setLastLiveUpdate(getVietnamTime().getTime());
 
                 console.log('✅ Đã cập nhật cache với live data mới');
@@ -390,53 +549,25 @@ const KQXS = (props) => {
                 [`${liveData.drawDate}${liveData.station}`]: prev[`${liveData.drawDate}${liveData.station}`] || 'all',
             }));
         }
-    }, [isLiveDataComplete, liveData, today, CACHE_KEY]);
+    }, [isLiveDataComplete, liveData, today, CACHE_KEY, batchLocalStorageOperation]);
 
-    // ✅ TỐI ƯU: Logic kích hoạt LiveResult - giống XSMB 100%
+    // Logic kiểm tra live window
     useEffect(() => {
-        let cacheClearedForLiveWindow = false; // Flag tránh clear cache nhiều lần khi LiveResult ẩn đi
-        let lastCheckMinute = -1; // Tránh check cùng 1 phút nhiều lần
-        let isActive = true; // Flag để tránh memory leak
+        let cacheClearedForLiveWindow = localStorage.getItem(`xsmt_cache_cleared_${today}`) === 'true';
+        let lastCheckMinute = -1;
+        let isActive = true;
 
         const checkTime = () => {
             if (!isActive) return;
 
             try {
-                const vietnamTime = getVietnamTime();
-                const vietnamHours = vietnamTime.getHours();
-                const vietnamMinutes = vietnamTime.getMinutes();
-                const vietnamSeconds = vietnamTime.getSeconds();
-
-                // Tạo thời gian bắt đầu và kết thúc
-                const startTime = new Date(vietnamTime);
-                startTime.setHours(startHour, startMinute, 0, 0); // 17:10
-                const endTime = new Date(startTime.getTime() + duration); // 17:40
-
-                // Kiểm tra khung giờ trực tiếp
-                const isLive = vietnamTime >= startTime && vietnamTime <= endTime;
-                const wasLiveWindow = isLiveWindow;
-
-                // Debug log để kiểm tra logic
-                console.log('🕐 CheckTime debug:', {
-                    currentTime: vietnamTime.toLocaleTimeString(),
-                    startTime: startTime.toLocaleTimeString(),
-                    endTime: endTime.toLocaleTimeString(),
-                    isLive,
-                    wasLiveWindow,
-                    isLiveWindow,
-                    cacheClearedForLiveWindow
-                });
-
-                // ✅ TỐI ƯU: Chỉ check khi thực sự cần
+                const { isLive, wasLiveWindow, vietnamHours, vietnamMinutes, vietnamSeconds, vietnamTime } = checkLiveWindow();
                 const currentMinute = vietnamHours * 60 + vietnamMinutes;
-                if (currentMinute === lastCheckMinute) {
-                    return; // Bỏ qua nếu đã check phút này
-                }
+                if (currentMinute === lastCheckMinute) return;
                 lastCheckMinute = currentMinute;
 
-                setIsLiveWindow(isLive); // ✅ Đồng bộ với XSMB
+                setIsLiveWindow(isLive);
 
-                // Log chỉ khi thay đổi
                 if (wasLiveWindow !== isLive) {
                     console.log('Debug - Live window changed:', {
                         vietnamTime: vietnamTime.toLocaleTimeString(),
@@ -445,65 +576,47 @@ const KQXS = (props) => {
                     });
                 }
 
-                // ✅ TỐI ƯU: Clear cache khi LiveResult ẩn đi - ĐÂY LÀ CƠ CHẾ DUY NHẤT
                 if (wasLiveWindow && !isLive && wasLiveWindow !== undefined && !cacheClearedForLiveWindow) {
                     console.log('🔄 LiveResult ẩn đi - Clear cache để hiển thị kết quả mới');
-                    console.log('Debug - Thông tin clear cache:', {
-                        wasLiveWindow,
-                        isLive,
-                        cacheClearedForLiveWindow,
-                        vietnamTime: vietnamTime.toLocaleTimeString(),
-                        startTime: startTime.toLocaleTimeString(),
-                        endTime: endTime.toLocaleTimeString()
-                    });
                     clearCacheForToday();
+                    batchLocalStorageOperation([
+                        { type: 'set', key: `xsmt_cache_cleared_${today}`, value: 'true' }
+                    ]);
+                    cacheClearedForLiveWindow = true;
                     setTimeout(() => {
                         if (isActive && fetchDataRef.current) {
                             console.log('🔄 Force refresh sau khi clear cache');
-                            fetchDataRef.current(1, true);
+                            fetchDataRef.current(1, true); // ✅ Thêm forceRefresh = true
                         }
                     }, 2000);
-                    cacheClearedForLiveWindow = true;
                 }
 
-                // Test case: Force clear cache để debug
-                if (process.env.NODE_ENV === 'development' && vietnamHours === 23 && vietnamMinutes === 59) {
-                    console.log('🧪 Test case: Force clear cache');
-                    clearCacheForToday();
-                }
-
-                // Test case: Force clear cache mỗi phút để debug
-                if (process.env.NODE_ENV === 'development' && vietnamSeconds === 0) {
-                    console.log('🧪 Test case: Force clear cache mỗi phút');
-                    clearCacheForToday();
-                }
-
-                // Reset flag khi LiveResult xuất hiện lại
                 if (isLive) {
                     cacheClearedForLiveWindow = false;
+                    batchLocalStorageOperation([
+                        { type: 'set', key: `xsmt_cache_cleared_${today}`, value: 'false' }
+                    ]);
                 }
 
-                // ✅ TỐI ƯU: Loại bỏ kiểm tra trạng thái không cần thiết - Scheduler tự động chạy
                 if (
                     isLive &&
-                    vietnamHours === hour &&
-                    vietnamMinutes === minutes2 &&
+                    vietnamHours === LIVE_WINDOW_CONFIG.hour &&
+                    vietnamMinutes === LIVE_WINDOW_CONFIG.scraperTriggerMinute &&
                     vietnamSeconds <= 5 &&
                     !hasTriggeredScraper
                 ) {
-                    // Scheduler tự động kích hoạt, chỉ log để debug
-                    if (isActive && process.env.NODE_ENV !== 'production') {
+                    if (process.env.NODE_ENV !== 'production') {
                         console.log('🕐 Đang trong khung giờ kích hoạt scheduler (17h14)');
                     }
-                    if (isActive) {
-                        setHasTriggeredScraper(true);
-                    }
+                    setHasTriggeredScraper(true);
                 }
 
-                // Reset lúc 00:00
                 if (vietnamHours === 0 && vietnamMinutes === 0 && vietnamSeconds === 0) {
                     setHasTriggeredScraper(false);
-                    localStorage.removeItem(UPDATE_KEY);
+                    batchLocalStorageOperation([
+                        { type: 'remove', key: UPDATE_KEY },
+                        { type: 'remove', key: `xsmt_cache_cleared_${today}` }
+                    ]);
                     cacheClearedForLiveWindow = false;
                 }
             } catch (error) {
@@ -512,29 +625,7 @@ const KQXS = (props) => {
         };
 
         checkTime();
-
-        // ✅ TỐI ƯU: Interval thông minh - chậm hơn khi không trong live window
-        const getIntervalTime = () => {
-            try {
-                const vietnamTime = getVietnamTime();
-                const vietnamHours = vietnamTime.getHours();
-                const vietnamMinutes = vietnamTime.getMinutes();
-
-                const startTime = new Date(vietnamTime);
-                startTime.setHours(startHour, startMinute, 0, 0);
-                const endTime = new Date(startTime.getTime() + duration);
-                const isLive = vietnamTime >= startTime && vietnamTime <= endTime;
-
-                return isLive ? 5000 : 30000; // 5s khi live, 30s khi không live
-            } catch (error) {
-                console.error('Lỗi khi tính interval:', error);
-                return 30000; // Fallback to 30s
-            }
-        };
-
         let intervalId = setInterval(checkTime, getIntervalTime());
-
-        // ✅ TỐI ƯU: Thay đổi interval khi cần
         const updateInterval = () => {
             if (!isActive) return;
             try {
@@ -544,8 +635,6 @@ const KQXS = (props) => {
                 console.error('Lỗi khi update interval:', error);
             }
         };
-
-        // Update interval mỗi phút
         const intervalUpdateId = setInterval(updateInterval, 60000);
 
         return () => {
@@ -553,7 +642,7 @@ const KQXS = (props) => {
             clearInterval(intervalId);
             clearInterval(intervalUpdateId);
         };
-    }, [hasTriggeredScraper]); // ✅ TỐI ƯU: Loại bỏ clearCacheForToday khỏi dependencies
+    }, [hasTriggeredScraper, checkLiveWindow, clearCacheForToday, getIntervalTime, today, batchLocalStorageOperation]);
 
     const handleFilterChange = useCallback((key, value) => {
         setFilterTypes((prev) => ({
@@ -606,70 +695,63 @@ const KQXS = (props) => {
         return { heads, tails };
     }, []);
 
-    // Helper function để kiểm tra pageData an toàn
     const getPageDataSafely = useCallback((page) => {
         const data = pageData[page];
         return Array.isArray(data) ? data : [];
     }, [pageData]);
 
-    // Helper function để kiểm tra pageData có tồn tại không
     const hasPageData = useCallback((page) => {
         const data = pageData[page];
         return data && Array.isArray(data) && data.length > 0;
     }, [pageData]);
 
-    // Khởi tạo pageData với cấu trúc đúng
     useEffect(() => {
-        // Đảm bảo pageData luôn có cấu trúc đúng
         setPageData(prevPageData => {
             const newPageData = { ...prevPageData };
-
-            // Đảm bảo page 1 luôn có array
             if (!Array.isArray(newPageData[1])) {
                 newPageData[1] = [];
                 console.log('📊 Khởi tạo pageData[1] với array rỗng');
             }
-
             return newPageData;
         });
     }, []);
 
-    // Đơn giản hóa virtual scrolling - chỉ render current page
     const currentPageData = useMemo(() => {
         return getPageDataSafely(currentPage);
     }, [getPageDataSafely, currentPage]);
 
-    // Tính toán totalPages dựa trên totalRecords
     const totalPages = Math.ceil(totalDays / DAYS_PER_PAGE);
-
-    // Fallback: Nếu totalPages = 0, ít nhất phải có 1 page
     const effectiveTotalPages = Math.max(1, totalPages);
 
-    // Debug pagination
-    console.log('📊 Pagination Debug:', {
-        totalDays,
-        DAYS_PER_PAGE,
-        totalPages,
-        effectiveTotalPages,
-        currentPage,
-        pageDataKeys: Object.keys(pageData),
-        loadedPages: Array.from(loadedPages),
-        hasData: Object.keys(pageData).length > 0,
-        currentPageDataLength: currentPageData.length,
-        hasPage1Data: hasPageData(1),
-        hasCurrentPageData: hasPageData(currentPage),
-        currentPageDays: currentPageData.map(day => day.drawDate)
-    });
+    const shouldPreloadNextPage = useMemo(() => {
+        return currentPage < effectiveTotalPages && !loadedPages.has(currentPage + 1);
+    }, [currentPage, effectiveTotalPages, loadedPages]);
+
+    useEffect(() => {
+        if (shouldPreloadNextPage && !isLiveWindow) {
+            console.log('🔄 Preloading next page:', currentPage + 1);
+            fetchData(currentPage + 1);
+        }
+    }, [shouldPreloadNextPage, currentPage, isLiveWindow, fetchData]);
+
+    useEffect(() => {
+        if (currentPageData.length > 0 && currentPage === effectiveTotalPages && !isLiveWindow) {
+            const nextPage = currentPage + 1;
+            if (!hasPageData(nextPage) && !loadedPages.has(nextPage)) {
+                console.log(`🔄 Auto-creating next page: ${nextPage}`);
+                fetchData(nextPage);
+                setTotalDays(prev => Math.max(prev, nextPage * DAYS_PER_PAGE));
+            }
+        }
+    }, [currentPageData, currentPage, effectiveTotalPages, isLiveWindow, hasPageData, loadedPages, fetchData]);
 
     const goToPage = async (page) => {
         console.log(`🔄 goToPage called: page=${page}, totalPages=${effectiveTotalPages}, currentPage=${currentPage}`);
-
         if (page >= 1 && page <= effectiveTotalPages) {
             console.log(`✅ Chuyển đến page ${page}`);
             setCurrentPage(page);
             tableRef.current?.scrollIntoView({ behavior: 'smooth' });
 
-            // Lazy load data cho page mới nếu chưa có
             if (!hasPageData(page) && !loadedPages.has(page)) {
                 console.log(`🔄 Lazy loading data cho page ${page}`);
                 setLoadingPage(true);
@@ -687,40 +769,6 @@ const KQXS = (props) => {
         }
     };
 
-    useEffect(() => {
-        if (tableRef.current) {
-            tableRef.current.scrollIntoView({ behavior: 'smooth' });
-        }
-    }, [currentPage]);
-
-    // Preload next page khi user scroll gần cuối
-    const shouldPreloadNextPage = useMemo(() => {
-        return currentPage < effectiveTotalPages && !loadedPages.has(currentPage + 1);
-    }, [currentPage, effectiveTotalPages, loadedPages]);
-
-    useEffect(() => {
-        if (shouldPreloadNextPage && !isLiveWindow) {
-            console.log('🔄 Preloading next page:', currentPage + 1);
-            fetchData(currentPage + 1);
-        }
-    }, [shouldPreloadNextPage, currentPage, isLiveWindow, fetchData]);
-
-    // Auto-create next page nếu cần
-    useEffect(() => {
-        if (currentPageData.length > 0 && currentPage === effectiveTotalPages && !isLiveWindow) {
-            // Nếu đang ở page cuối và có data, tự động tạo page tiếp theo
-            const nextPage = currentPage + 1;
-            if (!hasPageData(nextPage) && !loadedPages.has(nextPage)) {
-                console.log(`🔄 Auto-creating next page: ${nextPage}`);
-                fetchData(nextPage);
-                setTotalDays(prev => Math.max(prev, nextPage * DAYS_PER_PAGE));
-            }
-        }
-    }, [currentPageData, currentPage, effectiveTotalPages, isLiveWindow, hasPageData, loadedPages, fetchData]);
-
-    const todayData = currentPageData.find(item => item.drawDate === today);
-
-    // Tối ưu print functions với useMemo và useCallback
     const fontSizes = useMemo(() => ({
         A4: {
             title: '28px',
@@ -739,7 +787,6 @@ const KQXS = (props) => {
             title: '20px',
             subtitle: '14px',
             subtitle1: '20px',
-
             header: '18px',
             prizeLabel: '18px',
             prizeValue: '20px',
@@ -777,88 +824,143 @@ const KQXS = (props) => {
         }
     }), []);
 
-    const generatePrintContent = useCallback((size, selectedDate = null) => {
+    const getPrintCSS = useCallback((size, stations) => `
+        @media print {
+            @page {
+                size: ${size};
+                margin: ${size === 'A4' ? '3mm' : size === 'A5' ? '5mm' : size === 'A6' ? '8mm' : '10mm'};
+            }
+            body {
+                font-family: Arial, sans-serif;
+                margin: 0;
+                padding: 0;
+            }
+            .containerKQ {
+                padding: 5px;
+            }
+            .header {
+                text-align: center;
+                margin-bottom: 0px;
+                line-height: 1.0;
+            }
+            .kqxs__title {
+                font-size: ${fontSizes[size].title};
+                font-weight: bold;
+                margin-bottom: 1px;
+                line-height: 1.0;
+            }
+            .tableXS {
+                width: 100%;
+                border-collapse: collapse;
+                table-layout: fixed;
+                margin-bottom: 0px;
+            }
+            .tableXS th,
+            .tableXS td {
+                border: 2px solid #000;
+                text-align: center;
+                vertical-align: middle;
+            }
+            .tableXS th:first-child {
+                width: 5% !important;
+            }
+            .tableXS th:not(:first-child) {
+                width: ${100 / (stations.length + 1)}% !important;
+            }
+            .stationName {
+                font-size: ${fontSizes[size].header};
+                background-color: #e9ecef;
+                font-weight: bold;
+                padding: ${fontSizes[size].cellPadding};
+            }
+            .tdTitle {
+                font-size: ${fontSizes[size].prizeLabel};
+                font-weight: bold;
+                background-color: #f8f9fa;
+                padding: ${fontSizes[size].cellPadding};
+            }
+            .rowXS {
+                padding: ${fontSizes[size].cellPadding};
+                line-height: 1.5;
+            }
+            .prizeNumber {
+                font-size: ${fontSizes[size].prizeValue};
+                font-weight: bold;
+                display: block;
+            }
+            .highlight {
+                color: #ff0000;
+            }
+            .gdb {
+                font-size: ${fontSizes[size].specialPrize};
+            }
+            .g3 {
+                color: #0066cc;
+            }
+            .footer {
+                text-align: center;
+                margin-top: 5px;
+                font-size: ${fontSizes[size].footer};
+                color: #666;
+                line-height: 1.1;
+            }
+        }
+        @media screen {
+            body {
+                max-width: ${size === 'A4' ? '210mm' : size === 'A5' ? '148mm' : size === 'A6' ? '105mm' : '74mm'};
+                margin: 10px auto;
+                background: white;
+            }
+        }
+    `, [fontSizes]);
+
+    const generateTableRow = useCallback((prizeLabel, allStationsData, size, isSpecial = false) => {
+        if (!allStationsData || allStationsData.length === 0) return '';
         const sizes = fontSizes[size];
-
-        // Tìm ngày được chọn hoặc fallback về ngày đầu tiên
-        const targetDayData = selectedDate
-            ? currentPageData.find(day => day.drawDate === selectedDate)
-            : currentPageData[0];
-
-        const generateTableRow = (prizeLabel, allStationsData, isSpecial = false) => {
-            if (!allStationsData || allStationsData.length === 0) return '';
-
-            let rowHTML = `
+        let rowHTML = `
             <tr>
-                <td class="tdTitle ${prizeLabel === 'G8' || prizeLabel === 'ĐB' ? 'highlight' : ''} ${prizeLabel === 'G5' || prizeLabel === 'G3' ? 'g3' : ''
-                }" style="padding: ${sizes.cellPadding}; font-size: ${sizes.prizeLabel}; font-weight: bold; width: 5%; border: 2px solid #000; text-align: center; background-color: #f8f9fa;">
+                <td class="tdTitle ${prizeLabel === 'G8' || prizeLabel === 'ĐB' ? 'highlight' : ''} ${prizeLabel === 'G5' || prizeLabel === 'G3' ? 'g3' : ''}" style="padding: ${sizes.cellPadding}; font-size: ${sizes.prizeLabel}; font-weight: bold; width: 5%; border: 2px solid #000; text-align: center; background-color: #f8f9fa;">
                     ${prizeLabel}
                 </td>
         `;
-
-            allStationsData.forEach((stationData) => {
-                let prizeData = [];
-                let maxItems = 1;
-
-                switch (prizeLabel) {
-                    case 'G8':
-                        prizeData = stationData.eightPrizes || [];
-                        break;
-                    case 'G7':
-                        prizeData = stationData.sevenPrizes || [];
-                        break;
-                    case 'G6':
-                        prizeData = stationData.sixPrizes || [];
-                        maxItems = 3;
-                        break;
-                    case 'G5':
-                        prizeData = stationData.fivePrizes || [];
-                        maxItems = 3;
-                        break;
-                    case 'G4':
-                        prizeData = stationData.fourPrizes || [];
-                        maxItems = 7;
-                        break;
-                    case 'G3':
-                        prizeData = stationData.threePrizes || [];
-                        maxItems = 2;
-                        break;
-                    case 'G2':
-                        prizeData = stationData.secondPrize || [];
-                        break;
-                    case 'G1':
-                        prizeData = stationData.firstPrize || [];
-                        break;
-                    case 'ĐB':
-                        prizeData = stationData.specialPrize || [];
-                        break;
-                    default:
-                        prizeData = [];
-                }
-
-                const currentFilter = filterTypes[allStationsData[0]?.drawDate] || 'all';
-                let numbersHTML = prizeData
-                    .slice(0, maxItems)
-                    .map((num, idx) => `
-                    <span class="prizeNumber ${prizeLabel === 'G8' || prizeLabel === 'ĐB' ? 'highlight' : ''
-                        } ${prizeLabel === 'ĐB' ? 'gdb' : ''} ${prizeLabel === 'G5' || prizeLabel === 'G3' ? 'g3' : ''
-                        }" style="font-size: ${isSpecial ? sizes.specialPrize : sizes.prizeValue
-                        }; font-weight: bold; display: block;">
+        allStationsData.forEach((stationData) => {
+            let prizeData = [];
+            let maxItems = 1;
+            switch (prizeLabel) {
+                case 'G8': prizeData = stationData.eightPrizes || []; break;
+                case 'G7': prizeData = stationData.sevenPrizes || []; break;
+                case 'G6': prizeData = stationData.sixPrizes || []; maxItems = 3; break;
+                case 'G5': prizeData = stationData.fivePrizes || []; maxItems = 3; break;
+                case 'G4': prizeData = stationData.fourPrizes || []; maxItems = 7; break;
+                case 'G3': prizeData = stationData.threePrizes || []; maxItems = 2; break;
+                case 'G2': prizeData = stationData.secondPrize || []; break;
+                case 'G1': prizeData = stationData.firstPrize || []; break;
+                case 'ĐB': prizeData = stationData.specialPrize || []; break;
+                default: prizeData = [];
+            }
+            const currentFilter = filterTypes[allStationsData[0]?.drawDate] || 'all';
+            let numbersHTML = prizeData
+                .slice(0, maxItems)
+                .map((num, idx) => `
+                    <span class="prizeNumber ${prizeLabel === 'G8' || prizeLabel === 'ĐB' ? 'highlight' : ''} ${prizeLabel === 'ĐB' ? 'gdb' : ''} ${prizeLabel === 'G5' || prizeLabel === 'G3' ? 'g3' : ''}" style="font-size: ${isSpecial ? sizes.specialPrize : sizes.prizeValue}; font-weight: bold; display: block;">
                         ${num ? getFilteredNumber(num, currentFilter) : '-'}
                     </span>
                 `)
-                    .join('');
-
-                rowHTML += `
+                .join('');
+            rowHTML += `
                 <td class="rowXS" style="padding: ${sizes.cellPadding}; border: 2px solid #000; text-align: center; vertical-align: middle; min-width: 100px; line-height: 1.5;">
                     ${numbersHTML}
                 </td>
             `;
-            });
+        });
+        rowHTML += '</tr>';
+        return rowHTML;
+    }, [filterTypes, getFilteredNumber]);
 
-            rowHTML += '</tr>';
-            return rowHTML;
-        };
+    const generatePrintContent = useCallback((size, selectedDate = null) => {
+        const targetDayData = selectedDate
+            ? currentPageData.find(day => day.drawDate === selectedDate)
+            : currentPageData[0];
 
         if (!targetDayData || !Array.isArray(targetDayData.stations) || targetDayData.stations.length === 0) {
             return '<div>Không có dữ liệu để in</div>';
@@ -879,114 +981,22 @@ const KQXS = (props) => {
             });
         }
 
-        let printHTML = `
+        return `
         <!DOCTYPE html>
         <html>
         <head>
             <meta charset="UTF-8">
-            <title>Kết Quả Xổ Số Miền Trung - ${targetDayData?.drawDate || 'N/A'} </title>
+            <title>Kết Quả Xổ Số Miền Trung - ${targetDayData?.drawDate || 'N/A'}</title>
             <style>
-                body {
-                    font-family: Arial, sans-serif;
-                    margin: 0;
-                    padding: 0;
-                }
-                .containerKQ {
-                    padding: 5px;
-                }
-                .header {
-                    text-align: center;
-                    margin-bottom: 0px;
-                    line-height: 1.0;
-                }
-                .kqxs__title {
-                    font-size: ${sizes.title};
-                    font-weight: bold;
-                    margin-bottom: 1px;
-                    line-height: 1.0;
-                }
-                .tableXS {
-                    width: 100%;
-                    border-collapse: collapse;
-                    table-layout: fixed;
-                    margin-bottom: 0px;
-                }
-                .tableXS th,
-                .tableXS td {
-                    border: 2px solid #000;
-                    text-align: center;
-                    vertical-align: middle;
-                }
-                .tableXS th:first-child {
-                    width: 5%;
-                }
-                .tableXS th:not(:first-child) {
-                    width: ${100 / (stations.length + 1)}%;
-                }
-                .stationName {
-                    font-size: ${sizes.header};
-                    background-color: #e9ecef;
-                    font-weight: bold;
-                    padding: ${sizes.cellPadding};
-                }
-                .tdTitle {
-                    font-size: ${sizes.prizeLabel};
-                    font-weight: bold;
-                    background-color: #f8f9fa;
-                    padding: ${sizes.cellPadding};
-                }
-                .rowXS {
-                    padding: ${sizes.cellPadding};
-                    line-height: 1.5;
-                }
-                .prizeNumber {
-                    font-size: ${sizes.prizeValue};
-                    font-weight: bold;
-                    display: block;
-                }
-                .highlight {
-                    color: #ff0000;
-                }
-                .gdb {
-                    font-size: ${sizes.specialPrize};
-                }
-                .g3 {
-                    color: #0066cc;
-                }
-                .footer {
-                    text-align: center;
-                    margin-top: 5px;
-                    font-size: ${sizes.footer};
-                    color: #666;
-                    line-height: 1.1;
-                }
-                @media print {
-                    @page {
-                        size: ${size};
-                        margin: 8mm;
-                    }
-                    .tableXS th:first-child {
-                        width: 5% !important;
-                    }
-                    .tableXS th:not(:first-child) {
-                        width: ${100 / (stations.length + 1)}% !important;
-                    }
-                }
-                @media screen {
-                    body {
-                        max-width: ${size === 'A4' ? '210mm' : size === 'A5' ? '148mm' : size === 'A6' ? '105mm' : '74mm'};
-                        margin: 10px auto;
-                        background: white;
-                    }
-                }
+                ${getPrintCSS(size, stations)}
             </style>
         </head>
         <body>
             <div class="containerKQ">
                 <div class="header">
                     <h1 class="kqxs__title">KẾT QUẢ XỔ SỐ MIỀN TRUNG - XSMB.WIN</h1>
-                    <p class="kqxs__title" style="font-size: ${sizes.subtitle1}; margin-bottom: 0px; line-height: 1.0;">Ngày: ${targetDayData?.drawDate || 'N/A'}</p>
-                    <p style="font-size: ${sizes.subtitle}; color: #666; margin-bottom: 0px; line-height: 1.0;">In từ XSMB.WIN - ${new Date().toLocaleDateString('vi-VN')}</p>
+                    <p class="kqxs__title" style="font-size: ${fontSizes[size].subtitle1}; margin-bottom: 0px; line-height: 1.0;">Ngày: ${targetDayData?.drawDate || 'N/A'}</p>
+                    <p style="font-size: ${fontSizes[size].subtitle}; color: #666; margin-bottom: 0px; line-height: 1.0;">In từ XSMB.WIN - ${new Date().toLocaleDateString('vi-VN')}</p>
                 </div>
                 <table class="tableXS">
                     <thead>
@@ -1013,44 +1023,7 @@ const KQXS = (props) => {
                 { label: 'G1' },
                 { label: 'ĐB', highlight: true, isSpecial: true },
             ]
-                .map(({ label, highlight, g3, isSpecial }) => {
-                    const hasData = stations.some((station) => {
-                        let prizeData = [];
-                        switch (label) {
-                            case 'G8':
-                                prizeData = station.eightPrizes || [];
-                                break;
-                            case 'G7':
-                                prizeData = station.sevenPrizes || [];
-                                break;
-                            case 'G6':
-                                prizeData = station.sixPrizes || [];
-                                break;
-                            case 'G5':
-                                prizeData = station.fivePrizes || [];
-                                break;
-                            case 'G4':
-                                prizeData = station.fourPrizes || [];
-                                break;
-                            case 'G3':
-                                prizeData = station.threePrizes || [];
-                                break;
-                            case 'G2':
-                                prizeData = station.secondPrize || [];
-                                break;
-                            case 'G1':
-                                prizeData = station.firstPrize || [];
-                                break;
-                            case 'ĐB':
-                                prizeData = station.specialPrize || [];
-                                break;
-                            default:
-                                prizeData = [];
-                        }
-                        return prizeData.length > 0;
-                    });
-                    return hasData ? generateTableRow(label, stations, isSpecial) : '';
-                })
+                .map(({ label, isSpecial }) => generateTableRow(label, stations, size, isSpecial))
                 .join('')}
                     </tbody>
                 </table>
@@ -1063,23 +1036,18 @@ const KQXS = (props) => {
         </body>
         </html>
     `;
-
-        return printHTML;
-    }, [currentPageData, fontSizes, filterTypes, getFilteredNumber, currentPage]);
+    }, [currentPageData, fontSizes, getPrintCSS, generateTableRow]);
 
     const handlePrint = useCallback(
         (size, selectedDate = null) => {
             try {
                 const printWindow = window.open('', '_blank', 'width=800,height=600');
-
                 if (!printWindow) {
                     alert('Không thể mở cửa sổ in. Vui lòng cho phép popup.');
                     return;
                 }
-
                 const printContent = generatePrintContent(size, selectedDate);
                 const targetDate = selectedDate || currentPageData[0]?.drawDate || 'N/A';
-
                 printWindow.document.write(`
                 <!DOCTYPE html>
                 <html>
@@ -1092,9 +1060,7 @@ const KQXS = (props) => {
                 </body>
                 </html>
             `);
-
                 printWindow.document.close();
-
                 setTimeout(() => {
                     printWindow.focus();
                     printWindow.print();
@@ -1129,16 +1095,12 @@ const KQXS = (props) => {
                     const tableKey = dayData.drawDate;
                     const currentFilter = filterTypes[tableKey] || 'all';
 
-                    // Kiểm tra dayData.stations có phải là array không
                     if (!Array.isArray(dayData.stations)) {
                         console.warn('dayData.stations is not an array:', dayData);
-                        return null; // Skip rendering this item
+                        return null;
                     }
 
-                    // Lấy tất cả tỉnh từ ngày hiện tại và các ngày khác
                     let allStations = [...dayData.stations];
-
-                    // Nếu chỉ có 1 tỉnh, thử lấy từ các ngày khác
                     if (allStations.length <= 1) {
                         console.log('⚠️ Web display: Chỉ có 1 tỉnh, thử lấy từ ngày khác...');
                         currentPageData.forEach(otherDayData => {
@@ -1174,8 +1136,8 @@ const KQXS = (props) => {
                                         <PrintButton onPrint={handlePrint} selectedDate={dayData.drawDate} />
                                     </div>
                                     <div className={styles.kqxs__action}>
-                                        <a className={`${styles.kqxs__actionLink} `} href="#!">XSMT</a>
-                                        <a className={`${styles.kqxs__actionLink} ${styles.dayOfWeek} `} href="#!">{dayData.dayOfWeek}</a>
+                                        <a className={`${styles.kqxs__actionLink}`} href="#!">XSMT</a>
+                                        <a className={`${styles.kqxs__actionLink} ${styles.dayOfWeek}`} href="#!">{dayData.dayOfWeek}</a>
                                         <a className={styles.kqxs__actionLink} href="#!">{dayData.drawDate}</a>
                                     </div>
                                 </div>
@@ -1185,17 +1147,17 @@ const KQXS = (props) => {
                                             <th></th>
                                             {allStations.map(stationData => (
                                                 <th key={stationData.tinh || stationData.station} className={styles.stationName}>
-                                                    {stationData.tentinh || `Tỉnh ${allStations.indexOf(stationData) + 1} `}
+                                                    {stationData.tentinh || `Tỉnh ${allStations.indexOf(stationData) + 1}`}
                                                 </th>
                                             ))}
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr>
-                                            <td className={`${styles.tdTitle} ${styles.highlight} `}>G8</td>
+                                            <td className={`${styles.tdTitle} ${styles.highlight}`}>G8</td>
                                             {allStations.map(stationData => (
                                                 <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
-                                                    <span className={`${styles.prizeNumber} ${styles.highlight} `}>
+                                                    <span className={`${styles.prizeNumber} ${styles.highlight}`}>
                                                         {(stationData.eightPrizes || [])[0] ? getFilteredNumber(stationData.eightPrizes[0], currentFilter) : '-'}
                                                     </span>
                                                 </td>
@@ -1225,11 +1187,11 @@ const KQXS = (props) => {
                                             ))}
                                         </tr>
                                         <tr>
-                                            <td className={`${styles.tdTitle} ${styles.g3} `}>G5</td>
+                                            <td className={`${styles.tdTitle} ${styles.g3}`}>G5</td>
                                             {allStations.map(stationData => (
                                                 <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
                                                     {(stationData.fivePrizes || []).slice(0, 3).map((kq, idx) => (
-                                                        <span key={idx} className={`${styles.prizeNumber} ${styles.g3} `}>
+                                                        <span key={idx} className={`${styles.prizeNumber} ${styles.g3}`}>
                                                             {getFilteredNumber(kq, currentFilter)}
                                                             {idx < (stationData.fivePrizes || []).slice(0, 3).length - 1 && <br />}
                                                         </span>
@@ -1239,7 +1201,7 @@ const KQXS = (props) => {
                                         </tr>
                                         <tr>
                                             <td className={styles.tdTitle}>G4</td>
-                                            {dayData.stations.map(stationData => (
+                                            {allStations.map(stationData => (
                                                 <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
                                                     {(stationData.fourPrizes || []).slice(0, 7).map((kq, idx) => (
                                                         <span key={idx} className={styles.prizeNumber}>
@@ -1251,11 +1213,11 @@ const KQXS = (props) => {
                                             ))}
                                         </tr>
                                         <tr>
-                                            <td className={`${styles.tdTitle} ${styles.g3} `}>G3</td>
+                                            <td className={`${styles.tdTitle} ${styles.g3}`}>G3</td>
                                             {allStations.map(stationData => (
                                                 <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
                                                     {(stationData.threePrizes || []).slice(0, 2).map((kq, idx) => (
-                                                        <span key={idx} className={`${styles.prizeNumber} ${styles.g3} `}>
+                                                        <span key={idx} className={`${styles.prizeNumber} ${styles.g3}`}>
                                                             {getFilteredNumber(kq, currentFilter)}
                                                             {idx < (stationData.threePrizes || []).slice(0, 2).length - 1 && <br />}
                                                         </span>
@@ -1284,10 +1246,10 @@ const KQXS = (props) => {
                                             ))}
                                         </tr>
                                         <tr>
-                                            <td className={`${styles.tdTitle} ${styles.highlight} `}>ĐB</td>
+                                            <td className={`${styles.tdTitle} ${styles.highlight}`}>ĐB</td>
                                             {allStations.map(stationData => (
                                                 <td key={stationData.tinh || stationData.station} className={styles.rowXS}>
-                                                    <span className={`${styles.prizeNumber} ${styles.highlight} ${styles.gdb} `}>
+                                                    <span className={`${styles.prizeNumber} ${styles.highlight} ${styles.gdb}`}>
                                                         {(stationData.specialPrize || [])[0] ? getFilteredNumber(stationData.specialPrize[0], currentFilter) : '-'}
                                                     </span>
                                                 </td>
@@ -1299,130 +1261,46 @@ const KQXS = (props) => {
                                     <div aria-label="Tùy chọn lọc số" className={styles.filter__options} role="radiogroup">
                                         <div className={styles.optionInput}>
                                             <input
-                                                id={`filterAll - ${tableKey} `}
+                                                id={`filterAll-${tableKey}`}
                                                 type="radio"
-                                                name={`filterOption - ${tableKey} `}
+                                                name={`filterOption-${tableKey}`}
                                                 value="all"
                                                 checked={currentFilter === 'all'}
                                                 onChange={() => handleFilterChange(tableKey, 'all')}
                                             />
-                                            <label htmlFor={`filterAll - ${tableKey} `}>Tất cả</label>
+                                            <label htmlFor={`filterAll-${tableKey}`}>Tất cả</label>
                                         </div>
                                         <div className={styles.optionInput}>
                                             <input
-                                                id={`filterTwo - ${tableKey} `}
+                                                id={`filterTwo-${tableKey}`}
                                                 type="radio"
-                                                name={`filterOption - ${tableKey} `}
+                                                name={`filterOption-${tableKey}`}
                                                 value="last2"
                                                 checked={currentFilter === 'last2'}
                                                 onChange={() => handleFilterChange(tableKey, 'last2')}
                                             />
-                                            <label htmlFor={`filterTwo - ${tableKey} `}>2 số cuối</label>
+                                            <label htmlFor={`filterTwo-${tableKey}`}>2 số cuối</label>
                                         </div>
                                         <div className={styles.optionInput}>
                                             <input
-                                                id={`filterThree - ${tableKey} `}
+                                                id={`filterThree-${tableKey}`}
                                                 type="radio"
-                                                name={`filterOption - ${tableKey} `}
+                                                name={`filterOption-${tableKey}`}
                                                 value="last3"
                                                 checked={currentFilter === 'last3'}
                                                 onChange={() => handleFilterChange(tableKey, 'last3')}
                                             />
-                                            <label htmlFor={`filterThree - ${tableKey} `}>3 số cuối</label>
+                                            <label htmlFor={`filterThree-${tableKey}`}>3 số cuối</label>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-
-                            <div className={styles.TKe_container}>
-                                <div className={styles.TKe_content}>
-                                    <div className={styles.TKe_contentTitle}>
-                                        <span className={styles.title}>Thống kê lô tô theo Đầu - </span>
-                                        <span className={styles.dayOfWeek}>{`${dayData.dayOfWeek} - `}</span>
-                                        <span className={styles.desc}>{dayData.drawDate}</span>
-                                    </div>
-                                    <table className={styles.tableKey}>
-                                        <thead>
-                                            <tr>
-                                                <th className={styles.t_h}>Đầu</th>
-                                                {stationsData.map(station => (
-                                                    <th key={station.station}>
-                                                        {station.tentinh || `Tỉnh ${stationsData.indexOf(station) + 1} `}
-                                                    </th>
-                                                ))}
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {Array.from({ length: 10 }, (_, idx) => (
-                                                <tr key={idx}>
-                                                    <td className={styles.t_h}>{idx}</td>
-                                                    {allHeads[idx].map((headNumbers, stationIdx) => (
-                                                        <td key={stationIdx}>
-                                                            {headNumbers.map((item, numIdx) => (
-                                                                <span
-                                                                    key={numIdx}
-                                                                    className={
-                                                                        item.isEighth || item.isSpecial
-                                                                            ? styles.highlightPrize
-                                                                            : ''
-                                                                    }
-                                                                >
-                                                                    {item.num}
-                                                                    {numIdx < headNumbers.length - 1 && ', '}
-                                                                </span>
-                                                            ))}
-                                                        </td>
-                                                    ))}
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                <div className={styles.TKe_content}>
-                                    <div className={styles.TKe_contentTitle}>
-                                        <span className={styles.title}>Thống kê lô tô theo Đuôi - </span>
-                                        <span className={styles.dayOfWeek}>{`${dayData.dayOfWeek} - `}</span>
-                                        <span className={styles.desc}>{dayData.drawDate}</span>
-                                    </div>
-                                    <table className={styles.tableKey}>
-                                        <thead>
-                                            <tr>
-                                                <th className={styles.t_h}>Đuôi</th>
-                                                {stationsData.map(station => (
-                                                    <th key={station.station}>
-                                                        {station.tentinh || `Tỉnh ${stationsData.indexOf(station) + 1} `}
-                                                    </th>
-                                                ))}
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {Array.from({ length: 10 }, (_, idx) => (
-                                                <tr key={idx}>
-                                                    <td className={styles.t_h}>{idx}</td>
-                                                    {allTails[idx].map((tailNumbers, stationIdx) => (
-                                                        <td key={stationIdx}>
-                                                            {tailNumbers.map((item, numIdx) => (
-                                                                <span
-                                                                    key={numIdx}
-                                                                    className={
-                                                                        item.isEighth || item.isSpecial
-                                                                            ? styles.highlightPrize
-                                                                            : ''
-                                                                    }
-                                                                >
-                                                                    {item.num}
-                                                                    {numIdx < tailNumbers.length - 1 && ', '}
-                                                                </span>
-                                                            ))}
-                                                        </td>
-                                                    ))}
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
+                            <LoToTable
+                                dayData={dayData}
+                                stationsData={stationsData}
+                                allHeads={allHeads}
+                                allTails={allTails}
+                            />
                         </div>
                     );
                 })}
@@ -1450,31 +1328,8 @@ const KQXS = (props) => {
                     </button>
                 </div>
             )}
-
-            {/* Test button để trigger clear cache */}
-            {process.env.NODE_ENV === 'development' && (
-                <div style={{ marginTop: '20px', textAlign: 'center' }}>
-                    <button
-                        onClick={() => {
-                            console.log('🧪 Test: Force clear cache');
-                            clearCacheForToday();
-                        }}
-                        style={{
-                            padding: '10px 20px',
-                            backgroundColor: '#ff6b6b',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '5px',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        Test Clear Cache
-                    </button>
-                </div>
-            )}
         </div>
     );
 };
 
 export default React.memo(KQXS);
-// cần test 17/06 sửa để cập nhập cache

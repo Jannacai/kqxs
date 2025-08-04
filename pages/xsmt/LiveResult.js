@@ -5,6 +5,59 @@ import React from 'react';
 import { useLottery } from '../../contexts/LotteryContext';
 // import ViewCounter from "../views/ViewCounter";
 
+// BỔ SUNG: Global SSE connection manager để tránh memory leak và treo trình duyệt
+const globalSSEManager = {
+    connections: new Map(),
+    maxConnections: 15, // Giới hạn số connection để tránh treo (XSMT có nhiều tỉnh hơn)
+    cleanup: () => {
+        globalSSEManager.connections.forEach((connection, key) => {
+            if (connection && connection.readyState !== EventSource.CLOSED) {
+                try {
+                    connection.close();
+                } catch (error) {
+                    console.warn('Lỗi đóng global SSE connection:', error);
+                }
+            }
+        });
+        globalSSEManager.connections.clear();
+    },
+    // Thêm method để kiểm tra và cleanup connection cũ
+    cleanupOldConnections: () => {
+        const now = Date.now();
+        const connectionsToRemove = [];
+
+        globalSSEManager.connections.forEach((connection, key) => {
+            if (connection.lastActivity && (now - connection.lastActivity) > 300000) { // 5 phút
+                connectionsToRemove.push(key);
+            }
+        });
+
+        connectionsToRemove.forEach(key => {
+            const connection = globalSSEManager.connections.get(key);
+            if (connection && connection.readyState !== EventSource.CLOSED) {
+                try {
+                    connection.close();
+                } catch (error) {
+                    console.warn('Lỗi đóng old SSE connection:', error);
+                }
+            }
+            globalSSEManager.connections.delete(key);
+        });
+    }
+};
+
+// Cleanup global connections khi page unload
+if (typeof window !== 'undefined') {
+    window.addEventListener('beforeunload', () => {
+        globalSSEManager.cleanup();
+    });
+
+    // Cleanup định kỳ để tránh memory leak
+    setInterval(() => {
+        globalSSEManager.cleanupOldConnections();
+    }, 60000); // Mỗi phút
+}
+
 const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFilterChange = null, filterTypes = null, isLiveWindow, isModal = false, isForum = false }) => {
     // State cho filter trong modal
     const [modalFilter, setModalFilter] = useState('all');
@@ -230,7 +283,7 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
 
         try {
             const response = await fetch(
-                `http://localhost:5000/api/ketquaxs/xsmt/sse/initial?station=${station}&tinh=${province.tinh}&date=${targetDate.replace(/\//g, '-')}`
+                `https://backendkqxs-1.onrender.com/api/ketquaxs/xsmt/sse/initial?station=${station}&tinh=${province.tinh}&date=${targetDate.replace(/\//g, '-')}`
             );
             if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
             const serverData = await response.json();
@@ -270,7 +323,7 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
             }
             throw error;
         }
-    }, [station]);
+    }, [station]); // CHỈ giữ station dependency
 
     // Tối ưu localStorage operations với debounce
     const localStorageRef = useRef(new Map());
@@ -300,7 +353,7 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
             });
             localStorageRef.current.clear();
         }, 100); // Debounce 100ms
-    }, []);
+    }, []); // BỎ tất cả dependencies để tránh vòng lặp
 
     // Auto-cleanup cho liveData localStorage - xóa data cũ để tránh memory leak
     // TTL 40 phút đủ cho live window và smooth page transitions
@@ -348,43 +401,94 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
         return () => clearInterval(cleanupInterval);
     }, [cleanupOldLiveData]);
 
-    // Tối ưu animation timeout với requestAnimationFrame
+    // Tối ưu animation timeout với requestAnimationFrame - SỬA LỖI ANIMATING
     const animationTimeoutsRef = useRef(new Map());
+    const animationStateRef = useRef(new Map()); // { `${tinh}-${prizeType}`: { startTime, isActive } }
 
     const setAnimationWithTimeout = useCallback((tinh, prizeType) => {
-        // Clear timeout cũ nếu có
-        if (animationTimeoutsRef.current.has(`${tinh}-${prizeType}`)) {
-            clearTimeout(animationTimeoutsRef.current.get(`${tinh}-${prizeType}`));
+        const animationKey = `${tinh}-${prizeType}`;
+
+        // Kiểm tra nếu component đã unmount
+        if (!mountedRef.current) {
+            console.log('⚠️ Component đã unmount, bỏ qua animation');
+            return;
         }
+
+        // Clear timeout cũ nếu có
+        if (animationTimeoutsRef.current.has(animationKey)) {
+            try {
+                clearTimeout(animationTimeoutsRef.current.get(animationKey));
+            } catch (error) {
+                console.warn('Lỗi clear animation timeout:', error);
+            }
+        }
+
+        // Kiểm tra nếu animation đang hoạt động cho prize này
+        const currentAnimation = animationStateRef.current.get(animationKey);
+        if (currentAnimation && currentAnimation.isActive) {
+            console.log(`🎬 Animation đang hoạt động cho ${prizeType} (${tinh}), bỏ qua`);
+            return;
+        }
+
+        // Đánh dấu animation bắt đầu
+        animationStateRef.current.set(animationKey, {
+            startTime: Date.now(),
+            isActive: true
+        });
+
+        console.log(`🎬 Bắt đầu animation cho ${prizeType} (${tinh})`);
 
         // Sử dụng requestAnimationFrame để tối ưu performance
         requestAnimationFrame(() => {
-            setAnimatingPrizes(prev => ({
-                ...prev,
-                [tinh]: prizeType
-            }));
+            if (mountedRef.current) {
+                setAnimatingPrizes(prev => ({
+                    ...prev,
+                    [tinh]: prizeType
+                }));
+            }
         });
 
-        // Set timeout mới
+        // Set timeout mới - giảm từ 2000ms xuống 1200ms để tối ưu performance
         const timeoutId = setTimeout(() => {
-            requestAnimationFrame(() => {
-                setAnimatingPrizes(prev => {
-                    const newState = { ...prev };
-                    if (newState[tinh] === prizeType) {
-                        delete newState[tinh];
-                    }
-                    return newState;
-                });
-            });
-            animationTimeoutsRef.current.delete(`${tinh}-${prizeType}`);
-        }, 2000);
+            if (mountedRef.current) {
+                // Sử dụng requestIdleCallback để tối ưu performance
+                if (window.requestIdleCallback) {
+                    requestIdleCallback(() => {
+                        setAnimatingPrizes(prev => {
+                            const newState = { ...prev };
+                            if (newState[tinh] === prizeType) {
+                                delete newState[tinh];
+                                console.log(`🎬 Kết thúc animation cho ${prizeType} (${tinh})`);
+                            }
+                            return newState;
+                        });
+                    }, { timeout: 100 });
+                } else {
+                    requestAnimationFrame(() => {
+                        setAnimatingPrizes(prev => {
+                            const newState = { ...prev };
+                            if (newState[tinh] === prizeType) {
+                                delete newState[tinh];
+                                console.log(`🎬 Kết thúc animation cho ${prizeType} (${tinh})`);
+                            }
+                            return newState;
+                        });
+                    });
+                }
+            }
 
-        animationTimeoutsRef.current.set(`${tinh}-${prizeType}`, timeoutId);
-    }, []);
+            // Đánh dấu animation kết thúc
+            animationStateRef.current.delete(animationKey);
+            animationTimeoutsRef.current.delete(animationKey);
+        }, 1200); // Giảm từ 2000ms xuống 1200ms
+
+        animationTimeoutsRef.current.set(animationKey, timeoutId);
+    }, []); // BỎ processedLiveData dependency để tránh vòng lặp
 
     // Batch update cho multiple SSE events
     const batchUpdateRef = useRef(new Map());
     const batchTimeoutRef = useRef(null);
+    const animationQueueRef = useRef(new Map()); // Thêm animation queue
 
     const batchUpdateLiveData = useCallback((tinh, prizeType, value) => {
         const key = `${tinh}-${prizeType}`;
@@ -399,10 +503,11 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
             });
             console.log(`📦 Cached prize ${prizeType} = ${value} cho ${tinh}`);
 
-            // Trigger animation cho dữ liệu mới
-            if (mountedRef.current) {
+            // Thêm vào animation queue thay vì setTimeout ngay lập tức
+            const animationKey = `${tinh}-${prizeType}`;
+            if (mountedRef.current && value && value !== '...' && value !== '***') {
                 console.log(`🎬 Trigger animation cho ${prizeType} = ${value} (${tinh})`);
-                setAnimationWithTimeout(tinh, prizeType);
+                animationQueueRef.current.set(animationKey, { tinh, prizeType });
             }
         }
 
@@ -410,9 +515,12 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
             clearTimeout(batchTimeoutRef.current);
         }
 
-        batchTimeoutRef.current = setTimeout(() => {
+        // Sử dụng requestIdleCallback thay vì setTimeout để tối ưu performance
+        const processBatchUpdate = () => {
             if (batchUpdateRef.current.size > 0 && setLiveData) {
                 console.log('🔄 Bắt đầu batch update với:', Array.from(batchUpdateRef.current.values()));
+
+                // Tách riêng state updates để tránh React warning
                 setLiveData(prev => {
                     console.log('🔄 Prev liveData:', prev);
                     const updatedData = prev.map(item => {
@@ -424,12 +532,6 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                                 console.log(`🔄 Cập nhật ${updatePrizeType} = ${updateValue} cho ${updateTinh}`);
                                 updatedItem[updatePrizeType] = updateValue;
                                 hasChanges = true;
-
-                                // Trigger animation cho dữ liệu mới nếu component đang mounted
-                                if (mountedRef.current && updateValue && updateValue !== '...' && updateValue !== '***') {
-                                    console.log(`🎬 Trigger animation cho ${updatePrizeType} = ${updateValue} (${updateTinh})`);
-                                    setAnimationWithTimeout(updateTinh, updatePrizeType);
-                                }
                             }
                         });
 
@@ -442,57 +544,120 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                         return updatedItem;
                     });
 
-                    const isComplete = updatedData.every(item =>
-                        Object.values(item).every(val => typeof val === 'string' && val !== '...' && val !== '***')
-                    );
-                    setIsLiveDataComplete(isComplete);
-                    setIsTodayLoading(false);
-                    setRetryCount(0);
-                    setError(null);
-
                     console.log('🔄 Batch update liveData:', updatedData);
                     return updatedData;
                 });
 
+                // Tách riêng các state updates khác với requestIdleCallback
+                if (window.requestIdleCallback) {
+                    requestIdleCallback(() => {
+                        if (mountedRef.current) {
+                            const isComplete = Array.from(batchUpdateRef.current.values()).every(({ value }) =>
+                                value && value !== '...' && value !== '***'
+                            );
+                            setIsLiveDataComplete(isComplete);
+                            setIsTodayLoading(false);
+                            setRetryCount(0);
+                            setError(null);
+                        }
+                    }, { timeout: 100 });
+                } else {
+                    setTimeout(() => {
+                        if (mountedRef.current) {
+                            const isComplete = Array.from(batchUpdateRef.current.values()).every(({ value }) =>
+                                value && value !== '...' && value !== '***'
+                            );
+                            setIsLiveDataComplete(isComplete);
+                            setIsTodayLoading(false);
+                            setRetryCount(0);
+                            setError(null);
+                        }
+                    }, 0);
+                }
+
+                // Process animation queue với requestAnimationFrame để tối ưu performance
+                if (animationQueueRef.current.size > 0) {
+                    requestAnimationFrame(() => {
+                        animationQueueRef.current.forEach(({ tinh, prizeType }) => {
+                            if (mountedRef.current) {
+                                setAnimationWithTimeout(tinh, prizeType);
+                            }
+                        });
+                        animationQueueRef.current.clear();
+                    });
+                }
+
                 // Clear batch
                 batchUpdateRef.current.clear();
             }
-        }, 50); // Batch update trong 50ms
-    }, [setLiveData, debouncedLocalStorageUpdate, station, today]);
+        };
+
+        // Sử dụng requestIdleCallback nếu có, fallback về setTimeout
+        if (window.requestIdleCallback) {
+            batchTimeoutRef.current = requestIdleCallback(processBatchUpdate, { timeout: 100 });
+        } else {
+            batchTimeoutRef.current = setTimeout(processBatchUpdate, 30); // Giảm từ 50ms xuống 30ms
+        }
+    }, [setLiveData, debouncedLocalStorageUpdate, station, today, setAnimationWithTimeout]);
 
     useEffect(() => {
         mountedRef.current = true;
         console.log('🔄 LiveResult component mounted');
 
-        // Reset animation state khi component mount
-        setAnimatingPrizes({});
-        console.log('🔄 Reset animation state');
+        // KHÔNG reset animation state khi component mount để tránh mất animation
+        console.log('🔄 Component mounted, giữ nguyên animation state');
         return () => {
             console.log('🔄 LiveResult component unmounting');
             mountedRef.current = false;
 
-            // Clear tất cả animation timeouts
+            // Clear tất cả animation timeouts với timeout để tránh treo
             console.log('🧹 Clear animation timeouts...');
             animationTimeoutsRef.current.forEach((timeoutId) => {
-                clearTimeout(timeoutId);
+                try {
+                    clearTimeout(timeoutId);
+                } catch (error) {
+                    console.warn('Lỗi clear animation timeout:', error);
+                }
             });
             animationTimeoutsRef.current.clear();
 
+            // Clear animation state ref
+            animationStateRef.current.clear();
+
             // Clear batch update timeout
             if (batchTimeoutRef.current) {
-                clearTimeout(batchTimeoutRef.current);
+                try {
+                    // Handle cả setTimeout và requestIdleCallback
+                    if (typeof batchTimeoutRef.current === 'number') {
+                        clearTimeout(batchTimeoutRef.current);
+                    } else if (window.cancelIdleCallback) {
+                        cancelIdleCallback(batchTimeoutRef.current);
+                    }
+                } catch (error) {
+                    console.warn('Lỗi clear batch timeout:', error);
+                }
                 batchTimeoutRef.current = null;
             }
 
             // Clear batch update ref
             batchUpdateRef.current.clear();
 
-            // Đóng tất cả SSE connections
+            // Clear animation queue
+            animationQueueRef.current.clear();
+
+            // Đóng tất cả SSE connections với timeout để tránh treo
             Object.values(sseRefs.current).forEach(sse => {
-                console.log('🔌 Đóng kết nối SSE...');
-                sse.close();
+                try {
+                    console.log('🔌 Đóng kết nối SSE...');
+                    sse.close();
+                } catch (error) {
+                    console.warn('Lỗi đóng SSE connection:', error);
+                }
             });
             sseRefs.current = {};
+
+            // Clear connection pool
+            sseConnectionPool.current.clear();
 
             // Reset SSE setup flag
             sseSetupRef.current = false;
@@ -537,9 +702,8 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
         console.log('✅ Bắt đầu thiết lập SSE cho XSMT');
         sseSetupRef.current = true;
 
-        // Reset animation state khi bắt đầu SSE setup
-        setAnimatingPrizes({});
-        console.log('🔄 Reset animation state cho SSE setup');
+        // KHÔNG reset animation state khi bắt đầu SSE setup để tránh mất animation
+        console.log('🔄 Bắt đầu SSE setup, giữ nguyên animation state');
 
         const fetchInitialData = async (retry = 0) => {
             try {
@@ -756,13 +920,24 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                     sseRefs.current[province.tinh].close();
                 }
 
-                const sseUrl = `http://localhost:5000/api/ketquaxs/xsmt/sse?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`;
+                const sseUrl = `https://backendkqxs-1.onrender.com/api/ketquaxs/xsmt/sse?station=${station}&tinh=${province.tinh}&date=${today.replace(/\//g, '-')}`;
                 console.log(`🔌 Tạo SSE connection cho ${province.tinh}:`, sseUrl);
+
+                // Kiểm tra số lượng connection để tránh treo trình duyệt
+                if (globalSSEManager.connections.size >= globalSSEManager.maxConnections) {
+                    console.warn('⚠️ Quá nhiều SSE connections, cleanup trước khi tạo mới');
+                    globalSSEManager.cleanupOldConnections();
+                }
 
                 try {
                     const newConnection = new EventSource(sseUrl);
                     sseRefs.current[province.tinh] = newConnection;
                     sseConnectionPool.current.set(connectionKey, newConnection);
+
+                    // Thêm vào global manager với timestamp
+                    newConnection.lastActivity = Date.now();
+                    globalSSEManager.connections.set(connectionKey, newConnection);
+
                     setSseStatus(prev => ({ ...prev, [province.tinh]: 'connecting' }));
                     console.log(`✅ SSE connection created for ${province.tinh}`);
 
@@ -876,7 +1051,7 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
             }
 
             // Tạo connection mới
-            const sseUrl = `http://localhost:5000/api/ketquaxs/xsmt/sse?station=${station}&tinh=${tinh}&date=${today.replace(/\//g, '-')}`;
+            const sseUrl = `https://backendkqxs-1.onrender.com/api/ketquaxs/xsmt/sse?station=${station}&tinh=${tinh}&date=${today.replace(/\//g, '-')}`;
             console.log(`🔌 Tạo SSE connection mới cho ${tinh}:`, sseUrl);
 
             try {
@@ -996,11 +1171,12 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
 
             sseSetupRef.current = false; // Reset để có thể thiết lập lại
         };
-    }, [isLiveWindow, station, today, setLiveData, setIsLiveDataComplete, provincesByDay, emptyResult, debouncedLocalStorageUpdate, batchUpdateLiveData, setAnimationWithTimeout, getCachedOrFetchInitialData]);
+    }, [isLiveWindow, station, today, setLiveData, setIsLiveDataComplete]); // GIẢM dependency để tránh vòng lặp
 
     useEffect(() => {
         if (!liveData || !liveData.length) {
-            setAnimatingPrizes({});
+            // KHÔNG reset animatingPrizes để tránh mất animation đang chạy
+            console.log('🔄 LiveData rỗng, giữ nguyên animation state');
             return;
         }
 
@@ -1013,24 +1189,28 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
             'secondPrize_0', 'firstPrize_0', 'specialPrize_0'
         ];
 
-        setAnimatingPrizes(prev => {
-            const newAnimatingPrizes = { ...prev };
-            let hasChanges = false;
+        // Chỉ cập nhật animation queue nếu component đang mounted
+        if (mountedRef.current) {
+            setAnimatingPrizes(prev => {
+                const newAnimatingPrizes = { ...prev };
+                let hasChanges = false;
 
-            processedLiveData.forEach(stationData => {
-                const currentPrize = prev[stationData.tinh];
-                if (!currentPrize || stationData[currentPrize] !== '...') {
-                    const nextPrize = animationQueue.find(prize => stationData[prize] === '...') || null;
-                    if (nextPrize !== currentPrize) {
-                        newAnimatingPrizes[stationData.tinh] = nextPrize;
-                        hasChanges = true;
+                processedLiveData.forEach(stationData => {
+                    const currentPrize = prev[stationData.tinh];
+                    if (!currentPrize || stationData[currentPrize] !== '...') {
+                        const nextPrize = animationQueue.find(prize => stationData[prize] === '...') || null;
+                        if (nextPrize !== currentPrize) {
+                            newAnimatingPrizes[stationData.tinh] = nextPrize;
+                            hasChanges = true;
+                            console.log(`🎬 Cập nhật animation queue cho ${stationData.tinh}: ${nextPrize}`);
+                        }
                     }
-                }
-            });
+                });
 
-            return hasChanges ? newAnimatingPrizes : prev;
-        });
-    }, [liveData]);
+                return hasChanges ? newAnimatingPrizes : prev;
+            });
+        }
+    }, [liveData]); // BỎ processedLiveData dependency để tránh vòng lặp
 
     useEffect(() => {
         console.log('🔄 LiveResult component re-render với liveData:', liveData);
