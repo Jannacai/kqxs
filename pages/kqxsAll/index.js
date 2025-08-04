@@ -364,6 +364,9 @@ const KQXS = (props) => {
     // ✅ TỐI ƯU: Sử dụng useRef để tham chiếu đến fetchData
     const fetchDataRef = useRef();
 
+    // ✅ TỐI ƯU: Thêm ref để theo dõi component mount state
+    const isMountedRef = useRef(true);
+
     const router = useRouter();
     const dayof = props.data4;
     const station = props.station || "xsmb";
@@ -688,6 +691,7 @@ const KQXS = (props) => {
                 return;
             }
 
+            // ✅ SỬA: Đảm bảo setLoading(false) được gọi trong mọi trường hợp
             setLoading(false);
             setError(null);
         } catch (error) {
@@ -700,6 +704,12 @@ const KQXS = (props) => {
     // ✅ TỐI ƯU: Cập nhật ref khi fetchData thay đổi
     useEffect(() => {
         fetchDataRef.current = fetchData;
+    }, [fetchData]);
+
+    // ✅ THÊM: useEffect để gọi fetchData ban đầu
+    useEffect(() => {
+        console.log('🔄 Component mounted, gọi fetchData ban đầu');
+        fetchData();
     }, [fetchData]);
 
     // ✅ TỐI ƯU: Constants đồng bộ với LiveResult.js - MÚI GIỜ VIỆT NAM
@@ -860,9 +870,12 @@ const KQXS = (props) => {
     }, [hasTriggeredScraper, station, today, checkLiveWindow]); // ✅ TỐI ƯU: Loại bỏ clearCacheForToday vì chỉ dùng trong LiveResult ẩn đi
 
     useEffect(() => {
-        // ✅ TỐI ƯU: Chỉ fetch data khi mount, không fetch lại mỗi lần
-        fetchData();
-    }, []); // Loại bỏ fetchData khỏi dependency để tránh re-render
+        isMountedRef.current = true;
+
+        return () => {
+            isMountedRef.current = false;
+        };
+    }, []);
 
     // ✅ TỐI ƯU: Memoize các giá trị tính toán để tránh tính lại
     const isLiveMode = useMemo(() => {
@@ -1007,10 +1020,12 @@ const KQXS = (props) => {
     }, [totalPages]);
 
     if (loading) {
+        console.log('🔄 Loading state:', { loading, dataLength: data.length, error });
         return <SkeletonLoading />;
     }
 
     if (error) {
+        console.log('❌ Error state:', { error, dataLength: data.length });
         return <div className={styles.error}>{error}</div>;
     }
 
@@ -1084,6 +1099,7 @@ const KQXS = (props) => {
 
     return (
         <div className={styles.containerKQ}>
+            {/* ✅ THÊM: LiveResult component cho XSMB */}
             {isLiveMode && isLiveWindow && (
                 <LiveResult
                     station={station}
@@ -1094,6 +1110,7 @@ const KQXS = (props) => {
                     isLiveWindow={isLiveWindow}
                 />
             )}
+
             {currentData.map((data2) => {
                 const tableKey = data2.drawDate + data2.tinh;
                 const currentFilter = filterTypes[tableKey] || 'all';
@@ -1320,4 +1337,13 @@ const KQXS = (props) => {
     );
 };
 
-export default React.memo(KQXS);
+// ✅ TỐI ƯU: Wrap component với React.memo để tránh re-render không cần thiết
+export default React.memo(KQXS, (prevProps, nextProps) => {
+    // Chỉ re-render khi props thực sự thay đổi
+    return (
+        prevProps.data === nextProps.data &&
+        prevProps.data3 === nextProps.data3 &&
+        prevProps.data4 === nextProps.data4 &&
+        prevProps.station === nextProps.station
+    );
+});

@@ -7,11 +7,16 @@ import { useLottery } from '../../contexts/LotteryContext';
 // BỔ SUNG: Global SSE connection manager để tránh memory leak và treo trình duyệt
 const globalSSEManager = {
     connections: new Map(),
-    maxConnections: 10, // Giới hạn số connection để tránh treo
+    maxConnections: 10, // ✅ GIẢM từ 15 xuống 10 để tránh quá tải
+    maxConnectionsPerProvince: 2, // ✅ THÊM giới hạn cho mỗi tỉnh
     cleanup: () => {
         globalSSEManager.connections.forEach((connection, key) => {
             if (connection && connection.readyState !== EventSource.CLOSED) {
-                connection.close();
+                try {
+                    connection.close();
+                } catch (error) {
+                    console.warn('Lỗi đóng global SSE connection:', error);
+                }
             }
         });
         globalSSEManager.connections.clear();
@@ -30,10 +35,24 @@ const globalSSEManager = {
         connectionsToRemove.forEach(key => {
             const connection = globalSSEManager.connections.get(key);
             if (connection && connection.readyState !== EventSource.CLOSED) {
-                connection.close();
+                try {
+                    connection.close();
+                } catch (error) {
+                    console.warn('Lỗi đóng old SSE connection:', error);
+                }
             }
             globalSSEManager.connections.delete(key);
         });
+    },
+    // ✅ THÊM: Method để đếm connections cho một tỉnh cụ thể
+    getConnectionsForProvince: (province) => {
+        let count = 0;
+        globalSSEManager.connections.forEach((connection, key) => {
+            if (key.includes(province)) {
+                count++;
+            }
+        });
+        return count;
     }
 };
 
@@ -97,10 +116,10 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
     const prizeCacheTimeout = 20 * 1000;
     const sseConnectionPool = useRef(new Map());
     const sseReconnectDelay = 1000;
-
-    // BỔ SUNG: Batch update để tối ưu performance cho 200+ client
+    const animationQueueRef = useRef(new Map());
+    const animationThrottleRef = useRef(new Map()); // ✅ THÊM: Throttle ref cho animation
     const batchUpdateRef = useRef(new Map());
-    const batchTimeoutRef = useRef(null);
+    const batchTimeoutRef = useRef(null); // ✅ THÊM LẠI: batchTimeoutRef cho XSMB
     const animationTimeoutsRef = useRef(new Map());
     const localStorageRef = useRef(new Map());
     const localStorageTimeoutRef = useRef(null);
@@ -361,7 +380,7 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
 
     // BỔ SUNG: Batch update live data tối ưu cho 200+ client
     const batchUpdateLiveData = useCallback((prizeType, value) => {
-        const key = `${prizeType}`;
+        const key = `MB-${prizeType}`;
         batchUpdateRef.current.set(key, { prizeType, value });
 
         // LOG: Batch update được trigger
@@ -374,15 +393,25 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
 
         // Cache prize type riêng lẻ ngay lập tức
         if (value && value !== '...' && value !== '***') {
-            const prizeCacheKey = `${currentStation}:${prizeType}`;
+            const prizeCacheKey = `${currentStation}:MB:${prizeType}`;
             prizeCache.current.set(prizeCacheKey, {
                 value: value,
                 timestamp: Date.now()
             });
+            console.log(`📦 Cached prize ${prizeType} = ${value} cho XSMB`);
 
-            // Trigger animation cho dữ liệu mới
-            if (mountedRef.current) {
-                setAnimationWithTimeout(prizeType);
+            // ✅ TỐI ƯU: Thêm throttle cho animation để tránh quá tải
+            const animationKey = `MB-${prizeType}`;
+            if (mountedRef.current && value && value !== '...' && value !== '***') {
+                // Kiểm tra nếu animation này đã được trigger gần đây
+                const lastAnimationTime = animationThrottleRef.current.get(animationKey) || 0;
+                const now = Date.now();
+
+                if (now - lastAnimationTime > 1000) { // Throttle 1 giây
+                    animationThrottleRef.current.set(animationKey, now);
+                    animationQueueRef.current.set(animationKey, { tinh: 'MB', prizeType });
+                    console.log(`🎬 Queued animation cho XSMB: ${prizeType} = ${value}`);
+                }
             }
         }
 
@@ -767,6 +796,14 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                 globalSSEManager.cleanupOldConnections();
             }
 
+            // ✅ TỐI ƯU: Sử dụng method mới để kiểm tra connections cho tỉnh
+            const connectionsForProvince = globalSSEManager.getConnectionsForProvince('MB');
+
+            if (connectionsForProvince >= globalSSEManager.maxConnectionsPerProvince) { // Giới hạn 2 connections cho XSMB
+                console.warn(`⚠️ Quá nhiều SSE connections cho XSMB (${connectionsForProvince}), bỏ qua`);
+                return;
+            }
+
             // Kiểm tra nếu đang trong Fast Refresh
             if (typeof window !== 'undefined' && window.__NEXT_DATA__?.buildId !== window.__NEXT_DATA__?.buildId) {
                 return;
@@ -1074,6 +1111,32 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
         if (!animatingPrize || xsmbLiveData[animatingPrize] !== '...') {
             const nextPrize = findNextAnimatingPrize();
             setAnimatingPrize(nextPrize);
+        }
+
+        // Process animation queue với requestAnimationFrame để tối ưu performance
+        if (animationQueueRef.current.size > 0) {
+            // ✅ TỐI ƯU: Giới hạn số lượng animation đồng thời để tránh overflow
+            const maxAnimationsPerFrame = 5; // Giới hạn 5 animation mỗi frame
+            const animationArray = Array.from(animationQueueRef.current.entries());
+
+            // Chỉ xử lý tối đa maxAnimationsPerFrame animation mỗi frame
+            const animationsToProcess = animationArray.slice(0, maxAnimationsPerFrame);
+
+            requestAnimationFrame(() => {
+                animationsToProcess.forEach(([key, { tinh, prizeType }]) => {
+                    if (mountedRef.current) {
+                        setAnimatingPrize({ tinh, prizeType });
+                        animationQueueRef.current.delete(key);
+
+                        // Reset animation sau 2 giây
+                        setTimeout(() => {
+                            if (mountedRef.current) {
+                                setAnimatingPrize(null);
+                            }
+                        }, 2000);
+                    }
+                });
+            });
         }
     }, [xsmbLiveData, animatingPrize]);
 
