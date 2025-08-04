@@ -12,6 +12,9 @@ const CACHE_DURATION = 24 * 60 * 60 * 1000; // Cache 24 giờ
 const LIVE_CACHE_DURATION = 40 * 60 * 1000; // Cache 40 phút cho live data
 const UPDATE_KEY = 'xsmb_update_timestamp';
 
+const testhour = 18;
+const testminutes = 10;
+
 // BỔ SUNG: Helper function để lấy thời gian Việt Nam - TỐI ƯU
 let cachedVietnamTime = null;
 let lastCacheTime = 0;
@@ -474,9 +477,9 @@ const KQXS = (props) => {
             const vietnamMinutes = vietnamTime.getMinutes();
 
             // ✅ TỐI ƯU: Logic thời gian chính xác cho múi giờ Việt Nam
-            const isUpdateWindow = vietnamHours === 18 && vietnamMinutes >= 10 && vietnamMinutes <= 33;
-            const isAfterUpdateWindow = vietnamHours > 18 || (vietnamHours === 18 && vietnamMinutes > 33);
-            const isPostLiveWindow = vietnamHours > 18 || (vietnamHours === 18 && vietnamMinutes > 33);
+            const isUpdateWindow = vietnamHours === testhour && vietnamMinutes >= testminutes && vietnamMinutes <= 33;
+            const isAfterUpdateWindow = vietnamHours > testhour || (vietnamHours === testhour && vietnamMinutes > 33);
+            const isPostLiveWindow = vietnamHours > testhour || (vietnamHours === testhour && vietnamMinutes > 33);
 
             // Kiểm tra cache
             const cachedData = localStorage.getItem(CACHE_KEY);
@@ -497,7 +500,7 @@ const KQXS = (props) => {
                 const cacheMinute = vietnamCacheTime.getMinutes();
 
                 // Nếu cache được tạo sau 18h35, đây là cache mới và đáng tin cậy
-                const isNewCache = (cacheHour > 18) || (cacheHour === 18 && cacheMinute >= 33);
+                const isNewCache = (cacheHour > testhour) || (cacheHour === testhour && cacheMinute >= 33);
 
                 if (isNewCache) {
                     console.log(`✅ Sử dụng cache mới (sau 18h35): ${vietnamCacheTime.toLocaleTimeString('vi-VN')}`);
@@ -704,8 +707,8 @@ const KQXS = (props) => {
     // - getVietnamTime() sử dụng timeZone: 'Asia/Ho_Chi_Minh'
     // - Đảm bảo tính nhất quán cho tất cả người dùng
     const LIVE_WINDOW_CONFIG = {
-        hour: 18, // 18h - múi giờ Việt Nam (UTC+7)
-        startMinute: 10, // 18h10 - Bắt đầu live window
+        hour: testhour, // 18h - múi giờ Việt Nam (UTC+7)
+        startMinute: testminutes, // 18h10 - Bắt đầu live window
         endMinute: 33, // 18h34 - Kết thúc live window
         duration: 23 * 60 * 1000, // 24 phút
         scraperTriggerMinute: 14, // 18h23 - Trigger scraper
@@ -737,7 +740,7 @@ const KQXS = (props) => {
         };
     }, [isLiveWindow, getVietnamTimeCached]);
 
-    // ✅ TỐI ƯU: Logic check time tối ưu - chỉ clear cache khi LiveResult ẩn đi
+    // ✅ TỐI ƯU: Logic check time tối ưu - TỐI ƯU CUỐI CÙNG để không ảnh hưởng LiveResult
     useEffect(() => {
         let cacheClearedForLiveWindow = false; // Flag tránh clear cache nhiều lần khi LiveResult ẩn đi
         let lastCheckMinute = -1; // Tránh check cùng 1 phút nhiều lần
@@ -923,7 +926,7 @@ const KQXS = (props) => {
     const endIndex = useMemo(() => startIndex + itemsPerPage, [startIndex]);
     const currentData = useMemo(() => data.slice(startIndex, endIndex), [data, startIndex, endIndex]);
 
-    // ✅ TỐI ƯU: Cập nhật cache khi liveData đầy đủ - đơn giản hóa logic
+    // ✅ TỐI ƯU: Cập nhật cache khi liveData đầy đủ - TỐI ƯU CUỐI CÙNG
     useEffect(() => {
         if (isLiveDataComplete && liveData && liveData.drawDate === today) {
             console.log('🔄 Live data complete, cập nhật cache và force refresh');

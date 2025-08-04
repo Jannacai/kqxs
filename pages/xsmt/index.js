@@ -85,8 +85,8 @@ const KQXS = (props) => {
     // ✅ TỐI ƯU: Sử dụng useRef để tham chiếu đến fetchData - giống XSMB
     const fetchDataRef = useRef();
 
-    const hour = 17;
-    const minutes1 = 10;
+    const hour = 12;
+    const minutes1 = 16;
     const minutes2 = 14;
 
     const dayof = props.dayofMT;

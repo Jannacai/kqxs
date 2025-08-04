@@ -206,6 +206,7 @@
 
 /* Animations */
 @keyframes bounce {
+
 	0%,
 	20%,
 	50%,
@@ -213,9 +214,11 @@
 	100% {
 		transform: translateY(0);
 	}
+
 	40% {
 		transform: translateY(-4px);
 	}
+
 	60% {
 		transform: translateY(-2px);
 	}
@@ -225,9 +228,11 @@
 	0% {
 		box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
 	}
+
 	70% {
 		box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
 	}
+
 	100% {
 		box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
 	}
@@ -313,6 +318,7 @@
 	from {
 		transform: rotate(0deg);
 	}
+
 	to {
 		transform: rotate(360deg);
 	}
@@ -388,7 +394,8 @@
 }
 
 /* High DPI Displays */
-@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+@media (-webkit-min-device-pixel-ratio: 2),
+(min-resolution: 192dpi) {
 	.forumButton {
 		backdrop-filter: blur(20px);
 	}

@@ -120,8 +120,8 @@ const LiveResultOptimized = ({ station, getHeadAndTailNumbers, handleFilterChang
                             </h2>
                             <div className={styles.optimizedSubtitle}>
                                 {stationData.dayOfWeek} - {stationData.drawDate}
-                    </div>
-                </div>
+                            </div>
+                        </div>
 
                         <div className={styles.optimizedTableContainer}>
                             <table className={styles.optimizedTable}>
@@ -268,8 +268,8 @@ const LiveResultOptimized = ({ station, getHeadAndTailNumbers, handleFilterChang
                                             </div>
                                         ))}
                                     </div>
-                </div>
-            </div>
+                                </div>
+                            </div>
                         )}
                     </div>
                 );
