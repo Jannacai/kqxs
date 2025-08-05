@@ -854,7 +854,7 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                 // Kiểm tra nếu đang trong giờ live (18h-18h59)
                 const vietnamTime = getVietnamTime();
                 const currentHour = vietnamTime.getHours();
-                const isLiveHour = currentHour === 20;
+                const isLiveHour = currentHour === 21;
 
                 // Clear cache nếu đã qua giờ live (19h trở đi)
                 if (currentHour >= 19) {
@@ -1163,7 +1163,7 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
             // Kiểm tra nếu không phải giờ live cho XSMB (chỉ áp dụng cho modal)
             const vietnamTime = getVietnamTime();
             const currentHour = vietnamTime.getHours();
-            const isLiveHour = currentHour === 20;
+            const isLiveHour = currentHour === 21;
 
             // Chỉ kiểm tra giờ live cho modal, trang chính luôn kết nối SSE
             if (!isLiveHour && currentStation === 'xsmb' && isModal) {
@@ -2225,7 +2225,7 @@ function isWithinLiveWindow() {
     const vietTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
     const hours = vietTime.getHours();
     const minutes = vietTime.getMinutes();
-    return (hours === 20 && minutes >= 50 && minutes <= 59);
+    return (hours === 21 && minutes >= 20 && minutes <= 59);
 }
 
 export default React.memo(LiveResult);
