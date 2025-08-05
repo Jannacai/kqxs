@@ -12,6 +12,11 @@ const CACHE_DURATION = 24 * 60 * 60 * 1000; // Cache 24 giờ
 const LIVE_CACHE_DURATION = 40 * 60 * 1000; // Cache 40 phút cho live data
 const UPDATE_KEY = 'xsmb_update_timestamp';
 
+// ✅ THÊM: Cache version control để invalidate cache cũ
+const CACHE_VERSION_KEY = 'xsmb_cache_version';
+const CURRENT_CACHE_VERSION = 'v2.0'; // Tăng version khi có thay đổi logic
+const LIVE_WINDOW_END_KEY = 'xsmb_live_window_end'; // Track khi live window kết thúc
+
 const testhour = 18;
 const testminutes = 10;
 
@@ -370,7 +375,7 @@ const KQXS = (props) => {
     const router = useRouter();
     const dayof = props.data4;
     const station = props.station || "xsmb";
-    const date = props.data3;
+    const date = props.data5;
 
     const itemsPerPage = 3;
 
@@ -417,7 +422,7 @@ const KQXS = (props) => {
         }
     }, []);
 
-    // ✅ TỐI ƯU: Hàm clear cache đơn giản và hiệu quả
+    // ✅ TỐI ƯU: Hàm clear cache đơn giản và hiệu quả - KHẢI BÁO TRƯỚC
     const clearCacheForToday = useCallback(() => {
         const keysToRemove = [
             `xsmb_data_${station}_${today}_null`,
@@ -436,6 +441,37 @@ const KQXS = (props) => {
         batchLocalStorageOperation(operations);
         console.log('🗑️ Đã xóa cache cho ngày hôm nay');
     }, [station, today, CACHE_KEY, batchLocalStorageOperation]);
+
+    // ✅ TỐI ƯU: Smart cache invalidation với version control - KHẢI BÁO SAU
+    const invalidateCacheIfNeeded = useCallback(() => {
+        const currentVersion = localStorage.getItem(CACHE_VERSION_KEY);
+        const liveWindowEndTime = localStorage.getItem(LIVE_WINDOW_END_KEY);
+        const now = getVietnamTimeCached().getTime();
+
+        // ✅ Kiểm tra cache version
+        if (currentVersion !== CURRENT_CACHE_VERSION) {
+            console.log('🔄 Cache version outdated, invalidating cache');
+            clearCacheForToday();
+            localStorage.setItem(CACHE_VERSION_KEY, CURRENT_CACHE_VERSION);
+            return true;
+        }
+
+        // ✅ Kiểm tra nếu live window vừa kết thúc
+        if (liveWindowEndTime) {
+            const endTime = parseInt(liveWindowEndTime);
+            const timeSinceEnd = now - endTime;
+
+            // Nếu live window kết thúc trong 10 phút gần đây, invalidate cache
+            if (timeSinceEnd < 10 * 60 * 1000) {
+                console.log('🔄 Live window vừa kết thúc, invalidating cache');
+                clearCacheForToday();
+                localStorage.removeItem(LIVE_WINDOW_END_KEY);
+                return true;
+            }
+        }
+
+        return false;
+    }, [getVietnamTimeCached, clearCacheForToday]);
 
     // ✅ TỐI ƯU: Cache cleanup function - chỉ chạy khi cần
     const cleanOldCache = useCallback(() => {
@@ -483,6 +519,45 @@ const KQXS = (props) => {
             const isUpdateWindow = vietnamHours === testhour && vietnamMinutes >= testminutes && vietnamMinutes <= 33;
             const isAfterUpdateWindow = vietnamHours > testhour || (vietnamHours === testhour && vietnamMinutes > 33);
             const isPostLiveWindow = vietnamHours > testhour || (vietnamHours === testhour && vietnamMinutes > 33);
+
+            // ✅ THÊM: Smart cache invalidation check
+            const cacheInvalidated = invalidateCacheIfNeeded();
+            if (cacheInvalidated) {
+                console.log('🔄 Cache đã được invalidate, force refresh');
+                forceRefresh = true;
+            }
+
+            // ✅ THÊM: Kiểm tra cache time-based invalidation
+            const cacheTimeStr = localStorage.getItem(`${CACHE_KEY}_time`);
+            if (cacheTimeStr) {
+                const cacheTime = parseInt(cacheTimeStr);
+                const cacheDate = new Date(cacheTime);
+                const vietnamCacheTime = new Date(cacheDate.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+                const cacheHour = vietnamCacheTime.getHours();
+                const cacheMinute = vietnamCacheTime.getMinutes();
+
+                // Kiểm tra nếu đang trong live window và cache được tạo trước live window
+                const isUpdateWindow = vietnamHours === testhour && vietnamMinutes >= testminutes && vietnamMinutes <= 33;
+                if (isUpdateWindow) {
+                    const isOldCache = (cacheHour < testhour) || (cacheHour === testhour && cacheMinute < testminutes);
+                    if (isOldCache) {
+                        console.log('🔄 Cache cũ trước live window, invalidating cache');
+                        clearCacheForToday();
+                        forceRefresh = true;
+                    }
+                }
+
+                // Kiểm tra nếu đã qua live window và cache được tạo trong live window
+                const isAfterLiveWindow = (vietnamHours > testhour) || (vietnamHours === testhour && vietnamMinutes > 33);
+                if (isAfterLiveWindow) {
+                    const isLiveWindowCache = (cacheHour === testhour && cacheMinute >= testminutes && cacheMinute <= 33);
+                    if (isLiveWindowCache) {
+                        console.log('🔄 Cache từ live window, invalidating để lấy data mới');
+                        clearCacheForToday();
+                        forceRefresh = true;
+                    }
+                }
+            }
 
             // Kiểm tra cache
             const cachedData = localStorage.getItem(CACHE_KEY);
@@ -706,11 +781,20 @@ const KQXS = (props) => {
         fetchDataRef.current = fetchData;
     }, [fetchData]);
 
-    // ✅ THÊM: useEffect để gọi fetchData ban đầu
+    // ✅ THÊM: useEffect để gọi fetchData ban đầu với cache validation
     useEffect(() => {
         console.log('🔄 Component mounted, gọi fetchData ban đầu');
+
+        // ✅ THÊM: Initialize cache version nếu chưa có
+        if (!localStorage.getItem(CACHE_VERSION_KEY)) {
+            localStorage.setItem(CACHE_VERSION_KEY, CURRENT_CACHE_VERSION);
+        }
+
+        // ✅ THÊM: Check cache invalidation ngay khi mount
+        invalidateCacheIfNeeded();
+
         fetchData();
-    }, [fetchData]);
+    }, [fetchData, invalidateCacheIfNeeded]);
 
     // ✅ TỐI ƯU: Constants đồng bộ với LiveResult.js - MÚI GIỜ VIỆT NAM
     // ⚠️ QUAN TRỌNG: Tất cả client trên thế giới đều tuân theo múi giờ Việt Nam
@@ -787,17 +871,33 @@ const KQXS = (props) => {
                     });
                 }
 
-                // ✅ TỐI ƯU: Clear cache khi LiveResult ẩn đi - ĐÂY LÀ CƠ CHẾ DUY NHẤT
+                // ✅ TỐI ƯU: Smart cache invalidation khi LiveResult ẩn đi
                 if (wasLiveWindow && !isLive && wasLiveWindow !== undefined && !cacheClearedForLiveWindow) {
-                    console.log('🔄 LiveResult ẩn đi - Clear cache để hiển thị kết quả mới');
-                    clearCacheForToday();
+                    console.log('🔄 LiveResult ẩn đi - Smart cache invalidation');
+
+                    // ✅ THÊM: Track live window end time
+                    localStorage.setItem(LIVE_WINDOW_END_KEY, getVietnamTimeCached().getTime().toString());
+
+                    // ✅ THÊM: Force cache invalidation
+                    invalidateCacheIfNeeded();
+
                     setTimeout(() => {
                         if (isActive && fetchDataRef.current) {
-                            console.log('🔄 Force refresh sau khi clear cache');
+                            console.log('🔄 Force refresh sau khi invalidate cache');
                             fetchDataRef.current(true);
                         }
                     }, 2000);
                     cacheClearedForLiveWindow = true;
+                }
+
+                // ✅ THÊM: Tự động track live window end time khi component unmount
+                if (wasLiveWindow && !isLive && wasLiveWindow !== undefined) {
+                    // Đảm bảo luôn track end time khi live window kết thúc
+                    const currentEndTime = localStorage.getItem(LIVE_WINDOW_END_KEY);
+                    if (!currentEndTime) {
+                        localStorage.setItem(LIVE_WINDOW_END_KEY, getVietnamTimeCached().getTime().toString());
+                        console.log('🔄 Auto-track live window end time');
+                    }
                 }
 
                 // Reset flag khi LiveResult xuất hiện lại
@@ -874,13 +974,21 @@ const KQXS = (props) => {
 
         return () => {
             isMountedRef.current = false;
+
+            // ✅ THÊM: Cleanup khi component unmount
+            const { isLive } = checkLiveWindow();
+            if (isLive) {
+                // Nếu đang trong live window và component unmount, track end time
+                localStorage.setItem(LIVE_WINDOW_END_KEY, getVietnamTimeCached().getTime().toString());
+                console.log('🔄 Component unmount trong live window, track end time');
+            }
         };
-    }, []);
+    }, [checkLiveWindow, getVietnamTimeCached]);
 
     // ✅ TỐI ƯU: Memoize các giá trị tính toán để tránh tính lại
     const isLiveMode = useMemo(() => {
-        if (!props.data3) return true;
-        if (props.data3 === today) return true;
+        if (!props.data5) return true;
+        if (props.data5 === today) return true;
         const dayMap = {
             'thu-2': 'Thứ Hai',
             'thu-3': 'Thứ Ba',
@@ -891,9 +999,9 @@ const KQXS = (props) => {
             'chu-nhat': 'Chủ Nhật'
         };
         const todayDayOfWeek = new Date().toLocaleString('vi-VN', { weekday: 'long' });
-        const inputDayOfWeek = dayMap[props.data3?.toLowerCase()];
+        const inputDayOfWeek = dayMap[props.data5?.toLowerCase()];
         return inputDayOfWeek && inputDayOfWeek === todayDayOfWeek;
-    }, [props.data3, today]);
+    }, [props.data5, today]);
 
     // ✅ TỐI ƯU: Memoize getHeadAndTailNumbers để tránh tính lại
     const getHeadAndTailNumbers = useMemo(() => (data2) => {
@@ -939,10 +1047,13 @@ const KQXS = (props) => {
     const endIndex = useMemo(() => startIndex + itemsPerPage, [startIndex]);
     const currentData = useMemo(() => data.slice(startIndex, endIndex), [data, startIndex, endIndex]);
 
-    // ✅ TỐI ƯU: Cập nhật cache khi liveData đầy đủ - TỐI ƯU CUỐI CÙNG
+    // ✅ TỐI ƯU: Cập nhật cache khi liveData đầy đủ với smart invalidation
     useEffect(() => {
         if (isLiveDataComplete && liveData && liveData.drawDate === today) {
             console.log('🔄 Live data complete, cập nhật cache và force refresh');
+
+            // ✅ THÊM: Smart cache invalidation
+            invalidateCacheIfNeeded();
 
             // Clear cache cũ ngay lập tức
             clearCacheForToday();
@@ -1342,7 +1453,7 @@ export default React.memo(KQXS, (prevProps, nextProps) => {
     // Chỉ re-render khi props thực sự thay đổi
     return (
         prevProps.data === nextProps.data &&
-        prevProps.data3 === nextProps.data3 &&
+        prevProps.data5 === nextProps.data5 &&
         prevProps.data4 === nextProps.data4 &&
         prevProps.station === nextProps.station
     );

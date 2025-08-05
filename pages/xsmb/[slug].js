@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
-import KQXS from './index';
+import KQXS from '../kqxsAll/index';
 import Calendar from '../../component/caledar';
 import styles from "../../public/css/itemsKQXS.module.css";
 import ThongKe from '../../component/thongKe';
@@ -19,16 +19,12 @@ export default function XsmbPage() {
     const { slug } = router.query; // slug sẽ là mảng hoặc undefined
     const [error, setError] = useState(null);
 
-    // ✅ SỬA LỖI: Phân biệt slug là ngày hay thứ
-    const slugValue = Array.isArray(slug) ? slug.join('-') : slug;
-    const station = 'xsmb';
+    // Xử lý slug thành chuỗi (nếu có)
+    const slugDayofweek = Array.isArray(slug) ? slug.join('-') : slug; // Ví dụ: "thu-2" hoặc null
+    const station = 'xsmb'; // Slug cố định cho xsmb
 
-    // Kiểm tra xem slug có phải là ngày (DD-MM-YYYY) hay thứ (thu-2)
-    const isDateSlug = slugValue && /^\d{2}-\d{2}-\d{4}$/.test(slugValue);
-    const isDayOfWeekSlug = slugValue && /^thu-|chu-nhat$/.test(slugValue);
-
-    console.log("Station:", station, "Slug:", slugValue);
-    console.log('Is Date Slug:', isDateSlug, 'Is DayOfWeek Slug:', isDayOfWeekSlug);
+    console.log("Station:", station, "Slug:", slugDayofweek);
+    console.log('Slug Date---', slugDayofweek);
 
     if (error) {
         return (
@@ -50,11 +46,7 @@ export default function XsmbPage() {
                 <ListXSMT></ListXSMT>
                 <ListXSMN></ListXSMN>
             </div>
-            <KQXS
-                data3={isDateSlug ? slugValue : null} // Ngày cụ thể nếu slug là ngày
-                data4={isDayOfWeekSlug ? slugValue : null} // Thứ trong tuần nếu slug là thứ
-                station={station}
-            />
+            <KQXS data5={slugDayofweek}></KQXS>
             <div>
                 <ThongKe></ThongKe>
                 <CongCuHot />

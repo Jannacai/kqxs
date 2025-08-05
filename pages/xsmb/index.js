@@ -45,7 +45,7 @@ const KQXS = (props) => {
         year: 'numeric',
     });
 
-    const duration = 40 * 60 * 1000; // 22 phút cho khung giờ trực tiếp
+    const duration = 22 * 60 * 1000; // 22 phút cho khung giờ trực tiếp
 
     const CACHE_KEY = `xsmb_data_${station}_${date || 'null'}_${dayof || 'null'}`;
 
@@ -164,6 +164,15 @@ const KQXS = (props) => {
                 // Gọi API nếu không phải trong khung giờ trực tiếp hoặc sau 18h35
                 if (!isUpdateWindow || isAfterUpdateWindow) {
                     try {
+                        // ✅ THÊM: Debug log để kiểm tra parameters
+                        console.log('🔍 Debug index.js fetchData:', {
+                            station,
+                            date,
+                            dayof,
+                            isUpdateWindow,
+                            isAfterUpdateWindow
+                        });
+
                         const result = await apiMB.getLottery(station, date, dayof);
                         const dataArray = Array.isArray(result) ? result : [result];
 

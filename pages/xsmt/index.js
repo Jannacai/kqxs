@@ -68,8 +68,8 @@ const DAYS_PER_PAGE = 3; // Mỗi trang chứa 3 ngày gần nhất
 
 // Cấu hình khung giờ trực tiếp
 const LIVE_WINDOW_CONFIG = {
-    hour: 17, // 17h
-    startMinute: 50, // 17h29
+    hour: 16, // 17h
+    startMinute: 53, // 17h29
     endMinute: 40, // 17h59
     duration: 25 * 60 * 1000, // 30 phút
     scraperTriggerMinute: 14, // 17h14
@@ -556,8 +556,6 @@ const KQXS = (props) => {
         let cacheClearedForLiveWindow = localStorage.getItem(`xsmt_cache_cleared_${today}`) === 'true';
         let lastCheckMinute = -1;
         let isActive = true;
-        let intervalId = null;
-        let intervalUpdateId = null;
 
         const checkTime = () => {
             if (!isActive) return;
@@ -626,46 +624,25 @@ const KQXS = (props) => {
             }
         };
 
-        // ✅ TỐI ƯU: Sử dụng interval cố định thay vì thay đổi liên tục
-        const getFixedIntervalTime = () => {
-            try {
-                const { isLive } = checkLiveWindow();
-                return isLive ? 5000 : 30000; // 5s khi live, 30s khi không live
-            } catch (error) {
-                console.error('Lỗi khi tính interval:', error);
-                return 30000;
-            }
-        };
-
         checkTime();
-        intervalId = setInterval(checkTime, getFixedIntervalTime());
-
-        // ✅ TỐI ƯU: Giảm frequency của updateInterval từ 60s xuống 300s (5 phút)
+        let intervalId = setInterval(checkTime, getIntervalTime());
         const updateInterval = () => {
             if (!isActive) return;
             try {
-                if (intervalId) {
-                    clearInterval(intervalId);
-                }
-                intervalId = setInterval(checkTime, getFixedIntervalTime());
+                clearInterval(intervalId);
+                intervalId = setInterval(checkTime, getIntervalTime());
             } catch (error) {
                 console.error('Lỗi khi update interval:', error);
             }
         };
-        intervalUpdateId = setInterval(updateInterval, 300000); // 5 phút thay vì 1 phút
+        const intervalUpdateId = setInterval(updateInterval, 60000);
 
         return () => {
             isActive = false;
-            if (intervalId) {
-                clearInterval(intervalId);
-                intervalId = null;
-            }
-            if (intervalUpdateId) {
-                clearInterval(intervalUpdateId);
-                intervalUpdateId = null;
-            }
+            clearInterval(intervalId);
+            clearInterval(intervalUpdateId);
         };
-    }, [hasTriggeredScraper, checkLiveWindow, clearCacheForToday, today, batchLocalStorageOperation]); // ✅ BỎ getIntervalTime dependency
+    }, [hasTriggeredScraper, checkLiveWindow, clearCacheForToday, getIntervalTime, today, batchLocalStorageOperation]);
 
     const handleFilterChange = useCallback((key, value) => {
         setFilterTypes((prev) => ({

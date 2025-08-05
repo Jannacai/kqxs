@@ -5,6 +5,7 @@ import { useEffect, useState, memo, useMemo, useCallback } from 'react';
 import { SessionProvider, useSession } from "next-auth/react";
 import { LotteryProvider } from '../contexts/LotteryContext';
 import dynamic from 'next/dynamic';
+import { useRouter } from 'next/router';
 
 // Lazy load components để tối ưu hiệu suất
 const LazyNavBar = dynamic(() => import('../component/navbar'), {
@@ -101,6 +102,7 @@ const App = memo(({ Component, pageProps: { session, ...pageProps } }) => {
     return (
         <SessionProvider session={session}>
             <LotteryProvider>
+                <NavigationGuard />
                 <AppWithTheme setTheme={setTheme}>
                     <div className={theme}>
                         <Header theme={theme} />
@@ -117,5 +119,61 @@ const App = memo(({ Component, pageProps: { session, ...pageProps } }) => {
 });
 
 App.displayName = 'App';
+
+// ✅ THÊM: Navigation Guard để prevent rapid navigation
+const NavigationGuard = () => {
+    const router = useRouter();
+
+    useEffect(() => {
+        let navigationCount = 0;
+        let lastNavigationTime = 0;
+        const maxNavigationsPerMinute = 30;
+        const navigationWindow = 60000; // 1 phút
+
+        const originalPush = router.push;
+        const originalReplace = router.replace;
+
+        router.push = function (...args) {
+            const now = Date.now();
+
+            if (now - lastNavigationTime > navigationWindow) {
+                navigationCount = 0;
+            }
+
+            if (navigationCount >= maxNavigationsPerMinute) {
+                console.warn('Navigation limit reached, preventing rapid navigation');
+                return Promise.resolve();
+            }
+
+            navigationCount++;
+            lastNavigationTime = now;
+            return originalPush.apply(this, args);
+        };
+
+        router.replace = function (...args) {
+            const now = Date.now();
+
+            if (now - lastNavigationTime > navigationWindow) {
+                navigationCount = 0;
+            }
+
+            if (navigationCount >= maxNavigationsPerMinute) {
+                console.warn('Navigation limit reached, preventing rapid navigation');
+                return Promise.resolve();
+            }
+
+            navigationCount++;
+            lastNavigationTime = now;
+            return originalReplace.apply(this, args);
+        };
+
+        return () => {
+            router.push = originalPush;
+            router.replace = originalReplace;
+        };
+    }, [router]);
+
+    return null;
+};
 
 export default App;

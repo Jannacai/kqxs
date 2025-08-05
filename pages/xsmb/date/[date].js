@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
-import KQXS from '../../kqxsAll/index';
+import KQXS from '../index';
 import Calendar from '../../../component/caledar';
 import styles from "../../../public/css/itemsKQXS.module.css";
 import ThongKe from '../../../component/thongKe';
@@ -12,38 +12,38 @@ import ListXSMN from '../../../component/listXSMN';
 // ✅ VALIDATION: Kiểm tra format ngày DD-MM-YYYY
 const validateDate = (dateStr) => {
     if (!dateStr) return { isValid: false, error: 'Không có thông tin ngày' };
-    
+
     // Kiểm tra format DD-MM-YYYY
     const dateRegex = /^\d{2}-\d{2}-\d{4}$/;
     if (!dateRegex.test(dateStr)) {
-        return { 
-            isValid: false, 
-            error: `Format ngày không hợp lệ: ${dateStr}. Format đúng: DD-MM-YYYY` 
+        return {
+            isValid: false,
+            error: `Format ngày không hợp lệ: ${dateStr}. Format đúng: DD-MM-YYYY`
         };
     }
-    
+
     // Kiểm tra ngày hợp lệ
     const [day, month, year] = dateStr.split('-').map(Number);
     const parsedDate = new Date(year, month - 1, day);
-    
+
     if (isNaN(parsedDate.getTime())) {
-        return { 
-            isValid: false, 
-            error: `Ngày không hợp lệ: ${dateStr}` 
+        return {
+            isValid: false,
+            error: `Ngày không hợp lệ: ${dateStr}`
         };
     }
-    
+
     // Không cho phép ngày trong tương lai
     const today = new Date();
     today.setHours(23, 59, 59, 999); // Cuối ngày hôm nay
-    
+
     if (parsedDate > today) {
-        return { 
-            isValid: false, 
-            error: `Không thể xem kết quả cho ngày trong tương lai: ${dateStr}` 
+        return {
+            isValid: false,
+            error: `Không thể xem kết quả cho ngày trong tương lai: ${dateStr}`
         };
     }
-    
+
     return { isValid: true, date: dateStr };
 };
 

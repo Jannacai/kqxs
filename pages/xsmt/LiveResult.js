@@ -8,8 +8,7 @@ import { useLottery } from '../../contexts/LotteryContext';
 // BỔ SUNG: Global SSE connection manager để tránh memory leak và treo trình duyệt
 const globalSSEManager = {
     connections: new Map(),
-    maxConnections: 10, // ✅ GIẢM từ 15 xuống 10 để tránh quá tải
-    maxConnectionsPerProvince: 2, // ✅ THÊM giới hạn cho mỗi tỉnh
+    maxConnections: 15, // Giới hạn số connection để tránh treo (XSMT có nhiều tỉnh hơn)
     cleanup: () => {
         globalSSEManager.connections.forEach((connection, key) => {
             if (connection && connection.readyState !== EventSource.CLOSED) {
@@ -44,12 +43,6 @@ const globalSSEManager = {
             }
             globalSSEManager.connections.delete(key);
         });
-    },
-    // ✅ THÊM: Kiểm tra số lượng connections cho một tỉnh
-    getConnectionsForProvince: (province) => {
-        return Array.from(globalSSEManager.connections.keys())
-            .filter(key => key.includes(province))
-            .length;
     }
 };
 
@@ -514,23 +507,11 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
             });
             console.log(`📦 Cached prize ${prizeType} = ${value} cho ${tinh}`);
 
-            // ✅ TỐI ƯU: Thêm throttle cho animation để tránh quá tải
+            // Thêm vào animation queue thay vì setTimeout ngay lập tức
             const animationKey = `${tinh}-${prizeType}`;
             if (mountedRef.current && value && value !== '...' && value !== '***') {
-                // Kiểm tra nếu animation này đã được trigger gần đây
-                const lastAnimationTime = animationQueueRef.current.get(animationKey)?.timestamp || 0;
-                const now = Date.now();
-
-                if (now - lastAnimationTime > 1000) { // Throttle 1 giây
-                    console.log(`🎬 Trigger animation cho ${prizeType} = ${value} (${tinh})`);
-                    animationQueueRef.current.set(animationKey, {
-                        tinh,
-                        prizeType,
-                        timestamp: now
-                    });
-                } else {
-                    console.log(`🎬 Bỏ qua animation cho ${prizeType} (${tinh}) - quá sớm`);
-                }
+                console.log(`🎬 Trigger animation cho ${prizeType} = ${value} (${tinh})`);
+                animationQueueRef.current.set(animationKey, { tinh, prizeType });
             }
         }
 
@@ -600,33 +581,13 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
 
                 // Process animation queue với requestAnimationFrame để tối ưu performance
                 if (animationQueueRef.current.size > 0) {
-                    // ✅ TỐI ƯU: Giới hạn số lượng animation đồng thời để tránh overflow
-                    const maxAnimationsPerFrame = 5; // Giới hạn 5 animation mỗi frame
-                    const animationArray = Array.from(animationQueueRef.current.entries());
-
-                    // Chỉ xử lý tối đa maxAnimationsPerFrame animation mỗi frame
-                    const animationsToProcess = animationArray.slice(0, maxAnimationsPerFrame);
-
                     requestAnimationFrame(() => {
-                        animationsToProcess.forEach(([key, { tinh, prizeType }]) => {
+                        animationQueueRef.current.forEach(({ tinh, prizeType }) => {
                             if (mountedRef.current) {
                                 setAnimationWithTimeout(tinh, prizeType);
                             }
-                            animationQueueRef.current.delete(key);
                         });
-
-                        // Nếu còn animation trong queue, xử lý tiếp trong frame tiếp theo
-                        if (animationQueueRef.current.size > 0) {
-                            requestAnimationFrame(() => {
-                                const remainingAnimations = Array.from(animationQueueRef.current.entries()).slice(0, maxAnimationsPerFrame);
-                                remainingAnimations.forEach(([key, { tinh, prizeType }]) => {
-                                    if (mountedRef.current) {
-                                        setAnimationWithTimeout(tinh, prizeType);
-                                    }
-                                    animationQueueRef.current.delete(key);
-                                });
-                            });
-                        }
+                        animationQueueRef.current.clear();
                     });
                 }
 
@@ -970,14 +931,6 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                 if (globalSSEManager.connections.size >= globalSSEManager.maxConnections) {
                     console.warn('⚠️ Quá nhiều SSE connections, cleanup trước khi tạo mới');
                     globalSSEManager.cleanupOldConnections();
-                }
-
-                // ✅ TỐI ƯU: Sử dụng method mới để kiểm tra connections cho tỉnh
-                const connectionsForProvince = globalSSEManager.getConnectionsForProvince(province.tinh);
-
-                if (connectionsForProvince >= globalSSEManager.maxConnectionsPerProvince) { // Giới hạn 2 connections cho mỗi tỉnh
-                    console.warn(`⚠️ Quá nhiều SSE connections cho ${province.tinh} (${connectionsForProvince}), bỏ qua`);
-                    return;
                 }
 
                 try {

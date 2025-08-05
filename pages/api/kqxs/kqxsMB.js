@@ -26,11 +26,11 @@ export const apiMB = {
             }
             url = `${API_BASE_URL}/api/kqxs/xsmb/${dayof}`;
         } else if (station && date) {
-            // Logic theo ngày cụ thể - sử dụng query parameter
+            // Logic theo ngày cụ thể - sử dụng endpoint chính với date parameter
             if (!station || !date || station.trim() === '' || date.trim() === '') {
                 throw new Error('Station and date cannot be empty');
             }
-            url = `${API_BASE_URL}/api/kqxs/xsmb?date=${date}`;
+            url = `${API_BASE_URL}/api/kqxs/xsmb-${date}`;
         } else {
             // Logic lấy tất cả
             url = `${API_BASE_URL}/api/kqxs/xsmb`;
@@ -43,14 +43,23 @@ export const apiMB = {
             urlParams.append('limit', pagination.limit);
         }
 
-        // Thêm date parameter nếu có (cho trường hợp theo ngày)
-        if (date && !dayof) {
+        // ✅ SỬA: Chỉ thêm date parameter nếu không có dayof và URL chưa có date
+        if (date && !dayof && !url.includes('date=')) {
             urlParams.append('date', date);
         }
 
         if (urlParams.toString()) {
             url += `?${urlParams.toString()}`;
         }
+
+        // ✅ THÊM: Debug log để kiểm tra API call
+        console.log('🔍 Debug kqxsMB.js API call:', {
+            station,
+            date,
+            dayof,
+            url,
+            urlParams: urlParams.toString()
+        });
 
         try {
             const response = await fetch(url, {
