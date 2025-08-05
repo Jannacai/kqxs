@@ -4,330 +4,71 @@ import { getFilteredNumber } from "../../library/utils/filterUtils";
 import React from 'react';
 import { useLottery } from '../../contexts/LotteryContext';
 
-// ✅ CẢI TIẾN: Smart Global Resource Manager
-const GlobalResourceManager = {
+// BỔ SUNG: Global SSE connection manager để tránh memory leak và treo trình duyệt
+const globalSSEManager = {
     connections: new Map(),
-    timeouts: new Set(),
-    intervals: new Set(),
-    eventListeners: new Map(),
-    maxConnections: 5, // Giảm từ 10 xuống 5
-    maxConnectionsPerProvince: 1, // Giảm từ 2 xuống 1
-    memoryThreshold: 800, // ✅ TĂNG: 500MB → 800MB để tránh cleanup quá sớm
-    navigationCount: 0,
-    lastNavigationTime: 0,
-    maxNavigationsPerMinute: 30, // Giới hạn navigation
-    lastCleanupTime: 0, // ✅ THÊM: Cleanup cooldown
-    cleanupCooldown: 30000, // ✅ THÊM: 30s cooldown
-
-    // ✅ THÊM: Smart memory monitoring với cache
-    getMemoryUsage() {
-        if (performance && performance.memory) {
-            return Math.round(performance.memory.usedJSHeapSize / 1024 / 1024);
-        }
-        return 0;
-    },
-
-    // ✅ THÊM: Memory leak detection
-    detectMemoryLeak() {
-        const memoryUsage = this.getMemoryUsage();
-        const now = Date.now();
-
-        if (!this.memoryHistory) {
-            this.memoryHistory = [];
-        }
-
-        this.memoryHistory.push({ usage: memoryUsage, timestamp: now });
-
-        // Giữ lịch sử 10 phút
-        this.memoryHistory = this.memoryHistory.filter(item =>
-            now - item.timestamp < 600000
-        );
-
-        // Phát hiện memory leak nếu tăng liên tục
-        if (this.memoryHistory.length > 5) {
-            const recent = this.memoryHistory.slice(-5);
-            const isIncreasing = recent.every((item, index) =>
-                index === 0 || item.usage >= recent[index - 1].usage
-            );
-
-            if (isIncreasing && memoryUsage > 1000) {
-                console.warn('⚠️ Memory leak detected:', memoryUsage, 'MB');
-                return true;
-            }
-        }
-
-        return false;
-    },
-
-    // ✅ THÊM: Smart aggressive cleanup - không đóng SSE nếu đang live
-    aggressiveCleanup() {
-        console.log('🧹 Smart aggressive cleanup triggered');
-        console.log(`🔍 Cleanup Debug - Current hour: ${new Date().getHours()}, Memory: ${this.getMemoryUsage()}MB, Connections: ${this.connections.size}, Threshold: ${this.memoryThreshold}MB`);
-
-        // ✅ SỬA: Kiểm tra cooldown trước khi cleanup
-        const now = Date.now();
-        if (now - this.lastCleanupTime < this.cleanupCooldown) {
-            console.log(`🔄 Cleanup cooldown active (${Math.round((this.cleanupCooldown - (now - this.lastCleanupTime)) / 1000)}s remaining), bỏ qua`);
-            return;
-        }
-
-        // ✅ SỬA: Kiểm tra live window và memory trước khi cleanup
-        const currentTime = new Date();
-        const currentHour = currentTime.getHours();
-        const isLiveHour = currentHour === 18;
-        const memoryUsage = this.getMemoryUsage();
-
-        if (isLiveHour) {
-            console.log('🔄 Đang trong live window, bỏ qua SSE cleanup');
-            return; // Không cleanup nếu đang live
-        }
-
-        // ✅ THÊM: Chỉ cleanup khi memory thực sự cao
-        if (memoryUsage < 800) {
-            console.log(`🔄 Memory thấp (${memoryUsage}MB), bỏ qua cleanup`);
-            return;
-        }
-
-        // ✅ THÊM: Update cleanup time
-        this.lastCleanupTime = now;
-
-        // Cleanup connections chỉ khi không phải live window
-        this.connections.forEach((connection, key) => {
+    maxConnections: 10, // ✅ GIẢM từ 15 xuống 10 để tránh quá tải
+    maxConnectionsPerProvince: 2, // ✅ THÊM giới hạn cho mỗi tỉnh
+    cleanup: () => {
+        globalSSEManager.connections.forEach((connection, key) => {
             if (connection && connection.readyState !== EventSource.CLOSED) {
                 try {
                     connection.close();
                 } catch (error) {
-                    console.warn('Force cleanup connection:', error);
+                    console.warn('Lỗi đóng global SSE connection:', error);
                 }
             }
         });
-
-        this.connections.clear();
-
-        // Cleanup timeouts
-        this.timeouts.forEach(timeoutId => {
-            clearTimeout(timeoutId);
-        });
-        this.timeouts.clear();
-
-        // Cleanup intervals
-        this.intervals.forEach(intervalId => {
-            clearInterval(intervalId);
-        });
-        this.intervals.clear();
-
-        // Cleanup event listeners
-        this.eventListeners.forEach((listener, element) => {
-            try {
-                element.removeEventListener(listener.type, listener.handler);
-            } catch (error) {
-                console.warn('Force cleanup event listener:', error);
-            }
-        });
-        this.eventListeners.clear();
-
-        // Force garbage collection nếu memory cao
-        if (this.getMemoryUsage() > this.memoryThreshold) {
-            if (window.gc) window.gc();
-        }
+        globalSSEManager.connections.clear();
     },
-
-    // ✅ THÊM: Safe timeout creation
-    safeSetTimeout(callback, delay) {
-        const timeoutId = setTimeout(() => {
-            this.timeouts.delete(timeoutId);
-            callback();
-        }, delay);
-        this.timeouts.add(timeoutId);
-        return timeoutId;
-    },
-
-    // ✅ THÊM: Safe interval creation
-    safeSetInterval(callback, delay) {
-        const intervalId = setInterval(callback, delay);
-        this.intervals.add(intervalId);
-        return intervalId;
-    },
-
-    // ✅ THÊM: Safe connection creation
-    safeCreateConnection(url, province) {
-        // ✅ SỬA: Kiểm tra live window trước khi cleanup
-        const now = new Date();
-        const currentHour = now.getHours();
-        const isLiveHour = currentHour === 18;
-
-        // Check memory usage first
-        if (this.getMemoryUsage() > this.memoryThreshold) {
-            console.warn('Memory usage cao, triggering cleanup');
-            // ✅ SỬA: Chỉ cleanup nếu không phải live window
-            if (!isLiveHour) {
-                this.aggressiveCleanup();
-            } else {
-                console.log('🔄 Đang trong live window, bỏ qua memory cleanup');
-            }
-        }
-
-        // Check connection limits
-        if (this.connections.size >= this.maxConnections) {
-            console.warn(`Quá nhiều connections (${this.connections.size}/${this.maxConnections}), bỏ qua tạo connection mới`);
-            return null; // ✅ SỬA: Bỏ qua thay vì cleanup
-        }
-
-        const connectionsForProvince = this.getConnectionsForProvince(province);
-        if (connectionsForProvince >= this.maxConnectionsPerProvince) {
-            console.warn(`Quá nhiều connections cho ${province}, bỏ qua`);
-            return null;
-        }
-
-        const connection = new EventSource(url);
-        const globalConnectionId = Date.now() + Math.random();
-
-        this.connections.set(globalConnectionId, connection);
-        return { connection, connectionId: globalConnectionId };
-    },
-
-    // ✅ THÊM: Navigation guard
-    canNavigate() {
-        const now = Date.now();
-
-        if (now - this.lastNavigationTime > 60000) {
-            this.navigationCount = 0;
-        }
-
-        if (this.navigationCount >= this.maxNavigationsPerMinute) {
-            console.warn('Navigation limit reached');
-            return false;
-        }
-
-        this.lastNavigationTime = now;
-        this.navigationCount++;
-        return true;
-    },
-
-    getConnectionsForProvince(province) {
-        let count = 0;
-        this.connections.forEach((connection, key) => {
-            if (key.includes(province)) {
-                count++;
-            }
-        });
-        return count;
-    },
-
-    cleanup() {
-        // ✅ SỬA: Chỉ cleanup nếu không phải live window
-        const now = new Date();
-        const currentHour = now.getHours();
-        const isLiveHour = currentHour === 18;
-
-        if (!isLiveHour) {
-            this.aggressiveCleanup();
-        } else {
-            console.log('🔄 Đang trong live window, bỏ qua cleanup');
-        }
-    },
-
-    cleanupOldConnections() {
+    // Thêm method để kiểm tra và cleanup connection cũ
+    cleanupOldConnections: () => {
         const now = Date.now();
         const connectionsToRemove = [];
 
-        this.connections.forEach((connection, key) => {
-            if (connection.lastActivity && (now - connection.lastActivity) > 300000) {
+        globalSSEManager.connections.forEach((connection, key) => {
+            if (connection.lastActivity && (now - connection.lastActivity) > 300000) { // 5 phút
                 connectionsToRemove.push(key);
             }
         });
 
         connectionsToRemove.forEach(key => {
-            const connection = this.connections.get(key);
+            const connection = globalSSEManager.connections.get(key);
             if (connection && connection.readyState !== EventSource.CLOSED) {
                 try {
                     connection.close();
                 } catch (error) {
-                    console.warn('Cleanup old connection:', error);
+                    console.warn('Lỗi đóng old SSE connection:', error);
                 }
             }
-            this.connections.delete(key);
+            globalSSEManager.connections.delete(key);
         });
+    },
+    // ✅ THÊM: Method để đếm connections cho một tỉnh cụ thể
+    getConnectionsForProvince: (province) => {
+        let count = 0;
+        globalSSEManager.connections.forEach((connection, key) => {
+            if (key.includes(province)) {
+                count++;
+            }
+        });
+        return count;
     }
 };
 
-// ✅ THÊM: Initialize global manager
+// Cleanup global connections khi page unload
 if (typeof window !== 'undefined') {
-    // Cleanup khi page unload
     window.addEventListener('beforeunload', () => {
-        GlobalResourceManager.cleanup();
+        globalSSEManager.cleanup();
     });
 
-    // ✅ THÊM: Cleanup khi page visibility change
-    document.addEventListener('visibilitychange', () => {
-        if (document.hidden) {
-            // Chỉ cleanup khi memory cao
-            const memoryUsage = GlobalResourceManager.getMemoryUsage();
-            if (memoryUsage > 1000) {
-                GlobalResourceManager.cleanup();
-            }
-        }
-    });
-
-    // Memory monitoring mỗi 300 giây - Tăng interval để giảm frequency
-    GlobalResourceManager.safeSetInterval(() => {
-        const memoryUsage = GlobalResourceManager.getMemoryUsage();
-        if (memoryUsage > GlobalResourceManager.memoryThreshold) {
-            console.warn(`Memory usage cao: ${memoryUsage}MB, triggering cleanup`);
-            // ✅ SỬA: Chỉ cleanup khi thực sự cần thiết và không phải live window
-            const now = new Date();
-            const currentHour = now.getHours();
-            const isLiveHour = currentHour === 18;
-
-            if (memoryUsage > 2000 && !isLiveHour) { // ✅ TĂNG: 1000MB → 2000MB
-                console.log('🧹 Triggering cleanup due to high memory usage');
-                GlobalResourceManager.aggressiveCleanup();
-            } else if (isLiveHour) {
-                console.log('🔄 Đang trong live window, bỏ qua memory cleanup');
-            }
-        }
-    }, 300000); // ✅ TĂNG: 120s → 300s
-
-    // Cleanup định kỳ mỗi 30 giây
-    GlobalResourceManager.safeSetInterval(() => {
-        GlobalResourceManager.cleanupOldConnections();
-    }, 30000);
-
-    // Page visibility handling với debounce
-    let visibilityTimeout = null;
-    document.addEventListener('visibilitychange', () => {
-        if (document.hidden) {
-            // ✅ SỬA: Debounce để tránh trigger quá nhiều
-            if (visibilityTimeout) {
-                clearTimeout(visibilityTimeout);
-            }
-
-            visibilityTimeout = setTimeout(() => {
-                const memoryUsage = GlobalResourceManager.getMemoryUsage();
-                const now = new Date();
-                const currentHour = now.getHours();
-                const isLiveHour = currentHour === 18;
-
-                if (memoryUsage > 1000 && !isLiveHour) { // ✅ THÊM: Memory check
-                    console.log(`🧹 Page hidden, triggering cleanup (Memory: ${memoryUsage}MB)`);
-                    GlobalResourceManager.aggressiveCleanup();
-                } else if (isLiveHour) {
-                    console.log('🔄 Page hidden trong live window, bỏ qua cleanup');
-                } else {
-                    console.log(`🔄 Page hidden, memory thấp (${memoryUsage}MB), bỏ qua cleanup`);
-                }
-            }, 2000); // ✅ THÊM: Delay 2s để tránh spam
-        } else {
-            // Page visible - clear timeout
-            if (visibilityTimeout) {
-                clearTimeout(visibilityTimeout);
-                visibilityTimeout = null;
-            }
-        }
-    });
+    // Cleanup định kỳ để tránh memory leak
+    setInterval(() => {
+        globalSSEManager.cleanupOldConnections();
+    }, 60000); // Mỗi phút
 }
 
-// ✅ CẢI TIẾN: Performance monitoring
+// BỔ SUNG: Performance monitoring để theo dõi hiệu suất
 const performanceMonitor = {
     startTime: Date.now(),
     metrics: {
@@ -335,91 +76,137 @@ const performanceMonitor = {
         batchUpdates: 0,
         localStorageOps: 0,
         animations: 0,
-        memoryUsage: 0,
-        errors: 0
+        memoryUsage: 0
     },
     log: (metric, value = 1) => {
         if (process.env.NODE_ENV === 'development') {
             performanceMonitor.metrics[metric] += value;
             if (performanceMonitor.metrics[metric] % 10 === 0) {
-                console.log(`📊 Performance XSMB - ${metric}: ${performanceMonitor.metrics[metric]}`);
+                debugLog(`📊 Performance XSMB - ${metric}: ${performanceMonitor.metrics[metric]}`);
             }
         }
     }
 };
 
-// ✅ THÊM: Error Boundary cho production
-const handleError = (error, errorInfo) => {
-    console.error('❌ LiveResult Error:', error, errorInfo);
-    performanceMonitor.log('errors');
-
-    // Gửi error report trong production
-    if (process.env.NODE_ENV === 'production') {
-        console.error('Production Error:', {
-            message: error.message,
-            stack: error.stack,
-            componentStack: errorInfo?.componentStack,
-            timestamp: new Date().toISOString()
-        });
-    }
-};
-
-// ✅ CẢI TIẾN: Debug log với performance optimization
+// BỔ SUNG: Tối ưu console.log - chỉ log quan trọng
 const debugLog = (message, data = null) => {
     if (process.env.NODE_ENV === 'development') {
         console.log(`🔍 XSMB Debug: ${message}`, data);
-    } else if (process.env.NODE_ENV === 'production') {
-        // Production logging - chỉ log errors và critical events
-        if (message.includes('Error') || message.includes('Failed') || message.includes('Critical') || message.includes('Memory leak')) {
-            console.error(`🚨 Production XSMB: ${message}`, data);
-        }
     }
 };
 
-// ✅ THÊM: Performance optimized logging
-const performanceLog = (message, data = null) => {
-    if (process.env.NODE_ENV === 'development') {
-        console.log(`⚡ Performance: ${message}`, data);
+// BỔ SUNG: Debug logger cho từng vấn đề cụ thể
+const debugLogger = {
+    // Vấn đề 1: Context State Corruption
+    contextState: (action, data) => {
+        console.log(`🔍 [CONTEXT_STATE] ${action}:`, {
+            timestamp: new Date().toLocaleTimeString('vi-VN'),
+            data: data,
+            dataType: typeof data,
+            isArray: Array.isArray(data),
+            length: Array.isArray(data) ? data.length : null
+        });
+    },
+
+    // Vấn đề 2: Batch Update Queue
+    batchQueue: (action, data) => {
+        console.log(`🔍 [BATCH_QUEUE] ${action}:`, {
+            timestamp: new Date().toLocaleTimeString('vi-VN'),
+            queueSize: data?.queueSize || 0,
+            updates: data?.updates || [],
+            memoryUsage: data?.memoryUsage || 'N/A'
+        });
+    },
+
+    // Vấn đề 3: SSE Connection Pool
+    sseConnection: (action, data) => {
+        console.log(`🔍 [SSE_CONNECTION] ${action}:`, {
+            timestamp: new Date().toLocaleTimeString('vi-VN'),
+            totalConnections: data?.totalConnections || 0,
+            maxConnections: data?.maxConnections || 10,
+            provinceConnections: data?.provinceConnections || 0,
+            connectionKey: data?.connectionKey || 'N/A'
+        });
+    },
+
+    // Vấn đề 4: Memory Pressure
+    memoryPressure: (action, data) => {
+        console.log(`🔍 [MEMORY_PRESSURE] ${action}:`, {
+            timestamp: new Date().toLocaleTimeString('vi-VN'),
+            usedMB: data?.usedMB || 0,
+            totalMB: data?.totalMB || 0,
+            percentage: data?.percentage || 0
+        });
+    },
+
+    // Vấn đề 5: Race Condition
+    raceCondition: (action, data) => {
+        console.log(`🔍 [RACE_CONDITION] ${action}:`, {
+            timestamp: new Date().toLocaleTimeString('vi-VN'),
+            componentMounted: data?.mounted || false,
+            prevState: data?.prevState || 'N/A',
+            newState: data?.newState || 'N/A',
+            updateSource: data?.source || 'N/A'
+        });
+    },
+
+    // Vấn đề 6: Component Lifecycle
+    lifecycle: (action, data) => {
+        console.log(`🔍 [LIFECYCLE] ${action}:`, {
+            timestamp: new Date().toLocaleTimeString('vi-VN'),
+            componentId: data?.componentId || 'N/A',
+            phase: data?.phase || 'N/A',
+            duration: data?.duration || 0
+        });
+    },
+
+    // BỔ SUNG: Vấn đề 7: Reload Pattern Detection
+    reloadPattern: (action, data) => {
+        console.log(`🔍 [RELOAD_PATTERN] ${action}:`, {
+            timestamp: new Date().toLocaleTimeString('vi-VN'),
+            reloadCount: data?.reloadCount || 0,
+            timeSinceLastReload: data?.timeSinceLastReload || 0,
+            componentId: data?.componentId || 'N/A',
+            isRapidReload: data?.isRapidReload || false
+        });
+    },
+
+    // BỔ SUNG: Vấn đề 8: State Update Timing
+    stateTiming: (action, data) => {
+        console.log(`🔍 [STATE_TIMING] ${action}:`, {
+            timestamp: new Date().toLocaleTimeString('vi-VN'),
+            updateDuration: data?.updateDuration || 0,
+            isBlocking: data?.isBlocking || false,
+            queueLength: data?.queueLength || 0,
+            source: data?.source || 'N/A'
+        });
+    },
+
+    // BỔ SUNG: Vấn đề 9: Error Boundary
+    errorBoundary: (action, data) => {
+        console.log(`🔍 [ERROR_BOUNDARY] ${action}:`, {
+            timestamp: new Date().toLocaleTimeString('vi-VN'),
+            error: data?.error || 'N/A',
+            errorStack: data?.errorStack || 'N/A',
+            componentStack: data?.componentStack || 'N/A',
+            isRecoverable: data?.isRecoverable || false
+        });
+    },
+
+    // BỔ SUNG: Vấn đề 10: Performance Metrics
+    performance: (action, data) => {
+        console.log(`🔍 [PERFORMANCE] ${action}:`, {
+            timestamp: new Date().toLocaleTimeString('vi-VN'),
+            renderTime: data?.renderTime || 0,
+            updateTime: data?.updateTime || 0,
+            memoryDelta: data?.memoryDelta || 0,
+            fps: data?.fps || 0
+        });
     }
 };
 
 // BỔ SUNG: Tối ưu animation performance - di chuyển vào trong component
 const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFilterChange = null, filterTypes = null, isLiveWindow, isModal = false, isForum = false }) => {
-    // ✅ THÊM: Enhanced error boundary cho Fast Refresh
-    useEffect(() => {
-        const handleError = (error) => {
-            console.error('❌ LiveResult Error:', error);
-            // Reset state khi có lỗi
-            if (sseRef.current) {
-                try {
-                    sseRef.current.close();
-                } catch (e) {
-                    console.warn('Error closing SSE:', e);
-                }
-                sseRef.current = null;
-            }
-            sseSetupRef.current = false;
-
-            // ✅ THÊM: Memory leak detection
-            if (GlobalResourceManager.detectMemoryLeak()) {
-                console.warn('⚠️ Memory leak detected, triggering cleanup');
-                GlobalResourceManager.aggressiveCleanup();
-            }
-        };
-
-        const handleUnhandledRejection = (event) => {
-            console.error('❌ Unhandled Promise Rejection:', event.reason);
-            handleError(event.reason);
-        };
-
-        window.addEventListener('error', handleError);
-        window.addEventListener('unhandledrejection', handleUnhandledRejection);
-
-        return () => {
-            window.removeEventListener('error', handleError);
-            window.removeEventListener('unhandledrejection', handleUnhandledRejection);
-        };
-    }, []);
     const [modalFilter, setModalFilter] = useState('all');
     const { xsmbLiveData, setXsmbLiveData, setIsXsmbLiveDataComplete } = useLottery() || { xsmbLiveData: null, setXsmbLiveData: null, setIsXsmbLiveDataComplete: null };
     const [isTodayLoading, setIsTodayLoading] = useState(true);
@@ -449,17 +236,22 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
     const LIVE_DATA_TTL = 40 * 60 * 1000; // 40 phút như XSMT
     const cleanupIntervalRef = useRef(null);
 
-    // ✅ CẢI TIẾN: Smart connection tracking
+    // BỔ SUNG: Connection tracking để tránh memory leak
     const connectionId = useRef(`${Date.now()}-${Math.random()}`);
     const activeTimeoutsRef = useRef(new Set());
-    const cleanupRef = useRef(new Set()); // ✅ THÊM: Centralized cleanup registry
 
-    // ✅ THÊM: Performance monitoring
-    const performanceMetrics = useRef({
-        animationCount: 0,
-        batchUpdateCount: 0,
-        memoryUsage: 0,
-        lastUpdate: Date.now()
+    // BỔ SUNG: Reload pattern detection
+    const reloadTrackerRef = useRef({
+        lastReloadTime: Date.now(),
+        reloadCount: 0,
+        isRapidReload: false
+    });
+
+    // BỔ SUNG: State update timing
+    const stateUpdateTrackerRef = useRef({
+        lastUpdateTime: Date.now(),
+        updateCount: 0,
+        averageUpdateTime: 0
     });
 
     const currentStation = station || 'xsmb';
@@ -672,65 +464,40 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
         }
     }, []);
 
-    // ✅ TỐI ƯU: Animation với performance monitoring
+    // BỔ SUNG: Animation với requestAnimationFrame như XSMT
+    // BỔ SUNG: Tối ưu animation performance cho 200+ client
     const setAnimationWithTimeout = useCallback((prizeType) => {
         if (animationTimeoutsRef.current.has(prizeType)) {
             clearTimeout(animationTimeoutsRef.current.get(prizeType));
         }
 
-        // ✅ TỐI ƯU: Performance logging chỉ trong development
-        if (process.env.NODE_ENV === 'development') {
-            console.log(`🎬 SSE XSMB - Animation started:`, {
-                prizeType: prizeType,
-                timestamp: new Date().toLocaleTimeString('vi-VN')
-            });
-        }
+        // LOG: Bắt đầu animation
+        console.log(`🎬 SSE XSMB - Animation started:`, {
+            prizeType: prizeType,
+            timestamp: new Date().toLocaleTimeString('vi-VN')
+        });
 
-        // ✅ TỐI ƯU: Sử dụng requestIdleCallback thay vì requestAnimationFrame
-        if ('requestIdleCallback' in window) {
-            requestIdleCallback(() => {
-                if (mountedRef.current) {
-                    setAnimatingPrize(prizeType);
-                }
-            }, { timeout: 1000 });
-        } else {
-            // Fallback cho browsers không hỗ trợ requestIdleCallback
+        // Sử dụng requestAnimationFrame để đảm bảo smooth cho nhiều client
+        requestAnimationFrame(() => {
+            if (mountedRef.current) {
+                setAnimatingPrize(prizeType);
+            }
+        });
+
+        // Giảm timeout để tối ưu performance
+        const timeoutId = setTimeout(() => {
             requestAnimationFrame(() => {
                 if (mountedRef.current) {
-                    setAnimatingPrize(prizeType);
+                    setAnimatingPrize(null);
+                    // LOG: Kết thúc animation
+                    console.log(`🎬 SSE XSMB - Animation ended:`, {
+                        prizeType: prizeType,
+                        timestamp: new Date().toLocaleTimeString('vi-VN')
+                    });
                 }
             });
-        }
-
-        // ✅ TỐI ƯU: Giảm animation duration để tăng performance
-        const timeoutId = setTimeout(() => {
-            if ('requestIdleCallback' in window) {
-                requestIdleCallback(() => {
-                    if (mountedRef.current) {
-                        setAnimatingPrize(null);
-                        if (process.env.NODE_ENV === 'development') {
-                            console.log(`🎬 SSE XSMB - Animation ended:`, {
-                                prizeType: prizeType,
-                                timestamp: new Date().toLocaleTimeString('vi-VN')
-                            });
-                        }
-                    }
-                }, { timeout: 1000 });
-            } else {
-                requestAnimationFrame(() => {
-                    if (mountedRef.current) {
-                        setAnimatingPrize(null);
-                        if (process.env.NODE_ENV === 'development') {
-                            console.log(`🎬 SSE XSMB - Animation ended:`, {
-                                prizeType: prizeType,
-                                timestamp: new Date().toLocaleTimeString('vi-VN')
-                            });
-                        }
-                    }
-                });
-            }
             animationTimeoutsRef.current.delete(prizeType);
-        }, 800); // ✅ TỐI ƯU: Giảm từ 1200ms xuống 800ms
+        }, 1200); // Giảm từ 2000ms xuống 1200ms
 
         animationTimeoutsRef.current.set(prizeType, timeoutId);
     }, []);
@@ -740,12 +507,12 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
         const key = `MB-${prizeType}`;
         batchUpdateRef.current.set(key, { prizeType, value });
 
-        // LOG: Batch update được trigger
-        console.log(`📦 SSE XSMB - Batch update triggered:`, {
-            prizeType: prizeType,
-            value: value,
-            timestamp: new Date().toLocaleTimeString('vi-VN'),
-            batchSize: batchUpdateRef.current.size
+        // BỔ SUNG: Debug Batch Queue
+        debugLogger.batchQueue('UPDATE_ADDED', {
+            queueSize: batchUpdateRef.current.size,
+            updates: Array.from(batchUpdateRef.current.values()),
+            memoryUsage: typeof performance !== 'undefined' && performance.memory ?
+                Math.round(performance.memory.usedJSHeapSize / 1024 / 1024) : 'N/A'
         });
 
         // Cache prize type riêng lẻ ngay lập tức
@@ -755,7 +522,6 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                 value: value,
                 timestamp: Date.now()
             });
-            console.log(`📦 Cached prize ${prizeType} = ${value} cho XSMB`);
 
             // ✅ TỐI ƯU: Thêm throttle cho animation để tránh quá tải
             const animationKey = `MB-${prizeType}`;
@@ -767,7 +533,6 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                 if (now - lastAnimationTime > 1000) { // Throttle 1 giây
                     animationThrottleRef.current.set(animationKey, now);
                     animationQueueRef.current.set(animationKey, { tinh: 'MB', prizeType });
-                    console.log(`🎬 Queued animation cho XSMB: ${prizeType} = ${value}`);
                 }
             }
         }
@@ -778,74 +543,102 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
             batchTimeoutRef.current = null;
         }
 
-        // ✅ CẢI TIẾN: Safe batch update với React state protection
+        // Sử dụng requestIdleCallback để tránh blocking main thread
         const scheduleBatchUpdate = () => {
             if (batchUpdateRef.current.size > 0 && setXsmbLiveData && mountedRef.current) {
-                // LOG: Thực hiện batch update
-                console.log(`⚡ SSE XSMB - Executing batch update:`, {
-                    batchSize: batchUpdateRef.current.size,
-                    timestamp: new Date().toLocaleTimeString('vi-VN'),
-                    updates: Array.from(batchUpdateRef.current.values()).map(({ prizeType, value }) => ({ prizeType, value }))
+                const updateStartTime = Date.now();
+
+                // BỔ SUNG: Debug State Update Timing
+                debugLogger.stateTiming('BATCH_UPDATE_START', {
+                    updateDuration: 0,
+                    isBlocking: false,
+                    queueLength: batchUpdateRef.current.size,
+                    source: 'batchUpdate'
                 });
 
-                // ✅ SỬA: Optimized batch update để tránh performance issues
-                setTimeout(() => {
+                // BỔ SUNG: Debug Batch Queue Execution
+                debugLogger.batchQueue('EXECUTING_BATCH', {
+                    queueSize: batchUpdateRef.current.size,
+                    updates: Array.from(batchUpdateRef.current.values()),
+                    memoryUsage: typeof performance !== 'undefined' && performance.memory ?
+                        Math.round(performance.memory.usedJSHeapSize / 1024 / 1024) : 'N/A'
+                });
+
+                // Sử dụng requestAnimationFrame để đảm bảo smooth UI
+                requestAnimationFrame(() => {
                     if (!mountedRef.current) return;
 
-                    try {
-                        // ✅ TỐI ƯU: Batch state updates để tránh re-render nhiều lần
-                        const updates = Array.from(batchUpdateRef.current.values());
-                        const updatedData = {};
+                    setXsmbLiveData(prev => {
+                        const updateEndTime = Date.now();
+                        const updateDuration = updateEndTime - updateStartTime;
+
+                        // BỔ SUNG: Debug State Update Timing
+                        debugLogger.stateTiming('STATE_UPDATE_COMPLETE', {
+                            updateDuration: updateDuration,
+                            isBlocking: updateDuration > 16, // > 16ms = blocking
+                            queueLength: batchUpdateRef.current.size,
+                            source: 'batchUpdate'
+                        });
+
+                        // BỔ SUNG: Debug Race Condition
+                        debugLogger.raceCondition('STATE_UPDATE', {
+                            mounted: mountedRef.current,
+                            prevState: prev,
+                            newState: { ...prev, [prizeType]: value },
+                            source: 'batchUpdate'
+                        });
+
+                        const updatedData = { ...prev };
                         let hasChanges = false;
 
-                        updates.forEach(({ prizeType, value }) => {
-                            updatedData[prizeType] = value;
+                        batchUpdateRef.current.forEach(({ prizeType: updatePrizeType, value: updateValue }) => {
+                            updatedData[updatePrizeType] = updateValue;
                             hasChanges = true;
+
+                            // Trigger animation cho dữ liệu mới nếu component đang mounted
+                            if (mountedRef.current && updateValue && updateValue !== '...' && updateValue !== '***') {
+                                setAnimationWithTimeout(updatePrizeType);
+                            }
                         });
 
                         if (hasChanges) {
-                            setXsmbLiveData(prev => {
-                                const newData = { ...prev, ...updatedData, lastUpdated: Date.now() };
-
-                                // Sử dụng debounced localStorage
-                                debouncedLocalStorageUpdate(`liveData:${currentStation}:${today}`, newData);
-
-                                // Sử dụng pre-calculated completion status nếu có
-                                const isComplete = processedLiveData?.isComplete || Object.values(newData).every(
-                                    val => typeof val === 'string' && val !== '...' && val !== '***'
-                                );
-                                setIsXsmbLiveDataComplete(isComplete);
-                                setIsTodayLoading(false);
-                                setRetryCount(0);
-                                setError(null);
-
-                                return newData;
-                            });
-
-                            // ✅ TỐI ƯU: Trigger animations với delay để tránh blocking
-                            updates.forEach(({ prizeType, value }, index) => {
-                                if (mountedRef.current && value && value !== '...' && value !== '***') {
-                                    setTimeout(() => {
-                                        if (mountedRef.current) {
-                                            setAnimationWithTimeout(prizeType);
-                                        }
-                                    }, index * 50); // Delay 50ms giữa các animation
-                                }
-                            });
+                            updatedData.lastUpdated = Date.now();
+                            // Sử dụng debounced localStorage
+                            debouncedLocalStorageUpdate(`liveData:${currentStation}:${today}`, updatedData);
                         }
 
-                    } catch (error) {
-                        console.error('❌ Lỗi batch update:', error);
-                    }
+                        // Sử dụng pre-calculated completion status nếu có
+                        const isComplete = processedLiveData?.isComplete || Object.values(updatedData).every(
+                            val => typeof val === 'string' && val !== '...' && val !== '***'
+                        );
+                        setIsXsmbLiveDataComplete(isComplete);
+                        setIsTodayLoading(false);
+                        setRetryCount(0);
+                        setError(null);
+
+                        return updatedData;
+                    });
 
                     // Clear batch
                     batchUpdateRef.current.clear();
-                }, 100); // ✅ TĂNG: 0ms → 100ms để tránh blocking
+
+                    // BỔ SUNG: Debug Batch Queue Cleared
+                    debugLogger.batchQueue('QUEUE_CLEARED', {
+                        queueSize: 0,
+                        updates: [],
+                        memoryUsage: typeof performance !== 'undefined' && performance.memory ?
+                            Math.round(performance.memory.usedJSHeapSize / 1024 / 1024) : 'N/A'
+                    });
+                });
             }
         };
 
-        // ✅ SỬA: Sử dụng setTimeout thay vì requestIdleCallback
-        batchTimeoutRef.current = setTimeout(scheduleBatchUpdate, 50); // Tăng timeout để tránh conflict
+        // Sử dụng requestIdleCallback nếu có, fallback to setTimeout
+        if (typeof requestIdleCallback !== 'undefined') {
+            requestIdleCallback(scheduleBatchUpdate, { timeout: 30 }); // Giảm timeout tối đa
+        } else {
+            batchTimeoutRef.current = setTimeout(scheduleBatchUpdate, 30);
+        }
     }, [setXsmbLiveData, debouncedLocalStorageUpdate, currentStation, today, setAnimationWithTimeout, processedLiveData]);
 
     // BỔ SUNG: Debounced set live data - FINAL OPTIMIZATION
@@ -856,135 +649,187 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
         updateTimeoutRef.current = setTimeout(() => {
             if (mountedRef.current && setXsmbLiveData) {
                 try {
+                    // BỔ SUNG: Debug Context State Update
+                    debugLogger.contextState('DEBOUNCED_UPDATE', {
+                        newData: newData,
+                        dataType: typeof newData,
+                        isArray: Array.isArray(newData),
+                        length: Array.isArray(newData) ? newData.length : null
+                    });
+
                     setXsmbLiveData(newData);
                 } catch (error) {
                     console.warn('Lỗi set live data:', error);
+
+                    // BỔ SUNG: Debug Context State Error
+                    debugLogger.contextState('UPDATE_ERROR', {
+                        error: error.message,
+                        newData: newData
+                    });
                 }
             }
         }, 25); // Giảm timeout tối đa cho realtime
     }, [setXsmbLiveData]);
 
-    // ✅ CẢI TIẾN: Smart memory monitoring với GlobalResourceManager
+    // BỔ SUNG: Memory monitoring và cleanup để tránh treo trình duyệt
     useEffect(() => {
-        // Memory monitoring đã được handle bởi GlobalResourceManager
-        // Chỉ thêm component-specific monitoring nếu cần
+        const memoryCheckInterval = setInterval(() => {
+            if (typeof performance !== 'undefined' && performance.memory) {
+                const memoryInfo = performance.memory;
+                const usedMB = Math.round(memoryInfo.usedJSHeapSize / 1024 / 1024);
+                const totalMB = Math.round(memoryInfo.totalJSHeapSize / 1024 / 1024);
+                const percentage = Math.round((usedMB / totalMB) * 100);
 
-        const componentMemoryCheck = GlobalResourceManager.safeSetInterval(() => {
-            const memoryUsage = GlobalResourceManager.getMemoryUsage();
-            // ✅ SỬA: Chỉ check khi memory thực sự cao
-            if (memoryUsage > 1500) { // ✅ TĂNG: 800MB → 1500MB để tránh cleanup quá sớm
-                console.warn(`⚠️ Component memory usage cao: ${memoryUsage}MB`);
-                // ✅ SỬA: Chỉ trigger cleanup khi thực sự cần thiết
-                if (memoryUsage > 2000) { // ✅ TĂNG: 1000MB → 2000MB
-                    console.log('🧹 Triggering aggressive cleanup due to high memory usage');
-                    GlobalResourceManager.aggressiveCleanup();
+                // BỔ SUNG: Debug Memory Pressure
+                debugLogger.memoryPressure('CHECK', {
+                    usedMB: usedMB,
+                    totalMB: totalMB,
+                    percentage: percentage
+                });
+
+                if (usedMB > 200) { // Tăng ngưỡng cảnh báo
+                    debugLogger.memoryPressure('HIGH_USAGE', {
+                        usedMB: usedMB,
+                        totalMB: totalMB,
+                        percentage: percentage
+                    });
+                    // Force cleanup khi memory quá cao
+                    globalSSEManager.cleanupOldConnections();
+                }
+
+                // Cleanup định kỳ để tránh memory leak
+                if (usedMB > 100) {
+                    debugLogger.memoryPressure('CLEANUP_TRIGGERED', {
+                        usedMB: usedMB,
+                        totalMB: totalMB,
+                        percentage: percentage
+                    });
+                    globalSSEManager.cleanupOldConnections();
                 }
             }
-        }, 300000); // ✅ TĂNG: 120s → 300s để giảm frequency
+        }, 30000); // Check memory mỗi 30 giây
 
-        // Add to cleanup registry
-        cleanupRef.current.add(() => {
-            clearInterval(componentMemoryCheck);
-        });
-
-        return () => {
-            clearInterval(componentMemoryCheck);
-        };
+        return () => clearInterval(memoryCheckInterval);
     }, []);
 
     // BỔ SUNG: Tối ưu cleanup function để tránh vòng lặp vô hạn
     useEffect(() => {
+        const startTime = Date.now();
         mountedRef.current = true;
+
+        // BỔ SUNG: Debug Component Lifecycle
+        debugLogger.lifecycle('COMPONENT_MOUNT', {
+            componentId: connectionId.current,
+            phase: 'mount',
+            duration: 0
+        });
 
         cleanupIntervalRef.current = setInterval(cleanupOldLiveData, 10 * 60 * 1000);
 
         return () => {
+            const duration = Date.now() - startTime;
             mountedRef.current = false;
 
-            // ✅ CẢI TIẾN: Execute all cleanup functions from registry
-            cleanupRef.current.forEach(cleanupFn => {
-                try {
-                    cleanupFn();
-                } catch (error) {
-                    console.warn('Cleanup error:', error);
-                }
+            // BỔ SUNG: Debug Component Lifecycle
+            debugLogger.lifecycle('COMPONENT_UNMOUNT', {
+                componentId: connectionId.current,
+                phase: 'unmount',
+                duration: duration
             });
-            cleanupRef.current.clear();
 
-            // ✅ CẢI TIẾN: Smart SSE cleanup với reconnection logic
+            // Cleanup tất cả timeouts để tránh memory leak
+            activeTimeoutsRef.current.forEach(timeoutId => {
+                clearTimeout(timeoutId);
+            });
+            activeTimeoutsRef.current.clear();
+
+            // Cleanup SSE connection với timeout để tránh treo
             if (sseRef.current) {
-                const currentConnectionId = connectionId.current;
-                GlobalResourceManager.connections.delete(currentConnectionId);
+                const connectionKey = `${currentStation}:${today}:${connectionId.current}`;
+                globalSSEManager.connections.delete(connectionKey);
+
+                debugLogger.sseConnection('COMPONENT_UNMOUNT_CLEANUP', {
+                    totalConnections: globalSSEManager.connections.size,
+                    maxConnections: globalSSEManager.maxConnections,
+                    provinceConnections: globalSSEManager.getConnectionsForProvince('MB'),
+                    connectionKey: connectionKey
+                });
 
                 if (sseRef.current.readyState !== EventSource.CLOSED) {
+                    // Thêm timeout để tránh treo khi đóng connection
+                    const closeTimeout = setTimeout(() => {
+                        if (sseRef.current && sseRef.current.readyState !== EventSource.CLOSED) {
+                            try {
+                                sseRef.current.close();
+                            } catch (error) {
+                                console.warn('Lỗi đóng SSE connection timeout:', error);
+                            }
+                        }
+                    }, 1000);
+
                     try {
                         sseRef.current.close();
                     } catch (error) {
-                        console.warn('SSE connection cleanup error:', error);
+                        console.warn('Lỗi đóng SSE connection:', error);
                     }
+
+                    clearTimeout(closeTimeout);
                 }
                 sseRef.current = null;
             }
 
-            // ✅ THÊM: Auto-reconnection logic
-            if (isLiveWindow && mountedRef.current) {
-                console.log('🔄 Auto-reconnecting SSE after cleanup...');
-                setTimeout(() => {
-                    if (mountedRef.current && !sseRef.current) {
-                        connectSSE();
-                    }
-                }, 2000); // Reconnect sau 2 giây
-            }
+            // Cleanup tất cả timeouts với timeout
+            const cleanupTimeouts = () => {
+                if (updateTimeoutRef.current) {
+                    clearTimeout(updateTimeoutRef.current);
+                    updateTimeoutRef.current = null;
+                }
 
-            // ✅ CẢI TIẾN: Use GlobalResourceManager for timeout cleanup
-            if (updateTimeoutRef.current) {
-                clearTimeout(updateTimeoutRef.current);
-                updateTimeoutRef.current = null;
-            }
+                if (localStorageTimeoutRef.current) {
+                    clearTimeout(localStorageTimeoutRef.current);
+                    localStorageTimeoutRef.current = null;
+                }
 
-            if (localStorageTimeoutRef.current) {
-                clearTimeout(localStorageTimeoutRef.current);
-                localStorageTimeoutRef.current = null;
-            }
+                if (batchTimeoutRef.current) {
+                    clearTimeout(batchTimeoutRef.current);
+                    batchTimeoutRef.current = null;
+                }
 
-            if (batchTimeoutRef.current) {
-                clearTimeout(batchTimeoutRef.current);
-                batchTimeoutRef.current = null;
-            }
+                animationTimeoutsRef.current.forEach((timeoutId) => {
+                    clearTimeout(timeoutId);
+                });
+                animationTimeoutsRef.current.clear();
+            };
 
-            // ✅ CẢI TIẾN: Aggressive animation cleanup
-            animationTimeoutsRef.current.forEach((timeoutId) => {
-                clearTimeout(timeoutId);
-            });
-            animationTimeoutsRef.current.clear();
+            // Thực hiện cleanup với timeout để tránh treo
+            setTimeout(cleanupTimeouts, 0);
 
-            // ✅ CẢI TIẾN: Clear all refs immediately
+            // Clear tất cả refs
             batchUpdateRef.current.clear();
             sseConnectionPool.current.clear();
-            animationQueueRef.current.clear();
-            animationThrottleRef.current.clear();
-            localStorageRef.current.clear();
 
-            // ✅ CẢI TIẾN: Smart cache cleanup
-            const now = Date.now();
-            for (const [key, value] of prizeCache.current.entries()) {
-                if (now - value.timestamp > prizeCacheTimeout) {
-                    prizeCache.current.delete(key);
+            // Cleanup cache cũ với timeout
+            setTimeout(() => {
+                const now = Date.now();
+                for (const [key, value] of prizeCache.current.entries()) {
+                    if (now - value.timestamp > prizeCacheTimeout) {
+                        prizeCache.current.delete(key);
+                    }
                 }
-            }
 
-            for (const [key, value] of initialDataCache.current.entries()) {
-                if (now - value.timestamp > cacheTimeout) {
-                    initialDataCache.current.delete(key);
+                for (const [key, value] of initialDataCache.current.entries()) {
+                    if (now - value.timestamp > cacheTimeout) {
+                        initialDataCache.current.delete(key);
+                    }
                 }
-            }
+            }, 0);
 
             if (cleanupIntervalRef.current) {
                 clearInterval(cleanupIntervalRef.current);
                 cleanupIntervalRef.current = null;
             }
 
-            // Reset setup flag
+            // Reset setup flag để tránh vòng lặp
             sseSetupRef.current = false;
         };
     }, [isLiveWindow, currentStation, today]);
@@ -999,20 +844,34 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                 const cacheKey = `${currentStation}:${today}`;
                 const cachedData = initialDataCache.current.get(cacheKey);
 
+                // BỔ SUNG: Debug Context State - Fetch Start
+                debugLogger.contextState('FETCH_START', {
+                    retry: retry,
+                    cacheKey: cacheKey,
+                    hasCachedData: !!cachedData
+                });
+
                 // Kiểm tra nếu đang trong giờ live (18h-18h59)
                 const vietnamTime = getVietnamTime();
                 const currentHour = vietnamTime.getHours();
-                const isLiveHour = currentHour === 18;
+                const isLiveHour = currentHour === 20;
 
                 // Clear cache nếu đã qua giờ live (19h trở đi)
                 if (currentHour >= 19) {
-                    console.log('🕐 Đã qua giờ live, clear cache để lấy dữ liệu mới');
+                    debugLogger.contextState('CACHE_CLEAR', {
+                        currentHour: currentHour,
+                        reason: 'past_live_hour'
+                    });
                     initialDataCache.current.clear();
                     localStorage.removeItem(`liveData:${currentStation}:${today}`);
                 }
 
                 if (cachedData && Date.now() - cachedData.timestamp < cacheTimeout) {
                     if (mountedRef.current) {
+                        debugLogger.contextState('USING_CACHED_DATA', {
+                            cachedData: cachedData.data,
+                            timestamp: cachedData.timestamp
+                        });
                         setXsmbLiveData(cachedData.data);
                         setIsXsmbLiveDataComplete(false);
                         setIsTodayLoading(false);
@@ -1023,7 +882,10 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
 
                 // Nếu không phải giờ live và đang ở modal, gọi API cache
                 if (!isLiveHour && currentStation === 'xsmb' && isModal) {
-                    console.log('🕐 Không phải giờ live XSMB và đang ở modal, gọi API cache...');
+                    debugLogger.contextState('MODAL_CACHE_API', {
+                        currentHour: currentHour,
+                        isModal: isModal
+                    });
                     // Không gửi ngày hiện tại, chỉ lấy bản mới nhất
                     const response = await fetch(`https://backendkqxs-1.onrender.com/api/kqxs/xsmb/latest`);
                     if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
@@ -1049,6 +911,11 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                             dayOfWeek: serverData.dayOfWeek || 'Chủ nhật'
                         };
 
+                        debugLogger.contextState('MODAL_DATA_SET', {
+                            serverData: dataWithCorrectDate,
+                            formattedDate: dataWithCorrectDate.drawDate
+                        });
+
                         setXsmbLiveData(dataWithCorrectDate);
                         setIsXsmbLiveDataComplete(true);
                         setIsTodayLoading(false);
@@ -1066,22 +933,33 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
 
                 // Trang chính luôn sử dụng SSE, không gọi API cache
                 if (!isModal) {
-                    console.log('🔄 Trang chính XSMB, sử dụng SSE...');
+                    debugLogger.contextState('MAIN_PAGE_SSE', {
+                        isModal: isModal
+                    });
                 }
 
                 // Modal trong giờ live cũng sử dụng SSE như trang chính
                 if (isModal && isLiveHour) {
-                    console.log('🔄 Modal XSMB trong giờ live, sử dụng SSE...');
+                    debugLogger.contextState('MODAL_LIVE_SSE', {
+                        isModal: isModal,
+                        isLiveHour: isLiveHour
+                    });
                     // Clear cache để đảm bảo lấy dữ liệu mới nhất
                     initialDataCache.current.clear();
                     localStorage.removeItem(`liveData:${currentStation}:${today}`);
 
                     // Sử dụng SSE trực tiếp như XSMT
-                    console.log('🔄 Modal XSMB trong giờ live, kết nối SSE trực tiếp...');
+                    debugLogger.contextState('MODAL_LIVE_SSE_DIRECT', {
+                        isModal: isModal,
+                        isLiveHour: isLiveHour
+                    });
                 }
 
                 // Tiếp tục với SSE cho cả trang chính và modal trong giờ live
-                console.log('🔄 Tiếp tục với SSE cho XSMB...');
+                debugLogger.contextState('SSE_CONTINUE', {
+                    isModal: isModal,
+                    isLiveHour: isLiveHour
+                });
 
                 const response = await fetch(`https://backendkqxs-1.onrender.com/api/kqxs/xsmb/sse/initial?station=${currentStation}&date=${today}`);
                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
@@ -1101,6 +979,13 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                     }
                     if (shouldUpdate) {
                         updatedData.lastUpdated = serverData.lastUpdated || Date.now();
+
+                        debugLogger.contextState('INITIAL_DATA_SET', {
+                            updatedData: updatedData,
+                            shouldUpdate: shouldUpdate,
+                            serverDataLastUpdated: serverData.lastUpdated
+                        });
+
                         setXsmbLiveData(updatedData);
                         debouncedLocalStorageUpdate(`liveData:${currentStation}:${today}`, updatedData);
 
@@ -1117,6 +1002,10 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                         setRetryCount(0);
                         setError(null);
                     } else {
+                        debugLogger.contextState('NO_UPDATE_NEEDED', {
+                            initialData: initialData,
+                            shouldUpdate: shouldUpdate
+                        });
                         setXsmbLiveData(initialData);
                         setIsXsmbLiveDataComplete(false);
                         setIsTodayLoading(false);
@@ -1124,6 +1013,14 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                 }
             } catch (error) {
                 console.error(`Lỗi khi lấy dữ liệu khởi tạo XSMB (lần ${retry + 1}):`, error.message);
+
+                // BỔ SUNG: Debug Context State Error
+                debugLogger.contextState('FETCH_ERROR', {
+                    error: error.message,
+                    retry: retry,
+                    maxRetries: fetchMaxRetries
+                });
+
                 if (retry < fetchMaxRetries) {
                     setTimeout(() => {
                         if (mountedRef.current) {
@@ -1155,69 +1052,79 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
 
             // Kiểm tra nếu đã thiết lập SSE rồi - TRÁNH VÒNG LẶP VÔ HẠN
             if (sseSetupRef.current) {
-                console.log('⚠️ SSE đã được thiết lập, bỏ qua');
+                debugLogger.sseConnection('ALREADY_SETUP', {
+                    totalConnections: globalSSEManager.connections.size,
+                    maxConnections: globalSSEManager.maxConnections,
+                    provinceConnections: globalSSEManager.getConnectionsForProvince('MB')
+                });
                 return;
             }
 
-            // ✅ THÊM: Protection để tránh setup quá nhiều
-            if (sseRef.current && sseRef.current.readyState !== EventSource.CLOSED) {
-                console.log('⚠️ SSE connection đang hoạt động, bỏ qua setup');
-                return;
+            // Kiểm tra số lượng connection để tránh treo trình duyệt
+            if (globalSSEManager.connections.size >= globalSSEManager.maxConnections) {
+                debugLogger.sseConnection('POOL_FULL', {
+                    totalConnections: globalSSEManager.connections.size,
+                    maxConnections: globalSSEManager.maxConnections,
+                    provinceConnections: globalSSEManager.getConnectionsForProvince('MB')
+                });
+                globalSSEManager.cleanupOldConnections();
             }
 
-            // ✅ CẢI TIẾN: Simplified SSE connection management
-            const sseUrl = `https://backendkqxs-1.onrender.com/api/kqxs/xsmb/sse?station=${currentStation}&date=${today}`;
-            console.log(`🔌 SSE XSMB - Attempting connection to: ${sseUrl}`);
-            console.log(`🔍 Connection Debug - Setup: ${sseSetupRef.current}, Mounted: ${mountedRef.current}, Pool Size: ${sseConnectionPool.current.size}`);
-            console.log(`🔌 Tạo SSE connection cho XSMB:`, sseUrl);
+            // ✅ TỐI ƯU: Sử dụng method mới để kiểm tra connections cho tỉnh
+            const connectionsForProvince = globalSSEManager.getConnectionsForProvince('MB');
+
+            if (connectionsForProvince >= globalSSEManager.maxConnectionsPerProvince) { // Giới hạn 2 connections cho XSMB
+                debugLogger.sseConnection('PROVINCE_LIMIT_REACHED', {
+                    totalConnections: globalSSEManager.connections.size,
+                    maxConnections: globalSSEManager.maxConnections,
+                    provinceConnections: connectionsForProvince
+                });
+                return;
+            }
 
             // Kiểm tra nếu đang trong Fast Refresh
             if (typeof window !== 'undefined' && window.__NEXT_DATA__?.buildId !== window.__NEXT_DATA__?.buildId) {
-                console.log('🔄 Fast Refresh detected, bỏ qua SSE setup');
-                return;
-            }
-
-            // ✅ THÊM: Protection cho Fast Refresh
-            if (typeof window !== 'undefined' && window.location.href.includes('?fast-refresh')) {
-                console.log('🔄 Fast Refresh URL detected, bỏ qua SSE setup');
                 return;
             }
 
             // Kiểm tra nếu không phải giờ live cho XSMB (chỉ áp dụng cho modal)
             const vietnamTime = getVietnamTime();
             const currentHour = vietnamTime.getHours();
-            const isLiveHour = currentHour === 18;
+            const isLiveHour = currentHour === 20;
 
             // Chỉ kiểm tra giờ live cho modal, trang chính luôn kết nối SSE
             if (!isLiveHour && currentStation === 'xsmb' && isModal) {
-                console.log('🕐 Không phải giờ live XSMB và đang ở modal, bỏ qua SSE setup');
+                debugLogger.sseConnection('NOT_LIVE_HOUR', {
+                    totalConnections: globalSSEManager.connections.size,
+                    maxConnections: globalSSEManager.maxConnections,
+                    provinceConnections: connectionsForProvince,
+                    currentHour: currentHour
+                });
                 return;
             }
 
             // Modal trong giờ live cũng kết nối SSE
             if (isModal && isLiveHour) {
-                console.log('🔄 Modal XSMB trong giờ live, kết nối SSE...');
+                debugLogger.sseConnection('MODAL_LIVE_HOUR', {
+                    totalConnections: globalSSEManager.connections.size,
+                    maxConnections: globalSSEManager.maxConnections,
+                    provinceConnections: connectionsForProvince
+                });
             }
 
-            console.log('✅ Bắt đầu thiết lập SSE cho XSMB');
+            debugLogger.sseConnection('SETUP_START', {
+                totalConnections: globalSSEManager.connections.size,
+                maxConnections: globalSSEManager.maxConnections,
+                provinceConnections: connectionsForProvince
+            });
             sseSetupRef.current = true;
 
             // Reset animation state khi bắt đầu SSE setup
             setAnimatingPrize(null);
-            console.log('🔄 Reset animation state cho SSE setup');
 
             const connectionKey = `${currentStation}:${today}:${connectionId.current}`;
 
-            // ✅ THÊM: Kiểm tra connection pool sau khi khai báo connectionKey
-            if (sseConnectionPool.current.has(connectionKey)) {
-                const existingConnection = sseConnectionPool.current.get(connectionKey);
-                if (existingConnection && existingConnection.readyState !== EventSource.CLOSED) {
-                    console.log('⚠️ SSE connection trong pool đang hoạt động, bỏ qua setup');
-                    return;
-                }
-            }
-
-            // Cleanup connection cũ trước khi tạo mới
+            // Cleanup connection cũ trước khi tạo mới - TRÁNH VÒNG LẶP
             if (sseRef.current) {
                 try {
                     sseRef.current.close();
@@ -1228,16 +1135,15 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
             }
 
             // Cleanup từ global manager và pool
-            const currentConnectionId = connectionId.current;
-            if (GlobalResourceManager.connections.has(currentConnectionId)) {
-                const existingConnection = GlobalResourceManager.connections.get(currentConnectionId);
+            if (globalSSEManager.connections.has(connectionKey)) {
+                const existingConnection = globalSSEManager.connections.get(connectionKey);
                 if (existingConnection) {
                     try {
                         existingConnection.close();
                     } catch (error) {
                         console.warn('Lỗi đóng global connection:', error);
                     }
-                    GlobalResourceManager.connections.delete(currentConnectionId);
+                    globalSSEManager.connections.delete(connectionKey);
                 }
             }
 
@@ -1253,25 +1159,34 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                 }
             }
 
+            const sseUrl = `https://backendkqxs-1.onrender.com/api/kqxs/xsmb/sse?station=${currentStation}&date=${today}`;
+
             try {
                 const newConnection = new EventSource(sseUrl);
                 sseRef.current = newConnection;
 
                 // Thêm vào global manager với timestamp
                 newConnection.lastActivity = Date.now();
-                GlobalResourceManager.connections.set(currentConnectionId, newConnection);
+                globalSSEManager.connections.set(connectionKey, newConnection);
                 sseConnectionPool.current.set(connectionKey, newConnection);
+
+                debugLogger.sseConnection('CONNECTION_CREATED', {
+                    totalConnections: globalSSEManager.connections.size,
+                    maxConnections: globalSSEManager.maxConnections,
+                    provinceConnections: globalSSEManager.getConnectionsForProvince('MB'),
+                    connectionKey: connectionKey
+                });
 
                 setSseStatus('connecting');
 
                 newConnection.onopen = () => {
                     newConnection.lastActivity = Date.now();
                     setSseStatus('connected');
-                    // LOG: SSE connection đã mở
-                    console.log(`🔌 SSE XSMB - Connection opened:`, {
-                        timestamp: new Date().toLocaleTimeString('vi-VN'),
-                        connectionKey: connectionKey,
-                        readyState: newConnection.readyState
+                    debugLogger.sseConnection('CONNECTION_OPENED', {
+                        totalConnections: globalSSEManager.connections.size,
+                        maxConnections: globalSSEManager.maxConnections,
+                        provinceConnections: globalSSEManager.getConnectionsForProvince('MB'),
+                        connectionKey: connectionKey
                     });
                     if (mountedRef.current) {
                         setError(null);
@@ -1279,67 +1194,14 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                     }
                 };
 
-                newConnection.onclose = () => {
-                    console.log(`🔌 SSE XSMB - Connection closed:`, {
-                        timestamp: new Date().toLocaleTimeString('vi-VN'),
-                        connectionKey: connectionKey,
-                        readyState: newConnection.readyState
-                    });
-                };
-
-                // ✅ THÊM: Connection health check với logic thông minh hơn
-                const healthCheck = setInterval(() => {
-                    // ✅ SỬA: Kiểm tra connection state chi tiết hơn
-                    if (newConnection.readyState === EventSource.CLOSED) {
-                        console.warn('⚠️ SSE connection đã đóng, thử reconnect...');
-                        console.log(`🔍 Connection Debug - State: ${newConnection.readyState}, URL: ${sseUrl}, Mounted: ${mountedRef.current}`);
-
-                        clearInterval(healthCheck);
-
-                        // ✅ SỬA: Chỉ reconnect nếu component vẫn mounted và có thể tạo connection mới
-                        if (mountedRef.current && !sseSetupRef.current) {
-                            const now = new Date();
-                            const currentHour = now.getHours();
-                            const isLiveHour = currentHour === 18;
-
-                            if (isLiveHour) {
-                                console.log('🔄 Đang trong live window, thử reconnect SSE...');
-                                setTimeout(() => {
-                                    if (mountedRef.current && !sseSetupRef.current) {
-                                        sseSetupRef.current = false; // Reset setup flag
-                                        connectSSE();
-                                    }
-                                }, 2000); // Delay 2s trước khi reconnect
-                            } else {
-                                console.log('🔄 Không phải live window, bỏ qua reconnect');
-                            }
-                        } else {
-                            console.log('🔄 Component unmounted hoặc đang setup, bỏ qua reconnect');
-                        }
-                    } else if (newConnection.readyState === EventSource.OPEN) {
-                        newConnection.lastActivity = Date.now();
-                        // ✅ GIẢM: Chỉ log khi có vấn đề để tránh spam
-                    } else {
-                        // CONNECTING state
-                        console.log(`🔍 SSE Health Check - Connecting state: ${newConnection.readyState}`);
-                    }
-                }, 60000); // ✅ TĂNG: 30s → 60s để giảm frequency
-
-                // Add health check to cleanup
-                cleanupRef.current.add(() => {
-                    clearInterval(healthCheck);
-                });
-
-                newConnection.onerror = (error) => {
+                newConnection.onerror = () => {
                     setSseStatus('error');
-                    // LOG: SSE connection error
-                    console.log(`❌ SSE XSMB - Connection error:`, {
-                        timestamp: new Date().toLocaleTimeString('vi-VN'),
-                        retryCount: retryCount,
-                        maxRetries: maxRetries,
-                        error: error,
-                        connectionState: newConnection.readyState,
-                        url: sseUrl
+                    debugLogger.sseConnection('CONNECTION_ERROR', {
+                        totalConnections: globalSSEManager.connections.size,
+                        maxConnections: globalSSEManager.maxConnections,
+                        provinceConnections: globalSSEManager.getConnectionsForProvince('MB'),
+                        connectionKey: connectionKey,
+                        retryCount: retryCount
                     });
 
                     if (mountedRef.current) {
@@ -1357,24 +1219,20 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                             sseRef.current = null;
                         }
 
-                        GlobalResourceManager.connections.delete(currentConnectionId);
+                        globalSSEManager.connections.delete(connectionKey);
                         sseConnectionPool.current.delete(connectionKey);
                     }, 100);
 
-                    // ✅ THÊM: Smart retry logic với exponential backoff
                     if (retryCount < maxRetries && mountedRef.current) {
-                        const retryDelay = Math.min(sseReconnectDelay * Math.pow(2, retryCount), 10000); // Max 10s
                         const retryTimeoutId = setTimeout(() => {
                             if (mountedRef.current) {
                                 setRetryCount(prev => prev + 1);
-                                console.log(`🔄 SSE XSMB - Retry connection (${retryCount + 1}/${maxRetries}) với delay ${retryDelay}ms`);
                                 connectSSE();
                             }
-                        }, retryDelay);
+                        }, sseReconnectDelay);
 
                         activeTimeoutsRef.current.add(retryTimeoutId);
                     } else if (mountedRef.current) {
-                        console.log(`💀 SSE XSMB - Max retries reached, giving up`);
                         setError('Mất kết nối SSE, vui lòng refresh trang...');
                     }
                 };
@@ -1397,8 +1255,7 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                                 console.log(`🎯 SSE XSMB - Nhận ${prizeType}:`, {
                                     value: data[prizeType],
                                     timestamp: new Date().toLocaleTimeString('vi-VN'),
-                                    isLive: data[prizeType] !== '...' && data[prizeType] !== '***',
-                                    connectionState: newConnection.readyState
+                                    isLive: data[prizeType] !== '...' && data[prizeType] !== '***'
                                 });
 
                                 batchUpdateLiveData(prizeType, data[prizeType]);
@@ -1478,19 +1335,11 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                 batchTimeoutRef.current = null;
             }
 
-            // ✅ TỐI ƯU: Enhanced animation timeouts cleanup
+            // Clear tất cả animation timeouts
             animationTimeoutsRef.current.forEach((timeoutId) => {
-                try {
-                    clearTimeout(timeoutId);
-                } catch (error) {
-                    console.warn('Error clearing animation timeout:', error);
-                }
+                clearTimeout(timeoutId);
             });
             animationTimeoutsRef.current.clear();
-
-            // ✅ THÊM: Clear animation queue và throttle
-            animationQueueRef.current.clear();
-            animationThrottleRef.current.clear();
 
             // Clear batch update ref
             batchUpdateRef.current.clear();
@@ -1714,6 +1563,107 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
             </span>
         );
     }, [animatingPrize, xsmbLiveData, processedLiveData, currentFilter]);
+
+    // BỔ SUNG: Debug Context State
+    useEffect(() => {
+        const now = Date.now();
+        const timeSinceLastReload = now - reloadTrackerRef.current.lastReloadTime;
+
+        // BỔ SUNG: Detect rapid reload pattern
+        if (timeSinceLastReload < 5000) { // Reload trong vòng 5 giây
+            reloadTrackerRef.current.reloadCount++;
+            reloadTrackerRef.current.isRapidReload = true;
+
+            debugLogger.reloadPattern('RAPID_RELOAD_DETECTED', {
+                reloadCount: reloadTrackerRef.current.reloadCount,
+                timeSinceLastReload: timeSinceLastReload,
+                componentId: connectionId.current,
+                isRapidReload: true
+            });
+        } else {
+            reloadTrackerRef.current.reloadCount = 0;
+            reloadTrackerRef.current.isRapidReload = false;
+        }
+
+        reloadTrackerRef.current.lastReloadTime = now;
+
+        debugLogger.contextState('COMPONENT_MOUNT', {
+            xsmbLiveData: xsmbLiveData,
+            setXsmbLiveData: !!setXsmbLiveData,
+            setIsXsmbLiveDataComplete: !!setIsXsmbLiveDataComplete
+        });
+    }, []);
+
+    // BỔ SUNG: Monitor Context State changes
+    useEffect(() => {
+        debugLogger.contextState('STATE_CHANGE', {
+            xsmbLiveData: xsmbLiveData,
+            isTodayLoading: isTodayLoading,
+            error: error,
+            retryCount: retryCount
+        });
+    }, [xsmbLiveData, isTodayLoading, error, retryCount]);
+
+    // BỔ SUNG: Error boundary cho component
+    useEffect(() => {
+        const handleError = (error, errorInfo) => {
+            debugLogger.errorBoundary('COMPONENT_ERROR', {
+                error: error.message,
+                errorStack: error.stack,
+                componentStack: errorInfo.componentStack,
+                isRecoverable: true
+            });
+        };
+
+        // BỔ SUNG: Performance monitoring
+        const performanceObserver = new PerformanceObserver((list) => {
+            for (const entry of list.getEntries()) {
+                if (entry.entryType === 'measure') {
+                    debugLogger.performance('RENDER_MEASURE', {
+                        renderTime: entry.duration,
+                        updateTime: entry.duration,
+                        memoryDelta: 0,
+                        fps: 60
+                    });
+                }
+            }
+        });
+
+        try {
+            performanceObserver.observe({ entryTypes: ['measure'] });
+        } catch (error) {
+            // PerformanceObserver không được support
+        }
+
+        return () => {
+            performanceObserver.disconnect();
+        };
+    }, []);
+
+    // BỔ SUNG: Monitor Context State changes
+    useEffect(() => {
+        const renderStartTime = performance.now();
+
+        debugLogger.contextState('STATE_CHANGE', {
+            xsmbLiveData: xsmbLiveData,
+            isTodayLoading: isTodayLoading,
+            error: error,
+            retryCount: retryCount
+        });
+
+        // BỔ SUNG: Performance measurement
+        requestAnimationFrame(() => {
+            const renderEndTime = performance.now();
+            const renderDuration = renderEndTime - renderStartTime;
+
+            debugLogger.performance('RENDER_COMPLETE', {
+                renderTime: renderDuration,
+                updateTime: renderDuration,
+                memoryDelta: 0,
+                fps: 1000 / renderDuration
+            });
+        });
+    }, [xsmbLiveData, isTodayLoading, error, retryCount]);
 
     return (
         <div className={styles.live}>
@@ -2202,7 +2152,7 @@ function isWithinLiveWindow() {
     const vietTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
     const hours = vietTime.getHours();
     const minutes = vietTime.getMinutes();
-    return (hours === 18 && minutes >= 10 && minutes <= 33);
+    return (hours === 20 && minutes >= 50 && minutes <= 59);
 }
 
 export default React.memo(LiveResult);

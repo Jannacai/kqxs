@@ -17,8 +17,8 @@ const CACHE_VERSION_KEY = 'xsmb_cache_version';
 const CURRENT_CACHE_VERSION = 'v2.0'; // Tăng version khi có thay đổi logic
 const LIVE_WINDOW_END_KEY = 'xsmb_live_window_end'; // Track khi live window kết thúc
 
-const testhour = 18;
-const testminutes = 10;
+const testhour = 20;
+const testminutes = 58;
 
 // BỔ SUNG: Helper function để lấy thời gian Việt Nam - TỐI ƯU
 let cachedVietnamTime = null;
