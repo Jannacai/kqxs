@@ -886,47 +886,120 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                         currentHour: currentHour,
                         isModal: isModal
                     });
-                    // Không gửi ngày hiện tại, chỉ lấy bản mới nhất
-                    const response = await fetch(`https://backendkqxs-1.onrender.com/api/kqxs/xsmb/latest`);
-                    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-                    const serverData = await response.json();
 
-                    if (mountedRef.current) {
-                        // Sử dụng ngày từ dữ liệu thực tế thay vì ngày hiện tại
-                        const formatDate = (dateString) => {
-                            if (!dateString) return today;
-                            try {
-                                const date = new Date(dateString);
-                                return date.toLocaleDateString('vi-VN');
-                            } catch (error) {
-                                console.error('Lỗi format ngày:', error);
-                                return today;
-                            }
-                        };
+                    try {
+                        // BỔ SUNG: Timeout cho API call
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
-                        const dataWithCorrectDate = {
-                            ...serverData,
-                            // Đảm bảo hiển thị đúng ngày từ dữ liệu MongoDB
-                            drawDate: formatDate(serverData.drawDate),
-                            dayOfWeek: serverData.dayOfWeek || 'Chủ nhật'
-                        };
-
-                        debugLogger.contextState('MODAL_DATA_SET', {
-                            serverData: dataWithCorrectDate,
-                            formattedDate: dataWithCorrectDate.drawDate
+                        const response = await fetch(`https://backendkqxs-1.onrender.com/api/kqxs/xsmb/latest`, {
+                            signal: controller.signal
                         });
 
-                        setXsmbLiveData(dataWithCorrectDate);
-                        setIsXsmbLiveDataComplete(true);
-                        setIsTodayLoading(false);
-                        setRetryCount(0);
-                        setError(null);
+                        clearTimeout(timeoutId);
 
-                        // Cache dữ liệu
-                        initialDataCache.current.set(cacheKey, {
-                            data: dataWithCorrectDate,
-                            timestamp: Date.now()
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+
+                        const serverData = await response.json();
+
+                        // BỔ SUNG: Validate server data
+                        if (!serverData || typeof serverData !== 'object') {
+                            throw new Error('Invalid server data format');
+                        }
+
+                        if (mountedRef.current) {
+                            // Sử dụng ngày từ dữ liệu thực tế thay vì ngày hiện tại
+                            const formatDate = (dateString) => {
+                                if (!dateString) return today;
+                                try {
+                                    const date = new Date(dateString);
+                                    return date.toLocaleDateString('vi-VN');
+                                } catch (error) {
+                                    console.error('Lỗi format ngày:', error);
+                                    return today;
+                                }
+                            };
+
+                            const dataWithCorrectDate = {
+                                ...serverData,
+                                // Đảm bảo hiển thị đúng ngày từ dữ liệu MongoDB
+                                drawDate: formatDate(serverData.drawDate),
+                                dayOfWeek: serverData.dayOfWeek || 'Chủ nhật'
+                            };
+
+                            debugLogger.contextState('MODAL_DATA_SET', {
+                                serverData: dataWithCorrectDate,
+                                formattedDate: dataWithCorrectDate.drawDate
+                            });
+
+                            setXsmbLiveData(dataWithCorrectDate);
+                            setIsXsmbLiveDataComplete(true);
+                            setIsTodayLoading(false);
+                            setRetryCount(0);
+                            setError(null);
+
+                            // Cache dữ liệu
+                            initialDataCache.current.set(cacheKey, {
+                                data: dataWithCorrectDate,
+                                timestamp: Date.now()
+                            });
+                        }
+                    } catch (error) {
+                        console.error('❌ Lỗi modal cache API:', error);
+
+                        // BỔ SUNG: Debug API Error
+                        debugLogger.contextState('MODAL_API_ERROR', {
+                            error: error.message,
+                            currentHour: currentHour,
+                            isModal: isModal
                         });
+
+                        if (mountedRef.current) {
+                            // BỔ SUNG: Fallback to empty state thay vì loading forever
+                            setXsmbLiveData({
+                                drawDate: today,
+                                station: currentStation,
+                                dayOfWeek: getVietnamTime().toLocaleString('vi-VN', { weekday: 'long' }),
+                                tentinh: "Miền Bắc",
+                                tinh: "MB",
+                                year: getVietnamTime().getFullYear(),
+                                month: getVietnamTime().getMonth() + 1,
+                                maDB: "...",
+                                specialPrize_0: "...",
+                                firstPrize_0: "...",
+                                secondPrize_0: "...",
+                                secondPrize_1: "...",
+                                threePrizes_0: "...",
+                                threePrizes_1: "...",
+                                threePrizes_2: "...",
+                                threePrizes_3: "...",
+                                threePrizes_4: "...",
+                                threePrizes_5: "...",
+                                fourPrizes_0: "...",
+                                fourPrizes_1: "...",
+                                fourPrizes_2: "...",
+                                fourPrizes_3: "...",
+                                fivePrizes_0: "...",
+                                fivePrizes_1: "...",
+                                fivePrizes_2: "...",
+                                fivePrizes_3: "...",
+                                fivePrizes_4: "...",
+                                fivePrizes_5: "...",
+                                sixPrizes_0: "...",
+                                sixPrizes_1: "...",
+                                sixPrizes_2: "...",
+                                sevenPrizes_0: "...",
+                                sevenPrizes_1: "...",
+                                sevenPrizes_2: "...",
+                                sevenPrizes_3: "...",
+                                lastUpdated: Date.now(),
+                            });
+                            setIsXsmbLiveDataComplete(false);
+                            setIsTodayLoading(false);
+                            setError('Không thể tải dữ liệu từ server');
+                        }
                     }
                     return;
                 }
