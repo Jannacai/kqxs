@@ -6,11 +6,11 @@ import axios from 'axios';
 import moment from 'moment';
 import 'moment-timezone';
 import Image from 'next/image';
-import { getSocket, isSocketConnected, addConnectionListener } from '../../utils/Socket';
 import { isValidObjectId } from '../../utils/validation';
 import styles from '../../styles/ListUser.module.css';
 import UserInfoModal from './modals/UserInfoModal';
 import PrivateChat from './chatrieng';
+import { FaSync } from 'react-icons/fa';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
 
@@ -59,15 +59,13 @@ export default function UserList({ session: serverSession }) {
     const [privateChats, setPrivateChats] = useState([]);
     const [userInfo, setUserInfo] = useState(null);
     const [newRegistrations, setNewRegistrations] = useState([]); // Thêm state cho người dùng đăng ký mới
-    const [socketConnected, setSocketConnected] = useState(false);
-    const socketRef = useRef(null);
-    const mountedRef = useRef(true);
+    const [isLoading, setIsLoading] = useState(false);
 
     // Lấy thông tin người dùng hiện tại
     useEffect(() => {
         const fetchUserInfo = async () => {
             if (!session?.accessToken) {
-                console.log('No accessToken in session');
+                // console.log('No accessToken in session');
                 return;
             }
             try {
@@ -78,7 +76,7 @@ export default function UserList({ session: serverSession }) {
                     },
                 });
                 const data = res.data;
-                console.log('User info fetched:', data);
+                // console.log('User info fetched:', data);
                 setUserInfo(data);
                 setUsersCache((prev) => ({ ...prev, [data._id]: data }));
             } catch (err) {
@@ -90,6 +88,7 @@ export default function UserList({ session: serverSession }) {
     }, [session]);
 
     const fetchUsers = async () => {
+        setIsLoading(true);
         try {
             const headers = session?.accessToken
                 ? { Authorization: `Bearer ${session.accessToken}`, 'Content-Type': 'application/json' }
@@ -97,7 +96,7 @@ export default function UserList({ session: serverSession }) {
             const params = searchQuery ? { search: searchQuery } : {};
             const res = await axios.get(`${API_BASE_URL}/api/users/list`, { headers, params });
             const { users: fetchedUsers, total } = res.data;
-            console.log('Users fetched:', fetchedUsers);
+            // console.log('Users fetched:', fetchedUsers);
 
             const sortedUsers = fetchedUsers.sort((a, b) => {
                 if (a.isOnline && !b.isOnline) return -1;
@@ -110,6 +109,8 @@ export default function UserList({ session: serverSession }) {
         } catch (err) {
             console.error('Error fetching users:', err.message);
             setFetchError('Không thể tải danh sách người dùng. Vui lòng thử lại.');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -127,148 +128,44 @@ export default function UserList({ session: serverSession }) {
     };
 
     useEffect(() => {
-        mountedRef.current = true;
-
-        const initializeSocket = async () => {
-            try {
-                const socket = await getSocket();
-                if (!mountedRef.current) return;
-
-                socketRef.current = socket;
-                setSocketConnected(true);
-
-                // Thêm connection listener
-                const removeListener = addConnectionListener((connected) => {
-                    if (mountedRef.current) {
-                        setSocketConnected(connected);
-                    }
-                });
-
-                socket.on('connect', () => {
-                    console.log('Socket.IO connected for user list:', socket.id);
-                    socket.emit('joinUserStatus');
-                    if (session?.accessToken && session?.user?.id) {
-                        socket.emit('reconnect');
-                    }
-                    setSocketConnected(true);
-                });
-
-                socket.on('connect_error', (err) => {
-                    console.error('Socket.IO connection error:', err.message);
-                    setSocketConnected(false);
-                    setFetchError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
-                });
-
-                socket.on('disconnect', () => {
-                    console.log('Socket.IO disconnected for user list');
-                    setSocketConnected(false);
-                });
-
-                socket.on('USER_STATUS_UPDATED', (updatedUser) => {
-                    console.log('Received USER_STATUS_UPDATED:', updatedUser);
-                    if (updatedUser?._id && isValidObjectId(updatedUser._id)) {
-                        setUsers((prev) => {
-                            const updatedUsers = prev.map((user) =>
-                                user._id === updatedUser._id
-                                    ? { ...user, isOnline: updatedUser.isOnline, lastActive: updatedUser.lastActive }
-                                    : user
-                            );
-                            setOnlineUsers(updatedUsers.filter(user => user.isOnline).length);
-                            return updatedUsers.sort((a, b) => {
-                                if (a.isOnline && !b.isOnline) return -1;
-                                if (!a.isOnline && b.isOnline) return 1;
-                                return a.fullname.localeCompare(b.fullname);
-                            });
-                        });
-                        setUsersCache((prev) => ({
-                            ...prev,
-                            [updatedUser._id]: { ...prev[updatedUser._id], isOnline: updatedUser.isOnline, lastActive: updatedUser.lastActive },
-                        }));
-                    }
-                });
-
-                socket.on('GUEST_COUNT_UPDATED', ({ guestCount }) => {
-                    console.log('Received GUEST_COUNT_UPDATED:', guestCount);
-                    setGuestUsers(guestCount);
-                });
-
-                socket.on('PRIVATE_MESSAGE', (newMessage) => {
-                    console.log('Received PRIVATE_MESSAGE:', JSON.stringify(newMessage, null, 2));
-                    setPrivateChats((prev) =>
-                        prev.map((chat) =>
-                            chat.receiver._id === newMessage.senderId || chat.receiver._id === newMessage.receiverId
-                                ? { ...chat, messages: [...(chat.messages || []), newMessage] }
-                                : chat
-                        )
-                    );
-                });
-
-                socket.on('NEW_USER_REGISTRATION', (newUser) => {
-                    console.log('Received NEW_USER_REGISTRATION:', newUser);
-                    setNewRegistrations((prev) => {
-                        const updated = [newUser, ...prev];
-                        return updated.slice(0, 10); // Giữ tối đa 10 người dùng mới
-                    });
-                });
-
-                return () => {
-                    removeListener();
-                    if (socketRef.current) {
-                        socketRef.current.off('connect');
-                        socketRef.current.off('connect_error');
-                        socketRef.current.off('disconnect');
-                        socketRef.current.off('USER_STATUS_UPDATED');
-                        socketRef.current.off('GUEST_COUNT_UPDATED');
-                        socketRef.current.off('PRIVATE_MESSAGE');
-                        socketRef.current.off('NEW_USER_REGISTRATION');
-                    }
-                };
-            } catch (error) {
-                console.error('Failed to initialize socket:', error);
-                setSocketConnected(false);
-            }
-        };
-
-        initializeSocket();
-
-        return () => {
-            mountedRef.current = false;
-        };
-    }, [session]);
+        if (status === 'loading') return;
+        fetchUsers();
+        fetchNewRegistrations();
+    }, [status, session, searchQuery]);
 
     const openPrivateChat = (user) => {
-        console.log('openPrivateChat called with user:', JSON.stringify(user, null, 2));
+        // console.log('openPrivateChat called with user:', JSON.stringify(user, null, 2));
         if (!userInfo) {
             setFetchError('Vui lòng đăng nhập để mở chat riêng');
-            console.log('Blocked: userInfo not loaded');
+            // console.log('Blocked: userInfo not loaded');
             return;
         }
         const isCurrentUserAdmin = userInfo?.role?.toLowerCase() === 'admin';
         const isTargetAdmin = user?.role?.toLowerCase() === 'admin';
         if (!isCurrentUserAdmin && !isTargetAdmin) {
             setFetchError('Bạn chỉ có thể chat riêng với admin');
-            console.log('Blocked: User cannot open private chat with non-admin');
+            // console.log('Blocked: User cannot open private chat with non-admin');
             return;
         }
         setPrivateChats((prev) => {
             if (prev.some((chat) => chat.receiver._id === user._id)) {
-                console.log('Chat already exists, setting to not minimized:', user._id);
+                // console.log('Chat already exists, setting to not minimized:', user._id);
                 return prev.map((chat) =>
                     chat.receiver._id === user._id ? { ...chat, isMinimized: false } : chat
                 );
             }
-            console.log('Opening new private chat:', user._id);
+            // console.log('Opening new private chat:', user._id);
             return [...prev, { receiver: user, isMinimized: false, messages: [] }];
         });
     };
 
     const closePrivateChat = (receiverId) => {
-        console.log('Closing private chat with user:', receiverId);
+        // console.log('Closing private chat with user:', receiverId);
         setPrivateChats((prev) => prev.filter((chat) => chat.receiver._id !== receiverId));
     };
 
     const toggleMinimizePrivateChat = (receiverId) => {
-        console.log('Toggling minimize for chat with user:', receiverId);
+        // console.log('Toggling minimize for chat with user:', receiverId);
         setPrivateChats((prev) =>
             prev.map((chat) =>
                 chat.receiver._id === receiverId ? { ...chat, isMinimized: !chat.isMinimized } : chat
@@ -289,6 +186,13 @@ export default function UserList({ session: serverSession }) {
 
     const handleSearchChange = (e) => {
         setSearchQuery(e.target.value);
+    };
+
+    // Hàm reset để reload dữ liệu
+    const handleReset = () => {
+        // console.log('Resetting user list data...');
+        fetchUsers();
+        fetchNewRegistrations();
     };
 
     return (
@@ -313,6 +217,15 @@ export default function UserList({ session: serverSession }) {
                             <span className={styles.statIcon}>👤</span>
                             Khách: {guestUsers}
                         </span>
+                        <button
+                            onClick={handleReset}
+                            disabled={isLoading}
+                            className={styles.resetButton}
+                            title="Làm mới dữ liệu"
+                        >
+                            <FaSync className={`${styles.resetIcon} ${isLoading ? styles.spinning : ''}`} />
+                            {isLoading ? 'Đang tải...' : 'Làm mới'}
+                        </button>
                     </div>
                 </div>
             </div>
@@ -523,7 +436,7 @@ export default function UserList({ session: serverSession }) {
                     <PrivateChat
                         key={chat.receiver._id}
                         receiver={chat.receiver}
-                        socket={socketRef.current}
+                        socket={null}
                         onClose={() => closePrivateChat(chat.receiver._id)}
                         isMinimized={chat.isMinimized}
                         onToggleMinimize={() => toggleMinimizePrivateChat(chat.receiver._id)}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { useSession, signOut } from 'next-auth/react';
 import axios from 'axios';
@@ -14,6 +14,12 @@ import PrivateChat from './chatrieng';
 import UserInfoModal from './modals/UserInfoModal';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
+
+// Debug environment variables
+console.log('🔧 Environment Debug:');
+console.log('NEXT_PUBLIC_BACKEND_URL3:', process.env.NEXT_PUBLIC_BACKEND_URL3);
+console.log('API_BASE_URL:', API_BASE_URL);
+console.log('NODE_ENV:', process.env.NODE_ENV);
 
 const getDisplayName = (fullname) => {
     if (!fullname) return 'User';
@@ -55,15 +61,20 @@ export default function GroupChat({ session: serverSession }) {
     const [isRulesCollapsed, setIsRulesCollapsed] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [socketConnected, setSocketConnected] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     const socketRef = useRef(null);
     const messagesContainerRef = useRef(null);
     const mountedRef = useRef(true);
+    const reconnectTimeoutRef = useRef(null);
 
+    // Session management
     useEffect(() => {
         console.log('Session status:', status);
         console.log('Server session:', JSON.stringify(serverSession, null, 2));
         console.log('Client session:', JSON.stringify(clientSession, null, 2));
         console.log('Used session:', JSON.stringify(session, null, 2));
+
         if (session?.error === 'RefreshTokenExpired') {
             console.log('Refresh token expired, redirecting to login');
             setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
@@ -72,76 +83,127 @@ export default function GroupChat({ session: serverSession }) {
         }
     }, [session, serverSession, clientSession, status, router]);
 
-    useEffect(() => {
-        const fetchMessages = async () => {
-            try {
-                setIsLoading(true);
-                const headers = session?.accessToken
-                    ? { Authorization: `Bearer ${session.accessToken}`, 'Content-Type': 'application/json' }
-                    : { 'Content-Type': 'application/json' };
-                const res = await axios.get(`${API_BASE_URL}/api/groupchat`, { headers });
-                console.log('Messages fetched:', res.data);
-                // Sắp xếp theo thời gian tạo (cũ nhất trước, mới nhất sau)
-                const sortedMessages = res.data.messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-                setMessages(sortedMessages);
-                setTotalMessages(sortedMessages.length);
-                console.log('Messages sorted and set, total:', sortedMessages.length);
-            } catch (err) {
-                console.error('Error fetching messages:', err.message);
-                setFetchError('Không thể tải tin nhắn. Vui lòng thử lại.');
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchMessages();
+    // Fetch messages with optimization
+    const fetchMessages = useCallback(async () => {
+        try {
+            setIsLoading(true);
+            const headers = session?.accessToken
+                ? { Authorization: `Bearer ${session.accessToken}`, 'Content-Type': 'application/json' }
+                : { 'Content-Type': 'application/json' };
+
+            const res = await axios.get(`${API_BASE_URL}/api/groupchat`, {
+                headers,
+                timeout: 10000 // 10 second timeout
+            });
+
+            console.log('Messages fetched:', res.data);
+            // Backend provides messages in descending order (newest first), frontend uses .reverse() to show newest at bottom
+            setMessages(res.data.messages);
+            setTotalMessages(res.data.messages.length);
+            console.log('Messages set, total:', res.data.messages.length);
+            console.log('📅 Message order check:', res.data.messages.slice(0, 3).map(m => ({
+                id: m._id,
+                content: m.content.substring(0, 20),
+                createdAt: m.createdAt
+            })));
+        } catch (err) {
+            console.error('Error fetching messages:', err.message);
+            setFetchError('Không thể tải tin nhắn. Vui lòng thử lại.');
+        } finally {
+            setIsLoading(false);
+        }
     }, [session?.accessToken]);
 
     useEffect(() => {
-        const scrollToBottom = () => {
-            if (messagesContainerRef.current) {
+        fetchMessages();
+    }, [fetchMessages]);
+
+    // Auto-scroll to bottom when new messages arrive
+    useEffect(() => {
+        if (messages.length > 0 && messagesContainerRef.current) {
+            const scrollToBottom = () => {
                 messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-            }
-        };
-        if (messages.length > 0) {
+            };
+
+            // Scroll immediately
             scrollToBottom();
+
+            // Also scroll after a short delay to ensure rendering is complete
+            setTimeout(scrollToBottom, 100);
         }
+    }, [messages.length]);
+
+    // Scroll to bottom when component mounts
+    useEffect(() => {
+        if (messagesContainerRef.current) {
+            messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+        }
+    }, []);
+
+    // Debug messages state
+    useEffect(() => {
+        console.log('📊 Messages state updated:', {
+            count: messages.length,
+            lastMessage: messages[messages.length - 1]?.content?.substring(0, 50),
+            hasTempMessages: messages.some(msg => msg.isTemp)
+        });
     }, [messages]);
 
-    useEffect(() => {
-        const fetchUserInfo = async () => {
-            if (!session?.accessToken) {
-                console.log('No accessToken in session');
-                return;
+    // Fetch user info with optimization
+    const fetchUserInfo = useCallback(async () => {
+        if (!session?.accessToken) {
+            console.log('No accessToken in session');
+            return;
+        }
+
+        try {
+            console.log('Fetching user info with token:', session.accessToken);
+            const res = await axios.get(`${API_BASE_URL}/api/auth/me`, {
+                headers: {
+                    Authorization: `Bearer ${session.accessToken}`,
+                    'Content-Type': 'application/json',
+                },
+                timeout: 5000
+            });
+
+            const data = res.data;
+            console.log('✅ User info fetched:', data);
+            console.log('✅ User ID:', data._id);
+            setUserInfo(data);
+            setUsersCache((prev) => ({ ...prev, [data._id]: data }));
+        } catch (err) {
+            console.error('❌ Error fetching user info:', err.message);
+            if (err.response?.status === 401) {
+                setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+                signOut({ redirect: false });
+                router.push('/login?error=SessionExpired');
+            } else {
+                setFetchError(`Không thể lấy thông tin người dùng: ${err.message}`);
             }
-            try {
-                console.log('Fetching user info with token:', session.accessToken);
-                const res = await axios.get(`${API_BASE_URL}/api/auth/me`, {
-                    headers: {
-                        Authorization: `Bearer ${session.accessToken}`,
-                        'Content-Type': 'application/json',
-                    },
-                });
-                const data = res.data;
-                console.log('User info fetched:', data);
-                setUserInfo(data);
-                setUsersCache((prev) => ({ ...prev, [data._id]: data }));
-            } catch (err) {
-                console.error('Error fetching user info:', err.message);
-                if (err.response?.status === 401) {
-                    setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
-                    signOut({ redirect: false });
-                    router.push('/login?error=SessionExpired');
-                } else {
-                    setFetchError(`Không thể lấy thông tin người dùng: ${err.message}`);
-                }
-            }
-        };
-        if (session && !session.error) fetchUserInfo();
+        }
     }, [session, router]);
 
     useEffect(() => {
-        if (!session?.accessToken || !userInfo?._id) {
-            console.log('Skipping Socket.IO setup: missing session or userInfo');
+        if (session && !session.error) {
+            console.log('🔄 Starting user info fetch...');
+            fetchUserInfo();
+        }
+    }, [session, fetchUserInfo]);
+
+    // Optimized Socket.IO initialization
+    useEffect(() => {
+        // Use session user data as fallback if userInfo is not available
+        const currentUserInfo = userInfo || (session?.user ? {
+            _id: session.user.id,
+            fullname: session.user.username,
+            role: session.user.role
+        } : null);
+
+        if (!session?.accessToken || !currentUserInfo?._id) {
+            console.log('⚠️ Skipping Socket.IO setup: missing session or userInfo');
+            console.log('Session accessToken:', !!session?.accessToken);
+            console.log('UserInfo _id:', currentUserInfo?._id);
+            console.log('Session user:', session?.user);
             return;
         }
 
@@ -149,30 +211,133 @@ export default function GroupChat({ session: serverSession }) {
 
         const initializeSocket = async () => {
             try {
+                console.log('🔄 Initializing Socket.IO for groupchat...');
+                console.log('User ID:', currentUserInfo._id);
+                console.log('Session token:', session.accessToken ? 'Present' : 'Missing');
+                console.log('API Base URL:', API_BASE_URL);
+
                 const socket = await getSocket();
-                if (!mountedRef.current) return;
+
+                if (!mountedRef.current) {
+                    console.log('⚠️ Component unmounted during socket initialization');
+                    return;
+                }
 
                 socketRef.current = socket;
                 setSocketConnected(true);
+                console.log('✅ Socket reference set:', socket.id);
+                console.log('🔗 Socket connected status:', socket.connected);
+                console.log('🔗 Socket transport:', socket.io.engine.transport.name);
 
-                // Thêm connection listener
+                // Authenticate socket with user token
+                if (session?.accessToken) {
+                    console.log('🔐 Authenticating socket with token...');
+                    socket.emit('authenticate', session.accessToken);
+                }
+
+                // Connection listener with optimization
                 const removeListener = addConnectionListener((connected) => {
+                    console.log('🔗 Connection status changed:', connected);
                     if (mountedRef.current) {
                         setSocketConnected(connected);
+                        if (!connected) {
+                            console.log('⚠️ Socket connection lost, attempting reconnection...');
+                        }
                     }
                 });
 
+                console.log('🎯 Setting up Socket.IO event listeners...');
+
                 socket.on('connect', () => {
-                    console.log('Socket.IO connected for chat:', socket.id);
+                    console.log('🎉 === SOCKET.IO CONNECTED ===');
+                    console.log('✅ Socket.IO connected for chat:', socket.id);
+                    console.log('🔗 Socket transport after connect:', socket.io.engine.transport.name);
+
+                    console.log('🔐 Attempting to join chat room...');
+                    console.log('🔐 Socket state before joinChat:', socket.connected);
                     socket.emit('joinChat');
-                    console.log('Joining private room for user:', userInfo._id);
-                    socket.emit('joinPrivateRoom', userInfo._id);
+                    console.log('✅ joinChat event emitted');
+
+                    console.log('🔐 Attempting to join private room for user:', currentUserInfo._id);
+                    socket.emit('joinPrivateRoom', currentUserInfo._id);
+                    console.log('✅ joinPrivateRoom event emitted');
+
                     setSocketConnected(true);
+                    setError(''); // Clear any connection errors
+                    console.log('✅ Socket setup completed successfully');
+
+                    // Verify room joining
+                    setTimeout(() => {
+                        console.log('🔍 Verifying room membership...');
+                        socket.emit('getRooms');
+                    }, 1000);
+
+                    // Manual join chat room after a short delay to ensure connection is stable
+                    setTimeout(() => {
+                        console.log('🔐 Manual joinChat attempt...');
+                        console.log('🔐 Socket state before manual joinChat:', socket.connected);
+                        socket.emit('joinChat');
+                        console.log('✅ Manual joinChat event emitted');
+                    }, 500);
+
+                    // Additional joinChat attempt after longer delay
+                    setTimeout(() => {
+                        console.log('🔐 Final joinChat attempt...');
+                        console.log('🔐 Socket state before final joinChat:', socket.connected);
+                        socket.emit('joinChat');
+                        console.log('✅ Final joinChat event emitted');
+                    }, 2000);
                 });
 
+                // Add room verification listener
+                socket.on('rooms', (rooms) => {
+                    console.log('📋 Current rooms:', rooms);
+                    console.log('🔍 Checking if "chat" room is in list:', rooms.includes('chat'));
+                });
+
+                // Add connection status listener
+                socket.on('connected', (data) => {
+                    console.log('🔗 Connection confirmed:', data);
+                });
+
+                // Add room join confirmation listeners
+                socket.on('joinedChat', (data) => {
+                    console.log('✅ Successfully joined chat room:', data);
+                });
+
+                socket.on('joinedPrivateRoom', (data) => {
+                    console.log('✅ Successfully joined private room:', data);
+                });
+
+                socket.on('joinError', (error) => {
+                    console.error('❌ Room join error:', error);
+                });
+
+                // Direct joinChat call after connection
+                if (socket.connected) {
+                    console.log('🔐 Direct joinChat call (socket already connected)...');
+                    socket.emit('joinChat');
+                    console.log('✅ Direct joinChat event emitted');
+                }
+
+                // Manual join function for testing
+                const manualJoinChat = () => {
+                    if (socket && socket.connected) {
+                        console.log('🔐 Manual joinChat button clicked...');
+                        socket.emit('joinChat');
+                        console.log('✅ Manual joinChat event emitted');
+                    } else {
+                        console.log('❌ Socket not connected for manual join');
+                    }
+                };
+
+                // Expose manual join function globally for testing
+                window.manualJoinChat = manualJoinChat;
+
                 socket.on('connect_error', (err) => {
-                    console.error('Socket.IO connection error:', err.message);
+                    console.error('❌ Socket.IO connection error:', err.message);
                     setSocketConnected(false);
+
                     if (err.message.includes('Authentication error')) {
                         setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
                         signOut({ redirect: false });
@@ -182,77 +347,101 @@ export default function GroupChat({ session: serverSession }) {
                     }
                 });
 
-                socket.on('disconnect', () => {
-                    console.log('Socket.IO disconnected for chat');
+                socket.on('disconnect', (reason) => {
+                    console.log('🔌 Socket.IO disconnected for chat:', reason);
                     setSocketConnected(false);
+
+                    // Auto-reconnect logic
+                    if (reason !== 'io client disconnect' && mountedRef.current) {
+                        console.log('🔄 Scheduling auto-reconnect...');
+                        if (reconnectTimeoutRef.current) {
+                            clearTimeout(reconnectTimeoutRef.current);
+                        }
+                        reconnectTimeoutRef.current = setTimeout(() => {
+                            if (mountedRef.current) {
+                                console.log('🔄 Attempting auto-reconnect...');
+                                initializeSocket();
+                            }
+                        }, 3000);
+                    }
                 });
 
+                // Optimized message handling
                 socket.on('NEW_MESSAGE', (newMessage) => {
-                    console.log('Received NEW_MESSAGE:', JSON.stringify(newMessage, null, 2));
+                    console.log('📨 Received NEW_MESSAGE:', JSON.stringify(newMessage, null, 2));
+
+                    if (!mountedRef.current) {
+                        console.log('⚠️ Component unmounted, ignoring message');
+                        return;
+                    }
+
                     if (
                         newMessage &&
                         newMessage.userId?._id &&
                         isValidObjectId(newMessage.userId._id) &&
                         newMessage.content
                     ) {
+                        console.log('✅ Valid message received, processing...');
                         setUsersCache((prev) => ({
                             ...prev,
                             [newMessage.userId._id]: newMessage.userId,
                         }));
+
                         setMessages((prev) => {
-                            // Kiểm tra xem tin nhắn đã tồn tại chưa
+                            // Check for duplicate messages
                             if (prev.some((msg) => msg._id === newMessage._id)) {
-                                console.log('Message already exists, skipping:', newMessage._id);
+                                console.log('⚠️ Message already exists, skipping:', newMessage._id);
                                 return prev;
                             }
-                            
-                            // Kiểm tra xem có phải tin nhắn của chính mình không (để thay thế tin nhắn tạm thời)
-                            const isOwnMessage = userInfo?._id === newMessage.userId._id;
-                            if (isOwnMessage) {
-                                // Tìm và thay thế tin nhắn tạm thời
-                                const hasTempMessage = prev.some(msg => msg.isTemp && msg.content === newMessage.content);
-                                if (hasTempMessage) {
-                                    console.log('Replacing temp message with real message:', newMessage._id);
-                                    const filtered = prev.filter(msg => !(msg.isTemp && msg.content === newMessage.content));
-                                    const updatedMessages = [...filtered, newMessage];
-                                    setTotalMessages(updatedMessages.length);
-                                    return updatedMessages;
-                                }
-                            }
-                            
-                            // Thêm tin nhắn mới vào cuối array (vì sẽ được reverse khi hiển thị)
-                            const updatedMessages = [...prev, newMessage];
+
+                            console.log('✅ Adding new message to chat:', newMessage._id);
+                            // Add new message at the beginning since backend provides descending order (newest first)
+                            const updatedMessages = [newMessage, ...prev];
                             setTotalMessages(updatedMessages.length);
-                            console.log('Added new message to chat, total messages:', updatedMessages.length);
+
+                            // Auto-scroll to bottom for new messages
+                            setTimeout(() => {
+                                if (messagesContainerRef.current) {
+                                    messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+                                }
+                            }, 100);
+
                             return updatedMessages;
                         });
                     } else {
-                        console.warn('Ignoring invalid NEW_MESSAGE:', newMessage);
+                        console.warn('⚠️ Ignoring invalid NEW_MESSAGE:', newMessage);
                     }
                 });
 
                 socket.on('PRIVATE_MESSAGE', (newMessage) => {
-                    console.log('Received PRIVATE_MESSAGE:', JSON.stringify(newMessage, null, 2));
-                    setPrivateChats((prev) =>
-                        prev.map((chat) =>
-                            chat.receiver._id === newMessage.senderId || chat.receiver._id === newMessage.receiverId
-                                ? { ...chat, messages: [...(chat.messages || []), newMessage] }
-                                : chat
-                        )
-                    );
+                    console.log('📨 Received PRIVATE_MESSAGE:', JSON.stringify(newMessage, null, 2));
+                    if (mountedRef.current) {
+                        setPrivateChats((prev) =>
+                            prev.map((chat) =>
+                                chat.receiver._id === newMessage.senderId || chat.receiver._id === newMessage.receiverId
+                                    ? { ...chat, messages: [...(chat.messages || []), newMessage] }
+                                    : chat
+                            )
+                        );
+                    }
                 });
 
                 socket.on('USER_STATUS_UPDATED', (updatedUser) => {
-                    console.log('Received USER_STATUS_UPDATED:', updatedUser);
-                    if (updatedUser?._id && isValidObjectId(updatedUser._id)) {
+                    console.log('👤 Received USER_STATUS_UPDATED:', updatedUser);
+                    if (mountedRef.current && updatedUser?._id && isValidObjectId(updatedUser._id)) {
                         setUsersCache((prev) => ({
                             ...prev,
-                            [updatedUser._id]: { ...prev[updatedUser._id], isOnline: updatedUser.isOnline, lastActive: updatedUser.lastActive },
+                            [updatedUser._id]: {
+                                ...prev[updatedUser._id],
+                                isOnline: updatedUser.isOnline,
+                                lastActive: updatedUser.lastActive
+                            },
                         }));
                     }
                 });
 
                 return () => {
+                    console.log('🧹 Cleaning up socket listeners...');
                     removeListener();
                     if (socketRef.current) {
                         socketRef.current.off('connect');
@@ -261,10 +450,15 @@ export default function GroupChat({ session: serverSession }) {
                         socketRef.current.off('NEW_MESSAGE');
                         socketRef.current.off('PRIVATE_MESSAGE');
                         socketRef.current.off('USER_STATUS_UPDATED');
+                        socketRef.current.off('rooms');
+                        socketRef.current.off('connected');
+                        socketRef.current.off('joinedChat');
+                        socketRef.current.off('joinedPrivateRoom');
+                        socketRef.current.off('joinError');
                     }
                 };
             } catch (error) {
-                console.error('Failed to initialize socket:', error);
+                console.error('❌ Failed to initialize socket:', error);
                 setSocketConnected(false);
             }
         };
@@ -272,31 +466,51 @@ export default function GroupChat({ session: serverSession }) {
         initializeSocket();
 
         return () => {
+            console.log('🧹 Component cleanup - unmounting');
             mountedRef.current = false;
+            if (reconnectTimeoutRef.current) {
+                clearTimeout(reconnectTimeoutRef.current);
+            }
         };
-    }, [session?.accessToken, userInfo?._id, router]);
+    }, [session?.accessToken, userInfo?._id, session?.user, router]);
 
+    // Optimized user details fetching
     useEffect(() => {
         const fetchMissingUserDetails = async () => {
             const missingUsers = messages
                 .filter((msg) => msg.userId?._id && !usersCache[msg.userId._id])
                 .map((msg) => msg.userId._id);
+
             const uniqueMissingUsers = [...new Set(missingUsers)];
-            for (const userId of uniqueMissingUsers) {
+
+            if (uniqueMissingUsers.length === 0) return;
+
+            console.log('🔍 Fetching missing user details:', uniqueMissingUsers.length);
+
+            const fetchPromises = uniqueMissingUsers.map(async (userId) => {
                 try {
                     const headers = session?.accessToken
                         ? { Authorization: `Bearer ${session.accessToken}`, 'Content-Type': 'application/json' }
                         : { 'Content-Type': 'application/json' };
-                    const res = await axios.get(`${API_BASE_URL}/api/users/${userId}`, { headers });
+
+                    const res = await axios.get(`${API_BASE_URL}/api/users/${userId}`, {
+                        headers,
+                        timeout: 5000
+                    });
+
                     const userData = res.data;
                     setUsersCache((prev) => ({ ...prev, [userId]: userData }));
                 } catch (err) {
                     console.error(`Error fetching user ${userId}:`, err.message);
-                    setFetchError(`Không thể lấy thông tin người dùng ${userId}`);
                 }
-            }
+            });
+
+            await Promise.allSettled(fetchPromises);
         };
-        if (messages.length > 0) fetchMissingUserDetails();
+
+        if (messages.length > 0) {
+            fetchMissingUserDetails();
+        }
     }, [messages, usersCache, session?.accessToken]);
 
     const handleShowDetails = (user) => {
@@ -314,6 +528,7 @@ export default function GroupChat({ session: serverSession }) {
         const value = e.target.value;
         const cleanValue = filterProfanity(value);
         setMessage(cleanValue);
+
         if (isProfane(value)) {
             setError('Tin nhắn chứa từ ngữ không phù hợp');
         } else if (value.length > 950) {
@@ -325,68 +540,73 @@ export default function GroupChat({ session: serverSession }) {
 
     const handleMessageSubmit = async (e) => {
         e.preventDefault();
+
         if (!session || session.error) {
             setError('Vui lòng đăng nhập để gửi tin nhắn');
             router.push('/login');
             return;
         }
+
         if (!message.trim()) {
             setError('Nội dung tin nhắn không được để trống');
             return;
         }
+
         if (isProfane(message)) {
             setError('Tin nhắn chứa từ ngữ không phù hợp');
             return;
         }
-        
+
         const messageContent = message.trim();
         setMessage('');
         setError('');
-        
+        setIsSubmitting(true);
+
+        // Use session user data as fallback if userInfo is not available
+        const currentUserInfo = userInfo || (session?.user ? {
+            _id: session.user.id,
+            fullname: session.user.username,
+            role: session.user.role
+        } : null);
+
+        if (!currentUserInfo?._id) {
+            setError('Không thể xác định thông tin người dùng');
+            setIsSubmitting(false);
+            return;
+        }
+
+        console.log('🚀 === MESSAGE SUBMISSION START ===');
+        console.log('📤 Submitting message:', messageContent);
+        console.log('🔗 Socket connected:', socketConnected);
+        console.log('🔗 Socket ref:', !!socketRef.current);
+        console.log('👤 Current user info:', currentUserInfo);
+        console.log('🌐 API URL:', `${API_BASE_URL}/api/groupchat`);
+
         try {
             const headers = session?.accessToken
                 ? { Authorization: `Bearer ${session.accessToken}`, 'Content-Type': 'application/json' }
                 : { 'Content-Type': 'application/json' };
-            
-            // Tạo tin nhắn tạm thời để hiển thị ngay lập tức
-            const tempMessage = {
-                _id: `temp_${Date.now()}`,
-                content: messageContent,
-                userId: { _id: userInfo._id, fullname: userInfo.fullname, role: userInfo.role },
-                createdAt: new Date().toISOString(),
-                isTemp: true
-            };
-            
-            // Thêm tin nhắn tạm thời vào state
-            setMessages(prev => [...prev, tempMessage]);
-            setTotalMessages(prev => prev + 1);
-            
+
             const res = await axios.post(
                 `${API_BASE_URL}/api/groupchat`,
                 { content: messageContent },
                 { headers }
             );
-            
+
             console.log('Message submission response:', JSON.stringify(res.data, null, 2));
-            
-            // Thay thế tin nhắn tạm thời bằng tin nhắn thật từ server
-            if (res.data.message) {
-                setMessages(prev => {
-                    const filtered = prev.filter(msg => msg._id !== tempMessage._id);
-                    return [...filtered, res.data.message];
-                });
-            }
-            
-            if (messagesContainerRef.current) {
-                messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-            }
+
+            // Auto-scroll to bottom after sending
+            setTimeout(() => {
+                if (messagesContainerRef.current) {
+                    messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+                }
+            }, 100);
+
         } catch (err) {
             console.error('Error submitting message:', err.message, err.response?.data);
             setError(err.response?.data?.message || 'Đã có lỗi khi gửi tin nhắn');
-            
-            // Xóa tin nhắn tạm thời nếu gửi thất bại
-            setMessages(prev => prev.filter(msg => msg._id !== `temp_${Date.now()}`));
-            setTotalMessages(prev => Math.max(0, prev - 1));
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -464,6 +684,24 @@ export default function GroupChat({ session: serverSession }) {
                             <span className={styles.statIcon}>💬</span>
                             Tin nhắn: {totalMessages}
                         </span>
+                        <span className={`${styles.statItem} ${socketConnected ? styles.connected : styles.disconnected}`}>
+                            <span className={styles.statIcon}>
+                                {socketConnected ? '🟢' : '🔴'}
+                            </span>
+                            {socketConnected ? 'Kết nối' : 'Mất kết nối'}
+                        </span>
+                        <span className={styles.statItem}>
+                            <span className={styles.statIcon}>🔗</span>
+                            Socket: {socketRef.current?.id ? socketRef.current.id.substring(0, 8) + '...' : 'N/A'}
+                        </span>
+                        <button
+                            onClick={fetchMessages}
+                            className={styles.refreshButton}
+                            disabled={isLoading}
+                        >
+                            <span className={styles.refreshIcon}>🔄</span>
+                            Làm mới
+                        </button>
                     </div>
                 </div>
             </div>
@@ -505,12 +743,22 @@ export default function GroupChat({ session: serverSession }) {
                             <p className={styles.emptySubtext}>Hãy là người đầu tiên gửi tin nhắn!</p>
                         </div>
                     ) : (
+                        // Use .reverse() to show newest messages at the bottom
                         messages.slice().reverse().map((msg) => {
                             const displayUser = usersCache[msg.userId?._id] || msg.userId;
                             const isOwnMessage = userInfo?._id === msg.userId?._id;
+                            const messageKey = msg._id;
+
+                            console.log('🎨 Rendering message:', {
+                                key: messageKey,
+                                content: msg.content,
+                                isOwn: isOwnMessage,
+                                userId: msg.userId?._id
+                            });
+
                             return (
                                 <div
-                                    key={msg._id}
+                                    key={messageKey}
                                     className={`${styles.messageItem} ${isOwnMessage ? styles.ownMessage : ''}`}
                                 >
                                     <div
@@ -546,6 +794,7 @@ export default function GroupChat({ session: serverSession }) {
                                                 aria-label={`Xem chi tiết ${getDisplayName(displayUser?.fullname || 'User')}`}
                                             >
                                                 {getDisplayName(displayUser?.fullname || 'User')}
+                                                {msg.isTemp && ' (Tạm thời)'}
                                             </span>
                                             {displayUser?.role && (
                                                 <span className={`${styles.role} ${getAvatarClass(displayUser?.role)}`}>
@@ -579,10 +828,17 @@ export default function GroupChat({ session: serverSession }) {
                                 className={styles.input}
                                 maxLength={1000}
                                 rows={2}
+                                disabled={isSubmitting}
                             />
                             <div className={styles.inputFooter}>
-                                <button type="submit" className={styles.sendButton}>
-                                    <span className={styles.sendIcon}>📤</span>
+                                <button
+                                    type="submit"
+                                    className={styles.sendButton}
+                                    disabled={isSubmitting || !message.trim()}
+                                >
+                                    <span className={styles.sendIcon}>
+                                        {isSubmitting ? '⏳' : '📤'}
+                                    </span>
                                 </button>
                             </div>
                         </div>

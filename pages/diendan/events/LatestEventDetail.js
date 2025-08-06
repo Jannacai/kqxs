@@ -8,7 +8,7 @@ import moment from 'moment';
 import 'moment-timezone';
 import parse from 'html-react-parser';
 import styles from '../../../styles/forumOptimized.module.css';
-import { FaCalendar, FaEye, FaUserPlus, FaClock, FaArrowRight, FaExclamationTriangle } from 'react-icons/fa';
+import { FaCalendar, FaEye, FaUserPlus, FaClock, FaArrowRight, FaExclamationTriangle, FaSync } from 'react-icons/fa';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
 
@@ -42,34 +42,36 @@ export default function LatestEventDetail() {
     const [page, setPage] = useState(1);
     const modalRef = useRef(null);
 
-    useEffect(() => {
-        const fetchEventByPage = async () => {
-            try {
-                const todayStart = moment().tz('Asia/Ho_Chi_Minh').startOf('day').toDate();
-                const todayEnd = moment().tz('Asia/Ho_Chi_Minh').endOf('day').toDate();
-                const res = await axios.get(`${API_BASE_URL}/api/events`, {
-                    params: {
-                        type: 'event',
-                        page: page,
-                        limit: 1,
-                        startDate: todayStart.toISOString(),
-                        endDate: todayEnd.toISOString()
-                    },
-                    headers: session?.accessToken ? { Authorization: `Bearer ${session.accessToken}` } : {}
-                });
-                if (res.data.events && res.data.events.length > 0) {
-                    setItem(res.data.events[0]);
-                    setError('');
-                } else {
-                    setError(`Không tìm thấy sự kiện nào cho trang ${page}`);
-                }
-            } catch (err) {
-                console.error('Error fetching event for page:', err.message, err.response?.data);
-                setError(err.response?.data?.message || `Đã có lỗi khi lấy chi tiết sự kiện cho trang ${page}`);
-            } finally {
-                setIsLoading(false);
+    const fetchEventByPage = async () => {
+        setIsLoading(true);
+        try {
+            const todayStart = moment().tz('Asia/Ho_Chi_Minh').startOf('day').toDate();
+            const todayEnd = moment().tz('Asia/Ho_Chi_Minh').endOf('day').toDate();
+            const res = await axios.get(`${API_BASE_URL}/api/events`, {
+                params: {
+                    type: 'event',
+                    page: page,
+                    limit: 1,
+                    startDate: todayStart.toISOString(),
+                    endDate: todayEnd.toISOString()
+                },
+                headers: session?.accessToken ? { Authorization: `Bearer ${session.accessToken}` } : {}
+            });
+            if (res.data.events && res.data.events.length > 0) {
+                setItem(res.data.events[0]);
+                setError('');
+            } else {
+                setError(`Không tìm thấy sự kiện nào cho trang ${page}`);
             }
-        };
+        } catch (err) {
+            console.error('Error fetching event for page:', err.message, err.response?.data);
+            setError(err.response?.data?.message || `Đã có lỗi khi lấy chi tiết sự kiện cho trang ${page}`);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
         fetchEventByPage();
     }, [session, page]);
 
@@ -108,6 +110,12 @@ export default function LatestEventDetail() {
         setPage(page + 1);
     };
 
+    // Hàm reset để reload dữ liệu
+    const handleReset = () => {
+        console.log('Resetting latest event data...');
+        fetchEventByPage();
+    };
+
     const formatDate = (date) => {
         return moment(date).tz('Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm');
     };
@@ -143,6 +151,15 @@ export default function LatestEventDetail() {
                         <FaExclamationTriangle />
                         <span>{error}</span>
                     </div>
+                    <button
+                        onClick={handleReset}
+                        disabled={isLoading}
+                        className={styles.resetButton}
+                        title="Làm mới dữ liệu"
+                    >
+                        <FaSync className={`${styles.resetIcon} ${isLoading ? styles.spinning : ''}`} />
+                        {isLoading ? 'Đang tải...' : 'Làm mới'}
+                    </button>
                 </div>
             </div>
         );
@@ -159,6 +176,15 @@ export default function LatestEventDetail() {
                     <div className={styles.emptyMessage}>
                         Không có sự kiện nào cho hôm nay
                     </div>
+                    <button
+                        onClick={handleReset}
+                        disabled={isLoading}
+                        className={styles.resetButton}
+                        title="Làm mới dữ liệu"
+                    >
+                        <FaSync className={`${styles.resetIcon} ${isLoading ? styles.spinning : ''}`} />
+                        {isLoading ? 'Đang tải...' : 'Làm mới'}
+                    </button>
                 </div>
             </div>
         );
@@ -166,12 +192,6 @@ export default function LatestEventDetail() {
 
     return (
         <div className={styles.eventCompact}>
-            {/* Compact Header */}
-            {/* <div className={styles.compactHeader}>
-                <div className={styles.compactTitle}>Sự Kiện Mới Nhất</div>
-                <div className={styles.compactSubtitle}>Sự kiện quan trọng nhất hôm nay</div>
-            </div> */}
-
             {/* Compact Content */}
             <div className={`${styles.compactContent} ${styles.compactContent.large}`}>
                 {/* Featured Event */}
@@ -245,10 +265,17 @@ export default function LatestEventDetail() {
                     >
                         Sự kiện tiếp
                     </button>
+                    <button
+                        onClick={handleReset}
+                        disabled={isLoading}
+                        className={styles.resetButton}
+                        title="Làm mới dữ liệu"
+                    >
+                        <FaSync className={`${styles.resetIcon} ${isLoading ? styles.spinning : ''}`} />
+                        {isLoading ? 'Đang tải...' : 'Làm mới'}
+                    </button>
                 </div>
             </div>
-
-
         </div>
     );
 }

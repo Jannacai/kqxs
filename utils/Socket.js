@@ -16,7 +16,7 @@ const connectionState = {
 
 // Fallback URL nếu server chính không khả dụng
 const SOCKET_URLS = [
-    "https://back-end-diendan.onrender.com",
+    "http://localhost:5001",
     "http://localhost:5001" // Fallback cho development
 ];
 

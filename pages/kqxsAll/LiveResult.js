@@ -88,120 +88,10 @@ const performanceMonitor = {
     }
 };
 
-// BỔ SUNG: Tối ưu console.log - chỉ log quan trọng
+// BỔ SUNG: Tối ưu console.log - chỉ log trong development
 const debugLog = (message, data = null) => {
     if (process.env.NODE_ENV === 'development') {
         console.log(`🔍 XSMB Debug: ${message}`, data);
-    }
-};
-
-// BỔ SUNG: Debug logger cho từng vấn đề cụ thể
-const debugLogger = {
-    // Vấn đề 1: Context State Corruption
-    contextState: (action, data) => {
-        console.log(`🔍 [CONTEXT_STATE] ${action}:`, {
-            timestamp: new Date().toLocaleTimeString('vi-VN'),
-            data: data,
-            dataType: typeof data,
-            isArray: Array.isArray(data),
-            length: Array.isArray(data) ? data.length : null
-        });
-    },
-
-    // Vấn đề 2: Batch Update Queue
-    batchQueue: (action, data) => {
-        console.log(`🔍 [BATCH_QUEUE] ${action}:`, {
-            timestamp: new Date().toLocaleTimeString('vi-VN'),
-            queueSize: data?.queueSize || 0,
-            updates: data?.updates || [],
-            memoryUsage: data?.memoryUsage || 'N/A'
-        });
-    },
-
-    // Vấn đề 3: SSE Connection Pool
-    sseConnection: (action, data) => {
-        console.log(`🔍 [SSE_CONNECTION] ${action}:`, {
-            timestamp: new Date().toLocaleTimeString('vi-VN'),
-            totalConnections: data?.totalConnections || 0,
-            maxConnections: data?.maxConnections || 10,
-            provinceConnections: data?.provinceConnections || 0,
-            connectionKey: data?.connectionKey || 'N/A'
-        });
-    },
-
-    // Vấn đề 4: Memory Pressure
-    memoryPressure: (action, data) => {
-        console.log(`🔍 [MEMORY_PRESSURE] ${action}:`, {
-            timestamp: new Date().toLocaleTimeString('vi-VN'),
-            usedMB: data?.usedMB || 0,
-            totalMB: data?.totalMB || 0,
-            percentage: data?.percentage || 0
-        });
-    },
-
-    // Vấn đề 5: Race Condition
-    raceCondition: (action, data) => {
-        console.log(`🔍 [RACE_CONDITION] ${action}:`, {
-            timestamp: new Date().toLocaleTimeString('vi-VN'),
-            componentMounted: data?.mounted || false,
-            prevState: data?.prevState || 'N/A',
-            newState: data?.newState || 'N/A',
-            updateSource: data?.source || 'N/A'
-        });
-    },
-
-    // Vấn đề 6: Component Lifecycle
-    lifecycle: (action, data) => {
-        console.log(`🔍 [LIFECYCLE] ${action}:`, {
-            timestamp: new Date().toLocaleTimeString('vi-VN'),
-            componentId: data?.componentId || 'N/A',
-            phase: data?.phase || 'N/A',
-            duration: data?.duration || 0
-        });
-    },
-
-    // BỔ SUNG: Vấn đề 7: Reload Pattern Detection
-    reloadPattern: (action, data) => {
-        console.log(`🔍 [RELOAD_PATTERN] ${action}:`, {
-            timestamp: new Date().toLocaleTimeString('vi-VN'),
-            reloadCount: data?.reloadCount || 0,
-            timeSinceLastReload: data?.timeSinceLastReload || 0,
-            componentId: data?.componentId || 'N/A',
-            isRapidReload: data?.isRapidReload || false
-        });
-    },
-
-    // BỔ SUNG: Vấn đề 8: State Update Timing
-    stateTiming: (action, data) => {
-        console.log(`🔍 [STATE_TIMING] ${action}:`, {
-            timestamp: new Date().toLocaleTimeString('vi-VN'),
-            updateDuration: data?.updateDuration || 0,
-            isBlocking: data?.isBlocking || false,
-            queueLength: data?.queueLength || 0,
-            source: data?.source || 'N/A'
-        });
-    },
-
-    // BỔ SUNG: Vấn đề 9: Error Boundary
-    errorBoundary: (action, data) => {
-        console.log(`🔍 [ERROR_BOUNDARY] ${action}:`, {
-            timestamp: new Date().toLocaleTimeString('vi-VN'),
-            error: data?.error || 'N/A',
-            errorStack: data?.errorStack || 'N/A',
-            componentStack: data?.componentStack || 'N/A',
-            isRecoverable: data?.isRecoverable || false
-        });
-    },
-
-    // BỔ SUNG: Vấn đề 10: Performance Metrics
-    performance: (action, data) => {
-        console.log(`🔍 [PERFORMANCE] ${action}:`, {
-            timestamp: new Date().toLocaleTimeString('vi-VN'),
-            renderTime: data?.renderTime || 0,
-            updateTime: data?.updateTime || 0,
-            memoryDelta: data?.memoryDelta || 0,
-            fps: data?.fps || 0
-        });
     }
 };
 
@@ -239,20 +129,6 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
     // BỔ SUNG: Connection tracking để tránh memory leak
     const connectionId = useRef(`${Date.now()}-${Math.random()}`);
     const activeTimeoutsRef = useRef(new Set());
-
-    // BỔ SUNG: Reload pattern detection
-    const reloadTrackerRef = useRef({
-        lastReloadTime: Date.now(),
-        reloadCount: 0,
-        isRapidReload: false
-    });
-
-    // BỔ SUNG: State update timing
-    const stateUpdateTrackerRef = useRef({
-        lastUpdateTime: Date.now(),
-        updateCount: 0,
-        averageUpdateTime: 0
-    });
 
     const currentStation = station || 'xsmb';
 
@@ -507,12 +383,12 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
         const key = `MB-${prizeType}`;
         batchUpdateRef.current.set(key, { prizeType, value });
 
-        // BỔ SUNG: Debug Batch Queue
-        debugLogger.batchQueue('UPDATE_ADDED', {
-            queueSize: batchUpdateRef.current.size,
-            updates: Array.from(batchUpdateRef.current.values()),
-            memoryUsage: typeof performance !== 'undefined' && performance.memory ?
-                Math.round(performance.memory.usedJSHeapSize / 1024 / 1024) : 'N/A'
+        // LOG: Batch update được trigger
+        console.log(`📦 SSE XSMB - Batch update triggered:`, {
+            prizeType: prizeType,
+            value: value,
+            timestamp: new Date().toLocaleTimeString('vi-VN'),
+            batchSize: batchUpdateRef.current.size
         });
 
         // Cache prize type riêng lẻ ngay lập tức
@@ -522,6 +398,7 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                 value: value,
                 timestamp: Date.now()
             });
+            console.log(`📦 Cached prize ${prizeType} = ${value} cho XSMB`);
 
             // ✅ TỐI ƯU: Thêm throttle cho animation để tránh quá tải
             const animationKey = `MB-${prizeType}`;
@@ -533,6 +410,7 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                 if (now - lastAnimationTime > 1000) { // Throttle 1 giây
                     animationThrottleRef.current.set(animationKey, now);
                     animationQueueRef.current.set(animationKey, { tinh: 'MB', prizeType });
+                    console.log(`🎬 Queued animation cho XSMB: ${prizeType} = ${value}`);
                 }
             }
         }
@@ -546,22 +424,11 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
         // Sử dụng requestIdleCallback để tránh blocking main thread
         const scheduleBatchUpdate = () => {
             if (batchUpdateRef.current.size > 0 && setXsmbLiveData && mountedRef.current) {
-                const updateStartTime = Date.now();
-
-                // BỔ SUNG: Debug State Update Timing
-                debugLogger.stateTiming('BATCH_UPDATE_START', {
-                    updateDuration: 0,
-                    isBlocking: false,
-                    queueLength: batchUpdateRef.current.size,
-                    source: 'batchUpdate'
-                });
-
-                // BỔ SUNG: Debug Batch Queue Execution
-                debugLogger.batchQueue('EXECUTING_BATCH', {
-                    queueSize: batchUpdateRef.current.size,
-                    updates: Array.from(batchUpdateRef.current.values()),
-                    memoryUsage: typeof performance !== 'undefined' && performance.memory ?
-                        Math.round(performance.memory.usedJSHeapSize / 1024 / 1024) : 'N/A'
+                // LOG: Thực hiện batch update
+                console.log(`⚡ SSE XSMB - Executing batch update:`, {
+                    batchSize: batchUpdateRef.current.size,
+                    timestamp: new Date().toLocaleTimeString('vi-VN'),
+                    updates: Array.from(batchUpdateRef.current.values()).map(({ prizeType, value }) => ({ prizeType, value }))
                 });
 
                 // Sử dụng requestAnimationFrame để đảm bảo smooth UI
@@ -569,25 +436,6 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                     if (!mountedRef.current) return;
 
                     setXsmbLiveData(prev => {
-                        const updateEndTime = Date.now();
-                        const updateDuration = updateEndTime - updateStartTime;
-
-                        // BỔ SUNG: Debug State Update Timing
-                        debugLogger.stateTiming('STATE_UPDATE_COMPLETE', {
-                            updateDuration: updateDuration,
-                            isBlocking: updateDuration > 16, // > 16ms = blocking
-                            queueLength: batchUpdateRef.current.size,
-                            source: 'batchUpdate'
-                        });
-
-                        // BỔ SUNG: Debug Race Condition
-                        debugLogger.raceCondition('STATE_UPDATE', {
-                            mounted: mountedRef.current,
-                            prevState: prev,
-                            newState: { ...prev, [prizeType]: value },
-                            source: 'batchUpdate'
-                        });
-
                         const updatedData = { ...prev };
                         let hasChanges = false;
 
@@ -621,14 +469,6 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
 
                     // Clear batch
                     batchUpdateRef.current.clear();
-
-                    // BỔ SUNG: Debug Batch Queue Cleared
-                    debugLogger.batchQueue('QUEUE_CLEARED', {
-                        queueSize: 0,
-                        updates: [],
-                        memoryUsage: typeof performance !== 'undefined' && performance.memory ?
-                            Math.round(performance.memory.usedJSHeapSize / 1024 / 1024) : 'N/A'
-                    });
                 });
             }
         };
@@ -649,23 +489,9 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
         updateTimeoutRef.current = setTimeout(() => {
             if (mountedRef.current && setXsmbLiveData) {
                 try {
-                    // BỔ SUNG: Debug Context State Update
-                    debugLogger.contextState('DEBOUNCED_UPDATE', {
-                        newData: newData,
-                        dataType: typeof newData,
-                        isArray: Array.isArray(newData),
-                        length: Array.isArray(newData) ? newData.length : null
-                    });
-
                     setXsmbLiveData(newData);
                 } catch (error) {
                     console.warn('Lỗi set live data:', error);
-
-                    // BỔ SUNG: Debug Context State Error
-                    debugLogger.contextState('UPDATE_ERROR', {
-                        error: error.message,
-                        newData: newData
-                    });
                 }
             }
         }, 25); // Giảm timeout tối đa cho realtime
@@ -678,32 +504,15 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                 const memoryInfo = performance.memory;
                 const usedMB = Math.round(memoryInfo.usedJSHeapSize / 1024 / 1024);
                 const totalMB = Math.round(memoryInfo.totalJSHeapSize / 1024 / 1024);
-                const percentage = Math.round((usedMB / totalMB) * 100);
-
-                // BỔ SUNG: Debug Memory Pressure
-                debugLogger.memoryPressure('CHECK', {
-                    usedMB: usedMB,
-                    totalMB: totalMB,
-                    percentage: percentage
-                });
 
                 if (usedMB > 200) { // Tăng ngưỡng cảnh báo
-                    debugLogger.memoryPressure('HIGH_USAGE', {
-                        usedMB: usedMB,
-                        totalMB: totalMB,
-                        percentage: percentage
-                    });
+                    console.warn(`⚠️ Memory usage cao: ${usedMB}MB/${totalMB}MB`);
                     // Force cleanup khi memory quá cao
                     globalSSEManager.cleanupOldConnections();
                 }
 
                 // Cleanup định kỳ để tránh memory leak
                 if (usedMB > 100) {
-                    debugLogger.memoryPressure('CLEANUP_TRIGGERED', {
-                        usedMB: usedMB,
-                        totalMB: totalMB,
-                        percentage: percentage
-                    });
                     globalSSEManager.cleanupOldConnections();
                 }
             }
@@ -714,28 +523,12 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
 
     // BỔ SUNG: Tối ưu cleanup function để tránh vòng lặp vô hạn
     useEffect(() => {
-        const startTime = Date.now();
         mountedRef.current = true;
-
-        // BỔ SUNG: Debug Component Lifecycle
-        debugLogger.lifecycle('COMPONENT_MOUNT', {
-            componentId: connectionId.current,
-            phase: 'mount',
-            duration: 0
-        });
 
         cleanupIntervalRef.current = setInterval(cleanupOldLiveData, 10 * 60 * 1000);
 
         return () => {
-            const duration = Date.now() - startTime;
             mountedRef.current = false;
-
-            // BỔ SUNG: Debug Component Lifecycle
-            debugLogger.lifecycle('COMPONENT_UNMOUNT', {
-                componentId: connectionId.current,
-                phase: 'unmount',
-                duration: duration
-            });
 
             // Cleanup tất cả timeouts để tránh memory leak
             activeTimeoutsRef.current.forEach(timeoutId => {
@@ -747,13 +540,6 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
             if (sseRef.current) {
                 const connectionKey = `${currentStation}:${today}:${connectionId.current}`;
                 globalSSEManager.connections.delete(connectionKey);
-
-                debugLogger.sseConnection('COMPONENT_UNMOUNT_CLEANUP', {
-                    totalConnections: globalSSEManager.connections.size,
-                    maxConnections: globalSSEManager.maxConnections,
-                    provinceConnections: globalSSEManager.getConnectionsForProvince('MB'),
-                    connectionKey: connectionKey
-                });
 
                 if (sseRef.current.readyState !== EventSource.CLOSED) {
                     // Thêm timeout để tránh treo khi đóng connection
@@ -844,34 +630,20 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                 const cacheKey = `${currentStation}:${today}`;
                 const cachedData = initialDataCache.current.get(cacheKey);
 
-                // BỔ SUNG: Debug Context State - Fetch Start
-                debugLogger.contextState('FETCH_START', {
-                    retry: retry,
-                    cacheKey: cacheKey,
-                    hasCachedData: !!cachedData
-                });
-
                 // Kiểm tra nếu đang trong giờ live (18h-18h59)
                 const vietnamTime = getVietnamTime();
                 const currentHour = vietnamTime.getHours();
-                const isLiveHour = currentHour === 21;
+                const isLiveHour = currentHour === 18;
 
                 // Clear cache nếu đã qua giờ live (19h trở đi)
                 if (currentHour >= 19) {
-                    debugLogger.contextState('CACHE_CLEAR', {
-                        currentHour: currentHour,
-                        reason: 'past_live_hour'
-                    });
+                    console.log('🕐 Đã qua giờ live, clear cache để lấy dữ liệu mới');
                     initialDataCache.current.clear();
                     localStorage.removeItem(`liveData:${currentStation}:${today}`);
                 }
 
                 if (cachedData && Date.now() - cachedData.timestamp < cacheTimeout) {
                     if (mountedRef.current) {
-                        debugLogger.contextState('USING_CACHED_DATA', {
-                            cachedData: cachedData.data,
-                            timestamp: cachedData.timestamp
-                        });
                         setXsmbLiveData(cachedData.data);
                         setIsXsmbLiveDataComplete(false);
                         setIsTodayLoading(false);
@@ -882,159 +654,67 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
 
                 // Nếu không phải giờ live và đang ở modal, gọi API cache
                 if (!isLiveHour && currentStation === 'xsmb' && isModal) {
-                    debugLogger.contextState('MODAL_CACHE_API', {
-                        currentHour: currentHour,
-                        isModal: isModal
-                    });
+                    console.log('🕐 Không phải giờ live XSMB và đang ở modal, gọi API cache...');
+                    // Không gửi ngày hiện tại, chỉ lấy bản mới nhất
+                    const response = await fetch(`http://localhost:5000/api/kqxs/xsmb/latest`);
+                    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                    const serverData = await response.json();
 
-                    try {
-                        // BỔ SUNG: Timeout cho API call
-                        const controller = new AbortController();
-                        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+                    if (mountedRef.current) {
+                        // Sử dụng ngày từ dữ liệu thực tế thay vì ngày hiện tại
+                        const formatDate = (dateString) => {
+                            if (!dateString) return today;
+                            try {
+                                const date = new Date(dateString);
+                                return date.toLocaleDateString('vi-VN');
+                            } catch (error) {
+                                console.error('Lỗi format ngày:', error);
+                                return today;
+                            }
+                        };
 
-                        const response = await fetch(`https://backendkqxs-1.onrender.com/api/kqxs/xsmb/latest`, {
-                            signal: controller.signal
+                        const dataWithCorrectDate = {
+                            ...serverData,
+                            // Đảm bảo hiển thị đúng ngày từ dữ liệu MongoDB
+                            drawDate: formatDate(serverData.drawDate),
+                            dayOfWeek: serverData.dayOfWeek || 'Chủ nhật'
+                        };
+
+                        setXsmbLiveData(dataWithCorrectDate);
+                        setIsXsmbLiveDataComplete(true);
+                        setIsTodayLoading(false);
+                        setRetryCount(0);
+                        setError(null);
+
+                        // Cache dữ liệu
+                        initialDataCache.current.set(cacheKey, {
+                            data: dataWithCorrectDate,
+                            timestamp: Date.now()
                         });
-
-                        clearTimeout(timeoutId);
-
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! Status: ${response.status}`);
-                        }
-
-                        const serverData = await response.json();
-
-                        // BỔ SUNG: Validate server data
-                        if (!serverData || typeof serverData !== 'object') {
-                            throw new Error('Invalid server data format');
-                        }
-
-                        if (mountedRef.current) {
-                            // Sử dụng ngày từ dữ liệu thực tế thay vì ngày hiện tại
-                            const formatDate = (dateString) => {
-                                if (!dateString) return today;
-                                try {
-                                    const date = new Date(dateString);
-                                    return date.toLocaleDateString('vi-VN');
-                                } catch (error) {
-                                    console.error('Lỗi format ngày:', error);
-                                    return today;
-                                }
-                            };
-
-                            const dataWithCorrectDate = {
-                                ...serverData,
-                                // Đảm bảo hiển thị đúng ngày từ dữ liệu MongoDB
-                                drawDate: formatDate(serverData.drawDate),
-                                dayOfWeek: serverData.dayOfWeek || 'Chủ nhật'
-                            };
-
-                            debugLogger.contextState('MODAL_DATA_SET', {
-                                serverData: dataWithCorrectDate,
-                                formattedDate: dataWithCorrectDate.drawDate
-                            });
-
-                            setXsmbLiveData(dataWithCorrectDate);
-                            setIsXsmbLiveDataComplete(true);
-                            setIsTodayLoading(false);
-                            setRetryCount(0);
-                            setError(null);
-
-                            // Cache dữ liệu
-                            initialDataCache.current.set(cacheKey, {
-                                data: dataWithCorrectDate,
-                                timestamp: Date.now()
-                            });
-                        }
-                    } catch (error) {
-                        console.error('❌ Lỗi modal cache API:', error);
-
-                        // BỔ SUNG: Debug API Error
-                        debugLogger.contextState('MODAL_API_ERROR', {
-                            error: error.message,
-                            currentHour: currentHour,
-                            isModal: isModal
-                        });
-
-                        if (mountedRef.current) {
-                            // BỔ SUNG: Fallback to empty state thay vì loading forever
-                            setXsmbLiveData({
-                                drawDate: today,
-                                station: currentStation,
-                                dayOfWeek: getVietnamTime().toLocaleString('vi-VN', { weekday: 'long' }),
-                                tentinh: "Miền Bắc",
-                                tinh: "MB",
-                                year: getVietnamTime().getFullYear(),
-                                month: getVietnamTime().getMonth() + 1,
-                                maDB: "...",
-                                specialPrize_0: "...",
-                                firstPrize_0: "...",
-                                secondPrize_0: "...",
-                                secondPrize_1: "...",
-                                threePrizes_0: "...",
-                                threePrizes_1: "...",
-                                threePrizes_2: "...",
-                                threePrizes_3: "...",
-                                threePrizes_4: "...",
-                                threePrizes_5: "...",
-                                fourPrizes_0: "...",
-                                fourPrizes_1: "...",
-                                fourPrizes_2: "...",
-                                fourPrizes_3: "...",
-                                fivePrizes_0: "...",
-                                fivePrizes_1: "...",
-                                fivePrizes_2: "...",
-                                fivePrizes_3: "...",
-                                fivePrizes_4: "...",
-                                fivePrizes_5: "...",
-                                sixPrizes_0: "...",
-                                sixPrizes_1: "...",
-                                sixPrizes_2: "...",
-                                sevenPrizes_0: "...",
-                                sevenPrizes_1: "...",
-                                sevenPrizes_2: "...",
-                                sevenPrizes_3: "...",
-                                lastUpdated: Date.now(),
-                            });
-                            setIsXsmbLiveDataComplete(false);
-                            setIsTodayLoading(false);
-                            setError('Không thể tải dữ liệu từ server');
-                        }
                     }
                     return;
                 }
 
                 // Trang chính luôn sử dụng SSE, không gọi API cache
                 if (!isModal) {
-                    debugLogger.contextState('MAIN_PAGE_SSE', {
-                        isModal: isModal
-                    });
+                    console.log('🔄 Trang chính XSMB, sử dụng SSE...');
                 }
 
                 // Modal trong giờ live cũng sử dụng SSE như trang chính
                 if (isModal && isLiveHour) {
-                    debugLogger.contextState('MODAL_LIVE_SSE', {
-                        isModal: isModal,
-                        isLiveHour: isLiveHour
-                    });
+                    console.log('🔄 Modal XSMB trong giờ live, sử dụng SSE...');
                     // Clear cache để đảm bảo lấy dữ liệu mới nhất
                     initialDataCache.current.clear();
                     localStorage.removeItem(`liveData:${currentStation}:${today}`);
 
                     // Sử dụng SSE trực tiếp như XSMT
-                    debugLogger.contextState('MODAL_LIVE_SSE_DIRECT', {
-                        isModal: isModal,
-                        isLiveHour: isLiveHour
-                    });
+                    console.log('🔄 Modal XSMB trong giờ live, kết nối SSE trực tiếp...');
                 }
 
                 // Tiếp tục với SSE cho cả trang chính và modal trong giờ live
-                debugLogger.contextState('SSE_CONTINUE', {
-                    isModal: isModal,
-                    isLiveHour: isLiveHour
-                });
+                console.log('🔄 Tiếp tục với SSE cho XSMB...');
 
-                const response = await fetch(`https://backendkqxs-1.onrender.com/api/kqxs/xsmb/sse/initial?station=${currentStation}&date=${today}`);
+                const response = await fetch(`http://localhost:5000/api/kqxs/xsmb/sse/initial?station=${currentStation}&date=${today}`);
                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                 const serverData = await response.json();
 
@@ -1052,13 +732,6 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                     }
                     if (shouldUpdate) {
                         updatedData.lastUpdated = serverData.lastUpdated || Date.now();
-
-                        debugLogger.contextState('INITIAL_DATA_SET', {
-                            updatedData: updatedData,
-                            shouldUpdate: shouldUpdate,
-                            serverDataLastUpdated: serverData.lastUpdated
-                        });
-
                         setXsmbLiveData(updatedData);
                         debouncedLocalStorageUpdate(`liveData:${currentStation}:${today}`, updatedData);
 
@@ -1075,10 +748,6 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                         setRetryCount(0);
                         setError(null);
                     } else {
-                        debugLogger.contextState('NO_UPDATE_NEEDED', {
-                            initialData: initialData,
-                            shouldUpdate: shouldUpdate
-                        });
                         setXsmbLiveData(initialData);
                         setIsXsmbLiveDataComplete(false);
                         setIsTodayLoading(false);
@@ -1086,14 +755,6 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                 }
             } catch (error) {
                 console.error(`Lỗi khi lấy dữ liệu khởi tạo XSMB (lần ${retry + 1}):`, error.message);
-
-                // BỔ SUNG: Debug Context State Error
-                debugLogger.contextState('FETCH_ERROR', {
-                    error: error.message,
-                    retry: retry,
-                    maxRetries: fetchMaxRetries
-                });
-
                 if (retry < fetchMaxRetries) {
                     setTimeout(() => {
                         if (mountedRef.current) {
@@ -1125,21 +786,13 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
 
             // Kiểm tra nếu đã thiết lập SSE rồi - TRÁNH VÒNG LẶP VÔ HẠN
             if (sseSetupRef.current) {
-                debugLogger.sseConnection('ALREADY_SETUP', {
-                    totalConnections: globalSSEManager.connections.size,
-                    maxConnections: globalSSEManager.maxConnections,
-                    provinceConnections: globalSSEManager.getConnectionsForProvince('MB')
-                });
+                console.log('⚠️ SSE đã được thiết lập, bỏ qua');
                 return;
             }
 
             // Kiểm tra số lượng connection để tránh treo trình duyệt
             if (globalSSEManager.connections.size >= globalSSEManager.maxConnections) {
-                debugLogger.sseConnection('POOL_FULL', {
-                    totalConnections: globalSSEManager.connections.size,
-                    maxConnections: globalSSEManager.maxConnections,
-                    provinceConnections: globalSSEManager.getConnectionsForProvince('MB')
-                });
+                console.warn('⚠️ Quá nhiều SSE connections, cleanup trước khi tạo mới');
                 globalSSEManager.cleanupOldConnections();
             }
 
@@ -1147,11 +800,7 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
             const connectionsForProvince = globalSSEManager.getConnectionsForProvince('MB');
 
             if (connectionsForProvince >= globalSSEManager.maxConnectionsPerProvince) { // Giới hạn 2 connections cho XSMB
-                debugLogger.sseConnection('PROVINCE_LIMIT_REACHED', {
-                    totalConnections: globalSSEManager.connections.size,
-                    maxConnections: globalSSEManager.maxConnections,
-                    provinceConnections: connectionsForProvince
-                });
+                console.warn(`⚠️ Quá nhiều SSE connections cho XSMB (${connectionsForProvince}), bỏ qua`);
                 return;
             }
 
@@ -1163,37 +812,25 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
             // Kiểm tra nếu không phải giờ live cho XSMB (chỉ áp dụng cho modal)
             const vietnamTime = getVietnamTime();
             const currentHour = vietnamTime.getHours();
-            const isLiveHour = currentHour === 21;
+            const isLiveHour = currentHour === 18;
 
             // Chỉ kiểm tra giờ live cho modal, trang chính luôn kết nối SSE
             if (!isLiveHour && currentStation === 'xsmb' && isModal) {
-                debugLogger.sseConnection('NOT_LIVE_HOUR', {
-                    totalConnections: globalSSEManager.connections.size,
-                    maxConnections: globalSSEManager.maxConnections,
-                    provinceConnections: connectionsForProvince,
-                    currentHour: currentHour
-                });
+                console.log('🕐 Không phải giờ live XSMB và đang ở modal, bỏ qua SSE setup');
                 return;
             }
 
             // Modal trong giờ live cũng kết nối SSE
             if (isModal && isLiveHour) {
-                debugLogger.sseConnection('MODAL_LIVE_HOUR', {
-                    totalConnections: globalSSEManager.connections.size,
-                    maxConnections: globalSSEManager.maxConnections,
-                    provinceConnections: connectionsForProvince
-                });
+                console.log('🔄 Modal XSMB trong giờ live, kết nối SSE...');
             }
 
-            debugLogger.sseConnection('SETUP_START', {
-                totalConnections: globalSSEManager.connections.size,
-                maxConnections: globalSSEManager.maxConnections,
-                provinceConnections: connectionsForProvince
-            });
+            console.log('✅ Bắt đầu thiết lập SSE cho XSMB');
             sseSetupRef.current = true;
 
             // Reset animation state khi bắt đầu SSE setup
             setAnimatingPrize(null);
+            console.log('🔄 Reset animation state cho SSE setup');
 
             const connectionKey = `${currentStation}:${today}:${connectionId.current}`;
 
@@ -1232,7 +869,8 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                 }
             }
 
-            const sseUrl = `https://backendkqxs-1.onrender.com/api/kqxs/xsmb/sse?station=${currentStation}&date=${today}`;
+            const sseUrl = `http://localhost:5000/api/kqxs/xsmb/sse?station=${currentStation}&date=${today}`;
+            console.log(`🔌 Tạo SSE connection cho XSMB:`, sseUrl);
 
             try {
                 const newConnection = new EventSource(sseUrl);
@@ -1243,23 +881,16 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                 globalSSEManager.connections.set(connectionKey, newConnection);
                 sseConnectionPool.current.set(connectionKey, newConnection);
 
-                debugLogger.sseConnection('CONNECTION_CREATED', {
-                    totalConnections: globalSSEManager.connections.size,
-                    maxConnections: globalSSEManager.maxConnections,
-                    provinceConnections: globalSSEManager.getConnectionsForProvince('MB'),
-                    connectionKey: connectionKey
-                });
-
                 setSseStatus('connecting');
 
                 newConnection.onopen = () => {
                     newConnection.lastActivity = Date.now();
                     setSseStatus('connected');
-                    debugLogger.sseConnection('CONNECTION_OPENED', {
-                        totalConnections: globalSSEManager.connections.size,
-                        maxConnections: globalSSEManager.maxConnections,
-                        provinceConnections: globalSSEManager.getConnectionsForProvince('MB'),
-                        connectionKey: connectionKey
+                    // LOG: SSE connection đã mở
+                    console.log(`🔌 SSE XSMB - Connection opened:`, {
+                        timestamp: new Date().toLocaleTimeString('vi-VN'),
+                        connectionKey: connectionKey,
+                        readyState: newConnection.readyState
                     });
                     if (mountedRef.current) {
                         setError(null);
@@ -1269,12 +900,11 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
 
                 newConnection.onerror = () => {
                     setSseStatus('error');
-                    debugLogger.sseConnection('CONNECTION_ERROR', {
-                        totalConnections: globalSSEManager.connections.size,
-                        maxConnections: globalSSEManager.maxConnections,
-                        provinceConnections: globalSSEManager.getConnectionsForProvince('MB'),
-                        connectionKey: connectionKey,
-                        retryCount: retryCount
+                    // LOG: SSE connection error
+                    console.log(`❌ SSE XSMB - Connection error:`, {
+                        timestamp: new Date().toLocaleTimeString('vi-VN'),
+                        retryCount: retryCount,
+                        maxRetries: maxRetries
                     });
 
                     if (mountedRef.current) {
@@ -1300,12 +930,14 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                         const retryTimeoutId = setTimeout(() => {
                             if (mountedRef.current) {
                                 setRetryCount(prev => prev + 1);
+                                console.log(`🔄 SSE XSMB - Retry connection (${retryCount + 1}/${maxRetries})`);
                                 connectSSE();
                             }
                         }, sseReconnectDelay);
 
                         activeTimeoutsRef.current.add(retryTimeoutId);
                     } else if (mountedRef.current) {
+                        console.log(`💀 SSE XSMB - Max retries reached, giving up`);
                         setError('Mất kết nối SSE, vui lòng refresh trang...');
                     }
                 };
@@ -1636,107 +1268,6 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
             </span>
         );
     }, [animatingPrize, xsmbLiveData, processedLiveData, currentFilter]);
-
-    // BỔ SUNG: Debug Context State
-    useEffect(() => {
-        const now = Date.now();
-        const timeSinceLastReload = now - reloadTrackerRef.current.lastReloadTime;
-
-        // BỔ SUNG: Detect rapid reload pattern
-        if (timeSinceLastReload < 5000) { // Reload trong vòng 5 giây
-            reloadTrackerRef.current.reloadCount++;
-            reloadTrackerRef.current.isRapidReload = true;
-
-            debugLogger.reloadPattern('RAPID_RELOAD_DETECTED', {
-                reloadCount: reloadTrackerRef.current.reloadCount,
-                timeSinceLastReload: timeSinceLastReload,
-                componentId: connectionId.current,
-                isRapidReload: true
-            });
-        } else {
-            reloadTrackerRef.current.reloadCount = 0;
-            reloadTrackerRef.current.isRapidReload = false;
-        }
-
-        reloadTrackerRef.current.lastReloadTime = now;
-
-        debugLogger.contextState('COMPONENT_MOUNT', {
-            xsmbLiveData: xsmbLiveData,
-            setXsmbLiveData: !!setXsmbLiveData,
-            setIsXsmbLiveDataComplete: !!setIsXsmbLiveDataComplete
-        });
-    }, []);
-
-    // BỔ SUNG: Monitor Context State changes
-    useEffect(() => {
-        debugLogger.contextState('STATE_CHANGE', {
-            xsmbLiveData: xsmbLiveData,
-            isTodayLoading: isTodayLoading,
-            error: error,
-            retryCount: retryCount
-        });
-    }, [xsmbLiveData, isTodayLoading, error, retryCount]);
-
-    // BỔ SUNG: Error boundary cho component
-    useEffect(() => {
-        const handleError = (error, errorInfo) => {
-            debugLogger.errorBoundary('COMPONENT_ERROR', {
-                error: error.message,
-                errorStack: error.stack,
-                componentStack: errorInfo.componentStack,
-                isRecoverable: true
-            });
-        };
-
-        // BỔ SUNG: Performance monitoring
-        const performanceObserver = new PerformanceObserver((list) => {
-            for (const entry of list.getEntries()) {
-                if (entry.entryType === 'measure') {
-                    debugLogger.performance('RENDER_MEASURE', {
-                        renderTime: entry.duration,
-                        updateTime: entry.duration,
-                        memoryDelta: 0,
-                        fps: 60
-                    });
-                }
-            }
-        });
-
-        try {
-            performanceObserver.observe({ entryTypes: ['measure'] });
-        } catch (error) {
-            // PerformanceObserver không được support
-        }
-
-        return () => {
-            performanceObserver.disconnect();
-        };
-    }, []);
-
-    // BỔ SUNG: Monitor Context State changes
-    useEffect(() => {
-        const renderStartTime = performance.now();
-
-        debugLogger.contextState('STATE_CHANGE', {
-            xsmbLiveData: xsmbLiveData,
-            isTodayLoading: isTodayLoading,
-            error: error,
-            retryCount: retryCount
-        });
-
-        // BỔ SUNG: Performance measurement
-        requestAnimationFrame(() => {
-            const renderEndTime = performance.now();
-            const renderDuration = renderEndTime - renderStartTime;
-
-            debugLogger.performance('RENDER_COMPLETE', {
-                renderTime: renderDuration,
-                updateTime: renderDuration,
-                memoryDelta: 0,
-                fps: 1000 / renderDuration
-            });
-        });
-    }, [xsmbLiveData, isTodayLoading, error, retryCount]);
 
     return (
         <div className={styles.live}>
@@ -2225,7 +1756,7 @@ function isWithinLiveWindow() {
     const vietTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
     const hours = vietTime.getHours();
     const minutes = vietTime.getMinutes();
-    return (hours === 21 && minutes >= 20 && minutes <= 59);
+    return (hours === 18 && minutes >= 10 && minutes <= 33);
 }
 
 export default React.memo(LiveResult);

@@ -10,10 +10,9 @@ import styles from '../../styles/lotteryRegistration.module.css';
 import { formatDistanceToNow } from 'date-fns';
 import vi from 'date-fns/locale/vi';
 import Image from 'next/image';
-import { FaGift } from 'react-icons/fa';
+import { FaGift, FaSync } from 'react-icons/fa';
 import PrivateChat from './chatrieng';
 import UserInfoModal from './modals/UserInfoModal';
-import { getSocket, isSocketConnected, addConnectionListener } from '../../utils/Socket';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL3 || 'http://localhost:5001';
 
@@ -29,13 +28,12 @@ export default function LotteryRegistrationFeed() {
     const [showModal, setShowModal] = useState(false);
     const [privateChats, setPrivateChats] = useState([]);
     const registrationListRef = useRef(null);
-    const socketRef = useRef(null);
     const [isAtBottom, setIsAtBottom] = useState(true);
-    const [socketConnected, setSocketConnected] = useState(false);
-    const mountedRef = useRef(true);
+    const [isLoading, setIsLoading] = useState(false);
 
     const fetchRegistrations = async () => {
         try {
+            setIsLoading(true);
             const params = { page: 1, limit: 50 };
             if (filterType !== 'all') {
                 if (filterType === 'eventNews') params.isEvent = true;
@@ -45,7 +43,7 @@ export default function LotteryRegistrationFeed() {
                     params.isReward = false;
                 }
             }
-            console.log('Fetching registrations with params:', params);
+            // console.log('Fetching registrations with params:', params);
             const headers = {
                 'Content-Type': 'application/json',
                 ...(session?.accessToken && { Authorization: `Bearer ${session.accessToken}` }),
@@ -58,7 +56,7 @@ export default function LotteryRegistrationFeed() {
                 headers,
                 params,
             });
-            console.log('Registrations data:', res.data.registrations);
+            // console.log('Registrations data:', res.data.registrations);
 
             // Kiểm tra và xử lý dữ liệu an toàn
             const allRegistrations = res.data.registrations || [];
@@ -66,11 +64,11 @@ export default function LotteryRegistrationFeed() {
             const rewardData = allRegistrations.filter(r => r.isReward);
             const eventData = allRegistrations.filter(r => r.isEvent);
 
-            console.log('Filtered data:', {
-                registrations: registrationsData.length,
-                rewards: rewardData.length,
-                events: eventData.length
-            });
+            // console.log('Filtered data:', {
+            //     registrations: registrationsData.length,
+            //     rewards: rewardData.length,
+            //     events: eventData.length
+            // });
 
             setRegistrations(registrationsData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
             setRewardNotifications(rewardData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
@@ -78,7 +76,7 @@ export default function LotteryRegistrationFeed() {
 
             // Nếu không có dữ liệu, thêm dữ liệu mẫu để test
             if (registrationsData.length === 0 && rewardData.length === 0 && eventData.length === 0) {
-                console.log('No data received, adding sample data for testing');
+                // console.log('No data received, adding sample data for testing');
                 const sampleData = [
                     {
                         _id: 'sample1',
@@ -159,6 +157,8 @@ export default function LotteryRegistrationFeed() {
                     ? 'Không thể tải danh sách thông báo do thiếu quyền. Vui lòng thử lại sau.'
                     : err.response?.data?.message || 'Đã có lỗi khi lấy danh sách đăng ký. Vui lòng thử lại.'
             );
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -180,220 +180,9 @@ export default function LotteryRegistrationFeed() {
     };
 
     useEffect(() => {
-        console.log('Component mounted, fetching registrations...');
+        // console.log('Component mounted, fetching registrations...');
         fetchRegistrations();
     }, [filterType]);
-
-    useEffect(() => {
-        console.log('Initializing Socket.IO with URL:', API_BASE_URL);
-        mountedRef.current = true;
-
-        const initializeSocket = async () => {
-            try {
-                const socket = await getSocket();
-                if (!mountedRef.current) return;
-
-                socketRef.current = socket;
-                setSocketConnected(true);
-
-                // Thêm connection listener
-                const removeListener = addConnectionListener((connected) => {
-                    if (mountedRef.current) {
-                        setSocketConnected(connected);
-                    }
-                });
-
-                socket.on('connect', () => {
-                    console.log('Socket.IO connected successfully:', socket.id);
-                    socket.emit('joinLotteryFeed');
-                    socket.emit('join', 'leaderboard');
-                    if (session?.user?._id || session?.user?.id) {
-                        socket.emit('joinPrivateRoom', session.user?._id || session.user?.id);
-                    }
-                    setError('');
-                    setSocketConnected(true);
-                });
-
-                socket.on('connect_error', (err) => {
-                    console.error('Socket.IO connection error:', err.message);
-                    setSocketConnected(false);
-                    setError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
-                });
-
-                socket.on('disconnect', () => {
-                    console.log('Socket.IO disconnected');
-                    setSocketConnected(false);
-                });
-
-                socket.on('NEW_LOTTERY_REGISTRATION', async (data) => {
-                    console.log('Received NEW_LOTTERY_REGISTRATION:', data);
-                    if (filterType === 'all' || filterType === 'userRegistration') {
-                        let updatedData = { ...data };
-                        if (data.eventId && !data.eventId.title) {
-                            const event = await fetchEventDetails(data.eventId._id || data.eventId);
-                            if (event) {
-                                updatedData.eventId = { _id: event._id, title: event.title, viewCount: event.viewCount };
-                            }
-                        }
-                        setRegistrations((prevRegistrations) => {
-                            if (prevRegistrations.some(r => r._id === updatedData._id)) {
-                                return prevRegistrations.map(r => (r._id === updatedData._id ? updatedData : r));
-                            }
-                            const updatedRegistrations = [...prevRegistrations, updatedData].sort(
-                                (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-                            );
-                            return updatedRegistrations.slice(0, 100);
-                        });
-                        if (registrationListRef.current && isAtBottom) {
-                            registrationListRef.current.scrollTop = 0;
-                        }
-                    }
-                });
-
-                socket.on('LOTTERY_RESULT_CHECKED', (data) => {
-                    console.log('Received LOTTERY_RESULT_CHECKED:', data);
-                    if (filterType === 'all' || filterType === 'userRegistration') {
-                        setRegistrations((prevRegistrations) => {
-                            if (prevRegistrations.some(r => r._id === data._id)) {
-                                return prevRegistrations.map(r => (r._id === data._id ? data : r));
-                            }
-                            return prevRegistrations;
-                        });
-                        if (registrationListRef.current && isAtBottom) {
-                            registrationListRef.current.scrollTop = 0;
-                        }
-                    }
-                });
-
-                socket.on('USER_UPDATED', (data) => {
-                    console.log('Received USER_UPDATED:', data);
-                    setRegistrations((prevRegistrations) =>
-                        prevRegistrations.map((r) =>
-                            r.userId._id === data._id ? { ...r, userId: { ...r.userId, img: data.img, titles: data.titles, points: data.points, winCount: data.winCount, role: data.role } } : r
-                        )
-                    );
-                    setRewardNotifications((prevNotifications) =>
-                        prevNotifications.map((n) =>
-                            n.userId._id === data._id ? { ...n, userId: { ...n.userId, img: data.img, titles: data.titles, points: data.points, winCount: data.winCount, role: data.role } } : n
-                        )
-                    );
-                    setEventNotifications((prevNotifications) =>
-                        prevNotifications.map((n) =>
-                            n.userId._id === data._id ? { ...n, userId: { ...n.userId, img: data.img, titles: data.titles, points: data.points, winCount: data.winCount, role: data.role } } : n
-                        )
-                    );
-                });
-
-                socket.on('UPDATE_LOTTERY_REGISTRATION', (data) => {
-                    console.log('Received UPDATE_LOTTERY_REGISTRATION:', data);
-                    if (filterType === 'all' || filterType === 'userRegistration') {
-                        setRegistrations((prevRegistrations) =>
-                            prevRegistrations.map((r) => (r._id === data._id ? data : r))
-                        );
-                        if (registrationListRef.current && isAtBottom) {
-                            registrationListRef.current.scrollTop = 0;
-                        }
-                    }
-                });
-
-                socket.on('USER_REWARDED', async (data) => {
-                    console.log('Received USER_REWARDED:', data);
-                    if (filterType === 'all' || filterType === 'reward') {
-                        let updatedData = { ...data };
-                        const rewardNotification = {
-                            _id: `reward_${data.userId}_${Date.now()} `,
-                            userId: updatedData.userId,
-                            region: data.region,
-                            numbers: {},
-                            result: { isChecked: true, isWin: false },
-                            createdAt: new Date(data.awardedAt || Date.now()),
-                            isReward: true,
-                            pointsAwarded: data.pointsAwarded,
-                            eventTitle: data.eventTitle,
-                            eventId: data.eventId ? data.eventId : null,
-                        };
-                        setRewardNotifications((prevNotifications) => {
-                            const updatedNotifications = [...prevNotifications, rewardNotification].sort(
-                                (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-                            );
-                            return updatedNotifications.slice(0, 100);
-                        });
-                        if (registrationListRef.current && isAtBottom) {
-                            registrationListRef.current.scrollTop = 0;
-                        }
-                    }
-                });
-
-                socket.on('NEW_EVENT_NOTIFICATION', async (data) => {
-                    console.log('Received NEW_EVENT_NOTIFICATION:', data);
-                    if (filterType === 'all' || filterType === 'eventNews') {
-                        let updatedData = { ...data };
-                        if (data.eventId && typeof data.eventId !== 'string') {
-                            updatedData.eventId = data.eventId._id ? data.eventId._id.toString() : data.eventId;
-                        }
-                        if (!data.title && data.eventId) {
-                            const event = await fetchEventDetails(data.eventId);
-                            if (event) {
-                                updatedData.title = event.title;
-                                updatedData.eventId = event._id.toString();
-                            }
-                        }
-                        setEventNotifications((prevNotifications) => {
-                            const updatedNotifications = [...prevNotifications, updatedData].sort(
-                                (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-                            );
-                            return updatedNotifications.slice(0, 100);
-                        });
-                        if (registrationListRef.current && isAtBottom) {
-                            registrationListRef.current.scrollTop = 0;
-                        }
-                    }
-                });
-
-                socket.on('LOTTERY_RESULT_ERROR', (data) => {
-                    console.error('Received LOTTERY_RESULT_ERROR:', data);
-                    setError(data.message || 'Lỗi khi đối chiếu kết quả xổ số');
-                });
-
-                socket.on('PRIVATE_MESSAGE', (newMessage) => {
-                    console.log('Received PRIVATE_MESSAGE:', JSON.stringify(newMessage, null, 2));
-                    setPrivateChats((prev) =>
-                        prev.map((chat) =>
-                            chat.receiver._id === newMessage.senderId || chat.receiver._id === newMessage.receiverId
-                                ? { ...chat, messages: [...(chat.messages || []), newMessage] }
-                                : chat
-                        )
-                    );
-                });
-
-                return () => {
-                    removeListener();
-                    if (socketRef.current) {
-                        socketRef.current.off('connect');
-                        socketRef.current.off('connect_error');
-                        socketRef.current.off('disconnect');
-                        socketRef.current.off('NEW_LOTTERY_REGISTRATION');
-                        socketRef.current.off('LOTTERY_RESULT_CHECKED');
-                        socketRef.current.off('USER_UPDATED');
-                        socketRef.current.off('UPDATE_LOTTERY_REGISTRATION');
-                        socketRef.current.off('USER_REWARDED');
-                        socketRef.current.off('NEW_EVENT_NOTIFICATION');
-                        socketRef.current.off('LOTTERY_RESULT_ERROR');
-                        socketRef.current.off('PRIVATE_MESSAGE');
-                    }
-                };
-            } catch (error) {
-                console.error('Failed to initialize socket:', error);
-                setSocketConnected(false);
-            }
-        };
-
-        initializeSocket();
-
-        return () => {
-            mountedRef.current = false;
-        };
-    }, [filterType, session]);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -418,7 +207,7 @@ export default function LotteryRegistrationFeed() {
             setError('ID sự kiện không hợp lệ. Vui lòng thử lại.');
             return;
         }
-        console.log('Navigating to event details with eventId:', eventId);
+        // console.log('Navigating to event details with eventId:', eventId);
         router.push(`/diendan/events/${eventId}`);
     };
 
@@ -455,6 +244,11 @@ export default function LotteryRegistrationFeed() {
         );
     };
 
+    const handleReset = () => {
+        // console.log('Resetting data...');
+        fetchRegistrations();
+    };
+
     const getAvatarClass = (fullname) => {
         const firstChar = fullname ? fullname[0]?.toLowerCase() : 'a';
         const avatarColors = {
@@ -475,14 +269,14 @@ export default function LotteryRegistrationFeed() {
         const titles = item.userId?.titles || [];
         const eventId = item.isEvent && item.eventId ? (typeof item.eventId === 'string' ? item.eventId : item.eventId._id?.toString()) : null;
 
-        console.log('Rendering item for user:', {
-            userId: item.userId?._id,
-            fullname,
-            img: item.userId?.img,
-            titles,
-            isEvent: item.isEvent,
-            eventId
-        });
+        // console.log('Rendering item for user:', {
+        //     userId: item.userId?._id,
+        //     fullname,
+        //     img: item.userId?.img,
+        //     titles,
+        //     isEvent: item.isEvent,
+        //     eventId
+        // });
 
         return (
             <div
@@ -685,16 +479,16 @@ export default function LotteryRegistrationFeed() {
                 : registrations.slice(0, 50);
 
     // Debug logging
-    console.log('Current state:', {
-        filterType,
-        registrationsCount: registrations.length,
-        rewardNotificationsCount: rewardNotifications.length,
-        eventNotificationsCount: eventNotifications.length,
-        filteredFeedCount: filteredFeed.length,
-        error
-    });
+    // console.log('Current state:', {
+    //     filterType,
+    //     registrationsCount: registrations.length,
+    //     rewardNotificationsCount: rewardNotifications.length,
+    //     eventNotificationsCount: eventNotifications.length,
+    //     filteredFeedCount: filteredFeed.length,
+    //     error
+    // });
 
-    console.log('Rendering component with:', { filteredFeed, error, filterType });
+    // console.log('Rendering component with:', { filteredFeed, error, filterType });
 
     return (
         <div className={styles.container}>
@@ -710,6 +504,15 @@ export default function LotteryRegistrationFeed() {
                             <span className={styles.statIcon}>📊</span>
                             Tổng: {filteredFeed.length}
                         </span>
+                        <button
+                            onClick={handleReset}
+                            disabled={isLoading}
+                            className={styles.resetButton}
+                            title="Làm mới dữ liệu"
+                        >
+                            <FaSync className={`${styles.resetIcon} ${isLoading ? styles.spinning : ''}`} />
+                            {isLoading ? 'Đang tải...' : 'Làm mới'}
+                        </button>
                     </div>
                 </div>
             </div>

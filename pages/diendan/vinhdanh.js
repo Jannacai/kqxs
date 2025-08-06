@@ -6,13 +6,13 @@ import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import Link from 'next/link';
 import styles from '../../styles/vinhdanh.module.css';
-import { getSocket, isSocketConnected, addConnectionListener } from '../../utils/Socket';
 import { isValidObjectId } from '../../utils/validation';
 import moment from 'moment';
 import 'moment-timezone';
 import Image from 'next/image';
 import UserInfoModal from './modals/UserInfoModal';
 import PrivateChat from './chatrieng';
+import { FaSync } from 'react-icons/fa';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
 
@@ -25,14 +25,11 @@ const AwardLeaderboard = () => {
     const [selectedUser, setSelectedUser] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const modalRef = useRef(null);
-    const socketRef = useRef(null);
     const [users, setUsers] = useState([]);
     const [error, setError] = useState('');
     const [usersCache, setUsersCache] = useState({});
     const [showModal, setShowModal] = useState(false);
     const [privateChats, setPrivateChats] = useState([]);
-    const [socketConnected, setSocketConnected] = useState(false);
-    const mountedRef = useRef(true);
 
     // Lấy danh sách người trúng giải
     const fetchWinners = async () => {
@@ -74,101 +71,11 @@ const AwardLeaderboard = () => {
         }
     };
 
-    // Gọi API và thiết lập Socket.IO
+    // Gọi API và thiết lập
     useEffect(() => {
         if (status === 'loading') return;
 
         fetchWinners();
-
-        // Thiết lập Socket.IO (chỉ cho người dùng đã đăng nhập)
-        if (session?.accessToken) {
-            console.log('Initializing Socket.IO with URL:', API_BASE_URL);
-            console.log('Access Token for Socket.IO:', session.accessToken);
-            
-            mountedRef.current = true;
-
-            const initializeSocket = async () => {
-                try {
-                    const socket = await getSocket();
-                    if (!mountedRef.current) return;
-
-                    socketRef.current = socket;
-                    setSocketConnected(true);
-
-                    // Thêm connection listener
-                    const removeListener = addConnectionListener((connected) => {
-                        if (mountedRef.current) {
-                            setSocketConnected(connected);
-                        }
-                    });
-
-                    socket.on('connect', () => {
-                        console.log('Socket.IO connected successfully:', socket.id);
-                        socket.emit('joinLotteryFeed');
-                        setFetchError('');
-                        setSocketConnected(true);
-                    });
-
-                    socket.on('connect_error', (error) => {
-                        console.error('Socket.IO connection error:', error.message);
-                        setSocketConnected(false);
-                        setError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
-                    });
-
-                    socket.on('disconnect', (reason) => {
-                        console.log('Socket.IO disconnected:', reason);
-                        setSocketConnected(false);
-                    });
-
-                    socket.on('USER_UPDATED', (data) => {
-                        console.log('Received USER_UPDATED:', data);
-                        if (mountedRef.current && data?._id && isValidObjectId(data._id)) {
-                            setUsers((prevUsers) =>
-                                prevUsers.map((user) =>
-                                    user._id === data._id
-                                        ? { ...user, img: data.img, titles: data.titles, points: data.points, winCount: data.winCount, role: data.role }
-                                        : user
-                                )
-                            );
-                            setUsersCache((prev) => ({ ...prev, [data._id]: data }));
-                        }
-                    });
-
-                    socket.on('PRIVATE_MESSAGE', (newMessage) => {
-                        console.log('Received PRIVATE_MESSAGE:', JSON.stringify(newMessage, null, 2));
-                        if (mountedRef.current) {
-                            setPrivateChats((prev) =>
-                                prev.map((chat) =>
-                                    chat.receiver._id === newMessage.senderId || chat.receiver._id === newMessage.receiverId
-                                        ? { ...chat, messages: [...(chat.messages || []), newMessage] }
-                                        : chat
-                                )
-                            );
-                        }
-                    });
-
-                    return () => {
-                        removeListener();
-                        if (socketRef.current) {
-                            socketRef.current.off('connect');
-                            socketRef.current.off('connect_error');
-                            socketRef.current.off('disconnect');
-                            socketRef.current.off('USER_UPDATED');
-                            socketRef.current.off('PRIVATE_MESSAGE');
-                        }
-                    };
-                } catch (error) {
-                    console.error('Failed to initialize socket:', error);
-                    setSocketConnected(false);
-                }
-            };
-
-            initializeSocket();
-
-            return () => {
-                mountedRef.current = false;
-            };
-        }
     }, [status, session, router]);
 
     // Đóng modal khi nhấp ra ngoài
@@ -197,9 +104,26 @@ const AwardLeaderboard = () => {
         return nameParts[nameParts.length - 1].charAt(0).toUpperCase();
     };
 
+    // Hàm reset để reload dữ liệu
+    const handleReset = () => {
+        console.log('Resetting winners data...');
+        fetchWinners();
+    };
+
     return (
         <div className={styles.leaderboard}>
-            <h2 className={styles.title}>Bảng Vinh Danh Trúng Giải</h2>
+            <div className={styles.header}>
+                <h2 className={styles.title}>Bảng Vinh Danh Trúng Giải</h2>
+                <button
+                    onClick={handleReset}
+                    disabled={isLoading}
+                    className={styles.resetButton}
+                    title="Làm mới dữ liệu"
+                >
+                    <FaSync className={`${styles.resetIcon} ${isLoading ? styles.spinning : ''}`} />
+                    {isLoading ? 'Đang tải...' : 'Làm mới'}
+                </button>
+            </div>
             {fetchError && <p className={styles.error}>{fetchError}</p>}
             {isLoading && <p className={styles.loading}>Đang tải...</p>}
             {winners.length === 0 && !isLoading ? (

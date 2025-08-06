@@ -6,11 +6,11 @@ import axios from 'axios';
 import moment from 'moment';
 import 'moment-timezone';
 import Image from 'next/image';
-import { getSocket, isSocketConnected, addConnectionListener } from '../../utils/Socket';
 import { isValidObjectId } from '../../utils/validation';
 import styles from '../../styles/lichsudangky.module.css';
 import PrivateChat from './chatrieng';
 import UserInfoModal from './modals/UserInfoModal';
+import { FaSync } from 'react-icons/fa';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
 
@@ -43,10 +43,7 @@ export default function LotteryRegistrationHistory() {
     const [selectedUser, setSelectedUser] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [privateChats, setPrivateChats] = useState([]);
-    const [socketConnected, setSocketConnected] = useState(false);
     const itemsPerPage = 50;
-    const socketRef = useRef(null);
-    const mountedRef = useRef(true);
 
     const fetchEvents = useCallback(async (date) => {
         try {
@@ -106,7 +103,7 @@ export default function LotteryRegistrationHistory() {
             const registrations = res.data.registrations || [];
             const total = res.data.total || 0;
             setTotalRegistrations(total);
-            console.log('Fetched public registrations:', registrations.length, 'Total:', total);
+            // console.log('Fetched public registrations:', registrations.length, 'Total:', total);
 
             const groupedByDate = registrations.reduce((acc, reg) => {
                 const date = moment(reg.createdAt).tz('Asia/Ho_Chi_Minh').format('DD-MM-YYYY');
@@ -161,10 +158,18 @@ export default function LotteryRegistrationHistory() {
         } finally {
             setIsLoading(false);
         }
-    }, [session?.accessToken, currentPage, selectedDate, selectedEventId]);
+    }, [session?.accessToken, currentPage, selectedDate, selectedEventId, usersCache]);
+
+    useEffect(() => {
+        if (status === 'loading') return;
+        fetchRegistrations();
+        if (selectedDate) {
+            fetchEvents(selectedDate);
+        }
+    }, [status, fetchRegistrations, fetchEvents]);
 
     const handleShowDetails = (user) => {
-        console.log('handleShowDetails called with user:', user);
+        // console.log('handleShowDetails called with user:', user);
         if (!user?._id || !isValidObjectId(user._id)) {
             console.error('Invalid user ID:', user?._id);
             setFetchError('ID người dùng không hợp lệ');
@@ -175,7 +180,7 @@ export default function LotteryRegistrationHistory() {
     };
 
     const openPrivateChat = (user) => {
-        console.log('openPrivateChat called with user:', user);
+        // console.log('openPrivateChat called with user:', user);
         if (!session?.user) {
             setFetchError('Vui lòng đăng nhập để mở chat riêng');
             return;
@@ -208,144 +213,6 @@ export default function LotteryRegistrationHistory() {
         );
     };
 
-    useEffect(() => {
-        if (!session?.accessToken) {
-            console.log('Socket.IO not initialized: No token');
-            return;
-        }
-
-        mountedRef.current = true;
-
-        const initializeSocket = async () => {
-            try {
-                const socket = await getSocket();
-                if (!mountedRef.current) return;
-
-                socketRef.current = socket;
-                setSocketConnected(true);
-
-                // Thêm connection listener
-                const removeListener = addConnectionListener((connected) => {
-                    if (mountedRef.current) {
-                        setSocketConnected(connected);
-                    }
-                });
-
-                socket.on('connect', () => {
-                    console.log('Socket.IO connected for lottery:', socket.id);
-                    socket.emit('joinLotteryFeed');
-                    setSocketConnected(true);
-                });
-
-                socket.on('connect_error', (err) => {
-                    console.error('Socket.IO connection error:', err.message);
-                    setSocketConnected(false);
-                    setFetchError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
-                });
-
-                socket.on('disconnect', () => {
-                    console.log('Socket.IO disconnected for lottery');
-                    setSocketConnected(false);
-                });
-
-                socket.on('NEW_LOTTERY_REGISTRATION', (newRegistration) => {
-                    console.log('Received NEW_LOTTERY_REGISTRATION:', JSON.stringify(newRegistration, null, 2));
-                    if (mountedRef.current) {
-                        setRegistrationsByDate((prev) => {
-                            const date = moment.tz(newRegistration.createdAt, 'Asia/Ho_Chi_Minh').format('DD-MM-YYYY');
-                            const existingRegistrations = prev[date] || [];
-
-                            if (existingRegistrations.some(reg => reg._id === newRegistration._id)) {
-                                return prev;
-                            }
-
-                            return {
-                                ...prev,
-                                [date]: [newRegistration, ...existingRegistrations]
-                            };
-                        });
-                    }
-                });
-
-                socket.on('UPDATE_LOTTERY_REGISTRATION', (updatedRegistration) => {
-                    console.log('Received UPDATE_LOTTERY_REGISTRATION:', JSON.stringify(updatedRegistration, null, 2));
-                    if (mountedRef.current) {
-                        setRegistrationsByDate((prev) => {
-                            const date = moment.tz(updatedRegistration.createdAt, 'Asia/Ho_Chi_Minh').format('DD-MM-YYYY');
-                            const existingRegistrations = prev[date] || [];
-
-                            return {
-                                ...prev,
-                                [date]: existingRegistrations.map(reg =>
-                                    reg._id === updatedRegistration._id ? updatedRegistration : reg
-                                )
-                            };
-                        });
-                    }
-                });
-
-                socket.on('USER_UPDATED', (data) => {
-                    console.log('Received USER_UPDATED:', data);
-                    if (mountedRef.current && data?._id && isValidObjectId(data._id)) {
-                        setUsersCache((prev) => ({ ...prev, [data._id]: data }));
-                    }
-                });
-
-                socket.on('PRIVATE_MESSAGE', (newMessage) => {
-                    console.log('Received PRIVATE_MESSAGE:', JSON.stringify(newMessage, null, 2));
-                    if (mountedRef.current) {
-                        setPrivateChats((prev) =>
-                            prev.map((chat) =>
-                                chat.receiver._id === newMessage.senderId || chat.receiver._id === newMessage.receiverId
-                                    ? { ...chat, messages: [...(chat.messages || []), newMessage] }
-                                    : chat
-                            )
-                        );
-                    }
-                });
-
-                return () => {
-                    removeListener();
-                    if (socketRef.current) {
-                        socketRef.current.off('connect');
-                        socketRef.current.off('connect_error');
-                        socketRef.current.off('disconnect');
-                        socketRef.current.off('NEW_LOTTERY_REGISTRATION');
-                        socketRef.current.off('UPDATE_LOTTERY_REGISTRATION');
-                        socketRef.current.off('USER_UPDATED');
-                        socketRef.current.off('PRIVATE_MESSAGE');
-                    }
-                };
-            } catch (error) {
-                console.error('Failed to initialize socket:', error);
-                setSocketConnected(false);
-            }
-        };
-
-        initializeSocket();
-
-        return () => {
-            mountedRef.current = false;
-        };
-    }, [session?.accessToken]);
-
-    useEffect(() => {
-        if (selectedDate) {
-            fetchEvents(selectedDate);
-        } else {
-            setEvents([]);
-            setSelectedEventId('');
-        }
-    }, [selectedDate, fetchEvents]);
-
-    useEffect(() => {
-        fetchRegistrations();
-    }, [currentPage, selectedDate, selectedEventId, fetchRegistrations]);
-
-    const dateRange = Array.from({ length: 9 }, (_, i) =>
-        moment().tz('Asia/Ho_Chi_Minh').subtract(i, 'days').format('DD-MM-YYYY')
-    );
-
     const handlePageChange = (newPage) => {
         if (newPage > 0 && newPage <= Math.ceil(totalRegistrations / itemsPerPage)) {
             setCurrentPage(newPage);
@@ -355,6 +222,19 @@ export default function LotteryRegistrationHistory() {
     const getAvatarClass = (role) => {
         return role?.toLowerCase() === 'admin' ? styles.avatarA : styles.avatarB;
     };
+
+    // Hàm reset để reload dữ liệu
+    const handleReset = () => {
+        // console.log('Resetting registration history data...');
+        fetchRegistrations();
+        if (selectedDate) {
+            fetchEvents(selectedDate);
+        }
+    };
+
+    const dateRange = Array.from({ length: 9 }, (_, i) =>
+        moment().tz('Asia/Ho_Chi_Minh').subtract(i, 'days').format('DD-MM-YYYY')
+    );
 
     return (
         <div className={styles.container}>
@@ -369,6 +249,15 @@ export default function LotteryRegistrationHistory() {
                             <span className={styles.statIcon}>📊</span>
                             Tổng: {totalRegistrations}
                         </span>
+                        <button
+                            onClick={handleReset}
+                            disabled={isLoading}
+                            className={styles.resetButton}
+                            title="Làm mới dữ liệu"
+                        >
+                            <FaSync className={`${styles.resetIcon} ${isLoading ? styles.spinning : ''}`} />
+                            {isLoading ? 'Đang tải...' : 'Làm mới'}
+                        </button>
                     </div>
                 </div>
             </div>
@@ -667,7 +556,7 @@ export default function LotteryRegistrationHistory() {
                     <PrivateChat
                         key={chat.receiver._id}
                         receiver={chat.receiver}
-                        socket={socketRef.current}
+                        socket={null}
                         onClose={() => closePrivateChat(chat.receiver._id)}
                         isMinimized={chat.isMinimized}
                         onToggleMinimize={() => toggleMinimizePrivateChat(chat.receiver._id)}

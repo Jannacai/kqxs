@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
-import { getSocket, isSocketConnected, addConnectionListener } from '../../../utils/Socket';
 import moment from 'moment';
 import 'moment-timezone';
 import styles from '../../../styles/eventHotNews.module.css';
@@ -23,7 +22,8 @@ import {
     FaSpinner,
     FaEdit,
     FaTrash,
-    FaPlus
+    FaPlus,
+    FaSync
 } from 'react-icons/fa';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
@@ -36,185 +36,15 @@ export default function EventHotNews() {
     const [error, setError] = useState('');
     const [page, setPage] = useState(1);
     const [total, setTotal] = useState(0);
-    const [socket, setSocket] = useState(null);
     const [editItem, setEditItem] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [socketConnected, setSocketConnected] = useState(false);
-    const mountedRef = useRef(true);
-
-    useEffect(() => {
-        if (status === 'authenticated') {
-            mountedRef.current = true;
-
-            const initializeSocket = async () => {
-                try {
-                    const newSocket = await getSocket();
-                    if (!mountedRef.current) return;
-
-                    setSocket(newSocket);
-                    setSocketConnected(true);
-
-                    // Thêm connection listener
-                    const removeListener = addConnectionListener((connected) => {
-                        if (mountedRef.current) {
-                            setSocketConnected(connected);
-                        }
-                    });
-
-                    newSocket.on('connect', () => {
-                        console.log(`Connected to WebSocket: ${newSocket.id} `);
-                        newSocket.emit('joinEventFeed');
-                        newSocket.emit('join', { room: 'lotteryFeed' });
-                        setSocketConnected(true);
-                    });
-
-                    newSocket.on('connect_error', (error) => {
-                        console.error('Socket connection error:', error.message);
-                        setSocketConnected(false);
-                        setError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
-                    });
-
-                    newSocket.on('disconnect', () => {
-                        console.log('Socket disconnected');
-                        setSocketConnected(false);
-                    });
-
-                    newSocket.on('NEW_EVENT', (data) => {
-                        console.log('Received NEW_EVENT:', data);
-                        if (mountedRef.current && data.type === tab) {
-                            setItems((prev) => {
-                                const updatedItems = [data, ...prev.filter(item => item._id !== data._id)];
-                                return updatedItems.slice(0, 20);
-                            });
-                        }
-                    });
-
-                    newSocket.on('NEW_LOTTERY_REGISTRATION', (data) => {
-                        console.log('Received NEW_LOTTERY_REGISTRATION:', data);
-                        if (mountedRef.current && data.data.eventId) {
-                            setItems((prev) =>
-                                prev.map((item) =>
-                                    item._id.toString() === data.data.eventId.toString()
-                                        ? { ...item, registrationCount: (item.registrationCount || 0) + 1 }
-                                        : item
-                                )
-                            );
-                        }
-                    });
-
-                    newSocket.on('EVENT_UPDATED', (data) => {
-                        console.log('Received EVENT_UPDATED:', data);
-                        if (mountedRef.current && data.type === tab) {
-                            setItems((prev) =>
-                                prev.map((item) =>
-                                    item._id.toString() === data._id.toString() ? { ...item, ...data } : item
-                                )
-                            );
-                        }
-                    });
-
-                    newSocket.on('EVENT_DELETED', (data) => {
-                        console.log('Received EVENT_DELETED:', data);
-                        if (mountedRef.current && data.type === tab) {
-                            setItems((prev) => prev.filter((item) => item._id.toString() !== data.eventId));
-                            setTotal((prev) => prev - 1);
-                        }
-                    });
-
-                    newSocket.on('NEW_COMMENT', (data) => {
-                        console.log('Received NEW_COMMENT:', data);
-                        if (mountedRef.current) {
-                            setItems((prev) =>
-                                prev.map((item) =>
-                                    item._id.toString() === data.eventId.toString()
-                                        ? { ...item, commentCount: (item.commentCount || 0) + 1 }
-                                        : item
-                                )
-                            );
-                        }
-                    });
-
-                    newSocket.on('COMMENT_DELETED', (data) => {
-                        console.log('Received COMMENT_DELETED:', data);
-                        if (mountedRef.current) {
-                            setItems((prev) =>
-                                prev.map((item) =>
-                                    item._id.toString() === data.eventId.toString()
-                                        ? { ...item, commentCount: Math.max((item.commentCount || 0) - 1, 0) }
-                                        : item
-                                )
-                            );
-                        }
-                    });
-
-                    newSocket.on('NEW_REPLY', (data) => {
-                        console.log('Received NEW_REPLY:', data);
-                        if (mountedRef.current) {
-                            setItems((prev) =>
-                                prev.map((item) =>
-                                    item._id.toString() === data.eventId.toString()
-                                        ? { ...item, commentCount: (item.commentCount || 0) + 1 }
-                                        : item
-                                )
-                            );
-                        }
-                    });
-
-                    newSocket.on('REPLY_DELETED', (data) => {
-                        console.log('Received REPLY_DELETED:', data);
-                        if (mountedRef.current) {
-                            setItems((prev) =>
-                                prev.map((item) =>
-                                    item._id.toString() === data.eventId.toString()
-                                        ? { ...item, commentCount: Math.max((item.commentCount || 0) - 1, 0) }
-                                        : item
-                                )
-                            );
-                        }
-                    });
-
-                    return () => {
-                        removeListener();
-                        if (newSocket) {
-                            newSocket.off('connect');
-                            newSocket.off('connect_error');
-                            newSocket.off('disconnect');
-                            newSocket.off('NEW_EVENT');
-                            newSocket.off('NEW_LOTTERY_REGISTRATION');
-                            newSocket.off('EVENT_UPDATED');
-                            newSocket.off('EVENT_DELETED');
-                            newSocket.off('NEW_COMMENT');
-                            newSocket.off('COMMENT_DELETED');
-                            newSocket.off('NEW_REPLY');
-                            newSocket.off('REPLY_DELETED');
-                        }
-                    };
-                } catch (error) {
-                    console.error('Failed to initialize socket:', error);
-                    setSocketConnected(false);
-                }
-            };
-
-            initializeSocket();
-
-            return () => {
-                mountedRef.current = false;
-            };
-        }
-    }, [status, session, tab]);
-
-    useEffect(() => {
-        fetchItems();
-    }, [tab, page]);
-
-
 
     const fetchItems = useCallback(async () => {
         setIsLoading(true);
         try {
             const res = await axios.get(`${API_BASE_URL}/api/events`, {
                 params: { type: tab, page, limit: 20 },
-                headers: { Authorization: `Bearer ${session?.accessToken} ` }
+                headers: { Authorization: `Bearer ${session?.accessToken}` }
             });
             setItems(res.data.events);
             setTotal(res.data.total);
@@ -227,8 +57,12 @@ export default function EventHotNews() {
         }
     }, [tab, page, session]);
 
+    useEffect(() => {
+        fetchItems();
+    }, [tab, page, fetchItems]);
+
     const handleItemClick = useCallback((id) => {
-        router.push(`/diendan/events/${id} `);
+        router.push(`/diendan/events/${id}`);
     }, [router]);
 
     const handlePostDiscussion = useCallback(() => {
@@ -242,8 +76,8 @@ export default function EventHotNews() {
     const handleDelete = useCallback(async (id) => {
         if (!confirm('Bạn có chắc muốn xóa bài viết này?')) return;
         try {
-            await axios.delete(`${API_BASE_URL}/api/events/${id} `, {
-                headers: { Authorization: `Bearer ${session?.accessToken} ` }
+            await axios.delete(`${API_BASE_URL}/api/events/${id}`, {
+                headers: { Authorization: `Bearer ${session?.accessToken}` }
             });
             setError('');
             fetchItems(); // Refresh the list
@@ -256,6 +90,12 @@ export default function EventHotNews() {
     const handleCloseModal = useCallback(() => {
         setEditItem(null);
     }, []);
+
+    // Hàm reset để reload dữ liệu
+    const handleReset = () => {
+        console.log('Resetting events data...');
+        fetchItems();
+    };
 
     // Kiểm tra xem item có được đăng trong ngày hiện tại không
     const isNewItem = (createdAt) => {
@@ -287,6 +127,15 @@ export default function EventHotNews() {
                             <span className={styles.statIcon}>📊</span>
                             Tổng: {total}
                         </span>
+                        <button
+                            onClick={handleReset}
+                            disabled={isLoading}
+                            className={styles.resetButton}
+                            title="Làm mới dữ liệu"
+                        >
+                            <FaSync className={`${styles.resetIcon} ${isLoading ? styles.spinning : ''}`} />
+                            {isLoading ? 'Đang tải...' : 'Làm mới'}
+                        </button>
                     </div>
                 </div>
             </div>
@@ -482,8 +331,6 @@ export default function EventHotNews() {
                     onSuccess={() => fetchItems()}
                 />
             )}
-
-
         </div>
     );
 }

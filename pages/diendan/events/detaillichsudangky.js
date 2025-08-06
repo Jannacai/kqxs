@@ -85,12 +85,12 @@ export default function EventRegistrationsList({ eventId }) {
                 isReward: false
             };
 
-            console.log('Fetching registrations with params:', params);
+            // console.log('Fetching registrations with params:', params);
             const res = await axios.get(`${API_BASE_URL}/api/lottery/public-registrations`, {
                 headers,
                 params
             });
-            console.log('API response:', res.data);
+            // console.log('API response:', res.data);
 
             const registrations = res.data.registrations || [];
             setRegistrations(registrations.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
@@ -104,11 +104,11 @@ export default function EventRegistrationsList({ eventId }) {
                 }
             });
 
-            console.log('Missing users to fetch:', [...missingUsers]);
+            // console.log('Missing users to fetch:', [...missingUsers]);
             const fetchPromises = [...missingUsers].map(async (userId) => {
                 try {
                     const userRes = await axios.get(`${API_BASE_URL}/api/users/${userId}`, { headers });
-                    console.log(`Fetched user ${userId}:`, userRes.data);
+                    // console.log(`Fetched user ${userId}:`, userRes.data);
                     setUsersCache((prev) => ({ ...prev, [userId]: userRes.data }));
                 } catch (err) {
                     console.error(`Error fetching user ${userId}:`, err.message);
@@ -123,7 +123,7 @@ export default function EventRegistrationsList({ eventId }) {
     }, [session?.accessToken, eventId, usersCache]);
 
     const handleShowDetails = (user) => {
-        console.log('handleShowDetails called with user:', user);
+        // console.log('handleShowDetails called with user:', user);
         if (!user?._id || !isValidObjectId(user._id)) {
             console.error('Invalid user ID:', user?._id);
             setError('ID người dùng không hợp lệ');
@@ -134,7 +134,7 @@ export default function EventRegistrationsList({ eventId }) {
     };
 
     const openPrivateChat = (user) => {
-        console.log('openPrivateChat called with user:', user);
+        // console.log('openPrivateChat called with user:', user);
         if (!session?.user) {
             setError('Vui lòng đăng nhập để mở chat riêng');
             return;
@@ -196,7 +196,7 @@ export default function EventRegistrationsList({ eventId }) {
                 });
 
                 socket.on('connect', () => {
-                    console.log('Socket.IO connected for registrations:', socket.id);
+                    // console.log('Socket.IO connected for registrations:', socket.id);
                     socket.emit('joinEvent', eventId);
                     setSocketConnected(true);
                 });
@@ -208,12 +208,12 @@ export default function EventRegistrationsList({ eventId }) {
                 });
 
                 socket.on('disconnect', () => {
-                    console.log('Socket.IO disconnected for registrations');
+                    // console.log('Socket.IO disconnected for registrations');
                     setSocketConnected(false);
                 });
 
                 socket.on('NEW_REGISTRATION', (newRegistration) => {
-                    console.log('Received NEW_REGISTRATION:', JSON.stringify(newRegistration, null, 2));
+                    // console.log('Received NEW_REGISTRATION:', JSON.stringify(newRegistration, null, 2));
                     if (mountedRef.current && newRegistration.eventId === eventId) {
                         setRegistrations((prev) => {
                             if (prev.some((reg) => reg._id === newRegistration._id)) return prev;
@@ -224,7 +224,7 @@ export default function EventRegistrationsList({ eventId }) {
                 });
 
                 socket.on('REGISTRATION_UPDATED', (updatedRegistration) => {
-                    console.log('Received REGISTRATION_UPDATED:', JSON.stringify(updatedRegistration, null, 2));
+                    // console.log('Received REGISTRATION_UPDATED:', JSON.stringify(updatedRegistration, null, 2));
                     if (mountedRef.current && updatedRegistration.eventId === eventId) {
                         setRegistrations((prev) =>
                             prev.map((reg) =>
@@ -235,14 +235,14 @@ export default function EventRegistrationsList({ eventId }) {
                 });
 
                 socket.on('USER_UPDATED', (data) => {
-                    console.log('Received USER_UPDATED:', data);
+                    // console.log('Received USER_UPDATED:', data);
                     if (mountedRef.current && data?._id && isValidObjectId(data._id)) {
                         setUsersCache((prev) => ({ ...prev, [data._id]: data }));
                     }
                 });
 
                 socket.on('PRIVATE_MESSAGE', (newMessage) => {
-                    console.log('Received PRIVATE_MESSAGE:', JSON.stringify(newMessage, null, 2));
+                    // console.log('Received PRIVATE_MESSAGE:', JSON.stringify(newMessage, null, 2));
                     if (mountedRef.current) {
                         setPrivateChats((prev) =>
                             prev.map((chat) =>

@@ -3,13 +3,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { getSocket, isSocketConnected, addConnectionListener } from '../../utils/Socket';
 import axios from 'axios';
 import Image from 'next/image';
 import star1 from '../asset/img/start 1.png';
 import PrivateChat from './chatrieng';
 import UserInfoModal from './modals/UserInfoModal';
 import styles from '../../styles/Leaderboard.module.css';
+import { FaSync } from 'react-icons/fa';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
 
@@ -32,15 +32,12 @@ const Leaderboard = () => {
     const [expandedTitles, setExpandedTitles] = useState({});
     const [sortBy, setSortBy] = useState('points');
     const [privateChats, setPrivateChats] = useState([]);
-    const [socketConnected, setSocketConnected] = useState(false);
     const titleRefs = useRef({});
-    const socketRef = useRef(null);
-    const mountedRef = useRef(true);
 
     const fetchLeaderboard = async () => {
         setIsLoading(true);
         try {
-            console.log('Fetching leaderboard from:', `${API_BASE_URL}/api/users/leaderboard`);
+            // console.log('Fetching leaderboard from:', `${API_BASE_URL}/api/users/leaderboard`);
             const headers = session?.accessToken
                 ? { Authorization: `Bearer ${session.accessToken}`, 'Content-Type': 'application/json' }
                 : { 'Content-Type': 'application/json' };
@@ -48,7 +45,7 @@ const Leaderboard = () => {
                 headers,
                 params: { limit: 50, sortBy },
             });
-            console.log('Leaderboard data:', res.data.users);
+            // console.log('Leaderboard data:', res.data.users);
             setPlayers(res.data.users || []);
             setError('');
         } catch (err) {
@@ -70,104 +67,8 @@ const Leaderboard = () => {
         fetchLeaderboard();
     }, [status, sortBy]);
 
-    useEffect(() => {
-        if (!session?.accessToken) {
-            console.log('Socket.IO not initialized: No token');
-            return;
-        }
-
-        mountedRef.current = true;
-
-        const initializeSocket = async () => {
-            try {
-                const socket = await getSocket();
-                if (!mountedRef.current) return;
-
-                socketRef.current = socket;
-                setSocketConnected(true);
-
-                // Thêm connection listener
-                const removeListener = addConnectionListener((connected) => {
-                    if (mountedRef.current) {
-                        setSocketConnected(connected);
-                    }
-                });
-
-                socket.on('connect', () => {
-                    console.log('Socket.IO connected for leaderboard:', socket.id);
-                    socket.emit('joinLeaderboard');
-                    socket.emit('joinPrivateRoom', session.user?._id || session.user?.id);
-                    setSocketConnected(true);
-                });
-
-                socket.on('connect_error', (err) => {
-                    console.error('Socket.IO connection error:', err.message);
-                    setSocketConnected(false);
-                    if (err.message.includes('Authentication error')) {
-                        setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
-                        signOut({ redirect: false });
-                        router.push('/login?error=SessionExpired');
-                    } else {
-                        setError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
-                    }
-                });
-
-                socket.on('disconnect', () => {
-                    console.log('Socket.IO disconnected for leaderboard');
-                    setSocketConnected(false);
-                });
-
-                socket.on('USER_UPDATED', (data) => {
-                    console.log('Received USER_UPDATED:', data);
-                    if (mountedRef.current && data?._id && isValidObjectId(data._id)) {
-                        setPlayers((prev) =>
-                            prev.map((player) =>
-                                player._id === data._id
-                                    ? { ...player, img: data.img, titles: data.titles, points: data.points, winCount: data.winCount, role: data.role }
-                                    : player
-                            )
-                        );
-                    }
-                });
-
-                socket.on('PRIVATE_MESSAGE', (newMessage) => {
-                    console.log('Received PRIVATE_MESSAGE:', JSON.stringify(newMessage, null, 2));
-                    if (mountedRef.current) {
-                        setPrivateChats((prev) =>
-                            prev.map((chat) =>
-                                chat.receiver._id === newMessage.senderId || chat.receiver._id === newMessage.receiverId
-                                    ? { ...chat, messages: [...(chat.messages || []), newMessage] }
-                                    : chat
-                            )
-                        );
-                    }
-                });
-
-                return () => {
-                    removeListener();
-                    if (socketRef.current) {
-                        socketRef.current.off('connect');
-                        socketRef.current.off('connect_error');
-                        socketRef.current.off('disconnect');
-                        socketRef.current.off('USER_UPDATED');
-                        socketRef.current.off('PRIVATE_MESSAGE');
-                    }
-                };
-            } catch (error) {
-                console.error('Failed to initialize socket:', error);
-                setSocketConnected(false);
-            }
-        };
-
-        initializeSocket();
-
-        return () => {
-            mountedRef.current = false;
-        };
-    }, [session?.accessToken, router]);
-
     const handleShowDetails = (player) => {
-        console.log('handleShowDetails called with player:', player);
+        // console.log('handleShowDetails called with player:', player);
         if (!player?._id) {
             console.error('Invalid player ID:', player?._id);
             setError('ID người chơi không hợp lệ');
@@ -179,7 +80,7 @@ const Leaderboard = () => {
     };
 
     const handleToggleTitles = (playerId) => {
-        console.log('handleToggleTitles called for playerId:', playerId);
+        // console.log('handleToggleTitles called for playerId:', playerId);
         setExpandedTitles((prev) => ({
             ...prev,
             [playerId]: !prev[playerId],
@@ -187,8 +88,8 @@ const Leaderboard = () => {
     };
 
     const openPrivateChat = (player) => {
-        console.log('openPrivateChat called with player:', player);
-        console.log('Current user:', session?.user);
+        // console.log('openPrivateChat called with player:', player);
+        // console.log('Current user:', session?.user);
         if (!session?.user) {
             setError('Vui lòng đăng nhập để mở chat riêng');
             return;
@@ -206,19 +107,19 @@ const Leaderboard = () => {
                     chat.receiver._id === player._id ? { ...chat, isMinimized: false } : chat
                 );
             }
-            console.log('Opening new chat with:', player);
-            console.log('privateChats updated:', [...prev, { receiver: player, isMinimized: false, messages: [] }]);
+            // console.log('Opening new chat with:', player);
+            // console.log('privateChats updated:', [...prev, { receiver: player, isMinimized: false, messages: [] }]);
             return [...prev, { receiver: player, isMinimized: false, messages: [] }];
         });
     };
 
     const closePrivateChat = (receiverId) => {
-        console.log('Closing private chat with ID:', receiverId);
+        // console.log('Closing private chat with ID:', receiverId);
         setPrivateChats((prev) => prev.filter((chat) => chat.receiver._id !== receiverId));
     };
 
     const toggleMinimizePrivateChat = (receiverId) => {
-        console.log('Toggling minimize for chat with ID:', receiverId);
+        // console.log('Toggling minimize for chat with ID:', receiverId);
         setPrivateChats((prev) =>
             prev.map((chat) =>
                 chat.receiver._id === receiverId ? { ...chat, isMinimized: !chat.isMinimized } : chat
@@ -245,6 +146,12 @@ const Leaderboard = () => {
             y: styles.avatarY, z: styles.avatarZ,
         };
         return avatarColors[firstChar] || styles.avatarA;
+    };
+
+    // Hàm reset để reload dữ liệu
+    const handleReset = () => {
+        // console.log('Resetting leaderboard data...');
+        fetchLeaderboard();
     };
 
     const renderPlayer = (player, index) => {
@@ -383,6 +290,15 @@ const Leaderboard = () => {
                             <span className={styles.statIcon}>👥</span>
                             Tổng: {players.length}
                         </span>
+                        <button
+                            onClick={handleReset}
+                            disabled={isLoading}
+                            className={styles.resetButton}
+                            title="Làm mới dữ liệu"
+                        >
+                            <FaSync className={`${styles.resetIcon} ${isLoading ? styles.spinning : ''}`} />
+                            {isLoading ? 'Đang tải...' : 'Làm mới'}
+                        </button>
                     </div>
                 </div>
             </div>
@@ -426,7 +342,7 @@ const Leaderboard = () => {
                     </div>
                 ) : (
                     players.map((player, index) => {
-                        console.log('Rendering player:', player);
+                        // console.log('Rendering player:', player);
                         return renderPlayer(player, index);
                     })
                 )}
@@ -446,7 +362,7 @@ const Leaderboard = () => {
                     <PrivateChat
                         key={chat.receiver._id}
                         receiver={chat.receiver}
-                        socket={socketRef.current}
+                        socket={null}
                         onClose={() => closePrivateChat(chat.receiver._id)}
                         isMinimized={chat.isMinimized}
                         onToggleMinimize={() => toggleMinimizePrivateChat(chat.receiver._id)}

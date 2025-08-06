@@ -52,12 +52,12 @@ export default function EventHotNewsDetail() {
     const mountedRef = useRef(true);
 
     useEffect(() => {
-        console.log('router.query:', router.query);
+        // console.log('router.query:', router.query);
     }, [router.query]);
 
     useEffect(() => {
         if (!router.isReady) {
-            console.log('Router is not ready yet');
+            // console.log('Router is not ready yet');
             setIsLoading(true);
             return;
         }
@@ -71,11 +71,11 @@ export default function EventHotNewsDetail() {
 
         const fetchItemDetails = async () => {
             try {
-                console.log('Fetching event details for ID:', id);
+                // console.log('Fetching event details for ID:', id);
                 const res = await axios.get(`${API_BASE_URL}/api/events/${id}`, {
                     headers: { Authorization: `Bearer ${session?.accessToken}` }
                 });
-                console.log('Event details response:', res.data);
+                // console.log('Event details response:', res.data);
                 setItem(res.data);
                 setError('');
             } catch (err) {
@@ -91,7 +91,7 @@ export default function EventHotNewsDetail() {
 
     useEffect(() => {
         if (!router.isReady || !id || typeof id !== 'string' || id === '[object Object]' || status !== 'authenticated' || !session?.user?.id) {
-            console.log('Skipping checkRegistrationStatus:', { status, id, userId: session?.user?.id });
+            // console.log('Skipping checkRegistrationStatus:', { status, id, userId: session?.user?.id });
             return;
         }
 
@@ -113,7 +113,7 @@ export default function EventHotNewsDetail() {
                 });
 
                 newSocket.on('connect', () => {
-                    console.log('Connected to WebSocket:', newSocket.id);
+                    // console.log('Connected to WebSocket:', newSocket.id);
                     setSocketConnected(true);
                 });
 
@@ -123,12 +123,12 @@ export default function EventHotNewsDetail() {
                 });
 
                 newSocket.on('disconnect', (reason) => {
-                    console.log('Socket disconnected:', reason);
+                    // console.log('Socket disconnected:', reason);
                     setSocketConnected(false);
                 });
 
                 newSocket.on('NEW_COMMENT', (data) => {
-                    console.log('Received NEW_COMMENT:', data);
+                    // console.log('Received NEW_COMMENT:', data);
                     if (mountedRef.current && data.eventId === id) {
                         // Có thể cập nhật UI nếu cần
                     }
@@ -172,13 +172,13 @@ export default function EventHotNewsDetail() {
 
     useEffect(() => {
         if (!router.isReady || !id || typeof id !== 'string' || id === '[object Object]' || !showRegistrationsModal || !session) {
-            console.log('Skipping fetchRegistrations:', { id, showRegistrationsModal, session });
+            // console.log('Skipping fetchRegistrations:', { id, showRegistrationsModal, session });
             return;
         }
 
         const fetchRegistrations = async () => {
             try {
-                console.log('Fetching registrations for user:', session.user.id, 'event:', id);
+                // console.log('Fetching registrations for user:', session.user.id, 'event:', id);
                 const todayStart = moment().tz('Asia/Ho_Chi_Minh').startOf('day').toDate();
                 const todayEnd = moment().tz('Asia/Ho_Chi_Minh').endOf('day').toDate();
                 const res = await axios.get(`${API_BASE_URL}/api/lottery/check-results`, {
@@ -192,7 +192,7 @@ export default function EventHotNewsDetail() {
                         eventId: id
                     }
                 });
-                console.log('Registrations response:', res.data);
+                // console.log('Registrations response:', res.data);
                 setRegistrations(res.data.registrations || []);
                 setError('');
             } catch (err) {
@@ -312,7 +312,7 @@ export default function EventHotNewsDetail() {
         }
 
         try {
-            console.log('Updating registration:', editingRegistration._id);
+            // console.log('Updating registration:', editingRegistration._id);
             const payload = {
                 numbers: {
                     bachThuLo: item?.lotteryFields?.bachThuLo ? editFormData.bachThuLo || null : null,
@@ -329,7 +329,7 @@ export default function EventHotNewsDetail() {
                     'Content-Type': 'application/json',
                 }
             });
-            console.log('Update registration response:', res.data);
+            // console.log('Update registration response:', res.data);
             alert(`Chỉnh sửa đăng ký thành công cho miền ${editingRegistration.region}!`);
             setEditFormData({ bachThuLo: '', songThuLo: '', threeCL: '', cham: '', danDe: '' });
             setEditingRegistration(null);
@@ -543,7 +543,7 @@ export default function EventHotNewsDetail() {
                                                             eventId: id
                                                         }
                                                     });
-                                                    console.log('Registration status after success:', res.data);
+                                                    // console.log('Registration status after success:', res.data);
                                                     setHasRegistered(res.data.registrations?.length > 0);
                                                 } catch (err) {
                                                     console.error('Error checking registration status after registration:', err.message, err.response?.data);

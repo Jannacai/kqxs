@@ -64,6 +64,44 @@
 	font-size: var(--text-base);
 }
 
+.resetButton {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	padding: var(--space-2) var(--space-3);
+	background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+	color: white;
+	border: none;
+	border-radius: var(--radius-lg);
+	font-size: var(--text-sm);
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+.resetButton:hover:not(:disabled) {
+	background: linear-gradient(135deg, #2563eb, #1e40af);
+	transform: translateY(-1px);
+	box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+}
+
+.resetButton:disabled {
+	background: #9ca3af;
+	cursor: not-allowed;
+	transform: none;
+	box-shadow: none;
+}
+
+.resetIcon {
+	font-size: var(--text-sm);
+	transition: transform 0.3s ease;
+}
+
+.spinning {
+	animation: spin 1s linear infinite;
+}
+
 /* Tab Navigation */
 .tabContainer {
 	padding: var(--space-4);
