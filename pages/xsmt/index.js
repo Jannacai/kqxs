@@ -68,8 +68,8 @@ const DAYS_PER_PAGE = 3; // Mỗi trang chứa 3 ngày gần nhất
 
 // Cấu hình khung giờ trực tiếp
 const LIVE_WINDOW_CONFIG = {
-    hour: 16, // 17h
-    startMinute: 34, // 17h29
+    hour: 17, // 17h
+    startMinute: 10, // 17h29
     endMinute: 40, // 17h59
     duration: 25 * 60 * 1000, // 30 phút
     scraperTriggerMinute: 14, // 17h14
