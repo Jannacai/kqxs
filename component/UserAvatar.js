@@ -8,7 +8,7 @@ import { jwtDecode } from 'jwt-decode';
 import vi from 'date-fns/locale/vi';
 import Link from 'next/link';
 import axios from 'axios';
-import { FaGift, FaBell, FaUser, FaSignOutAlt, FaCog, FaImage } from 'react-icons/fa';
+import { FaGift, FaBell, FaUser, FaSignOutAlt, FaCog, FaImage, FaPenSquare } from 'react-icons/fa';
 import Image from 'next/image';
 import { toast } from 'react-toastify';
 import styles from '../styles/userAvatar.module.css';
@@ -674,6 +674,11 @@ const UserAvatar = () => {
                                 </div>
 
                                 <div className={styles.menuItems}>
+                                    <Link href="/dang-bai-viet" className={styles.menuItem}>
+                                        <FaPenSquare className={styles.menuIcon} />
+                                        Đăng bài viết mới
+                                    </Link>
+
                                     <button className={styles.menuItem}>
                                         <FaUser className={styles.menuIcon} />
                                         Thông tin cá nhân

@@ -1,11 +1,14 @@
 import '../styles/global.css';
 import '../styles/reset.css';
+import '../styles/forum-variables.css';
+import '../styles/forum-shared.css';
 import Image from 'next/image';
 import { useEffect, useState, memo, useMemo, useCallback } from 'react';
 import { SessionProvider, useSession } from "next-auth/react";
 import { LotteryProvider } from '../contexts/LotteryContext';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
+import AdvancedLoadingBar from '../components/AdvancedLoadingBar';
 
 // Lazy load components để tối ưu hiệu suất
 const LazyNavBar = dynamic(() => import('../component/navbar'), {
@@ -103,6 +106,13 @@ const App = memo(({ Component, pageProps: { session, ...pageProps } }) => {
         <SessionProvider session={session}>
             <LotteryProvider>
                 <NavigationGuard />
+                <AdvancedLoadingBar
+                    theme="youtube"
+                    height={3}
+                    showPercentage={false}
+                    autoHide={true}
+                    timeout={10000}
+                />
                 <AppWithTheme setTheme={setTheme}>
                     <div className={theme}>
                         <Header theme={theme} />

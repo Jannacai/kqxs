@@ -3,113 +3,11 @@ import styles from '../../styles/LivekqxsMB.module.css';
 import { getFilteredNumber } from "../../library/utils/filterUtils";
 import React from 'react';
 import { useLottery } from '../../contexts/LotteryContext';
+import sseManager from '../../utils/SSEManager';
+import { cacheStrategy } from '../../utils/cacheStrategy';
 
-// ✅ IMPROVED: Enhanced SSE connection manager với circuit breaker pattern
-const globalSSEManager = {
-    connections: new Map(),
-    maxConnections: 15, // ✅ TĂNG lại để hỗ trợ navigation nhanh
-    maxConnectionsPerProvince: 5, // ✅ TĂNG từ 2 lên 5 cho XSMB
-    circuitBreaker: {
-        isOpen: false,
-        failureCount: 0,
-        maxFailures: 3,
-        resetTimeout: 30000, // 30 giây
-        lastFailureTime: 0
-    },
-    cleanup: () => {
-        globalSSEManager.connections.forEach((connection, key) => {
-            if (connection && connection.readyState !== EventSource.CLOSED) {
-                try {
-                    connection.close();
-                } catch (error) {
-                    console.warn('Lỗi đóng global SSE connection:', error);
-                }
-            }
-        });
-        globalSSEManager.connections.clear();
-    },
-    // ✅ IMPROVED: Aggressive cleanup cho rapid navigation
-    cleanupOldConnections: () => {
-        const now = Date.now();
-        const connectionsToRemove = [];
-
-        globalSSEManager.connections.forEach((connection, key) => {
-            // ✅ GIẢM thời gian cleanup từ 5 phút xuống 2 phút
-            if (connection.lastActivity && (now - connection.lastActivity) > 120000) { // 2 phút
-                connectionsToRemove.push(key);
-            }
-            // ✅ THÊM: Cleanup connections trong trạng thái CONNECTING quá lâu
-            else if (connection.readyState === EventSource.CONNECTING && (now - connection.createdTime) > 10000) { // 10 giây
-                connectionsToRemove.push(key);
-            }
-        });
-
-        connectionsToRemove.forEach(key => {
-            const connection = globalSSEManager.connections.get(key);
-            if (connection && connection.readyState !== EventSource.CLOSED) {
-                try {
-                    connection.close();
-                } catch (error) {
-                    console.warn('Lỗi đóng old SSE connection:', error);
-                }
-            }
-            globalSSEManager.connections.delete(key);
-        });
-
-        console.log(`🧹 Cleaned up ${connectionsToRemove.length} old SSE connections`);
-    },
-    // ✅ IMPROVED: Enhanced connection counting với filtering
-    getConnectionsForProvince: (province) => {
-        let count = 0;
-        const now = Date.now();
-        globalSSEManager.connections.forEach((connection, key) => {
-            if (key.includes(province)) {
-                // ✅ Chỉ đếm connections còn active hoặc mới tạo
-                if (connection.readyState === EventSource.OPEN ||
-                    (connection.readyState === EventSource.CONNECTING && (now - connection.createdTime) < 5000)) {
-                    count++;
-                }
-            }
-        });
-        return count;
-    },
-    // ✅ NEW: Circuit breaker pattern để tránh cascade failures
-    canCreateConnection: () => {
-        const now = Date.now();
-
-        // Reset circuit breaker sau timeout
-        if (globalSSEManager.circuitBreaker.isOpen &&
-            (now - globalSSEManager.circuitBreaker.lastFailureTime) > globalSSEManager.circuitBreaker.resetTimeout) {
-            globalSSEManager.circuitBreaker.isOpen = false;
-            globalSSEManager.circuitBreaker.failureCount = 0;
-            console.log('🔄 Circuit breaker reset');
-        }
-
-        return !globalSSEManager.circuitBreaker.isOpen;
-    },
-    // ✅ NEW: Record connection failure
-    recordFailure: () => {
-        globalSSEManager.circuitBreaker.failureCount++;
-        globalSSEManager.circuitBreaker.lastFailureTime = Date.now();
-
-        if (globalSSEManager.circuitBreaker.failureCount >= globalSSEManager.circuitBreaker.maxFailures) {
-            globalSSEManager.circuitBreaker.isOpen = true;
-            console.warn('⚡ Circuit breaker opened due to too many failures');
-        }
-    }
-};
-
-// Cleanup global connections khi page unload
-if (typeof window !== 'undefined') {
-    window.addEventListener('beforeunload', () => {
-        globalSSEManager.cleanup();
-    });
-
-    // Cleanup định kỳ để tránh memory leak
-    setInterval(() => {
-        globalSSEManager.cleanupOldConnections();
-    }, 60000); // Mỗi phút
-}
+// ✅ SIMPLIFIED: Sử dụng SSEManager thay vì globalSSEManager phức tạp
+// SSEManager đã được import và sẽ quản lý tất cả SSE connections
 
 // BỔ SUNG: Performance monitoring để theo dõi hiệu suất
 const performanceMonitor = {
@@ -148,34 +46,11 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
     const [animatingPrize, setAnimatingPrize] = useState(null);
     const [sseStatus, setSseStatus] = useState('connecting');
 
-    // ✅ NEW: Loading timeout để tránh stuck loading state
-    const loadingTimeoutRef = useRef(null);
-    const maxLoadingTime = 30000; // 30 giây
+    // ✅ SIMPLIFIED: Chỉ giữ lại các refs cần thiết
     const mountedRef = useRef(false);
-    const sseRef = useRef(null);
-    const sseSetupRef = useRef(false);
-    const updateTimeoutRef = useRef(null);
-
-    // Cache cho initial data để tránh fetch lại mỗi lần mount
-    const initialDataCache = useRef(new Map());
-    const cacheTimeout = 1 * 60 * 1000;
-    const prizeCache = useRef(new Map());
-    const prizeCacheTimeout = 20 * 1000;
-    const sseConnectionPool = useRef(new Map());
-    const sseReconnectDelay = 1000;
-    const animationQueueRef = useRef(new Map());
-    const animationThrottleRef = useRef(new Map()); // ✅ THÊM: Throttle ref cho animation
-    const batchUpdateRef = useRef(new Map());
-    const batchTimeoutRef = useRef(null); // ✅ THÊM LẠI: batchTimeoutRef cho XSMB
     const animationTimeoutsRef = useRef(new Map());
-    const localStorageRef = useRef(new Map());
-    const localStorageTimeoutRef = useRef(null);
-    const LIVE_DATA_TTL = 40 * 60 * 1000; // 40 phút như XSMT
-    const cleanupIntervalRef = useRef(null);
-
-    // BỔ SUNG: Connection tracking để tránh memory leak
-    const connectionId = useRef(`${Date.now()}-${Math.random()}`);
-    const activeTimeoutsRef = useRef(new Set());
+    const animationQueueRef = useRef(new Map());
+    const animationThrottleRef = useRef(new Map());
 
     const currentStation = station || 'xsmb';
 
@@ -198,12 +73,7 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
         month: '2-digit',
         year: 'numeric',
     }).replace(/\//g, '-');
-    const maxRetries = 50;
-    const retryInterval = 2000;
-    const fetchMaxRetries = 3;
-    const fetchRetryInterval = 5000;
-    const pollingIntervalMs = 7000;
-    const regularPollingIntervalMs = 10000;
+    // ✅ SIMPLIFIED: Không cần các constants phức tạp nữa
 
     // BỔ SUNG: Pre-calculated prize digits mapping như XSMT
     const prizeDigits = {
@@ -305,87 +175,7 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
         };
     }, [xsmbLiveData, currentFilter]);
 
-    // BỔ SUNG: Debounced localStorage update tối ưu cho 200+ client
-    const debouncedLocalStorageUpdate = useCallback((key, value) => {
-        localStorageRef.current.set(key, value);
-
-        if (localStorageTimeoutRef.current) {
-            clearTimeout(localStorageTimeoutRef.current);
-        }
-
-        // Sử dụng requestIdleCallback để tránh blocking main thread
-        const scheduleLocalStorageUpdate = () => {
-            localStorageRef.current.forEach((value, key) => {
-                try {
-                    // Thêm timestamp cho liveData
-                    const dataWithTimestamp = {
-                        data: value,
-                        timestamp: Date.now(),
-                        ttl: LIVE_DATA_TTL
-                    };
-
-                    // Sử dụng try-catch để tránh crash
-                    if (typeof localStorage !== 'undefined') {
-                        localStorage.setItem(key, JSON.stringify(dataWithTimestamp));
-                    }
-                } catch (error) {
-                    console.error('❌ Lỗi lưu localStorage:', error);
-                    // Fallback - clear localStorage nếu đầy
-                    if (error.name === 'QuotaExceededError') {
-                        try {
-                            localStorage.clear();
-                        } catch (clearError) {
-                            console.error('❌ Không thể clear localStorage:', clearError);
-                        }
-                    }
-                }
-            });
-            localStorageRef.current.clear();
-        };
-
-        // Sử dụng requestIdleCallback nếu có, fallback to setTimeout
-        if (typeof requestIdleCallback !== 'undefined') {
-            localStorageTimeoutRef.current = requestIdleCallback(scheduleLocalStorageUpdate, { timeout: 100 }); // Giảm timeout
-        } else {
-            localStorageTimeoutRef.current = setTimeout(scheduleLocalStorageUpdate, 100);
-        }
-    }, []);
-
-    // BỔ SUNG: Cleanup old localStorage data như XSMT
-    const cleanupOldLiveData = useCallback(() => {
-        try {
-            const now = Date.now();
-            const keysToRemove = [];
-
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key && key.startsWith('liveData:')) {
-                    try {
-                        const storedData = localStorage.getItem(key);
-                        if (storedData) {
-                            const parsed = JSON.parse(storedData);
-                            if (parsed.timestamp && (now - parsed.timestamp > LIVE_DATA_TTL)) {
-                                keysToRemove.push(key);
-                            }
-                        }
-                    } catch (error) {
-                        keysToRemove.push(key);
-                    }
-                }
-            }
-
-            keysToRemove.forEach(key => {
-                localStorage.removeItem(key);
-                console.log(`🧹 Đã xóa liveData cũ: ${key}`);
-            });
-
-            if (keysToRemove.length > 0) {
-                console.log(`🧹 Đã cleanup ${keysToRemove.length} liveData entries`);
-            }
-        } catch (error) {
-            console.error('❌ Lỗi cleanup liveData:', error);
-        }
-    }, []);
+    // ✅ SIMPLIFIED: Không cần localStorage logic phức tạp nữa
 
     // BỔ SUNG: Animation với requestAnimationFrame như XSMT
     // BỔ SUNG: Tối ưu animation performance cho 200+ client
@@ -425,827 +215,179 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
         animationTimeoutsRef.current.set(prizeType, timeoutId);
     }, []);
 
-    // BỔ SUNG: Batch update live data tối ưu cho 200+ client
-    const batchUpdateLiveData = useCallback((prizeType, value) => {
-        const key = `MB-${prizeType}`;
-        batchUpdateRef.current.set(key, { prizeType, value });
+    // ✅ SIMPLIFIED: Không cần batch update logic phức tạp nữa
 
-        // LOG: Batch update được trigger
-        console.log(`📦 SSE XSMB - Batch update triggered:`, {
-            prizeType: prizeType,
-            value: value,
-            timestamp: new Date().toLocaleTimeString('vi-VN'),
-            batchSize: batchUpdateRef.current.size
-        });
+    // ✅ SIMPLIFIED: Không cần memory monitoring phức tạp nữa
 
-        // Cache prize type riêng lẻ ngay lập tức
-        if (value && value !== '...' && value !== '***') {
-            const prizeCacheKey = `${currentStation}:MB:${prizeType}`;
-            prizeCache.current.set(prizeCacheKey, {
-                value: value,
-                timestamp: Date.now()
-            });
-            console.log(`📦 Cached prize ${prizeType} = ${value} cho XSMB`);
-
-            // ✅ TỐI ƯU: Thêm throttle cho animation để tránh quá tải
-            const animationKey = `MB-${prizeType}`;
-            if (mountedRef.current && value && value !== '...' && value !== '***') {
-                // Kiểm tra nếu animation này đã được trigger gần đây
-                const lastAnimationTime = animationThrottleRef.current.get(animationKey) || 0;
-                const now = Date.now();
-
-                if (now - lastAnimationTime > 1000) { // Throttle 1 giây
-                    animationThrottleRef.current.set(animationKey, now);
-                    animationQueueRef.current.set(animationKey, { tinh: 'MB', prizeType });
-                    console.log(`🎬 Queued animation cho XSMB: ${prizeType} = ${value}`);
-                }
-            }
-        }
-
-        // Clear existing batch timeout để tránh tích lũy
-        if (batchTimeoutRef.current) {
-            clearTimeout(batchTimeoutRef.current);
-            batchTimeoutRef.current = null;
-        }
-
-        // Sử dụng requestIdleCallback để tránh blocking main thread
-        const scheduleBatchUpdate = () => {
-            if (batchUpdateRef.current.size > 0 && setXsmbLiveData && mountedRef.current) {
-                // LOG: Thực hiện batch update
-                console.log(`⚡ SSE XSMB - Executing batch update:`, {
-                    batchSize: batchUpdateRef.current.size,
-                    timestamp: new Date().toLocaleTimeString('vi-VN'),
-                    updates: Array.from(batchUpdateRef.current.values()).map(({ prizeType, value }) => ({ prizeType, value }))
-                });
-
-                // Sử dụng requestAnimationFrame để đảm bảo smooth UI
-                requestAnimationFrame(() => {
-                    if (!mountedRef.current) return;
-
-                    setXsmbLiveData(prev => {
-                        const updatedData = { ...prev };
-                        let hasChanges = false;
-
-                        batchUpdateRef.current.forEach(({ prizeType: updatePrizeType, value: updateValue }) => {
-                            updatedData[updatePrizeType] = updateValue;
-                            hasChanges = true;
-
-                            // Trigger animation cho dữ liệu mới nếu component đang mounted
-                            if (mountedRef.current && updateValue && updateValue !== '...' && updateValue !== '***') {
-                                setAnimationWithTimeout(updatePrizeType);
-                            }
-                        });
-
-                        if (hasChanges) {
-                            updatedData.lastUpdated = Date.now();
-                            // Sử dụng debounced localStorage
-                            debouncedLocalStorageUpdate(`liveData:${currentStation}:${today}`, updatedData);
-                        }
-
-                        // Sử dụng pre-calculated completion status nếu có
-                        const isComplete = processedLiveData?.isComplete || Object.values(updatedData).every(
-                            val => typeof val === 'string' && val !== '...' && val !== '***'
-                        );
-                        setIsXsmbLiveDataComplete(isComplete);
-                        setIsTodayLoading(false);
-                        setRetryCount(0);
-                        setError(null);
-
-                        return updatedData;
-                    });
-
-                    // Clear batch
-                    batchUpdateRef.current.clear();
-                });
-            }
-        };
-
-        // Sử dụng requestIdleCallback nếu có, fallback to setTimeout
-        if (typeof requestIdleCallback !== 'undefined') {
-            requestIdleCallback(scheduleBatchUpdate, { timeout: 30 }); // Giảm timeout tối đa
-        } else {
-            batchTimeoutRef.current = setTimeout(scheduleBatchUpdate, 30);
-        }
-    }, [setXsmbLiveData, debouncedLocalStorageUpdate, currentStation, today, setAnimationWithTimeout, processedLiveData]);
-
-    // BỔ SUNG: Debounced set live data - FINAL OPTIMIZATION
-    const debouncedSetLiveData = useCallback((newData) => {
-        if (updateTimeoutRef.current) {
-            clearTimeout(updateTimeoutRef.current);
-        }
-        updateTimeoutRef.current = setTimeout(() => {
-            if (mountedRef.current && setXsmbLiveData) {
-                try {
-                    setXsmbLiveData(newData);
-                } catch (error) {
-                    console.warn('Lỗi set live data:', error);
-                }
-            }
-        }, 25); // Giảm timeout tối đa cho realtime
-    }, [setXsmbLiveData]);
-
-    // BỔ SUNG: Memory monitoring và cleanup để tránh treo trình duyệt
-    useEffect(() => {
-        const memoryCheckInterval = setInterval(() => {
-            if (typeof performance !== 'undefined' && performance.memory) {
-                const memoryInfo = performance.memory;
-                const usedMB = Math.round(memoryInfo.usedJSHeapSize / 1024 / 1024);
-                const totalMB = Math.round(memoryInfo.totalJSHeapSize / 1024 / 1024);
-
-                if (usedMB > 200) { // Tăng ngưỡng cảnh báo
-                    console.warn(`⚠️ Memory usage cao: ${usedMB}MB/${totalMB}MB`);
-                    // Force cleanup khi memory quá cao
-                    globalSSEManager.cleanupOldConnections();
-                }
-
-                // Cleanup định kỳ để tránh memory leak
-                if (usedMB > 100) {
-                    globalSSEManager.cleanupOldConnections();
-                }
-            }
-        }, 30000); // Check memory mỗi 30 giây
-
-        return () => clearInterval(memoryCheckInterval);
-    }, []);
-
-    // ✅ NEW: Loading timeout watchdog để tránh stuck loading
-    useEffect(() => {
-        if (isTodayLoading) {
-            // Clear existing timeout
-            if (loadingTimeoutRef.current) {
-                clearTimeout(loadingTimeoutRef.current);
-            }
-
-            // Set new timeout
-            loadingTimeoutRef.current = setTimeout(() => {
-                if (mountedRef.current && isTodayLoading) {
-                    console.warn('⚠️ Loading timeout reached, force reset loading state');
-                    setIsTodayLoading(false);
-                    setError('Timeout - sử dụng dữ liệu cache...');
-
-                    // ✅ FALLBACK: Thử lấy dữ liệu từ cache
-                    const cachedData = localStorage.getItem(`liveData:${currentStation}:${today}`);
-                    if (cachedData) {
-                        try {
-                            const parsed = JSON.parse(cachedData);
-                            if (parsed.data && setXsmbLiveData) {
-                                setXsmbLiveData(parsed.data);
-                                setError(null);
-                                console.log('✅ Loaded data from cache after timeout');
-                            }
-                        } catch (error) {
-                            console.error('❌ Error loading cache data:', error);
-                        }
-                    }
-                }
-            }, maxLoadingTime);
-        } else {
-            // Clear timeout when not loading
-            if (loadingTimeoutRef.current) {
-                clearTimeout(loadingTimeoutRef.current);
-                loadingTimeoutRef.current = null;
-            }
-        }
-
-        return () => {
-            if (loadingTimeoutRef.current) {
-                clearTimeout(loadingTimeoutRef.current);
-                loadingTimeoutRef.current = null;
-            }
-        };
-    }, [isTodayLoading, currentStation, today, setXsmbLiveData]);
-
-    // BỔ SUNG: Tối ưu cleanup function để tránh vòng lặp vô hạn
+    // ✅ SIMPLIFIED: Cleanup function đơn giản
     useEffect(() => {
         mountedRef.current = true;
-
-        cleanupIntervalRef.current = setInterval(cleanupOldLiveData, 10 * 60 * 1000);
 
         return () => {
             mountedRef.current = false;
 
-            // Cleanup tất cả timeouts để tránh memory leak
-            activeTimeoutsRef.current.forEach(timeoutId => {
-                clearTimeout(timeoutId);
-            });
-            activeTimeoutsRef.current.clear();
-
-            // Cleanup SSE connection với timeout để tránh treo
-            if (sseRef.current) {
-                const connectionKey = `${currentStation}:${today}:${connectionId.current}`;
-                globalSSEManager.connections.delete(connectionKey);
-
-                if (sseRef.current.readyState !== EventSource.CLOSED) {
-                    // Thêm timeout để tránh treo khi đóng connection
-                    const closeTimeout = setTimeout(() => {
-                        if (sseRef.current && sseRef.current.readyState !== EventSource.CLOSED) {
-                            try {
-                                sseRef.current.close();
-                            } catch (error) {
-                                console.warn('Lỗi đóng SSE connection timeout:', error);
-                            }
-                        }
-                    }, 1000);
-
-                    try {
-                        sseRef.current.close();
-                    } catch (error) {
-                        console.warn('Lỗi đóng SSE connection:', error);
-                    }
-
-                    clearTimeout(closeTimeout);
-                }
-                sseRef.current = null;
-            }
-
-            // Cleanup tất cả timeouts với timeout
-            const cleanupTimeouts = () => {
-                if (updateTimeoutRef.current) {
-                    clearTimeout(updateTimeoutRef.current);
-                    updateTimeoutRef.current = null;
-                }
-
-                if (localStorageTimeoutRef.current) {
-                    clearTimeout(localStorageTimeoutRef.current);
-                    localStorageTimeoutRef.current = null;
-                }
-
-                if (batchTimeoutRef.current) {
-                    clearTimeout(batchTimeoutRef.current);
-                    batchTimeoutRef.current = null;
-                }
-
+            // Cleanup animation timeouts
                 animationTimeoutsRef.current.forEach((timeoutId) => {
                     clearTimeout(timeoutId);
                 });
                 animationTimeoutsRef.current.clear();
-            };
 
-            // Thực hiện cleanup với timeout để tránh treo
-            setTimeout(cleanupTimeouts, 0);
+            // Clear animation queues
+            animationQueueRef.current.clear();
+            animationThrottleRef.current.clear();
 
-            // Clear tất cả refs
-            batchUpdateRef.current.clear();
-            sseConnectionPool.current.clear();
-
-            // Cleanup cache cũ với timeout
-            setTimeout(() => {
-                const now = Date.now();
-                for (const [key, value] of prizeCache.current.entries()) {
-                    if (now - value.timestamp > prizeCacheTimeout) {
-                        prizeCache.current.delete(key);
-                    }
-                }
-
-                for (const [key, value] of initialDataCache.current.entries()) {
-                    if (now - value.timestamp > cacheTimeout) {
-                        initialDataCache.current.delete(key);
-                    }
-                }
-            }, 0);
-
-            if (cleanupIntervalRef.current) {
-                clearInterval(cleanupIntervalRef.current);
-                cleanupIntervalRef.current = null;
+            // ✅ TỐI ƯU: Clear cache debounce timeout
+            if (cacheDebounceRef.current) {
+                clearTimeout(cacheDebounceRef.current);
             }
-
-            // Reset setup flag để tránh vòng lặp
-            sseSetupRef.current = false;
         };
-    }, [isLiveWindow, currentStation, today]);
+    }, []);
 
     useEffect(() => {
         if (!setXsmbLiveData || !setIsXsmbLiveDataComplete) return;
 
-        let pollingInterval;
+        // ✅ SIMPLIFIED: Sử dụng SSEManager thay vì logic phức tạp
+        console.log(`🔄 Setting up SSE for ${currentStation} using SSEManager`);
 
-        const fetchInitialData = async (retry = 0) => {
+        // Fetch initial data
+        const fetchInitialData = async () => {
             try {
-                const cacheKey = `${currentStation}:${today}`;
-                const cachedData = initialDataCache.current.get(cacheKey);
+                // THÊM: Kiểm tra cache trước
+                const cacheStartTime = performance.now();
+                const { data: cachedData, source } = cacheStrategy.loadData();
+                const cacheLoadTime = performance.now() - cacheStartTime;
 
-                // Kiểm tra nếu đang trong giờ live (18h-18h59)
-                const vietnamTime = getVietnamTime();
-                const currentHour = vietnamTime.getHours();
-                const isLiveHour = currentHour === 18;
-
-                // Clear cache nếu đã qua giờ live (19h trở đi)
-                if (currentHour >= 19) {
-                    console.log('🕐 Đã qua giờ live, clear cache để lấy dữ liệu mới');
-                    initialDataCache.current.clear();
-                    localStorage.removeItem(`liveData:${currentStation}:${today}`);
-                }
-
-                if (cachedData && Date.now() - cachedData.timestamp < cacheTimeout) {
-                    if (mountedRef.current) {
-                        setXsmbLiveData(cachedData.data);
+                if (cachedData && mountedRef.current) {
+                    console.log(`📦 Using cached data from: ${source} (${cacheLoadTime.toFixed(2)}ms)`);
+                    setXsmbLiveData(cachedData);
                         setIsXsmbLiveDataComplete(false);
                         setIsTodayLoading(false);
                         setError(null);
-                    }
-                    return;
+                    return; // Không fetch từ server nếu có cache valid
+                } else {
+                    console.log(`🔄 No valid cache found (${cacheLoadTime.toFixed(2)}ms), fetching from server`);
                 }
 
-                // Nếu không phải giờ live và đang ở modal, gọi API cache
-                if (!isLiveHour && currentStation === 'xsmb' && isModal) {
-                    console.log('🕐 Không phải giờ live XSMB và đang ở modal, gọi API cache...');
-                    // Không gửi ngày hiện tại, chỉ lấy bản mới nhất
-                    const response = await fetch(`https://backendkqxs-1.onrender.com/api/kqxs/xsmb/latest`);
+                // Existing logic unchanged
+                const response = await fetch(`https://backendkqxs-1.onrender.com/api/kqxs/${currentStation}/sse/initial?station=${currentStation}&date=${today}`);
                     if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                     const serverData = await response.json();
 
                     if (mountedRef.current) {
-                        // Sử dụng ngày từ dữ liệu thực tế thay vì ngày hiện tại
-                        const formatDate = (dateString) => {
-                            if (!dateString) return today;
-                            try {
-                                const date = new Date(dateString);
-                                return date.toLocaleDateString('vi-VN');
-                            } catch (error) {
-                                console.error('Lỗi format ngày:', error);
-                                return today;
-                            }
-                        };
-
-                        const dataWithCorrectDate = {
-                            ...serverData,
-                            // Đảm bảo hiển thị đúng ngày từ dữ liệu MongoDB
-                            drawDate: formatDate(serverData.drawDate),
-                            dayOfWeek: serverData.dayOfWeek || 'Chủ nhật'
-                        };
-
-                        setXsmbLiveData(dataWithCorrectDate);
-                        setIsXsmbLiveDataComplete(true);
+                    setXsmbLiveData(serverData);
+                    setIsXsmbLiveDataComplete(false);
                         setIsTodayLoading(false);
-                        setRetryCount(0);
                         setError(null);
 
-                        // Cache dữ liệu
-                        initialDataCache.current.set(cacheKey, {
-                            data: dataWithCorrectDate,
-                            timestamp: Date.now()
-                        });
-                    }
-                    return;
-                }
-
-                // Trang chính luôn sử dụng SSE, không gọi API cache
-                if (!isModal) {
-                    console.log('🔄 Trang chính XSMB, sử dụng SSE...');
-                }
-
-                // Modal trong giờ live cũng sử dụng SSE như trang chính
-                if (isModal && isLiveHour) {
-                    console.log('🔄 Modal XSMB trong giờ live, sử dụng SSE...');
-                    // Clear cache để đảm bảo lấy dữ liệu mới nhất
-                    initialDataCache.current.clear();
-                    localStorage.removeItem(`liveData:${currentStation}:${today}`);
-
-                    // Sử dụng SSE trực tiếp như XSMT
-                    console.log('🔄 Modal XSMB trong giờ live, kết nối SSE trực tiếp...');
-                }
-
-                // Tiếp tục với SSE cho cả trang chính và modal trong giờ live
-                console.log('🔄 Tiếp tục với SSE cho XSMB...');
-
-                const response = await fetch(`https://backendkqxs-1.onrender.com/api/kqxs/xsmb/sse/initial?station=${currentStation}&date=${today}`);
-                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-                const serverData = await response.json();
-
-                const cachedLiveData = localStorage.getItem(`liveData:${currentStation}:${today}`);
-                let initialData = cachedLiveData ? JSON.parse(cachedLiveData) : { ...emptyResult };
-
-                if (mountedRef.current) {
-                    const updatedData = { ...initialData };
-                    let shouldUpdate = !initialData.lastUpdated || serverData.lastUpdated > initialData.lastUpdated;
-                    for (const key in serverData) {
-                        if (serverData[key] !== '...' || !updatedData[key] || updatedData[key] === '...' || updatedData[key] === '***') {
-                            updatedData[key] = serverData[key];
-                            shouldUpdate = true;
-                        }
-                    }
-                    if (shouldUpdate) {
-                        updatedData.lastUpdated = serverData.lastUpdated || Date.now();
-                        setXsmbLiveData(updatedData);
-                        debouncedLocalStorageUpdate(`liveData:${currentStation}:${today}`, updatedData);
-
-                        initialDataCache.current.set(cacheKey, {
-                            data: updatedData,
-                            timestamp: Date.now()
-                        });
-
-                        const isComplete = Object.values(updatedData).every(
-                            val => typeof val === 'string' && val !== '...' && val !== '***'
-                        );
-                        setIsXsmbLiveDataComplete(isComplete);
-                        setIsTodayLoading(false);
-                        setRetryCount(0);
-                        setError(null);
-                    } else {
-                        setXsmbLiveData(initialData);
-                        setIsXsmbLiveDataComplete(false);
-                        setIsTodayLoading(false);
-                    }
+                    // ✅ TỐI ƯU: Cache data mới với debounce
+                    debouncedCache(serverData, false);
                 }
             } catch (error) {
-                console.error(`Lỗi khi lấy dữ liệu khởi tạo XSMB (lần ${retry + 1}):`, error.message);
-                if (retry < fetchMaxRetries) {
-                    setTimeout(() => {
+                console.error('Lỗi fetch initial data:', error);
                         if (mountedRef.current) {
-                            fetchInitialData(retry + 1);
-                        }
-                    }, fetchRetryInterval);
-                } else {
-                    if (mountedRef.current) {
-                        setError(`Không thể kết nối đến server. Vui lòng thử lại sau.`);
+                    setError('Không thể kết nối đến server. Vui lòng thử lại sau.');
                         setIsTodayLoading(false);
-                    }
                 }
             }
         };
 
-        const connectSSE = () => {
-            // Kiểm tra nếu component đã unmount
+        // Subscribe to SSE using SSEManager
+        console.log(`🔄 About to subscribe to ${currentStation}`);
+        const unsubscribe = sseManager.subscribe(currentStation, (data) => {
+            console.log(`🎯 SSE CALLBACK TRIGGERED for ${currentStation}:`, data);
+
             if (!mountedRef.current) {
+                console.log(`⚠️ Component unmounted, ignoring SSE data`);
                 return;
             }
 
-            if (!currentStation || !today || !/^\d{2}-\d{2}-\d{4}$/.test(today)) {
-                if (mountedRef.current) {
-                    setError('Dữ liệu đang tải...');
-                    setIsTodayLoading(false);
-                }
-                return;
-            }
+            console.log(`📡 Received SSE data for ${currentStation}:`, data);
 
-            // ✅ IMPROVED: Circuit breaker check trước khi tạo connection
-            if (!globalSSEManager.canCreateConnection()) {
-                console.warn('⚡ Circuit breaker is open, skipping SSE connection');
-                if (mountedRef.current) {
-                    setError('Hệ thống đang tạm nghỉ, vui lòng thử lại sau...');
-                    setIsTodayLoading(false);
-                }
-                return;
-            }
-
-            // Kiểm tra nếu đã thiết lập SSE rồi - TRÁNH VÒNG LẶP VÔ HẠN
-            if (sseSetupRef.current) {
-                console.log('⚠️ SSE đã được thiết lập, bỏ qua');
-                return;
-            }
-
-            // ✅ IMPROVED: Proactive cleanup trước khi kiểm tra limits
-            globalSSEManager.cleanupOldConnections();
-
-            // Kiểm tra số lượng connection sau cleanup
-            if (globalSSEManager.connections.size >= globalSSEManager.maxConnections) {
-                console.warn('⚠️ Vẫn quá nhiều SSE connections sau cleanup, sử dụng fallback');
-                if (mountedRef.current) {
-                    // ✅ FALLBACK: Không block hoàn toàn, chỉ delay
-                    setTimeout(() => {
-                        if (mountedRef.current && !sseSetupRef.current) {
-                            connectSSE();
-                        }
-                    }, 2000);
-                }
-                return;
-            }
-
-            // ✅ IMPROVED: Flexible connection limit cho rapid navigation
-            const connectionsForProvince = globalSSEManager.getConnectionsForProvince('MB');
-
-            if (connectionsForProvince >= globalSSEManager.maxConnectionsPerProvince) {
-                console.warn(`⚠️ Quá nhiều SSE connections cho XSMB (${connectionsForProvince}), cleanup và retry`);
-
-                // ✅ IMPROVED: Cleanup targeted connections cho XSMB và retry
-                const now = Date.now();
-                const mbConnections = [];
-                globalSSEManager.connections.forEach((connection, key) => {
-                    if (key.includes('MB') && (now - connection.lastActivity) > 30000) { // 30 giây
-                        mbConnections.push(key);
-                    }
-                });
-
-                mbConnections.forEach(key => {
-                    const connection = globalSSEManager.connections.get(key);
-                    if (connection) {
-                        try {
-                            connection.close();
-                        } catch (error) {
-                            console.warn('Lỗi đóng MB connection:', error);
-                        }
-                        globalSSEManager.connections.delete(key);
-                    }
-                });
-
-                console.log(`🧹 Cleaned up ${mbConnections.length} old MB connections`);
-
-                // Retry sau cleanup
-                if (globalSSEManager.getConnectionsForProvince('MB') < globalSSEManager.maxConnectionsPerProvince) {
-                    console.log('✅ Retry SSE connection sau cleanup');
-                } else {
-                    // ✅ FALLBACK: Không block hoàn toàn
-                    if (mountedRef.current) {
-                        setError('Kết nối đang bận, sử dụng dữ liệu cache...');
-                        // Thử lấy dữ liệu từ cache hoặc API
-                        fetchInitialData();
-                    }
-                    return;
-                }
-            }
-
-            // Kiểm tra nếu đang trong Fast Refresh
-            if (typeof window !== 'undefined' && window.__NEXT_DATA__?.buildId !== window.__NEXT_DATA__?.buildId) {
-                return;
-            }
-
-            // Kiểm tra nếu không phải giờ live cho XSMB (chỉ áp dụng cho modal)
-            const vietnamTime = getVietnamTime();
-            const currentHour = vietnamTime.getHours();
-            const isLiveHour = currentHour === 18;
-
-            // Chỉ kiểm tra giờ live cho modal, trang chính luôn kết nối SSE
-            if (!isLiveHour && currentStation === 'xsmb' && isModal) {
-                console.log('🕐 Không phải giờ live XSMB và đang ở modal, bỏ qua SSE setup');
-                return;
-            }
-
-            // Modal trong giờ live cũng kết nối SSE
-            if (isModal && isLiveHour) {
-                console.log('🔄 Modal XSMB trong giờ live, kết nối SSE...');
-            }
-
-            console.log('✅ Bắt đầu thiết lập SSE cho XSMB');
-            sseSetupRef.current = true;
-
-            // Reset animation state khi bắt đầu SSE setup
-            setAnimatingPrize(null);
-            console.log('🔄 Reset animation state cho SSE setup');
-
-            const connectionKey = `${currentStation}:${today}:${connectionId.current}`;
-
-            // Cleanup connection cũ trước khi tạo mới - TRÁNH VÒNG LẶP
-            if (sseRef.current) {
-                try {
-                    sseRef.current.close();
-                } catch (error) {
-                    console.warn('Lỗi đóng SSE connection cũ:', error);
-                }
-                sseRef.current = null;
-            }
-
-            // Cleanup từ global manager và pool
-            if (globalSSEManager.connections.has(connectionKey)) {
-                const existingConnection = globalSSEManager.connections.get(connectionKey);
-                if (existingConnection) {
-                    try {
-                        existingConnection.close();
-                    } catch (error) {
-                        console.warn('Lỗi đóng global connection:', error);
-                    }
-                    globalSSEManager.connections.delete(connectionKey);
-                }
-            }
-
-            if (sseConnectionPool.current.has(connectionKey)) {
-                const existingConnection = sseConnectionPool.current.get(connectionKey);
-                if (existingConnection) {
-                    try {
-                        existingConnection.close();
-                    } catch (error) {
-                        console.warn('Lỗi đóng pool connection:', error);
-                    }
-                    sseConnectionPool.current.delete(connectionKey);
-                }
-            }
-
-            const sseUrl = `https://backendkqxs-1.onrender.com/api/kqxs/xsmb/sse?station=${currentStation}&date=${today}`;
-            console.log(`🔌 Tạo SSE connection cho XSMB:`, sseUrl);
-
-            try {
-                const newConnection = new EventSource(sseUrl);
-                sseRef.current = newConnection;
-
-                // ✅ IMPROVED: Enhanced connection tracking
-                newConnection.lastActivity = Date.now();
-                newConnection.createdTime = Date.now(); // ✅ THÊM: Track creation time
-                newConnection.connectionKey = connectionKey; // ✅ THÊM: Track connection key
-                globalSSEManager.connections.set(connectionKey, newConnection);
-                sseConnectionPool.current.set(connectionKey, newConnection);
-
-                setSseStatus('connecting');
-
-                newConnection.onopen = () => {
-                    newConnection.lastActivity = Date.now();
-                    setSseStatus('connected');
-                    // LOG: SSE connection đã mở
-                    console.log(`🔌 SSE XSMB - Connection opened:`, {
-                        timestamp: new Date().toLocaleTimeString('vi-VN'),
-                        connectionKey: connectionKey,
-                        readyState: newConnection.readyState
-                    });
-                    if (mountedRef.current) {
-                        setError(null);
-                        setRetryCount(0);
-                    }
-                };
-
-                newConnection.onerror = () => {
-                    setSseStatus('error');
-                    // ✅ IMPROVED: Record failure trong circuit breaker
-                    globalSSEManager.recordFailure();
-
-                    // LOG: SSE connection error
-                    console.log(`❌ SSE XSMB - Connection error:`, {
-                        timestamp: new Date().toLocaleTimeString('vi-VN'),
-                        retryCount: retryCount,
-                        maxRetries: maxRetries,
-                        circuitBreakerOpen: globalSSEManager.circuitBreaker.isOpen
-                    });
-
-                    if (mountedRef.current) {
-                        setError('Đang kết nối lại SSE...');
-                    }
-
-                    // Cleanup connection với timeout để tránh treo
-                    setTimeout(() => {
-                        if (sseRef.current) {
-                            try {
-                                sseRef.current.close();
-                            } catch (error) {
-                                console.warn('Lỗi đóng SSE connection:', error);
-                            }
-                            sseRef.current = null;
-                        }
-
-                        globalSSEManager.connections.delete(connectionKey);
-                        sseConnectionPool.current.delete(connectionKey);
-                    }, 100);
-
-                    // ✅ IMPROVED: Intelligent retry với circuit breaker
-                    if (retryCount < maxRetries && mountedRef.current && globalSSEManager.canCreateConnection()) {
-                        const retryTimeoutId = setTimeout(() => {
-                            if (mountedRef.current) {
-                                setRetryCount(prev => prev + 1);
-                                console.log(`🔄 SSE XSMB - Retry connection (${retryCount + 1}/${maxRetries})`);
-                                connectSSE();
-                            }
-                        }, sseReconnectDelay);
-
-                        activeTimeoutsRef.current.add(retryTimeoutId);
-                    } else if (mountedRef.current) {
-                        if (globalSSEManager.circuitBreaker.isOpen) {
-                            console.log(`⚡ SSE XSMB - Circuit breaker open, switching to fallback`);
-                            setError('Hệ thống đang bảo trì, sử dụng dữ liệu cache...');
-                            // ✅ FALLBACK: Sử dụng dữ liệu cache hoặc API
-                            fetchInitialData();
-                        } else {
-                            console.log(`💀 SSE XSMB - Max retries reached, giving up`);
-                            setError('Mất kết nối SSE, vui lòng refresh trang...');
-                        }
-                    }
-                };
-
+            // Handle individual prize updates - Backend format: { prizeType: value, ... }
                 const prizeTypes = [
-                    'maDB', 'specialPrize_0', 'firstPrize_0', 'secondPrize_0', 'secondPrize_1',
+                'firstPrize_0', 'secondPrize_0', 'secondPrize_1',
                     'threePrizes_0', 'threePrizes_1', 'threePrizes_2', 'threePrizes_3', 'threePrizes_4', 'threePrizes_5',
                     'fourPrizes_0', 'fourPrizes_1', 'fourPrizes_2', 'fourPrizes_3',
                     'fivePrizes_0', 'fivePrizes_1', 'fivePrizes_2', 'fivePrizes_3', 'fivePrizes_4', 'fivePrizes_5',
                     'sixPrizes_0', 'sixPrizes_1', 'sixPrizes_2',
                     'sevenPrizes_0', 'sevenPrizes_1', 'sevenPrizes_2', 'sevenPrizes_3',
-                ];
+                'maDB', 'specialPrize_0'
+            ];
 
-                prizeTypes.forEach(prizeType => {
-                    newConnection.addEventListener(prizeType, (event) => {
-                        try {
-                            const data = JSON.parse(event.data);
-                            if (data && data[prizeType] && mountedRef.current) {
-                                // LOG: Nhận kết quả riêng lẻ realtime
-                                console.log(`🎯 SSE XSMB - Nhận ${prizeType}:`, {
-                                    value: data[prizeType],
+            // Check for individual prize updates
+            for (const prizeType of prizeTypes) {
+                if (data[prizeType] !== undefined) {
+                    const value = data[prizeType];
+
+                    console.log(`🎯 SSE ${currentStation} - Nhận ${prizeType}:`, {
+                        value: value,
                                     timestamp: new Date().toLocaleTimeString('vi-VN'),
-                                    isLive: data[prizeType] !== '...' && data[prizeType] !== '***'
-                                });
+                        isLive: value !== '...' && value !== '***'
+                    });
 
-                                batchUpdateLiveData(prizeType, data[prizeType]);
+                    // Update live data
+                    setXsmbLiveData(prev => {
+                        const updatedData = { ...prev, [prizeType]: value, lastUpdated: data.lastUpdated || Date.now() };
 
-                                if (data[prizeType] !== '...' && data[prizeType] !== '***') {
-                                    console.log(`🎬 SSE XSMB - Bắt đầu animation cho ${prizeType}:`, data[prizeType]);
+                        // ✅ TỐI ƯU: Sử dụng debounced cache thay vì cache trực tiếp
+                        // Cache sẽ được gọi sau 500ms và chỉ mỗi 3 giây
+                        debouncedCache(updatedData, false);
+
+                        return updatedData;
+                    });
+
+                    // Trigger animation for new data
+                    if (value !== '...' && value !== '***') {
+                        console.log(`🎬 SSE ${currentStation} - Bắt đầu animation cho ${prizeType}:`, value);
                                     setAnimationWithTimeout(prizeType);
                                 }
-                            }
-                        } catch (error) {
-                            console.error(`❌ Lỗi xử lý sự kiện ${prizeType}:`, error);
-                        }
-                    });
-                });
 
-                newConnection.addEventListener('full', (event) => {
-                    try {
-                        const data = JSON.parse(event.data);
-                        if (data && mountedRef.current) {
-                            // LOG: Nhận kết quả đầy đủ
-                            console.log(`📊 SSE XSMB - Nhận kết quả đầy đủ:`, {
-                                timestamp: new Date().toLocaleTimeString('vi-VN'),
-                                dataKeys: Object.keys(data).filter(key => key.includes('Prize')),
-                                totalPrizes: Object.keys(data).filter(key => key.includes('Prize')).length
-                            });
+                    // Update completion status
+                    setIsXsmbLiveDataComplete(false);
+                    setIsTodayLoading(false);
+                    setRetryCount(0);
+                    setError(null);
+                    break; // Chỉ xử lý 1 prize type mỗi lần
+                }
+            }
 
-                            batchUpdateLiveData('full', data);
+            // Handle full data update
+            if (data.full) {
+                console.log(`📊 SSE ${currentStation} - Nhận kết quả đầy đủ`);
+                setXsmbLiveData(data);
+                setIsXsmbLiveDataComplete(true);
                             setIsTodayLoading(false);
                             setRetryCount(0);
                             setError(null);
-                        }
-                    } catch (error) {
-                        console.error(`❌ Lỗi xử lý sự kiện full:`, error);
-                    }
-                });
 
-                newConnection.addEventListener('canary', (event) => {
-                    // LOG: Canary message để kiểm tra kết nối
-                    console.log(`🔄 SSE XSMB - Canary message:`, {
-                        timestamp: new Date().toLocaleTimeString('vi-VN'),
-                        connectionStatus: 'active'
-                    });
-                });
-            } catch (error) {
-                console.error(`❌ Lỗi tạo SSE cho XSMB:`, error);
-                setSseStatus('error');
+                // ✅ TỐI ƯU: Cache complete data ngay lập tức (không debounce)
+                // Vì đây là kết quả cuối cùng, cần cache ngay
+                cacheStrategy.cacheCompleteData(data);
             }
-        };
+        });
 
-        // Loại bỏ polling - chỉ sử dụng SSE
-        console.log('🚫 Đã loại bỏ polling, chỉ sử dụng SSE');
+        // Fetch initial data
+        fetchInitialData();
 
-        // Thêm delay để tránh vòng lặp
+        // ✅ THÊM: Log cache stats sau khi setup
         setTimeout(() => {
-            if (mountedRef.current) {
-                fetchInitialData();
-                connectSSE();
-            }
-        }, 100);
+            const stats = cacheStrategy.getCacheStats();
+            console.log('📊 Cache Stats after setup:', stats);
+        }, 1000);
 
+        // Cleanup function
         return () => {
-            // Clear timeout nếu có
-            if (updateTimeoutRef.current) {
-                clearTimeout(updateTimeoutRef.current);
-                updateTimeoutRef.current = null;
-            }
+            console.log(`🧹 Cleaning up SSE subscription for ${currentStation}`);
+            unsubscribe();
 
-            // Clear localStorage timeout
-            if (localStorageTimeoutRef.current) {
-                clearTimeout(localStorageTimeoutRef.current);
-                localStorageTimeoutRef.current = null;
-            }
-
-            // Clear batch update timeout
-            if (batchTimeoutRef.current) {
-                clearTimeout(batchTimeoutRef.current);
-                batchTimeoutRef.current = null;
-            }
-
-            // Clear tất cả animation timeouts
-            animationTimeoutsRef.current.forEach((timeoutId) => {
-                clearTimeout(timeoutId);
-            });
-            animationTimeoutsRef.current.clear();
-
-            // Clear batch update ref
-            batchUpdateRef.current.clear();
-
-            // Clear prize cache cũ (giữ cache mới để tái sử dụng)
-            const now = Date.now();
-            for (const [key, value] of prizeCache.current.entries()) {
-                if (now - value.timestamp > prizeCacheTimeout) {
-                    prizeCache.current.delete(key);
-                }
-            }
-
-            // Clear initial data cache cũ (giữ cache mới để tái sử dụng)
-            for (const [key, value] of initialDataCache.current.entries()) {
-                if (now - value.timestamp > cacheTimeout) {
-                    initialDataCache.current.delete(key);
-                }
-            }
-
-            // Đóng tất cả SSE connections - TRÁNH VÒNG LẶP
-            if (sseRef.current) {
-                try {
-                    sseRef.current.close();
-                } catch (error) {
-                    console.warn('Lỗi đóng SSE connection trong cleanup:', error);
-                }
-                sseRef.current = null;
-            }
-
-            // Clear connection pool
-            sseConnectionPool.current.clear();
-
-            // Reset setup flag để tránh vòng lặp
-            sseSetupRef.current = false;
+            // Log stats after cleanup
+            setTimeout(() => {
+                sseManager.getStats();
+            }, 100);
         };
-    }, [isLiveWindow, currentStation, today, setXsmbLiveData, setIsXsmbLiveDataComplete, debouncedLocalStorageUpdate, isModal]);
+    }, [currentStation, today, setXsmbLiveData, setIsXsmbLiveDataComplete]);
 
+    // ✅ IMPROVED: Logic animation tối ưu từ mã cũ
     useEffect(() => {
         if (!xsmbLiveData) {
             setAnimatingPrize(null);
@@ -1275,32 +417,6 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
         if (!animatingPrize || xsmbLiveData[animatingPrize] !== '...') {
             const nextPrize = findNextAnimatingPrize();
             setAnimatingPrize(nextPrize);
-        }
-
-        // Process animation queue với requestAnimationFrame để tối ưu performance
-        if (animationQueueRef.current.size > 0) {
-            // ✅ TỐI ƯU: Giới hạn số lượng animation đồng thời để tránh overflow
-            const maxAnimationsPerFrame = 5; // Giới hạn 5 animation mỗi frame
-            const animationArray = Array.from(animationQueueRef.current.entries());
-
-            // Chỉ xử lý tối đa maxAnimationsPerFrame animation mỗi frame
-            const animationsToProcess = animationArray.slice(0, maxAnimationsPerFrame);
-
-            requestAnimationFrame(() => {
-                animationsToProcess.forEach(([key, { tinh, prizeType }]) => {
-                    if (mountedRef.current) {
-                        setAnimatingPrize({ tinh, prizeType });
-                        animationQueueRef.current.delete(key);
-
-                        // Reset animation sau 2 giây
-                        setTimeout(() => {
-                            if (mountedRef.current) {
-                                setAnimatingPrize(null);
-                            }
-                        }, 2000);
-                    }
-                });
-            });
         }
     }, [xsmbLiveData, animatingPrize]);
 
@@ -1380,58 +496,80 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
     const specialPrize = prizeRenderingData ? prizeRenderingData.specialPrize : '';
 
     // BỔ SUNG: renderPrizeValue tối ưu - FINAL VERSION
-    const renderPrizeValue = useCallback((prizeType, digits = 5) => {
+    const renderPrizeValue = (prizeType, digits = 5) => {
         const isAnimating = animatingPrize === prizeType && xsmbLiveData[prizeType] === '...';
         const className = `${styles.running_number} ${styles[`running_${digits}`]}`;
 
-        // Sử dụng pre-calculated filtered value nếu có
-        const filteredValue = processedLiveData?.filteredPrizes?.[prizeType] || getFilteredNumber(xsmbLiveData[prizeType], currentFilter);
-
+        // Xác định số chữ số cần hiển thị dựa trên bộ lọc
         let displayDigits = digits;
         if (currentFilter === 'last2') {
             displayDigits = 2;
         } else if (currentFilter === 'last3') {
-            displayDigits = Math.min(digits, 3);
+            displayDigits = Math.min(digits, 3); // Giới hạn tối đa 3 số
         }
 
-        const isSpecialOrEighth = prizeType === 'specialPrize_0' || prizeType === 'maDB';
-
-        // Tối ưu rendering với memoization
-        const digitElements = useMemo(() => {
-            if (isAnimating) {
-                return Array.from({ length: displayDigits }).map((_, i) => (
-                    <span key={i} className={styles.digit} data-status="animating" data-index={i}></span>
-                ));
-            } else if (xsmbLiveData[prizeType] === '...') {
-                return <span className={styles.ellipsis}></span>;
-            } else {
-                return filteredValue
-                    .padStart(displayDigits, '0')
-                    .split('')
-                    .map((digit, i) => (
-                        <span key={i} className={`${styles.digit12} ${isSpecialOrEighth ? styles.highlight1 : ''}`} data-status="static" data-index={i}>
-                            {digit}
-                        </span>
-                    ));
-            }
-        }, [isAnimating, displayDigits, xsmbLiveData, prizeType, filteredValue, isSpecialOrEighth]);
-
         return (
-            <span className={`${className} ${isSpecialOrEighth ? styles.highlight : ''}`} data-status={isAnimating ? 'animating' : 'static'}>
+            <span className={className} data-status={isAnimating ? 'animating' : 'static'}>
                 {isAnimating ? (
                     <span className={styles.digit_container}>
-                        {digitElements}
+                        {Array.from({ length: displayDigits }).map((_, i) => (
+                            <span key={i} className={styles.digit} data-status="animating" data-index={i}></span>
+                        ))}
                     </span>
                 ) : xsmbLiveData[prizeType] === '...' ? (
-                    digitElements
+                    <span className={styles.ellipsis}></span>
                 ) : (
                     <span className={styles.digit_container}>
-                        {digitElements}
+                        {getFilteredNumber(xsmbLiveData[prizeType], currentFilter)
+                            .padStart(displayDigits, '0')
+                            .split('')
+                            .map((digit, i) => (
+                                <span key={i} data-status="static" data-index={i}>
+                                    {digit}
+                                </span>
+                            ))}
                     </span>
                 )}
             </span>
         );
-    }, [animatingPrize, xsmbLiveData, processedLiveData, currentFilter]);
+    };
+
+    // ✅ TỐI ƯU: Thêm debounce cho cache để tránh gọi quá nhiều
+    const cacheDebounceRef = useRef(null);
+    const lastCacheTimeRef = useRef(0);
+    const CACHE_DEBOUNCE_DELAY = 3000; // Tăng lên 3 giây để giảm tải hơn
+
+    // ✅ TỐI ƯU: Helper function để cache với debounce
+    const debouncedCache = useCallback((data, isComplete = false) => {
+        const now = Date.now();
+
+        // Chỉ cache nếu đã qua 3 giây từ lần cache cuối
+        if (now - lastCacheTimeRef.current < CACHE_DEBOUNCE_DELAY) {
+            return;
+        }
+
+        // Clear timeout cũ nếu có
+        if (cacheDebounceRef.current) {
+            clearTimeout(cacheDebounceRef.current);
+        }
+
+        // Set timeout để cache sau 500ms
+        cacheDebounceRef.current = setTimeout(() => {
+            if (mountedRef.current) {
+                const startTime = performance.now();
+
+                if (isComplete) {
+                    cacheStrategy.cacheCompleteData(data);
+                    console.log(`🏁 Cached complete data in ${(performance.now() - startTime).toFixed(2)}ms`);
+                } else {
+                    cacheStrategy.cacheLiveData(data);
+                    console.log(`📦 Cached live data in ${(performance.now() - startTime).toFixed(2)}ms`);
+                }
+
+                lastCacheTimeRef.current = Date.now();
+            }
+        }, 500);
+    }, []);
 
     return (
         <div className={styles.live}>

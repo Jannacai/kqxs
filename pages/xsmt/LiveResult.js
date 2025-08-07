@@ -5,6 +5,48 @@ import React from 'react';
 import { useLottery } from '../../contexts/LotteryContext';
 // import ViewCounter from "../views/ViewCounter";
 
+// Custom hook cho animation
+const usePrizeAnimation = (tinh, prizeType, digits, isAnimating, renderPrizeValue) => {
+    const animationFrameRef = useRef(null);
+
+    useEffect(() => {
+        if (!isAnimating) {
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current);
+                animationFrameRef.current = null;
+            }
+            return;
+        }
+
+        const animate = () => {
+            const elements = document.querySelectorAll(
+                `.${styles.digit}[data-status="animating"][data-tinh="${tinh}"][data-prize="${prizeType}"]`
+            );
+            elements.forEach(el => {
+                el.classList.add(styles.animate);
+            });
+            animationFrameRef.current = requestAnimationFrame(animate);
+        };
+
+        animationFrameRef.current = requestAnimationFrame(animate);
+        return () => {
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current);
+                animationFrameRef.current = null;
+            }
+        };
+    }, [isAnimating, tinh, prizeType]);
+
+    return renderPrizeValue(tinh, prizeType, digits);
+};
+
+// Component PrizeCell tách biệt
+const PrizeCell = React.memo(({ tinh, prizeType, digits, renderPrizeValue, isAnimating, className = '' }) => (
+    <span className={className}>
+        {usePrizeAnimation(tinh, prizeType, digits, isAnimating, renderPrizeValue)}
+    </span>
+));
+
 const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFilterChange = null, filterTypes = null, isLiveWindow, isModal = false, isForum = false }) => {
     // State cho filter trong modal
     const [modalFilter, setModalFilter] = useState('all');
@@ -151,7 +193,14 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                 {isAnimating ? (
                     <span className={styles.digit_container}>
                         {Array.from({ length: displayDigits }).map((_, i) => (
-                            <span key={i} className={styles.digit} data-status="animating" data-index={i}></span>
+                            <span
+                                key={i}
+                                className={styles.digit}
+                                data-status="animating"
+                                data-index={i}
+                                data-tinh={tinh}
+                                data-prize={prizeType}
+                            ></span>
                         ))}
                     </span>
                 ) : prizeValue === '...' ? (
@@ -162,7 +211,14 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                             .padStart(displayDigits, '0')
                             .split('')
                             .map((digit, i) => (
-                                <span key={i} className={`${styles.digit12} ${isSpecialOrEighth ? styles.highlight1 : ''}`} data-status="static" data-index={i}>
+                                <span
+                                    key={i}
+                                    className={`${styles.digit12} ${isSpecialOrEighth ? styles.highlight1 : ''}`}
+                                    data-status="static"
+                                    data-index={i}
+                                    data-tinh={tinh}
+                                    data-prize={prizeType}
+                                >
                                     {digit}
                                 </span>
                             ))}
@@ -1127,9 +1183,14 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                                         {processedLiveData.map(stationData => (
                                             <td key={stationData.tinh}>
                                                 <div className={styles.modalPrizeContainer}>
-                                                    <span className={`${styles.modalPrizeNumber} ${styles.eighth}`}>
-                                                        {renderPrizeValue(stationData.tinh, 'eightPrizes_0', 2)}
-                                                    </span>
+                                                    <PrizeCell
+                                                        tinh={stationData.tinh}
+                                                        prizeType="eightPrizes_0"
+                                                        digits={2}
+                                                        renderPrizeValue={renderPrizeValue}
+                                                        isAnimating={animatingPrizes[stationData.tinh] === 'eightPrizes_0' && stationData.eightPrizes_0 === '...'}
+                                                        className={`${styles.modalPrizeNumber} ${styles.eighth}`}
+                                                    />
                                                 </div>
                                             </td>
                                         ))}
@@ -1139,9 +1200,14 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                                         {processedLiveData.map(stationData => (
                                             <td key={stationData.tinh}>
                                                 <div className={styles.modalPrizeContainer}>
-                                                    <span className={styles.modalPrizeNumber}>
-                                                        {renderPrizeValue(stationData.tinh, 'sevenPrizes_0', 3)}
-                                                    </span>
+                                                    <PrizeCell
+                                                        tinh={stationData.tinh}
+                                                        prizeType="sevenPrizes_0"
+                                                        digits={3}
+                                                        renderPrizeValue={renderPrizeValue}
+                                                        isAnimating={animatingPrizes[stationData.tinh] === 'sevenPrizes_0' && stationData.sevenPrizes_0 === '...'}
+                                                        className={styles.modalPrizeNumber}
+                                                    />
                                                 </div>
                                             </td>
                                         ))}
@@ -1152,9 +1218,15 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                                             <td key={stationData.tinh}>
                                                 <div className={styles.modalPrizeContainer}>
                                                     {[0, 1, 2].map(idx => (
-                                                        <span key={idx} className={styles.modalPrizeNumber}>
-                                                            {renderPrizeValue(stationData.tinh, `sixPrizes_${idx}`, 4)}
-                                                        </span>
+                                                        <PrizeCell
+                                                            key={idx}
+                                                            tinh={stationData.tinh}
+                                                            prizeType={`sixPrizes_${idx}`}
+                                                            digits={4}
+                                                            renderPrizeValue={renderPrizeValue}
+                                                            isAnimating={animatingPrizes[stationData.tinh] === `sixPrizes_${idx}` && stationData[`sixPrizes_${idx}`] === '...'}
+                                                            className={styles.modalPrizeNumber}
+                                                        />
                                                     ))}
                                                 </div>
                                             </td>
@@ -1165,9 +1237,14 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                                         {processedLiveData.map(stationData => (
                                             <td key={stationData.tinh}>
                                                 <div className={styles.modalPrizeContainer}>
-                                                    <span className={styles.modalPrizeNumber}>
-                                                        {renderPrizeValue(stationData.tinh, 'fivePrizes_0', 4)}
-                                                    </span>
+                                                    <PrizeCell
+                                                        tinh={stationData.tinh}
+                                                        prizeType="fivePrizes_0"
+                                                        digits={4}
+                                                        renderPrizeValue={renderPrizeValue}
+                                                        isAnimating={animatingPrizes[stationData.tinh] === 'fivePrizes_0' && stationData.fivePrizes_0 === '...'}
+                                                        className={styles.modalPrizeNumber}
+                                                    />
                                                 </div>
                                             </td>
                                         ))}
@@ -1178,9 +1255,15 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                                             <td key={stationData.tinh}>
                                                 <div className={styles.modalPrizeContainer}>
                                                     {[0, 1, 2, 3, 4, 5, 6].map(idx => (
-                                                        <span key={idx} className={styles.modalPrizeNumber}>
-                                                            {renderPrizeValue(stationData.tinh, `fourPrizes_${idx}`, 5)}
-                                                        </span>
+                                                        <PrizeCell
+                                                            key={idx}
+                                                            tinh={stationData.tinh}
+                                                            prizeType={`fourPrizes_${idx}`}
+                                                            digits={5}
+                                                            renderPrizeValue={renderPrizeValue}
+                                                            isAnimating={animatingPrizes[stationData.tinh] === `fourPrizes_${idx}` && stationData[`fourPrizes_${idx}`] === '...'}
+                                                            className={styles.modalPrizeNumber}
+                                                        />
                                                     ))}
                                                 </div>
                                             </td>
@@ -1192,9 +1275,15 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                                             <td key={stationData.tinh}>
                                                 <div className={styles.modalPrizeContainer}>
                                                     {[0, 1].map(idx => (
-                                                        <span key={idx} className={styles.modalPrizeNumber}>
-                                                            {renderPrizeValue(stationData.tinh, `threePrizes_${idx}`, 5)}
-                                                        </span>
+                                                        <PrizeCell
+                                                            key={idx}
+                                                            tinh={stationData.tinh}
+                                                            prizeType={`threePrizes_${idx}`}
+                                                            digits={5}
+                                                            renderPrizeValue={renderPrizeValue}
+                                                            isAnimating={animatingPrizes[stationData.tinh] === `threePrizes_${idx}` && stationData[`threePrizes_${idx}`] === '...'}
+                                                            className={styles.modalPrizeNumber}
+                                                        />
                                                     ))}
                                                 </div>
                                             </td>
@@ -1205,9 +1294,14 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                                         {processedLiveData.map(stationData => (
                                             <td key={stationData.tinh}>
                                                 <div className={styles.modalPrizeContainer}>
-                                                    <span className={styles.modalPrizeNumber}>
-                                                        {renderPrizeValue(stationData.tinh, 'secondPrize_0', 5)}
-                                                    </span>
+                                                    <PrizeCell
+                                                        tinh={stationData.tinh}
+                                                        prizeType="secondPrize_0"
+                                                        digits={5}
+                                                        renderPrizeValue={renderPrizeValue}
+                                                        isAnimating={animatingPrizes[stationData.tinh] === 'secondPrize_0' && stationData.secondPrize_0 === '...'}
+                                                        className={styles.modalPrizeNumber}
+                                                    />
                                                 </div>
                                             </td>
                                         ))}
@@ -1217,9 +1311,14 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                                         {processedLiveData.map(stationData => (
                                             <td key={stationData.tinh}>
                                                 <div className={styles.modalPrizeContainer}>
-                                                    <span className={styles.modalPrizeNumber}>
-                                                        {renderPrizeValue(stationData.tinh, 'firstPrize_0', 5)}
-                                                    </span>
+                                                    <PrizeCell
+                                                        tinh={stationData.tinh}
+                                                        prizeType="firstPrize_0"
+                                                        digits={5}
+                                                        renderPrizeValue={renderPrizeValue}
+                                                        isAnimating={animatingPrizes[stationData.tinh] === 'firstPrize_0' && stationData.firstPrize_0 === '...'}
+                                                        className={styles.modalPrizeNumber}
+                                                    />
                                                 </div>
                                             </td>
                                         ))}
@@ -1229,9 +1328,14 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                                         {processedLiveData.map(stationData => (
                                             <td key={stationData.tinh}>
                                                 <div className={styles.modalPrizeContainer}>
-                                                    <span className={`${styles.modalPrizeNumber} ${styles.special}`}>
-                                                        {renderPrizeValue(stationData.tinh, 'specialPrize_0', 6)}
-                                                    </span>
+                                                    <PrizeCell
+                                                        tinh={stationData.tinh}
+                                                        prizeType="specialPrize_0"
+                                                        digits={6}
+                                                        renderPrizeValue={renderPrizeValue}
+                                                        isAnimating={animatingPrizes[stationData.tinh] === 'specialPrize_0' && stationData.specialPrize_0 === '...'}
+                                                        className={`${styles.modalPrizeNumber} ${styles.special}`}
+                                                    />
                                                 </div>
                                             </td>
                                         ))}
@@ -1362,9 +1466,14 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                                 <td className={`${styles.tdTitle} ${styles.highlight}`}>G8</td>
                                 {processedLiveData.map(item => (
                                     <td key={item.tinh} className={styles.rowXS}>
-                                        <span className={`${styles.span4} ${styles.highlight}`}>
-                                            {renderPrizeValue(item.tinh, 'eightPrizes_0', 2)}
-                                        </span>
+                                        <PrizeCell
+                                            tinh={item.tinh}
+                                            prizeType="eightPrizes_0"
+                                            digits={2}
+                                            renderPrizeValue={renderPrizeValue}
+                                            isAnimating={animatingPrizes[item.tinh] === 'eightPrizes_0' && item.eightPrizes_0 === '...'}
+                                            className={styles.highlight}
+                                        />
                                     </td>
                                 ))}
                             </tr>
@@ -1372,9 +1481,13 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                                 <td className={styles.tdTitle}>G7</td>
                                 {processedLiveData.map(item => (
                                     <td key={item.tinh} className={styles.rowXS}>
-                                        <span className={styles.span4}>
-                                            {renderPrizeValue(item.tinh, 'sevenPrizes_0', 3)}
-                                        </span>
+                                        <PrizeCell
+                                            tinh={item.tinh}
+                                            prizeType="sevenPrizes_0"
+                                            digits={3}
+                                            renderPrizeValue={renderPrizeValue}
+                                            isAnimating={animatingPrizes[item.tinh] === 'sevenPrizes_0' && item.sevenPrizes_0 === '...'}
+                                        />
                                     </td>
                                 ))}
                             </tr>
@@ -1383,9 +1496,15 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                                 {processedLiveData.map(item => (
                                     <td key={item.tinh} className={styles.rowXS}>
                                         {[0, 1, 2].map(idx => (
-                                            <span key={idx} className={styles.span3}>
-                                                {renderPrizeValue(item.tinh, `sixPrizes_${idx}`, 4)}
-                                            </span>
+                                            <PrizeCell
+                                                key={idx}
+                                                tinh={item.tinh}
+                                                prizeType={`sixPrizes_${idx}`}
+                                                digits={4}
+                                                renderPrizeValue={renderPrizeValue}
+                                                isAnimating={animatingPrizes[item.tinh] === `sixPrizes_${idx}` && item[`sixPrizes_${idx}`] === '...'}
+                                                className={styles.span3}
+                                            />
                                         ))}
                                     </td>
                                 ))}
@@ -1394,9 +1513,14 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                                 <td className={`${styles.tdTitle} ${styles.g3}`}>G5</td>
                                 {processedLiveData.map(item => (
                                     <td key={item.tinh} className={styles.rowXS}>
-                                        <span className={`${styles.span3} ${styles.g3}`}>
-                                            {renderPrizeValue(item.tinh, 'fivePrizes_0', 4)}
-                                        </span>
+                                        <PrizeCell
+                                            tinh={item.tinh}
+                                            prizeType="fivePrizes_0"
+                                            digits={4}
+                                            renderPrizeValue={renderPrizeValue}
+                                            isAnimating={animatingPrizes[item.tinh] === 'fivePrizes_0' && item.fivePrizes_0 === '...'}
+                                            className={`${styles.span3} ${styles.g3}`}
+                                        />
                                     </td>
                                 ))}
                             </tr>
@@ -1405,9 +1529,15 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                                 {processedLiveData.map(item => (
                                     <td key={item.tinh} className={styles.rowXS}>
                                         {[0, 1, 2, 3, 4, 5, 6].map(idx => (
-                                            <span key={idx} className={styles.span4}>
-                                                {renderPrizeValue(item.tinh, `fourPrizes_${idx}`, 5)}
-                                            </span>
+                                            <PrizeCell
+                                                key={idx}
+                                                tinh={item.tinh}
+                                                prizeType={`fourPrizes_${idx}`}
+                                                digits={5}
+                                                renderPrizeValue={renderPrizeValue}
+                                                isAnimating={animatingPrizes[item.tinh] === `fourPrizes_${idx}` && item[`fourPrizes_${idx}`] === '...'}
+                                                className={styles.span4}
+                                            />
                                         ))}
                                     </td>
                                 ))}
@@ -1417,9 +1547,15 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                                 {processedLiveData.map(item => (
                                     <td key={item.tinh} className={styles.rowXS}>
                                         {[0, 1].map(idx => (
-                                            <span key={idx} className={`${styles.span3} ${styles.g3}`}>
-                                                {renderPrizeValue(item.tinh, `threePrizes_${idx}`, 5)}
-                                            </span>
+                                            <PrizeCell
+                                                key={idx}
+                                                tinh={item.tinh}
+                                                prizeType={`threePrizes_${idx}`}
+                                                digits={5}
+                                                renderPrizeValue={renderPrizeValue}
+                                                isAnimating={animatingPrizes[item.tinh] === `threePrizes_${idx}` && item[`threePrizes_${idx}`] === '...'}
+                                                className={`${styles.span3} ${styles.g3}`}
+                                            />
                                         ))}
                                     </td>
                                 ))}
@@ -1428,9 +1564,14 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                                 <td className={styles.tdTitle}>G2</td>
                                 {processedLiveData.map(item => (
                                     <td key={item.tinh} className={styles.rowXS}>
-                                        <span className={styles.span1}>
-                                            {renderPrizeValue(item.tinh, 'secondPrize_0', 5)}
-                                        </span>
+                                        <PrizeCell
+                                            tinh={item.tinh}
+                                            prizeType="secondPrize_0"
+                                            digits={5}
+                                            renderPrizeValue={renderPrizeValue}
+                                            isAnimating={animatingPrizes[item.tinh] === 'secondPrize_0' && item.secondPrize_0 === '...'}
+                                            className={styles.span1}
+                                        />
                                     </td>
                                 ))}
                             </tr>
@@ -1438,9 +1579,14 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                                 <td className={styles.tdTitle}>G1</td>
                                 {processedLiveData.map(item => (
                                     <td key={item.tinh} className={styles.rowXS}>
-                                        <span className={styles.span1}>
-                                            {renderPrizeValue(item.tinh, 'firstPrize_0', 5)}
-                                        </span>
+                                        <PrizeCell
+                                            tinh={item.tinh}
+                                            prizeType="firstPrize_0"
+                                            digits={5}
+                                            renderPrizeValue={renderPrizeValue}
+                                            isAnimating={animatingPrizes[item.tinh] === 'firstPrize_0' && item.firstPrize_0 === '...'}
+                                            className={styles.span1}
+                                        />
                                     </td>
                                 ))}
                             </tr>
@@ -1448,9 +1594,14 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                                 <td className={`${styles.tdTitle} ${styles.highlight}`}>ĐB</td>
                                 {processedLiveData.map(item => (
                                     <td key={item.tinh} className={styles.rowXS}>
-                                        <span className={`${styles.span1} ${styles.highlight} ${styles.gdb}`}>
-                                            {renderPrizeValue(item.tinh, 'specialPrize_0', 6)}
-                                        </span>
+                                        <PrizeCell
+                                            tinh={item.tinh}
+                                            prizeType="specialPrize_0"
+                                            digits={6}
+                                            renderPrizeValue={renderPrizeValue}
+                                            isAnimating={animatingPrizes[item.tinh] === 'specialPrize_0' && item.specialPrize_0 === '...'}
+                                            className={`${styles.span1} ${styles.highlight} ${styles.gdb}`}
+                                        />
                                     </td>
                                 ))}
                             </tr>

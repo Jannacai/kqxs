@@ -1,5 +1,6 @@
+import React from 'react';
 import Link from 'next/link';
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import styles from '../public/css/navbar.module.css';
 import UserAvatar from './UserAvatar';
 import { useRouter } from 'next/router';
@@ -21,12 +22,119 @@ import {
     FaUserPlus,
 } from 'react-icons/fa';
 
+// Tối ưu: Tạo component riêng cho menu items để tránh re-render không cần thiết
+const MenuItem = React.memo(({ href, children, isActive, onClick, icon, className = '', onMouseEnter }) => (
+    <li className={`${styles.nav_itemMobile} ${isActive ? styles.active : ''}`}>
+        <div className={styles.grouplinkMobile}>
+            <Link
+                href={href}
+                className={`${styles.nav_itemLinkMobile} ${className}`}
+                onClick={onClick}
+                prefetch={true}
+                onMouseEnter={onMouseEnter} // Tối ưu: Prefetch khi hover
+            >
+                {icon && <span className={styles.iconNav}>{icon}</span>}
+                {children}
+            </Link>
+        </div>
+    </li>
+));
+
+// Tối ưu: Tạo component cho submenu items
+const SubMenuItem = React.memo(({ href, children, isActive, onClick, onMouseEnter }) => (
+    <li>
+        <Link
+            className={`${styles.nav_menuLinkMobile} ${isActive ? styles.active : ''}`}
+            href={href}
+            onClick={onClick}
+            prefetch={true}
+            onMouseEnter={onMouseEnter} // Tối ưu: Prefetch khi hover
+        >
+            {children}
+        </Link>
+    </li>
+));
+
 const NavBar = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isMenuOpenList, setIsMenuOpenList] = useState('');
+    const [isNavigating, setIsNavigating] = useState(false); // Tối ưu: Loading state
     const scrollPositionRef = useRef(0);
     const router = useRouter();
     const { status } = useSession();
+    const prefetchTimeoutRef = useRef(null); // Tối ưu: Debounce prefetch
+
+    // Tối ưu: Sử dụng useMemo để cache các giá trị tính toán
+    const isAuthenticated = useMemo(() => status === 'authenticated', [status]);
+
+    // Tối ưu: Debounced prefetch function
+    const debouncedPrefetch = useCallback((href) => {
+        if (prefetchTimeoutRef.current) {
+            clearTimeout(prefetchTimeoutRef.current);
+        }
+        prefetchTimeoutRef.current = setTimeout(() => {
+            router.prefetch(href);
+        }, 100);
+    }, [router]);
+
+    // Tối ưu: Sử dụng useCallback để tránh re-render không cần thiết
+    const toggleMenu = useCallback(() => {
+        setIsMenuOpen((prev) => {
+            if (prev) {
+                setIsMenuOpenList('');
+            }
+            return !prev;
+        });
+    }, []);
+
+    const toggleMenuList = useCallback((menuId) => {
+        setIsMenuOpenList((prev) => (prev === menuId ? '' : menuId));
+    }, []);
+
+    // Tối ưu: Navigation với loading state
+    const navigateWithLoading = useCallback(async (href) => {
+        if (isNavigating) return; // Prevent multiple navigation
+
+        setIsNavigating(true);
+        try {
+            await router.push(href);
+        } catch (error) {
+            console.error('Navigation error:', error);
+        } finally {
+            setIsNavigating(false);
+        }
+    }, [router, isNavigating]);
+
+    // Tối ưu: Prefetch các trang quan trọng khi component mount
+    useEffect(() => {
+        // Prefetch các trang chính với priority
+        const prefetchPages = [
+            '/ket-qua-xo-so-mien-bac',
+            '/ket-qua-xo-so-mien-nam',
+            '/ket-qua-xo-so-mien-trung',
+            '/thongke/lo-gan',
+            '/tao-dan-de-dac-biet/',
+            '/tin-tuc',
+            '/soicau/soi-cau-mien-bac'
+        ];
+
+        // Tối ưu: Prefetch với delay để không block initial render
+        const prefetchWithDelay = () => {
+            prefetchPages.forEach(page => {
+                router.prefetch(page);
+            });
+        };
+
+        // Delay prefetch để ưu tiên render UI trước
+        const timeoutId = setTimeout(prefetchWithDelay, 1000);
+
+        return () => {
+            clearTimeout(timeoutId);
+            if (prefetchTimeoutRef.current) {
+                clearTimeout(prefetchTimeoutRef.current);
+            }
+        };
+    }, [router]);
 
     useEffect(() => {
         if (isMenuOpen) {
@@ -53,88 +161,149 @@ const NavBar = () => {
         };
     }, [isMenuOpen]);
 
-    const toggleMenu = useCallback(() => {
-        setIsMenuOpen((prev) => {
-            if (prev) {
-                setIsMenuOpenList('');
-            }
-            return !prev;
-        });
-    }, []);
-
-    const toggleMenuList = useCallback((menuId) => {
-        setIsMenuOpenList((prev) => (prev === menuId ? '' : menuId));
-    }, []);
+    // Tối ưu: Sử dụng useMemo để cache menu items
+    const mobileMenuItems = useMemo(() => [
+        {
+            href: '/',
+            label: 'Home',
+            icon: <FaHome />,
+            isActive: router.pathname === '/'
+        },
+        {
+            href: '/diendan',
+            label: 'Diễn Đàn',
+            icon: <FaUsers />,
+            isActive: router.pathname === '/diendan'
+        },
+        {
+            href: '/ket-qua-xo-so-mien-bac',
+            label: 'XSMB',
+            icon: <FaGlobe />,
+            isActive: router.pathname.startsWith('/ket-qua-xo-so-mien-bac'),
+            submenu: 'xsmb',
+            subItems: [
+                { href: '/xsmb/xo-so-mien-bac/thu-2', label: 'Thứ 2' },
+                { href: '/xsmb/xo-so-mien-bac/thu-3', label: 'Thứ 3' },
+                { href: '/xsmb/xo-so-mien-bac/thu-4', label: 'Thứ 4' },
+                { href: '/xsmb/xo-so-mien-bac/thu-5', label: 'Thứ 5' },
+                { href: '/xsmb/xo-so-mien-bac/thu-6', label: 'Thứ 6' },
+                { href: '/xsmb/xo-so-mien-bac/thu-7', label: 'Thứ 7' },
+                { href: '/xsmb/xo-so-mien-bac/chu-nhat', label: 'Chủ Nhật' }
+            ]
+        },
+        {
+            href: '/ket-qua-xo-so-mien-nam',
+            label: 'XSMN',
+            icon: <FaGlobe />,
+            isActive: router.pathname.startsWith('/ket-qua-xo-so-mien-nam'),
+            submenu: 'xsmn',
+            subItems: [
+                { href: '/xsmn/thu-2', label: 'Thứ 2' },
+                { href: '/xsmn/thu-3', label: 'Thứ 3' },
+                { href: '/xsmn/thu-4', label: 'Thứ 4' },
+                { href: '/xsmn/thu-5', label: 'Thứ 5' },
+                { href: '/xsmn/thu-6', label: 'Thứ 6' },
+                { href: '/xsmn/thu-7', label: 'Thứ 7' },
+                { href: '/xsmn/chu-nhat', label: 'Chủ Nhật' }
+            ]
+        },
+        {
+            href: '/ket-qua-xo-so-mien-trung',
+            label: 'XSMT',
+            icon: <FaGlobe />,
+            isActive: router.pathname.startsWith('/ket-qua-xo-so-mien-trung'),
+            submenu: 'xsmt',
+            subItems: [
+                { href: '/xsmt/thu-2', label: 'Thứ 2' },
+                { href: '/xsmt/thu-3', label: 'Thứ 3' },
+                { href: '/xsmt/thu-4', label: 'Thứ 4' },
+                { href: '/xsmt/thu-5', label: 'Thứ 5' },
+                { href: '/xsmt/thu-6', label: 'Thứ 6' },
+                { href: '/xsmt/thu-7', label: 'Thứ 7' },
+                { href: '/xsmt/chu-nhat', label: 'Chủ Nhật' }
+            ]
+        },
+        {
+            href: '/thongke/lo-gan',
+            label: 'Thống Kê',
+            icon: <FaLayerGroup />,
+            isActive: router.pathname.startsWith('/thongke'),
+            submenu: 'thongke',
+            subItems: [
+                { href: '/thongke/lo-gan', label: 'Lô Gan' },
+                { href: '/thongke/giai-dac-biet', label: 'Giải Đặc Biệt' },
+                { href: '/thongke/giai-dac-biet-tuan', label: 'Giải Đặc Biệt Tuần' },
+                { href: '/thongke/dau-duoi', label: 'Đầu Đuôi' },
+                { href: '/thongke/Tan-Suat-Lo-Cap', label: 'Tần Suất Lô Cặp' },
+                { href: '/thongke/Tan-Suat-Lo-to', label: 'Tần Suất Lô Tô' }
+            ]
+        },
+        {
+            href: '/tao-dan-de-dac-biet/',
+            label: 'Tạo Dàn',
+            icon: <FaMarker />,
+            isActive: router.pathname.startsWith('/tao-dan-de-dac-biet'),
+            submenu: 'tao-dan-de-dac-biet',
+            subItems: [
+                { href: '/tao-dan-de-dac-biet/', label: 'Tạo Nhanh Dàn Đặc Biệt' },
+                { href: '/taodande/dan-2d/tao-dan-de-2d', label: 'Tạo Dàn 2D' },
+                { href: '/taodande/dan-3d4d/tao-dan-de-3d4d', label: 'Tạo Dàn 3D-4D' },
+                { href: '/taodande/tao-dan-ngau-nhien9x0x/', label: 'Tạo Dàn 9X0X Ngẫu Nhiên' }
+            ]
+        },
+        {
+            href: '/tin-tuc',
+            label: 'Tin Tức',
+            icon: <FaNewspaper />,
+            isActive: router.pathname.startsWith('/tin-tuc'),
+            submenu: 'tin-tuc',
+            subItems: [
+                { href: '#', label: 'Bóng Đá Mới Nhất' },
+                { href: '#', label: 'Đời Sống' }
+            ]
+        },
+        {
+            href: '/soicau/soi-cau-mien-bac',
+            label: 'Soi Cầu',
+            icon: <FaSplotch />,
+            isActive: router.pathname === '/soicau/soi-cau-mien-bac',
+            submenu: 'soicau',
+            subItems: [
+                { href: '/soicau/soi-cau-mien-bac', label: 'Soi Cầu Miền Bắc' },
+                { href: '/soicau/soi-cau-mien-trung', label: 'Soi Cầu Miền Trung' },
+                { href: '#', label: 'Soi Cầu Miền Nam' }
+            ]
+        }
+    ], [router.pathname, isAuthenticated]);
 
     return (
         <div>
             <span className={styles.iconMenu} onClick={toggleMenu}>
                 <FaBars />
             </span>
-            {/* Nav Bar Ngang */}
+
+            {/* Nav Bar Ngang - Tối ưu với prefetch */}
             <div className={styles.NavbarMobileNgang}>
                 <ul className={styles.nav_listNgang}>
-                    <li
-                        className={`${styles.nav_itemNgang} ${router.pathname === '/diendan' ? styles.active : ''}`}
-                    >
-                        <Link href="#" className={styles.nav_itemLinkNgang}>
-                            Diễn Đàn
+                    {mobileMenuItems.slice(0, 7).map((item, index) => (
+                        <li
+                            key={index}
+                            className={`${styles.nav_itemNgang} ${item.isActive ? styles.active : ''}`}
+                        >
+                            <Link
+                                href={item.href}
+                                className={styles.nav_itemLinkNgang}
+                                prefetch={true}
+                                onMouseEnter={() => debouncedPrefetch(item.href)} // Tối ưu: Hover prefetch
+                            >
+                                {item.label}
                         </Link>
                     </li>
-                    <li
-                        className={`${styles.nav_itemNgang} ${router.pathname.startsWith('/ket-qua-xo-so-mien-bac') ? styles.active : ''}`}
-                    >
-                        <Link href="/ket-qua-xo-so-mien-bac" className={styles.nav_itemLinkNgang}>
-                            XSMB
-                        </Link>
-                    </li>
-                    <li
-                        className={`${styles.nav_itemNgang} ${router.pathname.startsWith('/ket-qua-xo-so-mien-nam') ? styles.active : ''}`}
-                    >
-                        <Link href="/ket-qua-xo-so-mien-nam" className={styles.nav_itemLinkNgang}>
-                            XSMN
-                        </Link>
-                    </li>
-                    <li
-                        className={`${styles.nav_itemNgang} ${router.pathname.startsWith('/ket-qua-xo-so-mien-trung') ? styles.active : ''}`}
-                    >
-                        <Link href="/ket-qua-xo-so-mien-trung" className={styles.nav_itemLinkNgang}>
-                            XSMT
-                        </Link>
-                    </li>
-                    <li
-                        className={`${styles.nav_itemNgang} ${router.pathname.startsWith('/thongke') ? styles.active : ''}`}
-                    >
-                        <Link href="/thongke/lo-gan" className={styles.nav_itemLinkNgang}>
-                            Thống kê
-                        </Link>
-                    </li>
-                    <li
-                        className={`${styles.nav_itemNgang} ${router.pathname.startsWith('/tao-dan-de-dac-biet') ? styles.active : ''}`}
-                    >
-                        <Link href="/tao-dan-de-dac-biet/" className={styles.nav_itemLinkNgang}>
-                            Tạo Dàn
-                        </Link>
-                    </li>
-                    <li
-                        className={`${styles.nav_itemNgang} ${router.pathname.startsWith('/tin-tuc') ? styles.active : ''}`}
-                    >
-                        <Link href="/tin-tuc" className={styles.nav_itemLinkNgang}>
-                            Tin Tức
-                        </Link>
-                    </li>
-                    <li
-                        className={`${styles.nav_itemNgang} ${router.pathname === '/soicau/soi-cau-mien-bac' ? styles.active : ''}`}
-                    >
-                        <Link href="/soicau/soi-cau-mien-bac" className={styles.nav_itemLinkNgang}>
-                            Soi Cầu
-                        </Link>
-                    </li>
-
+                    ))}
                 </ul>
             </div>
 
-            {/* Tablet Mobile */}
+            {/* Tablet Mobile - Tối ưu với React.memo và prefetch */}
             <div className={`${styles.mobileNavbar} ${!isMenuOpen ? styles.hidden : ''}`}>
                 <div
                     onClick={toggleMenu}
@@ -148,882 +317,120 @@ const NavBar = () => {
                             alt="xổ số bắc trung nam"
                             width={150}
                             height={50}
+                            priority={true} // Tối ưu: Load logo với priority
                         />
                     </div>
                     <div className={styles.scrollableMenu}>
                         <nav className={styles.navbarMobile}>
                             <ul className={styles.nav_listMobile}>
-                                <li
-                                    className={`${styles.nav_itemMobile} ${router.pathname === '/' ? styles.active : ''}`}
+                                {mobileMenuItems.map((item, index) => (
+                                    <li
+                                        key={index}
+                                        className={`${styles.nav_itemMobile} ${item.isActive ? styles.active : ''}`}
                                 >
                                     <div className={styles.grouplinkMobile}>
-                                        <Link
-                                            href="/"
+                                            <Link
+                                                href={item.href}
                                             className={styles.nav_itemLinkMobile}
-                                            onClick={toggleMenu}
+                                                onClick={toggleMenu}
+                                                prefetch={true}
+                                                onMouseEnter={() => debouncedPrefetch(item.href)} // Tối ưu: Hover prefetch
                                         >
                                             <span className={styles.iconNav}>
-                                                <FaHome />
+                                                    {item.icon}
                                             </span>{' '}
-                                            Home
-                                        </Link>
-                                    </div>
-                                </li>
-                                <li
-                                    className={`${styles.nav_itemMobile} ${router.pathname === '/diendan' ? styles.active : ''}`}
-                                >
-                                    <div className={styles.grouplinkMobile}>
-                                        <Link
-                                            href="#"
-                                            className={styles.nav_itemLinkMobile}
-                                            onClick={toggleMenu}
-                                        >
-                                            <span className={styles.iconNav}>
-                                                <FaUsers />
-                                            </span>{' '}
-                                            Diễn Đàn
-                                        </Link>
-                                    </div>
-                                </li>
-                                <li
-                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith('/ket-qua-xo-so-mien-bac') ? styles.active : ''}`}
-                                >
-                                    <div className={styles.grouplinkMobile}>
-                                        <Link
-                                            href="/ket-qua-xo-so-mien-bac"
-                                            className={styles.nav_itemLinkMobile}
-                                            onClick={toggleMenu}
-                                        >
-                                            <span className={styles.iconNav}>
-                                                <FaGlobe />
-                                            </span>{' '}
-                                            XSMB
-                                        </Link>
-                                        <span onClick={() => toggleMenuList('xsmb')} className={styles.icon}>
-                                            {isMenuOpenList === 'xsmb' ? <FaChevronUp /> : <FaChevronDown />}
+                                                {item.label}
+                                            </Link>
+                                            {item.submenu && (
+                                                <span onClick={() => toggleMenuList(item.submenu)} className={styles.icon}>
+                                                    {isMenuOpenList === item.submenu ? <FaChevronUp /> : <FaChevronDown />}
                                         </span>
+                                            )}
                                     </div>
-                                    <ul
-                                        className={`${styles.nav__menuMobile} ${isMenuOpenList === 'xsmb' ? styles.menuList : ''}`}
-                                    >
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/xsmb/xo-so-mien-bac/thu-2' ? styles.active : ''}`}
-                                                href="/xsmb/xo-so-mien-bac/thu-2"
-                                                onClick={toggleMenu}
+                                        {item.submenu && (
+                                            <ul
+                                                className={`${styles.nav__menuMobile} ${isMenuOpenList === item.submenu ? styles.menuList : ''}`}
                                             >
-                                                Thứ 2
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/xsmb/xo-so-mien-bac/thu-3' ? styles.active : ''}`}
-                                                href="/xsmb/xo-so-mien-bac/thu-3"
+                                                {item.subItems.map((subItem, subIndex) => (
+                                                    <SubMenuItem
+                                                        key={subIndex}
+                                                        href={subItem.href}
+                                                        isActive={router.pathname === subItem.href}
                                                 onClick={toggleMenu}
-                                            >
-                                                Thứ 3
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/xsmb/xo-so-mien-bac/thu-4' ? styles.active : ''}`}
-                                                href="/xsmb/xo-so-mien-bac/thu-4"
-                                                onClick={toggleMenu}
-                                            >
-                                                Thứ 4
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/xsmb/xo-so-mien-bac/thu-5' ? styles.active : ''}`}
-                                                href="/xsmb/xo-so-mien-bac/thu-5"
-                                                onClick={toggleMenu}
-                                            >
-                                                Thứ 5
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/xsmb/xo-so-mien-bac/thu-6' ? styles.active : ''}`}
-                                                href="/xsmb/xo-so-mien-bac/thu-6"
-                                                onClick={toggleMenu}
-                                            >
-                                                Thứ 6
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/xsmb/xo-so-mien-bac/thu-7' ? styles.active : ''}`}
-                                                href="/xsmb/xo-so-mien-bac/thu-7"
-                                                onClick={toggleMenu}
-                                            >
-                                                Thứ 7
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/xsmb/xo-so-mien-bac/chu-nhat' ? styles.active : ''}`}
-                                                href="/xsmb/xo-so-mien-bac/chu-nhat"
-                                                onClick={toggleMenu}
-                                            >
-                                                Chủ Nhật
-                                            </Link>
-                                        </li>
+                                                        onMouseEnter={() => debouncedPrefetch(subItem.href)} // Tối ưu: Hover prefetch
+                                                    >
+                                                        {subItem.label}
+                                                    </SubMenuItem>
+                                                ))}
                                     </ul>
+                                        )}
                                 </li>
-                                <li
-                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith('/ket-qua-xo-so-mien-nam') ? styles.active : ''}`}
-                                >
-                                    <div className={styles.grouplinkMobile}>
-                                        <Link
-                                            href="/ket-qua-xo-so-mien-nam"
-                                            className={styles.nav_itemLinkMobile}
-                                            onClick={toggleMenu}
-                                        >
-                                            <span className={styles.iconNav}>
-                                                <FaGlobe />
-                                            </span>{' '}
-                                            XSMN
-                                        </Link>
-                                        <span onClick={() => toggleMenuList('xsmn')} className={styles.icon}>
-                                            {isMenuOpenList === 'xsmn' ? <FaChevronUp /> : <FaChevronDown />}
-                                        </span>
-                                    </div>
-                                    <ul
-                                        className={`${styles.nav__menuMobile} ${isMenuOpenList === 'xsmn' ? styles.menuList : ''}`}
-                                    >
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/xsmn/thu-2' ? styles.active : ''}`}
-                                                href="/xsmn/thu-2"
-                                                onClick={toggleMenu}
-                                            >
-                                                Thứ 2
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/xsmn/thu-3' ? styles.active : ''}`}
-                                                href="/xsmn/thu-3"
-                                                onClick={toggleMenu}
-                                            >
-                                                Thứ 3
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/xsmn/thu-4' ? styles.active : ''}`}
-                                                href="/xsmn/thu-4"
-                                                onClick={toggleMenu}
-                                            >
-                                                Thứ 4
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/xsmn/thu-5' ? styles.active : ''}`}
-                                                href="/xsmn/thu-5"
-                                                onClick={toggleMenu}
-                                            >
-                                                Thứ 5
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/xsmn/thu-6' ? styles.active : ''}`}
-                                                href="/xsmn/thu-6"
-                                                onClick={toggleMenu}
-                                            >
-                                                Thứ 6
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/xsmn/thu-7' ? styles.active : ''}`}
-                                                href="/xsmn/thu-7"
-                                                onClick={toggleMenu}
-                                            >
-                                                Thứ 7
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/xsmn/chu-nhat' ? styles.active : ''}`}
-                                                href="/xsmn/chu-nhat"
-                                                onClick={toggleMenu}
-                                            >
-                                                Chủ Nhật
-                                            </Link>
-                                        </li>
-                                    </ul>
-                                </li>
-                                <li
-                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith('/ket-qua-xo-so-mien-trung') ? styles.active : ''}`}
-                                >
-                                    <div className={styles.grouplinkMobile}>
-                                        <Link
-                                            href="/ket-qua-xo-so-mien-trung"
-                                            className={styles.nav_itemLinkMobile}
-                                            onClick={toggleMenu}
-                                        >
-                                            <span className={styles.iconNav}>
-                                                <FaGlobe />
-                                            </span>{' '}
-                                            XSMT
-                                        </Link>
-                                        <span onClick={() => toggleMenuList('xsmt')} className={styles.icon}>
-                                            {isMenuOpenList === 'xsmt' ? <FaChevronUp /> : <FaChevronDown />}
-                                        </span>
-                                    </div>
-                                    <ul
-                                        className={`${styles.nav__menuMobile} ${isMenuOpenList === 'xsmt' ? styles.menuList : ''}`}
-                                    >
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/xsmt/xo-so-mien-trung/thu-2' ? styles.active : ''}`}
-                                                href="/xsmt/xo-so-mien-trung/thu-2"
-                                                onClick={toggleMenu}
-                                            >
-                                                Thứ 2
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/xsmt/xo-so-mien-trung/thu-3' ? styles.active : ''}`}
-                                                href="/xsmt/xo-so-mien-trung/thu-3"
-                                                onClick={toggleMenu}
-                                            >
-                                                Thứ 3
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/xsmt/xo-so-mien-trung/thu-4' ? styles.active : ''}`}
-                                                href="/xsmt/xo-so-mien-trung/thu-4"
-                                                onClick={toggleMenu}
-                                            >
-                                                Thứ 4
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/xsmt/xo-so-mien-trung/thu-5' ? styles.active : ''}`}
-                                                href="/xsmt/xo-so-mien-trung/thu-5"
-                                                onClick={toggleMenu}
-                                            >
-                                                Thứ 5
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/xsmt/xo-so-mien-trung/thu-6' ? styles.active : ''}`}
-                                                href="/xsmt/xo-so-mien-trung/thu-6"
-                                                onClick={toggleMenu}
-                                            >
-                                                Thứ 6
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/xsmt/xo-so-mien-trung/thu-7' ? styles.active : ''}`}
-                                                href="/xsmt/xo-so-mien-trung/thu-7"
-                                                onClick={toggleMenu}
-                                            >
-                                                Thứ 7
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/xsmt/xo-so-mien-trung/chu-nhat' ? styles.active : ''}`}
-                                                href="/xsmt/xo-so-mien-trung/chu-nhat"
-                                                onClick={toggleMenu}
-                                            >
-                                                Chủ Nhật
-                                            </Link>
-                                        </li>
-                                    </ul>
-                                </li>
-                                <li
-                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith('/thongke') ? styles.active : ''}`}
-                                >
-                                    <div className={styles.grouplinkMobile}>
-                                        <Link
-                                            href="/thongke/lo-gan"
-                                            className={styles.nav_itemLinkMobile}
-                                            onClick={toggleMenu}
-                                        >
-                                            <span className={styles.iconNav}>
-                                                <FaLayerGroup />
-                                            </span>{' '}
-                                            Thống Kê
-                                        </Link>
-                                        <span onClick={() => toggleMenuList('thongke')} className={styles.icon}>
-                                            {isMenuOpenList === 'thongke' ? <FaChevronUp /> : <FaChevronDown />}
-                                        </span>
-                                    </div>
-                                    <ul
-                                        className={`${styles.nav__menuMobile} ${isMenuOpenList === 'thongke' ? styles.menuList : ''}`}
-                                    >
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/thongke/lo-gan' ? styles.active : ''}`}
-                                                href="/thongke/lo-gan"
-                                                onClick={toggleMenu}
-                                            >
-                                                Thống Kê Logan
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/thongke/giai-dac-biet' ? styles.active : ''}`}
-                                                href="/thongke/giai-dac-biet"
-                                                onClick={toggleMenu}
-                                            >
-                                                Thống Kê giải đặc biệt
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/thongke/dau-duoi' ? styles.active : ''}`}
-                                                href="/thongke/dau-duoi"
-                                                onClick={toggleMenu}
-                                            >
-                                                Thống Kê đầu đuôi loto
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/thongke/giai-dac-biet-tuan' ? styles.active : ''}`}
-                                                href="/thongke/giai-dac-biet-tuan"
-                                                onClick={toggleMenu}
-                                            >
-                                                Bảng đặc biệt tuần/tháng
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/thongke/Tan-Suat-Lo-to' ? styles.active : ''}`}
-                                                href="/thongke/Tan-Suat-Lo-to"
-                                                onClick={toggleMenu}
-                                            >
-                                                Tần Suất Loto
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/thongke/Tan-Suat-Lo-Cap' ? styles.active : ''}`}
-                                                href="/thongke/Tan-Suat-Lo-Cap"
-                                                onClick={toggleMenu}
-                                            >
-                                                Tần Suất Lô Cặp
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '#' ? styles.active : ''}`}
-                                                href="#"
-                                                onClick={toggleMenu}
-                                            >
-                                                Tần suất giải đặc biệt
-                                            </Link>
-                                        </li>
-                                    </ul>
-                                </li>
-                                <li
-                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith('/tao-dan-de-dac-biet') ? styles.active : ''}`}
-                                >
-                                    <div className={styles.grouplinkMobile}>
-                                        <Link
-                                            href="/tao-dan-de-dac-biet/"
-                                            className={styles.nav_itemLinkMobile}
-                                            onClick={toggleMenu}
-                                        >
-                                            <span className={styles.iconNav}>
-                                                <FaMarker />
-                                            </span>{' '}
-                                            Tạo Dàn
-                                        </Link>
-                                        <span onClick={() => toggleMenuList('tao-dan-de-dac-biet')} className={styles.icon}>
-                                            {isMenuOpenList === 'tao-dan-de-dac-biet' ? <FaChevronUp /> : <FaChevronDown />}
-                                        </span>
-                                    </div>
-                                    <ul
-                                        className={`${styles.nav__menuMobile} ${isMenuOpenList === 'tao-dan-de-dac-biet' ? styles.menuList : ''}`}
-                                    >
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/tao-dan-de-dac-biet' ? styles.active : ''}`}
-                                                href="/tao-dan-de-dac-biet/"
-                                                onClick={toggleMenu}
-                                            >
-                                                Tạo Nhanh Dàn Đặc Biệt
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/taodande/dan-2d/tao-dan-de-2d' ? styles.active : ''}`}
-                                                href="/taodande/dan-2d/tao-dan-de-2d"
-                                                onClick={toggleMenu}
-                                            >
-                                                Tạo Dàn 2D
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/taodande/dan-3d4d/tao-dan-de-3d4d' ? styles.active : ''}`}
-                                                href="/taodande/dan-3d4d/tao-dan-de-3d4d"
-                                                onClick={toggleMenu}
-                                            >
-                                                Tạo Dàn 3D-4D
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/taodande/tao-dan-ngau-nhien9x0x' ? styles.active : ''}`}
-                                                href="/taodande/tao-dan-ngau-nhien9x0x/"
-                                                onClick={toggleMenu}
-                                            >
-                                                Tạo Dàn 9X0X Ngẫu Nhiên
-                                            </Link>
-                                        </li>
-                                    </ul>
-                                </li>
-                                <li
-                                    className={`${styles.nav_itemMobile} ${router.pathname.startsWith('/tin-tuc') ? styles.active : ''}`}
-                                >
-                                    <div className={styles.grouplinkMobile}>
-                                        <Link
-                                            href="/tin-tuc"
-                                            className={styles.nav_itemLinkMobile}
-                                            onClick={toggleMenu}
-                                        >
-                                            <span className={styles.iconNav}>
-                                                <FaNewspaper />
-                                            </span>{' '}
-                                            Tin Tức
-                                        </Link>
-                                        <span onClick={() => toggleMenuList('tin-tuc')} className={styles.icon}>
-                                            {isMenuOpenList === 'tin-tuc' ? <FaChevronUp /> : <FaChevronDown />}
-                                        </span>
-                                    </div>
-                                    <ul
-                                        className={`${styles.nav__menuMobile} ${isMenuOpenList === 'tin-tuc' ? styles.menuList : ''}`}
-                                    >
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '#' ? styles.active : ''}`}
-                                                href="#"
-                                                onClick={toggleMenu}
-                                            >
-                                                Bóng Đá Mới Nhất
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '#' ? styles.active : ''}`}
-                                                href="#"
-                                                onClick={toggleMenu}
-                                            >
-                                                Đời Sống
-                                            </Link>
-                                        </li>
-                                    </ul>
-                                </li>
-                                <li
-                                    className={`${styles.nav_itemMobile} ${router.pathname === '/soicau/soi-cau-mien-bac' ? styles.active : ''}`}
-                                >
-                                    <div className={styles.grouplinkMobile}>
-                                        <Link
-                                            href="/soicau/soi-cau-mien-bac"
-                                            className={styles.nav_itemLinkMobile}
-                                            onClick={toggleMenu}
-                                        >
-                                            <span className={styles.iconNav}>
-                                                <FaSplotch />
-                                            </span>{' '}
-                                            Soi Cầu
-                                        </Link>
-                                        <span onClick={() => toggleMenuList('soicau')} className={styles.icon}>
-                                            {isMenuOpenList === 'soicau' ? <FaChevronUp /> : <FaChevronDown />}
-                                        </span>
-                                    </div>
-                                    <ul
-                                        className={`${styles.nav__menuMobile} ${isMenuOpenList === 'soicau' ? styles.menuList : ''}`}
-                                    >
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '/soicau/soi-cau-mien-bac' ? styles.active : ''}`}
-                                                href="/soicau/soi-cau-mien-bac"
-                                                onClick={toggleMenu}
-                                            >
-                                                Soi Cầu Miền Bắc
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === 'soicau/soi-cau-mien-trung' ? styles.active : ''}`}
-                                                href="/soicau/soi-cau-mien-trung"
-                                                onClick={toggleMenu}
-                                            >
-                                                Soi Cầu Miền Trung
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                className={`${styles.nav_menuLinkMobile} ${router.pathname === '#' ? styles.active : ''}`}
-                                                href="#"
-                                                onClick={toggleMenu}
-                                            >
-                                                Soi Cầu Miền Nam
-                                            </Link>
-                                        </li>
-                                    </ul>
-                                </li>
-
-                                <li
-                                    className={`${styles.nav_itemMobile} ${status === 'authenticated' ? router.pathname === '/dang-bai-viet' : router.pathname === '/login' ? styles.active : ''}`}
-                                >
-                                    <div className={styles.grouplinkMobile}>
-                                        <Link
-                                            href={status === 'authenticated' ? '/dang-bai-viet' : '/login'}
-                                            className={styles.nav_itemLinkMobile}
-                                            onClick={toggleMenu}
-                                        >
-                                            <span className={styles.iconNav}>
-                                                {status === 'authenticated' ? <FaPenSquare /> : <FaUserPlus />}
-                                            </span>
-                                            {status === 'authenticated' ? 'Đăng bài viết mới' : 'Đăng Nhập'}
-                                        </Link>
-                                    </div>
-                                </li>
+                                ))}
                             </ul>
-                            {/* <UserAvatar /> */}
                         </nav>
                     </div>
                 </div>
             </div>
 
-            {/* PC header */}
+            {/* PC header - Tối ưu với prefetch và lazy loading */}
             <div>
                 <nav className={styles.navbar}>
                     <div className="containerS">
                         <ul className={styles.nav_list}>
+                            {mobileMenuItems.map((item, index) => (
                             <li
-                                className={`${styles.nav_item} ${router.pathname === '/' ? styles.active : ''}`}
+                                    key={index}
+                                    className={`${styles.nav_item} ${item.isActive ? styles.active : ''}`}
                             >
                                 <div className={styles.grouplink}>
+                                        {item.icon && (
                                     <span className={styles.icon}>
-                                        <FaHome />
+                                                {item.icon}
                                     </span>
-                                    <Link href="/" className={styles.nav_itemLink}>
-                                        Home
-                                    </Link>
-                                </div>
-                            </li>
-                            <li
-                                className={`${styles.nav_item} ${router.pathname === '/diendan' ? styles.active : ''}`}
-                            >
-                                <Link href="/diendan/" className={styles.nav_itemLink}>
-                                    Diễn Đàn
-                                </Link>
-                            </li>
-                            <li
-                                className={`${styles.nav_item} ${router.pathname.startsWith('/ket-qua-xo-so-mien-bac') ? styles.active : ''}`}
-                            >
-                                <div className={styles.grouplink}>
-                                    <Link href="/ket-qua-xo-so-mien-bac" className={styles.nav_itemLink}>
-                                        XSMB
-                                    </Link>
+                                        )}
+                                        <Link
+                                            href={item.href}
+                                            className={styles.nav_itemLink}
+                                            prefetch={true}
+                                            onMouseEnter={() => debouncedPrefetch(item.href)} // Tối ưu: Hover prefetch
+                                        >
+                                            {item.label}
+                                        </Link>
+                                        {item.submenu && (
                                     <span className={styles.icon}>
                                         <FaChevronDown />
                                     </span>
+                                        )}
                                 </div>
+                                    {item.submenu && (
                                 <ul className={styles.nav__menu}>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/xsmb/xo-so-mien-bac/thu-2">
-                                            Thứ 2
+                                            {item.subItems.map((subItem, subIndex) => (
+                                                <li key={subIndex}>
+                                                    <Link
+                                                        className={styles.nav_menuLink}
+                                                        href={subItem.href}
+                                                        prefetch={true}
+                                                        onMouseEnter={() => debouncedPrefetch(subItem.href)} // Tối ưu: Hover prefetch
+                                                    >
+                                                        {subItem.label}
                                         </Link>
                                     </li>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/xsmb/xo-so-mien-bac/thu-3">
-                                            Thứ 3
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/xsmb/xo-so-mien-bac/thu-4">
-                                            Thứ 4
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/xsmb/xo-so-mien-bac/thu-5">
-                                            Thứ 5
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/xsmb/xo-so-mien-bac/thu-6">
-                                            Thứ 6
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/xsmb/xo-so-mien-bac/thu-7">
-                                            Thứ 7
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/xsmb/xo-so-mien-bac/chu-nhat">
-                                            Chủ Nhật
-                                        </Link>
-                                    </li>
+                                            ))}
                                 </ul>
+                                    )}
                             </li>
-                            <li
-                                className={`${styles.nav_item} ${router.pathname.startsWith('/ket-qua-xo-so-mien-nam') ? styles.active : ''}`}
-                            >
-                                <div className={styles.grouplink}>
-                                    <Link href="/ket-qua-xo-so-mien-nam" className={styles.nav_itemLink}>
-                                        XSMN
-                                    </Link>
-                                    <span className={styles.icon}>
-                                        <FaChevronDown />
-                                    </span>
-                                </div>
-                                <ul className={styles.nav__menu}>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/xsmn/thu-2">
-                                            Thứ 2
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/xsmn/thu-3">
-                                            Thứ 3
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/xsmn/thu-4">
-                                            Thứ 4
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/xsmn/thu-5">
-                                            Thứ 5
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/xsmn/thu-6">
-                                            Thứ 6
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/xsmn/thu-7">
-                                            Thứ 7
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/xsmn/chu-nhat">
-                                            Chủ Nhật
-                                        </Link>
-                                    </li>
-                                </ul>
-                            </li>
-                            <li
-                                className={`${styles.nav_item} ${router.pathname.startsWith('/ket-qua-xo-so-mien-trung') ? styles.active : ''}`}
-                            >
-                                <div className={styles.grouplink}>
-                                    <Link href="/ket-qua-xo-so-mien-trung" className={styles.nav_itemLink}>
-                                        XSMT
-                                    </Link>
-                                    <span className={styles.icon}>
-                                        <FaChevronDown />
-                                    </span>
-                                </div>
-                                <ul className={styles.nav__menu}>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/xsmt/xo-so-mien-trung/thu-2">
-                                            Thứ 2
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/xsmt/xo-so-mien-trung/thu-3">
-                                            Thứ 3
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/xsmt/xo-so-mien-trung/thu-4">
-                                            Thứ 4
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/xsmt/xo-so-mien-trung/thu-5">
-                                            Thứ 5
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/xsmt/xo-so-mien-trung/thu-6">
-                                            Thứ 6
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/xsmt/xo-so-mien-trung/thu-7">
-                                            Thứ 7
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/xsmt/xo-so-mien-trung/chu-nhat">
-                                            Chủ Nhật
-                                        </Link>
-                                    </li>
-                                </ul>
-                            </li>
-                            <li
-                                className={`${styles.nav_item} ${router.pathname.startsWith('/thongke') ? styles.active : ''}`}
-                            >
-                                <div className={styles.grouplink}>
-                                    <Link href="/thongke/lo-gan" className={styles.nav_itemLink}>
-                                        Thống kê
-                                    </Link>
-                                    <span className={styles.icon}>
-                                        <FaChevronDown />
-                                    </span>
-                                </div>
-                                <ul className={styles.nav__menu}>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/thongke/lo-gan">
-                                            Thống Kê Logan
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/thongke/giai-dac-biet">
-                                            Thống Kê giải đặc biệt
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/thongke/dau-duoi">
-                                            Thống Kê đầu đuôi loto
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/thongke/giai-dac-biet-tuan">
-                                            Bảng đặc biệt tuần/tháng
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/thongke/Tan-Suat-Lo-to">
-                                            Tần Suất Loto
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/thongke/Tan-Suat-Lo-Cap">
-                                            Tần Suất Lô Cặp
-                                        </Link>
-                                    </li>
-                                </ul>
-                            </li>
-                            <li
-                                className={`${styles.nav_item} ${router.pathname.startsWith('/tao-dan-de-dac-biet') ? styles.active : ''}`}
-                            >
-                                <div className={styles.grouplink}>
-                                    <Link href="/tao-dan-de-dac-biet/" className={styles.nav_itemLink}>
-                                        Tạo Dàn
-                                    </Link>
-                                    <span className={styles.icon}>
-                                        <FaChevronDown />
-                                    </span>
-                                </div>
-                                <ul className={styles.nav__menu}>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/tao-dan-de-dac-biet/">
-                                            Tạo Nhanh Dàn Đặc Biệt
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/taodande/dan-2d/tao-dan-de-2d">
-                                            Tạo Dàn 2D
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/taodande/dan-3d4d/tao-dan-de-3d4d">
-                                            Tạo Dàn 3D-4D
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/taodande/tao-dan-ngau-nhien9x0x/">
-                                            Tạo Dàn 9X0X Ngẫu Nhiên
-                                        </Link>
-                                    </li>
-                                </ul>
-                            </li>
-                            <li
-                                className={`${styles.nav_item} ${router.pathname.startsWith('/tin-tuc') ? styles.active : ''}`}
-                            >
-                                <div className={styles.grouplink}>
-                                    <Link href="/tin-tuc" className={styles.nav_itemLink}>
-                                        Tin Tức
-                                    </Link>
-                                    <span className={styles.icon}>
-                                        <FaChevronDown />
-                                    </span>
-                                </div>
-                                <ul className={styles.nav__menu}>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="#">
-                                            Bóng Đá Mới Nhất
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="#">
-                                            Đời Sống
-                                        </Link>
-                                    </li>
-                                </ul>
-                            </li>
-                            <li
-                                className={`${styles.nav_item} ${router.pathname === '/soicau/soi-cau-mien-bac' ? styles.active : ''}`}
-                            >
-                                <div className={styles.grouplink}>
-                                    <Link href="/soicau/soi-cau-mien-bac" className={styles.nav_itemLink}>
-                                        Soi Cầu
-                                    </Link>
-                                    <span className={styles.icon}>
-                                        <FaChevronDown />
-                                    </span>
-                                </div>
-                                <ul className={styles.nav__menu}>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/soicau/soi-cau-mien-bac">
-                                            Soi Cầu Miền Bắc
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="/soicau/soi-cau-mien-trung">
-                                            Soi Cầu Miền Trung
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link className={styles.nav_menuLink} href="#">
-                                            Soi Cầu Miền Nam
-                                        </Link>
-                                    </li>
-                                </ul>
-                            </li>
-
-                            {/* <li
-                                className={`${styles.nav_item} ${status === 'authenticated' ? router.pathname === '/dang-bai-viet' : router.pathname === '/login' ? styles.active : ''}`}
-                            >
-                                <Link
-                                    href={status === 'authenticated' ? '/dang-bai-viet' : '/login'}
-                                    className={styles.nav_itemLink}
-                                >
-                                    <span>
-                                        {status === 'authenticated' ? <FaPenSquare /> : <FaUserPlus />}
-                                    </span>
-                                    {status === 'authenticated' ? 'Đăng bài' : ''}
-                                </Link>
-                            </li> */}
+                            ))}
                         </ul>
                     </div>
-                    {/* <UserAvatar /> */}
                 </nav>
             </div>
+
+            {/* Tối ưu: Loading indicator khi đang navigate */}
+            {isNavigating && (
+                <div className={styles.navigationLoading}>
+                    <div className={styles.loadingSpinner}></div>
+                </div>
+            )}
         </div>
     );
 };

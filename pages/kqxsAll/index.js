@@ -7,6 +7,7 @@ import React from 'react';
 import LiveResult from './LiveResult';
 import { useInView } from 'react-intersection-observer';
 import { useLottery } from '../../contexts/LotteryContext';
+import { cacheStrategy } from '../../utils/cacheStrategy';
 
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // Cache 24 giờ
 const LIVE_CACHE_DURATION = 40 * 60 * 1000; // Cache 40 phút cho live data
@@ -481,6 +482,18 @@ const KQXS = (props) => {
             const isAfterUpdateWindow = vietnamHours > testhour || (vietnamHours === testhour && vietnamMinutes > 33);
             const isPostLiveWindow = vietnamHours > testhour || (vietnamHours === testhour && vietnamMinutes > 33);
 
+            // THÊM: Kiểm tra cache strategy trước
+            if (!forceRefresh) {
+                const { data: cachedData, source } = cacheStrategy.loadData();
+                if (cachedData && cacheStrategy.isDataFresh(cachedData)) {
+                    console.log(`📦 Using cached data from: ${source}`);
+                    const formattedData = formatDataForIndex(cachedData);
+                    setData(formattedData);
+                    setLoading(false);
+                    return;
+                }
+            }
+
             // Kiểm tra cache
             const cachedData = localStorage.getItem(CACHE_KEY);
             const cachedTime = localStorage.getItem(`${CACHE_KEY}_time`);
@@ -710,7 +723,7 @@ const KQXS = (props) => {
         hour: testhour, // 18h - múi giờ Việt Nam (UTC+7)
         startMinute: testminutes, // 18h10 - Bắt đầu live window
         endMinute: 33, // 18h34 - Kết thúc live window
-        duration: 23 * 60 * 1000, // 24 phút
+        duration: 2 * 60 * 1000, // 24 phút
         scraperTriggerMinute: 14, // 18h23 - Trigger scraper
     };
 
@@ -780,7 +793,13 @@ const KQXS = (props) => {
                 // ✅ TỐI ƯU: Clear cache khi LiveResult ẩn đi - ĐÂY LÀ CƠ CHẾ DUY NHẤT
                 if (wasLiveWindow && !isLive && wasLiveWindow !== undefined && !cacheClearedForLiveWindow) {
                     console.log('🔄 LiveResult ẩn đi - Clear cache để hiển thị kết quả mới');
-                    clearCacheForToday();
+
+                    // THÊM: Finalize live data khi live window kết thúc
+                    const { data: liveData } = cacheStrategy.loadData();
+                    if (liveData && liveData.isLive) {
+                        cacheStrategy.cacheCompleteData(liveData);
+                    }
+
                     setTimeout(() => {
                         if (isActive && fetchDataRef.current) {
                             console.log('🔄 Force refresh sau khi clear cache');
@@ -926,13 +945,43 @@ const KQXS = (props) => {
     const endIndex = useMemo(() => startIndex + itemsPerPage, [startIndex]);
     const currentData = useMemo(() => data.slice(startIndex, endIndex), [data, startIndex, endIndex]);
 
+    // Helper function để format data cho index.js
+    const formatDataForIndex = useCallback((liveData) => {
+        return [{
+            ...liveData,
+            drawDate: new Date(liveData.drawDate).toLocaleDateString('vi-VN', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+            }),
+            specialPrize: [liveData.specialPrize_0],
+            firstPrize: [liveData.firstPrize_0],
+            secondPrize: [liveData.secondPrize_0, liveData.secondPrize_1],
+            threePrizes: [
+                liveData.threePrizes_0, liveData.threePrizes_1, liveData.threePrizes_2,
+                liveData.threePrizes_3, liveData.threePrizes_4, liveData.threePrizes_5,
+            ],
+            fourPrizes: [
+                liveData.fourPrizes_0, liveData.fourPrizes_1, liveData.fourPrizes_2, liveData.fourPrizes_3,
+            ],
+            fivePrizes: [
+                liveData.fivePrizes_0, liveData.fivePrizes_1, liveData.fivePrizes_2,
+                liveData.fivePrizes_3, liveData.fivePrizes_4, liveData.fivePrizes_5,
+            ],
+            sixPrizes: [liveData.sixPrizes_0, liveData.sixPrizes_1, liveData.sixPrizes_2],
+            sevenPrizes: [
+                liveData.sevenPrizes_0, liveData.sevenPrizes_1, liveData.sevenPrizes_2, liveData.sevenPrizes_3,
+            ],
+        }];
+    }, []);
+
     // ✅ TỐI ƯU: Cập nhật cache khi liveData đầy đủ - TỐI ƯU CUỐI CÙNG
     useEffect(() => {
         if (isLiveDataComplete && liveData && liveData.drawDate === today) {
             console.log('🔄 Live data complete, cập nhật cache và force refresh');
 
-            // Clear cache cũ ngay lập tức
-            clearCacheForToday();
+            // THÊM: Cache complete data
+            cacheStrategy.cacheCompleteData(liveData);
 
             setData(prevData => {
                 // Loại bỏ dữ liệu cũ của ngày hôm nay và thêm liveData
@@ -993,7 +1042,7 @@ const KQXS = (props) => {
             // Cleanup timeout khi component unmount hoặc liveData thay đổi
             return () => clearTimeout(timeoutId);
         }
-    }, [isLiveDataComplete, liveData, today, CACHE_KEY, clearCacheForToday, getVietnamTimeCached]);
+    }, [isLiveDataComplete, liveData, today, CACHE_KEY, getVietnamTimeCached]);
 
     const handleFilterChange = useCallback((pageKey, value) => {
         setFilterTypes(prev => ({ ...prev, [pageKey]: value }));

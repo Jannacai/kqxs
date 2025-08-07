@@ -8,7 +8,7 @@ import 'moment-timezone';
 import Image from 'next/image';
 import { getSocket, isSocketConnected, addConnectionListener } from '../../../utils/Socket';
 import { isValidObjectId } from '../../../utils/validation';
-import styles from '../../../styles/comment.module.css';
+import styles from '../../../styles/CommentSection.module.css';
 import UserInfoModal from '../modals/UserInfoModal';
 import PrivateChat from '../chatrieng';
 
@@ -245,7 +245,7 @@ export default function CommentSection({ comments = [], session, eventId, setIte
                                 console.log('Comment already exists, skipping:', newComment._id);
                                 return prev;
                             }
-                            
+
                             // Kiểm tra xem có phải comment của chính mình không (để thay thế comment tạm thời)
                             const isOwnComment = userInfo?._id === newComment.userId?._id;
                             if (isOwnComment) {
@@ -257,7 +257,7 @@ export default function CommentSection({ comments = [], session, eventId, setIte
                                     return [newComment, ...filtered];
                                 }
                             }
-                            
+
                             // Thêm comment mới vào đầu array (vì sẽ được sort theo thời gian khi hiển thị)
                             const updatedComments = [newComment, ...prev];
                             console.log('Added new comment, total:', updatedComments.length);
@@ -276,13 +276,13 @@ export default function CommentSection({ comments = [], session, eventId, setIte
                                         ...comment,
                                         replies: (() => {
                                             const existingReplies = comment.replies || [];
-                                            
+
                                             // Kiểm tra xem reply đã tồn tại chưa
                                             if (existingReplies.some(reply => reply._id === newReply._id)) {
                                                 console.log('Reply already exists, skipping:', newReply._id);
                                                 return existingReplies;
                                             }
-                                            
+
                                             // Kiểm tra xem có phải reply của chính mình không (để thay thế reply tạm thời)
                                             const isOwnReply = userInfo?._id === newReply.userId?._id;
                                             if (isOwnReply) {
@@ -294,7 +294,7 @@ export default function CommentSection({ comments = [], session, eventId, setIte
                                                     return [...filtered, newReply];
                                                 }
                                             }
-                                            
+
                                             // Thêm reply mới vào cuối array
                                             const updatedReplies = [...existingReplies, newReply];
                                             console.log('Added new reply to comment:', comment._id, 'total replies:', updatedReplies.length);
@@ -452,11 +452,11 @@ export default function CommentSection({ comments = [], session, eventId, setIte
             setError('Bình luận chứa từ ngữ không phù hợp');
             return;
         }
-        
+
         const commentContent = comment.trim();
         setComment('');
         setError('');
-        
+
         try {
             // Tạo comment tạm thời để hiển thị ngay lập tức
             const tempComment = {
@@ -469,29 +469,29 @@ export default function CommentSection({ comments = [], session, eventId, setIte
                 replies: [],
                 isTemp: true
             };
-            
+
             // Thêm comment tạm thời vào state
             setItem(prev => [tempComment, ...prev]);
-            
+
             console.log('Submitting comment:', commentContent);
             const res = await axios.post(
                 `${API_BASE_URL}/api/events/${eventId}/comments`,
                 { content: commentContent },
                 { headers: { Authorization: `Bearer ${session?.accessToken}` } }
             );
-            
+
             console.log('Comment response:', JSON.stringify(res.data, null, 2));
-            
+
             // Backend trả về { message: '...', event: populatedEvent }
             // Cần lấy comments từ event
             if (res.data.event && res.data.event.comments) {
                 setItem(res.data.event.comments);
             }
-            
+
         } catch (err) {
             console.error('Error submitting comment:', err.message, err.response?.data);
             setError(err.response?.data?.message || 'Đã có lỗi khi gửi bình luận');
-            
+
             // Xóa comment tạm thời nếu gửi thất bại
             setItem(prev => prev.filter(comment => comment._id !== `temp_${Date.now()}`));
         }
@@ -515,12 +515,12 @@ export default function CommentSection({ comments = [], session, eventId, setIte
             setError('Bình luận chứa từ ngữ không phù hợp');
             return;
         }
-        
+
         const replyContent = reply.trim();
         setReply('');
         setReplyingTo(null);
         setError('');
-        
+
         try {
             // Tạo reply tạm thời để hiển thị ngay lập tức
             const tempReply = {
@@ -532,39 +532,39 @@ export default function CommentSection({ comments = [], session, eventId, setIte
                 likes: [],
                 isTemp: true
             };
-            
+
             // Thêm reply tạm thời vào state
-            setItem(prev => 
-                prev.map(comment => 
-                    comment._id === commentId 
+            setItem(prev =>
+                prev.map(comment =>
+                    comment._id === commentId
                         ? { ...comment, replies: [...(comment.replies || []), tempReply] }
                         : comment
                 )
             );
-            
+
             console.log('Submitting reply:', replyContent);
             const res = await axios.post(
                 `${API_BASE_URL}/api/events/${eventId}/comments/${commentId}/reply`,
                 { content: replyContent },
                 { headers: { Authorization: `Bearer ${session?.accessToken}` } }
             );
-            
+
             console.log('Reply response:', JSON.stringify(res.data, null, 2));
-            
+
             // Backend trả về { message: '...', event: populatedEvent }
             // Cần lấy comments từ event
             if (res.data.event && res.data.event.comments) {
                 setItem(res.data.event.comments);
             }
-            
+
         } catch (err) {
             console.error('Error submitting reply:', err.message, err.response?.data);
             setError(err.response?.data?.message || 'Đã có lỗi khi gửi trả lời');
-            
+
             // Xóa reply tạm thời nếu gửi thất bại
-            setItem(prev => 
-                prev.map(comment => 
-                    comment._id === commentId 
+            setItem(prev =>
+                prev.map(comment =>
+                    comment._id === commentId
                         ? { ...comment, replies: (comment.replies || []).filter(reply => reply._id !== `temp_${Date.now()}`) }
                         : comment
                 )
@@ -590,7 +590,7 @@ export default function CommentSection({ comments = [], session, eventId, setIte
             );
             console.log('Like comment response:', JSON.stringify(res.data, null, 2));
             setError('');
-            
+
             // Backend trả về { message: '...', event: populatedEvent }
             // Cần lấy comments từ event
             if (res.data.event && res.data.event.comments) {
@@ -620,7 +620,7 @@ export default function CommentSection({ comments = [], session, eventId, setIte
             );
             console.log('Like reply response:', JSON.stringify(res.data, null, 2));
             setError('');
-            
+
             // Backend trả về { message: '...', event: populatedEvent }
             // Cần lấy comments từ event
             if (res.data.event && res.data.event.comments) {
@@ -653,7 +653,7 @@ export default function CommentSection({ comments = [], session, eventId, setIte
             );
             console.log('Delete reply response:', JSON.stringify(res.data, null, 2));
             setError('');
-            
+
             // Backend trả về { message: '...', event: populatedEvent }
             // Cần lấy comments từ event
             if (res.data.event && res.data.event.comments) {
@@ -686,7 +686,7 @@ export default function CommentSection({ comments = [], session, eventId, setIte
             );
             console.log('Delete comment response:', JSON.stringify(res.data, null, 2));
             setError('');
-            
+
             // Backend trả về { message: '...', event: populatedEvent }
             // Cần lấy comments từ event
             if (res.data.event && res.data.event.comments) {
