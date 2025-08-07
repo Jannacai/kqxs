@@ -98,8 +98,8 @@
 
 .stats {
 	display: flex;
-	gap: 12px;
-	flex-wrap: wrap;
+	gap: 4px;
+	/* flex-wrap: wrap; */
 }
 
 .statItem {
@@ -614,6 +614,7 @@
 
 .inputForm {
 	padding: 6px;
+	margin-bottom: 40px;
 }
 
 .inputWrapper {

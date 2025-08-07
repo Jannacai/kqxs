@@ -723,7 +723,7 @@ const KQXS = (props) => {
         hour: testhour, // 18h - múi giờ Việt Nam (UTC+7)
         startMinute: testminutes, // 18h10 - Bắt đầu live window
         endMinute: 33, // 18h34 - Kết thúc live window
-        duration: 2 * 60 * 1000, // 24 phút
+        duration: 23 * 60 * 1000, // 24 phút
         scraperTriggerMinute: 14, // 18h23 - Trigger scraper
     };
 

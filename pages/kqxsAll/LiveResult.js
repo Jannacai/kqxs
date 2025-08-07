@@ -227,10 +227,10 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
             mountedRef.current = false;
 
             // Cleanup animation timeouts
-                animationTimeoutsRef.current.forEach((timeoutId) => {
-                    clearTimeout(timeoutId);
-                });
-                animationTimeoutsRef.current.clear();
+            animationTimeoutsRef.current.forEach((timeoutId) => {
+                clearTimeout(timeoutId);
+            });
+            animationTimeoutsRef.current.clear();
 
             // Clear animation queues
             animationQueueRef.current.clear();
@@ -260,9 +260,9 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                 if (cachedData && mountedRef.current) {
                     console.log(`📦 Using cached data from: ${source} (${cacheLoadTime.toFixed(2)}ms)`);
                     setXsmbLiveData(cachedData);
-                        setIsXsmbLiveDataComplete(false);
-                        setIsTodayLoading(false);
-                        setError(null);
+                    setIsXsmbLiveDataComplete(false);
+                    setIsTodayLoading(false);
+                    setError(null);
                     return; // Không fetch từ server nếu có cache valid
                 } else {
                     console.log(`🔄 No valid cache found (${cacheLoadTime.toFixed(2)}ms), fetching from server`);
@@ -270,23 +270,23 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
 
                 // Existing logic unchanged
                 const response = await fetch(`https://backendkqxs-1.onrender.com/api/kqxs/${currentStation}/sse/initial?station=${currentStation}&date=${today}`);
-                    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-                    const serverData = await response.json();
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                const serverData = await response.json();
 
-                    if (mountedRef.current) {
+                if (mountedRef.current) {
                     setXsmbLiveData(serverData);
                     setIsXsmbLiveDataComplete(false);
-                        setIsTodayLoading(false);
-                        setError(null);
+                    setIsTodayLoading(false);
+                    setError(null);
 
                     // ✅ TỐI ƯU: Cache data mới với debounce
                     debouncedCache(serverData, false);
                 }
             } catch (error) {
                 console.error('Lỗi fetch initial data:', error);
-                        if (mountedRef.current) {
+                if (mountedRef.current) {
                     setError('Không thể kết nối đến server. Vui lòng thử lại sau.');
-                        setIsTodayLoading(false);
+                    setIsTodayLoading(false);
                 }
             }
         };
@@ -304,13 +304,13 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
             console.log(`📡 Received SSE data for ${currentStation}:`, data);
 
             // Handle individual prize updates - Backend format: { prizeType: value, ... }
-                const prizeTypes = [
+            const prizeTypes = [
                 'firstPrize_0', 'secondPrize_0', 'secondPrize_1',
-                    'threePrizes_0', 'threePrizes_1', 'threePrizes_2', 'threePrizes_3', 'threePrizes_4', 'threePrizes_5',
-                    'fourPrizes_0', 'fourPrizes_1', 'fourPrizes_2', 'fourPrizes_3',
-                    'fivePrizes_0', 'fivePrizes_1', 'fivePrizes_2', 'fivePrizes_3', 'fivePrizes_4', 'fivePrizes_5',
-                    'sixPrizes_0', 'sixPrizes_1', 'sixPrizes_2',
-                    'sevenPrizes_0', 'sevenPrizes_1', 'sevenPrizes_2', 'sevenPrizes_3',
+                'threePrizes_0', 'threePrizes_1', 'threePrizes_2', 'threePrizes_3', 'threePrizes_4', 'threePrizes_5',
+                'fourPrizes_0', 'fourPrizes_1', 'fourPrizes_2', 'fourPrizes_3',
+                'fivePrizes_0', 'fivePrizes_1', 'fivePrizes_2', 'fivePrizes_3', 'fivePrizes_4', 'fivePrizes_5',
+                'sixPrizes_0', 'sixPrizes_1', 'sixPrizes_2',
+                'sevenPrizes_0', 'sevenPrizes_1', 'sevenPrizes_2', 'sevenPrizes_3',
                 'maDB', 'specialPrize_0'
             ];
 
@@ -321,7 +321,7 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
 
                     console.log(`🎯 SSE ${currentStation} - Nhận ${prizeType}:`, {
                         value: value,
-                                    timestamp: new Date().toLocaleTimeString('vi-VN'),
+                        timestamp: new Date().toLocaleTimeString('vi-VN'),
                         isLive: value !== '...' && value !== '***'
                     });
 
@@ -339,8 +339,8 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                     // Trigger animation for new data
                     if (value !== '...' && value !== '***') {
                         console.log(`🎬 SSE ${currentStation} - Bắt đầu animation cho ${prizeType}:`, value);
-                                    setAnimationWithTimeout(prizeType);
-                                }
+                        setAnimationWithTimeout(prizeType);
+                    }
 
                     // Update completion status
                     setIsXsmbLiveDataComplete(false);
@@ -356,9 +356,9 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                 console.log(`📊 SSE ${currentStation} - Nhận kết quả đầy đủ`);
                 setXsmbLiveData(data);
                 setIsXsmbLiveDataComplete(true);
-                            setIsTodayLoading(false);
-                            setRetryCount(0);
-                            setError(null);
+                setIsTodayLoading(false);
+                setRetryCount(0);
+                setError(null);
 
                 // ✅ TỐI ƯU: Cache complete data ngay lập tức (không debounce)
                 // Vì đây là kết quả cuối cùng, cần cache ngay

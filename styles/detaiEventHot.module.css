@@ -446,6 +446,15 @@
 }
 
 /* Comments Section - Đảm bảo hiển thị đầy đủ */
+.commentSectionWrapper {
+	margin: var(--forum-spacing-6) 0 0 0;
+	padding: 0;
+	background: transparent;
+	border-radius: 0;
+	width: 100%;
+	overflow: visible;
+}
+
 .binhluan {
 	margin: var(--forum-spacing-6) 0 0 0;
 	padding: 0;

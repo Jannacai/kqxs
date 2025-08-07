@@ -690,18 +690,18 @@ export default function GroupChat({ session: serverSession }) {
                             </span>
                             {socketConnected ? 'Kết nối' : 'Mất kết nối'}
                         </span>
-                        <span className={styles.statItem}>
+                        {/* <span className={styles.statItem}>
                             <span className={styles.statIcon}>🔗</span>
                             Socket: {socketRef.current?.id ? socketRef.current.id.substring(0, 8) + '...' : 'N/A'}
-                        </span>
-                        <button
+                        </span> */}
+                        {/* <button
                             onClick={fetchMessages}
                             className={styles.refreshButton}
                             disabled={isLoading}
                         >
                             <span className={styles.refreshIcon}>🔄</span>
                             Làm mới
-                        </button>
+                        </button> */}
                     </div>
                 </div>
             </div>

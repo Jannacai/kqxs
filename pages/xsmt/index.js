@@ -869,14 +869,14 @@ const KQXS = (props) => {
             }
             .stationName {
                 font-size: ${fontSizes[size].header};
-                background-color: #e9ecef;
+                // background-color: #e9ecef;
                 font-weight: bold;
                 padding: ${fontSizes[size].cellPadding};
             }
             .tdTitle {
                 font-size: ${fontSizes[size].prizeLabel};
                 font-weight: bold;
-                background-color: #f8f9fa;
+                // background-color: #f8f9fa;
                 padding: ${fontSizes[size].cellPadding};
             }
             .rowXS {
@@ -895,13 +895,13 @@ const KQXS = (props) => {
                 font-size: ${fontSizes[size].specialPrize};
             }
             .g3 {
-                color: #0066cc;
+                // color: #0066cc;
             }
             .footer {
                 text-align: center;
                 margin-top: 5px;
                 font-size: ${fontSizes[size].footer};
-                color: #666;
+                // color: #666;
                 line-height: 1.1;
             }
         }

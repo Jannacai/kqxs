@@ -917,7 +917,7 @@ export default function EventHotNewsDetail() {
 
                         {/* Comments Section */}
                         <section className={forumStyles.contentSection22}>
-                            <div className={styles.binhluan}>
+                            <div className={styles.commentSectionWrapper}>
                                 <CommentSection
                                     comments={item.comments}
                                     session={session}

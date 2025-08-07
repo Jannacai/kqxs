@@ -9,7 +9,7 @@
 	bottom: 0;
 	z-index: 9999;
 	background: var(--forum-bg-secondary);
-	overflow-y: auto;
+	/* overflow-y: auto; */
 	display: block !important;
 	visibility: visible !important;
 	opacity: 1 !important;
@@ -18,7 +18,7 @@
 }
 
 /* Ẩn layout chính khi vào diễn đàn */
-.forumLayoutWrapper ~ * {
+.forumLayoutWrapper~* {
 	display: none !important;
 }
 
@@ -141,11 +141,9 @@
 	font-weight: 700;
 	color: var(--forum-primary-color);
 	margin: 0;
-	background: linear-gradient(
-		135deg,
-		var(--forum-primary-color),
-		var(--forum-secondary-color)
-	);
+	background: linear-gradient(135deg,
+			var(--forum-primary-color),
+			var(--forum-secondary-color));
 	-webkit-background-clip: text;
 	-webkit-text-fill-color: transparent;
 	background-clip: text;
@@ -184,9 +182,7 @@
 /* Main Layout */
 .mainLayout {
 	display: grid;
-	grid-template-columns: var(--forum-sidebar-width) 1fr var(
-			--forum-right-sidebar-width
-		);
+	grid-template-columns: var(--forum-sidebar-width) 1fr var(--forum-right-sidebar-width);
 	gap: var(--forum-spacing-6);
 	max-width: 1800px;
 	margin: 0 auto;
@@ -303,12 +299,10 @@
 	left: -100%;
 	width: 100%;
 	height: 100%;
-	background: linear-gradient(
-		90deg,
-		transparent,
-		rgba(74, 222, 128, 0.1),
-		transparent
-	);
+	background: linear-gradient(90deg,
+			transparent,
+			rgba(74, 222, 128, 0.1),
+			transparent);
 	transition: left 0.5s ease;
 }
 
@@ -323,11 +317,9 @@
 }
 
 .navButton.active {
-	background: linear-gradient(
-		135deg,
-		var(--forum-primary-color),
-		var(--forum-primary-light)
-	);
+	background: linear-gradient(135deg,
+			var(--forum-primary-color),
+			var(--forum-primary-light));
 	color: white;
 	box-shadow: var(--forum-shadow-md);
 }
@@ -410,11 +402,9 @@
 
 .rightSidebarHeader {
 	padding: var(--forum-spacing-4) var(--forum-spacing-5);
-	background: linear-gradient(
-		135deg,
-		var(--accent-blue-500),
-		var(--accent-blue-600)
-	);
+	background: linear-gradient(135deg,
+			var(--accent-blue-500),
+			var(--accent-blue-600));
 	color: white;
 	border-radius: var(--forum-radius-xl) var(--forum-radius-xl) 0 0;
 	border-bottom: 1px solid var(--forum-border-color);
@@ -465,11 +455,9 @@
 	left: 0;
 	right: 0;
 	height: 4px;
-	background: linear-gradient(
-		90deg,
-		var(--forum-primary-color),
-		var(--forum-accent-color)
-	);
+	background: linear-gradient(90deg,
+			var(--forum-primary-color),
+			var(--forum-accent-color));
 }
 
 .contentSection:hover {
@@ -889,11 +877,9 @@
 	text-align: center;
 	color: var(--forum-text-primary);
 	margin-bottom: var(--forum-spacing-8);
-	background: linear-gradient(
-		135deg,
-		var(--forum-primary-color),
-		var(--forum-secondary-color)
-	);
+	background: linear-gradient(135deg,
+			var(--forum-primary-color),
+			var(--forum-secondary-color));
 	-webkit-background-clip: text;
 	-webkit-text-fill-color: transparent;
 	background-clip: text;

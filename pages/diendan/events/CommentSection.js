@@ -6,7 +6,7 @@ import axios from 'axios';
 import moment from 'moment';
 import 'moment-timezone';
 import Image from 'next/image';
-import { getSocket, isSocketConnected, addConnectionListener } from '../../../utils/Socket';
+import { getSocket, isSocketConnected, addConnectionListener, getCurrentSocket, isSocketConnecting, getLastSocketError } from '../../../utils/Socket';
 import { isValidObjectId } from '../../../utils/validation';
 import styles from '../../../styles/CommentSection.module.css';
 import UserInfoModal from '../modals/UserInfoModal';
@@ -206,18 +206,39 @@ export default function CommentSection({ comments = [], session, eventId, setIte
 
         const initializeSocket = async () => {
             try {
-                const socket = await getSocket();
+                // Kiểm tra xem đã có socket instance chưa
+                let socket = getCurrentSocket();
+
+                if (!socket) {
+                    console.log('Creating new Socket.IO connection...');
+                    socket = await getSocket();
+                } else if (socket.connected) {
+                    console.log('Using existing Socket.IO connection:', socket.id);
+                } else {
+                    console.log('Socket exists but not connected, waiting for connection...');
+                }
+
                 if (!mountedRef.current) return;
 
                 socketRef.current = socket;
-                setSocketConnected(true);
+                setSocketConnected(socket.connected);
 
                 // Thêm connection listener
                 const removeListener = addConnectionListener((connected) => {
                     if (mountedRef.current) {
                         setSocketConnected(connected);
+                        if (connected) {
+                            console.log('Socket.IO reconnected, joining event:', eventId);
+                            socket.emit('joinEvent', eventId);
+                        }
                     }
                 });
+
+                // Nếu đã kết nối, join event ngay lập tức
+                if (socket.connected) {
+                    console.log('Socket.IO already connected, joining event:', eventId);
+                    socket.emit('joinEvent', eventId);
+                }
 
                 socket.on('connect', () => {
                     console.log('Socket.IO connected for comments:', socket.id);
@@ -241,7 +262,7 @@ export default function CommentSection({ comments = [], session, eventId, setIte
                     if (mountedRef.current && newComment.eventId === eventId) {
                         setItem((prev) => {
                             // Kiểm tra xem comment đã tồn tại chưa
-                            if (prev.some((comment) => comment._id === newComment._id)) {
+                            if (prev.comments && prev.comments.some((comment) => comment._id === newComment._id)) {
                                 console.log('Comment already exists, skipping:', newComment._id);
                                 return prev;
                             }
@@ -250,115 +271,132 @@ export default function CommentSection({ comments = [], session, eventId, setIte
                             const isOwnComment = userInfo?._id === newComment.userId?._id;
                             if (isOwnComment) {
                                 // Tìm và thay thế comment tạm thời
-                                const hasTempComment = prev.some(comment => comment.isTemp && comment.content === newComment.content);
+                                const hasTempComment = prev.comments && prev.comments.some(comment => comment.isTemp && comment.content === newComment.content);
                                 if (hasTempComment) {
                                     console.log('Replacing temp comment with real comment:', newComment._id);
-                                    const filtered = prev.filter(comment => !(comment.isTemp && comment.content === newComment.content));
-                                    return [newComment, ...filtered];
+                                    const filtered = prev.comments.filter(comment => !(comment.isTemp && comment.content === newComment.content));
+                                    return { ...prev, comments: [newComment, ...filtered] };
                                 }
                             }
 
-                            // Thêm comment mới vào đầu array (vì sẽ được sort theo thời gian khi hiển thị)
-                            const updatedComments = [newComment, ...prev];
-                            console.log('Added new comment, total:', updatedComments.length);
-                            return updatedComments;
+                            // Thêm comment mới vào đầu array
+                            const updatedComments = prev.comments ? [newComment, ...prev.comments] : [newComment];
+                            console.log('Added new comment for event:', eventId, 'total:', updatedComments.length);
+                            return { ...prev, comments: updatedComments };
                         });
                     }
                 });
 
                 socket.on('NEW_REPLY', (newReply) => {
                     console.log('Received NEW_REPLY:', JSON.stringify(newReply, null, 2));
-                    if (mountedRef.current) {
+                    if (mountedRef.current && newReply.eventId === eventId) {
                         setItem((prev) =>
-                            prev.map((comment) =>
-                                comment._id === newReply.commentId
-                                    ? {
-                                        ...comment,
-                                        replies: (() => {
-                                            const existingReplies = comment.replies || [];
+                            prev.comments ? {
+                                ...prev,
+                                comments: prev.comments.map((comment) =>
+                                    comment._id === newReply.commentId
+                                        ? {
+                                            ...comment,
+                                            replies: (() => {
+                                                const existingReplies = comment.replies || [];
 
-                                            // Kiểm tra xem reply đã tồn tại chưa
-                                            if (existingReplies.some(reply => reply._id === newReply._id)) {
-                                                console.log('Reply already exists, skipping:', newReply._id);
-                                                return existingReplies;
-                                            }
-
-                                            // Kiểm tra xem có phải reply của chính mình không (để thay thế reply tạm thời)
-                                            const isOwnReply = userInfo?._id === newReply.userId?._id;
-                                            if (isOwnReply) {
-                                                // Tìm và thay thế reply tạm thời
-                                                const hasTempReply = existingReplies.some(reply => reply.isTemp && reply.content === newReply.content);
-                                                if (hasTempReply) {
-                                                    console.log('Replacing temp reply with real reply:', newReply._id);
-                                                    const filtered = existingReplies.filter(reply => !(reply.isTemp && reply.content === newReply.content));
-                                                    return [...filtered, newReply];
+                                                // Kiểm tra xem reply đã tồn tại chưa
+                                                if (existingReplies.some(reply => reply._id === newReply._id)) {
+                                                    console.log('Reply already exists, skipping:', newReply._id);
+                                                    return existingReplies;
                                                 }
-                                            }
 
-                                            // Thêm reply mới vào cuối array
-                                            const updatedReplies = [...existingReplies, newReply];
-                                            console.log('Added new reply to comment:', comment._id, 'total replies:', updatedReplies.length);
-                                            return updatedReplies;
-                                        })()
-                                    }
-                                    : comment
-                            )
+                                                // Kiểm tra xem có phải reply của chính mình không (để thay thế reply tạm thời)
+                                                const isOwnReply = userInfo?._id === newReply.userId?._id;
+                                                if (isOwnReply) {
+                                                    // Tìm và thay thế reply tạm thời
+                                                    const hasTempReply = existingReplies.some(reply => reply.isTemp && reply.content === newReply.content);
+                                                    if (hasTempReply) {
+                                                        console.log('Replacing temp reply with real reply:', newReply._id);
+                                                        const filtered = existingReplies.filter(reply => !(reply.isTemp && reply.content === newReply.content));
+                                                        return [...filtered, newReply];
+                                                    }
+                                                }
+
+                                                // Thêm reply mới vào cuối array
+                                                const updatedReplies = [...existingReplies, newReply];
+                                                console.log('Added new reply to comment:', comment._id, 'for event:', eventId, 'total replies:', updatedReplies.length);
+                                                return updatedReplies;
+                                            })()
+                                        }
+                                        : comment
+                                )
+                            } : prev
                         );
                     }
                 });
 
                 socket.on('COMMENT_LIKED', (data) => {
                     console.log('Received COMMENT_LIKED:', data);
-                    if (mountedRef.current) {
+                    if (mountedRef.current && data.eventId === eventId) {
                         setItem((prev) =>
-                            prev.map((comment) =>
-                                comment._id === data.commentId
-                                    ? { ...comment, likes: data.likes, isLiked: data.isLiked }
-                                    : comment
-                            )
+                            prev.comments ? {
+                                ...prev,
+                                comments: prev.comments.map((comment) =>
+                                    comment._id === data.commentId
+                                        ? { ...comment, likes: data.likes, isLiked: data.isLiked }
+                                        : comment
+                                )
+                            } : prev
                         );
                     }
                 });
 
                 socket.on('REPLY_LIKED', (data) => {
                     console.log('Received REPLY_LIKED:', data);
-                    if (mountedRef.current) {
+                    if (mountedRef.current && data.eventId === eventId) {
                         setItem((prev) =>
-                            prev.map((comment) =>
-                                comment._id === data.commentId
-                                    ? {
-                                        ...comment,
-                                        replies: comment.replies.map((reply) =>
-                                            reply._id === data.replyId
-                                                ? { ...reply, likes: data.likes, isLiked: data.isLiked }
-                                                : reply
-                                        ),
-                                    }
-                                    : comment
-                            )
+                            prev.comments ? {
+                                ...prev,
+                                comments: prev.comments.map((comment) =>
+                                    comment._id === data.commentId
+                                        ? {
+                                            ...comment,
+                                            replies: comment.replies.map((reply) =>
+                                                reply._id === data.replyId
+                                                    ? { ...reply, likes: data.likes, isLiked: data.isLiked }
+                                                    : reply
+                                            ),
+                                        }
+                                        : comment
+                                )
+                            } : prev
                         );
                     }
                 });
 
                 socket.on('COMMENT_DELETED', (data) => {
                     console.log('Received COMMENT_DELETED:', data);
-                    if (mountedRef.current) {
-                        setItem((prev) => prev.filter((comment) => comment._id !== data.commentId));
+                    if (mountedRef.current && data.eventId === eventId) {
+                        setItem((prev) =>
+                            prev.comments ? {
+                                ...prev,
+                                comments: prev.comments.filter((comment) => comment._id !== data.commentId)
+                            } : prev
+                        );
                     }
                 });
 
                 socket.on('REPLY_DELETED', (data) => {
                     console.log('Received REPLY_DELETED:', data);
-                    if (mountedRef.current) {
+                    if (mountedRef.current && data.eventId === eventId) {
                         setItem((prev) =>
-                            prev.map((comment) =>
-                                comment._id === data.commentId
-                                    ? {
-                                        ...comment,
-                                        replies: comment.replies.filter((reply) => reply._id !== data.replyId),
-                                    }
-                                    : comment
-                            )
+                            prev.comments ? {
+                                ...prev,
+                                comments: prev.comments.map((comment) =>
+                                    comment._id === data.commentId
+                                        ? {
+                                            ...comment,
+                                            replies: comment.replies.filter((reply) => reply._id !== data.replyId),
+                                        }
+                                        : comment
+                                )
+                            } : prev
                         );
                     }
                 });
@@ -454,13 +492,14 @@ export default function CommentSection({ comments = [], session, eventId, setIte
         }
 
         const commentContent = comment.trim();
+        const tempId = `temp_${Date.now()}`;
         setComment('');
         setError('');
 
         try {
             // Tạo comment tạm thời để hiển thị ngay lập tức
             const tempComment = {
-                _id: `temp_${Date.now()}`,
+                _id: tempId,
                 content: commentContent,
                 userId: { _id: userInfo._id, fullname: userInfo.fullname, role: userInfo.role },
                 createdAt: new Date().toISOString(),
@@ -471,13 +510,22 @@ export default function CommentSection({ comments = [], session, eventId, setIte
             };
 
             // Thêm comment tạm thời vào state
-            setItem(prev => [tempComment, ...prev]);
+            setItem(prev => ({
+                ...prev,
+                comments: [tempComment, ...(prev.comments || [])]
+            }));
 
             console.log('Submitting comment:', commentContent);
             const res = await axios.post(
                 `${API_BASE_URL}/api/events/${eventId}/comments`,
                 { content: commentContent },
-                { headers: { Authorization: `Bearer ${session?.accessToken}` } }
+                {
+                    headers: {
+                        Authorization: `Bearer ${session?.accessToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 15000 // 15 giây timeout
+                }
             );
 
             console.log('Comment response:', JSON.stringify(res.data, null, 2));
@@ -485,15 +533,40 @@ export default function CommentSection({ comments = [], session, eventId, setIte
             // Backend trả về { message: '...', event: populatedEvent }
             // Cần lấy comments từ event
             if (res.data.event && res.data.event.comments) {
-                setItem(res.data.event.comments);
+                setItem(prev => ({
+                    ...prev,
+                    comments: res.data.event.comments
+                }));
             }
 
         } catch (err) {
             console.error('Error submitting comment:', err.message, err.response?.data);
-            setError(err.response?.data?.message || 'Đã có lỗi khi gửi bình luận');
+
+            // Xử lý các loại lỗi khác nhau
+            let errorMessage = 'Đã có lỗi khi gửi bình luận';
+
+            if (err.code === 'ECONNABORTED') {
+                errorMessage = 'Kết nối bị timeout. Vui lòng thử lại.';
+            } else if (err.response?.status === 401) {
+                errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+                router.push('/login');
+            } else if (err.response?.status === 403) {
+                errorMessage = 'Bạn không có quyền gửi bình luận.';
+            } else if (err.response?.status === 429) {
+                errorMessage = 'Bạn đã gửi quá nhiều bình luận. Vui lòng chờ một lúc.';
+            } else if (err.response?.data?.message) {
+                errorMessage = err.response.data.message;
+            } else if (err.message.includes('Network Error')) {
+                errorMessage = 'Lỗi kết nối mạng. Vui lòng kiểm tra kết nối internet.';
+            }
+
+            setError(errorMessage);
 
             // Xóa comment tạm thời nếu gửi thất bại
-            setItem(prev => prev.filter(comment => comment._id !== `temp_${Date.now()}`));
+            setItem(prev => ({
+                ...prev,
+                comments: (prev.comments || []).filter(comment => comment._id !== tempId)
+            }));
         }
     };
 
@@ -534,19 +607,23 @@ export default function CommentSection({ comments = [], session, eventId, setIte
             };
 
             // Thêm reply tạm thời vào state
-            setItem(prev =>
-                prev.map(comment =>
+            setItem(prev => ({
+                ...prev,
+                comments: (prev.comments || []).map(comment =>
                     comment._id === commentId
                         ? { ...comment, replies: [...(comment.replies || []), tempReply] }
                         : comment
                 )
-            );
+            }));
 
             console.log('Submitting reply:', replyContent);
             const res = await axios.post(
                 `${API_BASE_URL}/api/events/${eventId}/comments/${commentId}/reply`,
                 { content: replyContent },
-                { headers: { Authorization: `Bearer ${session?.accessToken}` } }
+                {
+                    headers: { Authorization: `Bearer ${session?.accessToken}` },
+                    timeout: 15000
+                }
             );
 
             console.log('Reply response:', JSON.stringify(res.data, null, 2));
@@ -554,7 +631,10 @@ export default function CommentSection({ comments = [], session, eventId, setIte
             // Backend trả về { message: '...', event: populatedEvent }
             // Cần lấy comments từ event
             if (res.data.event && res.data.event.comments) {
-                setItem(res.data.event.comments);
+                setItem(prev => ({
+                    ...prev,
+                    comments: res.data.event.comments
+                }));
             }
 
         } catch (err) {
@@ -562,13 +642,14 @@ export default function CommentSection({ comments = [], session, eventId, setIte
             setError(err.response?.data?.message || 'Đã có lỗi khi gửi trả lời');
 
             // Xóa reply tạm thời nếu gửi thất bại
-            setItem(prev =>
-                prev.map(comment =>
+            setItem(prev => ({
+                ...prev,
+                comments: (prev.comments || []).map(comment =>
                     comment._id === commentId
                         ? { ...comment, replies: (comment.replies || []).filter(reply => reply._id !== `temp_${Date.now()}`) }
                         : comment
                 )
-            );
+            }));
         }
     };
 
@@ -586,7 +667,10 @@ export default function CommentSection({ comments = [], session, eventId, setIte
             const res = await axios.post(
                 `${API_BASE_URL}/api/events/${eventId}/comments/${commentId}/like`,
                 {},
-                { headers: { Authorization: `Bearer ${session?.accessToken}` } }
+                {
+                    headers: { Authorization: `Bearer ${session?.accessToken}` },
+                    timeout: 15000
+                }
             );
             console.log('Like comment response:', JSON.stringify(res.data, null, 2));
             setError('');
@@ -594,7 +678,10 @@ export default function CommentSection({ comments = [], session, eventId, setIte
             // Backend trả về { message: '...', event: populatedEvent }
             // Cần lấy comments từ event
             if (res.data.event && res.data.event.comments) {
-                setItem(res.data.event.comments);
+                setItem(prev => ({
+                    ...prev,
+                    comments: res.data.event.comments
+                }));
             }
         } catch (err) {
             console.error('Error liking comment:', err.message, err.response?.data);
@@ -616,7 +703,10 @@ export default function CommentSection({ comments = [], session, eventId, setIte
             const res = await axios.post(
                 `${API_BASE_URL}/api/events/${eventId}/comments/${commentId}/replies/${replyId}/like`,
                 {},
-                { headers: { Authorization: `Bearer ${session?.accessToken}` } }
+                {
+                    headers: { Authorization: `Bearer ${session?.accessToken}` },
+                    timeout: 15000
+                }
             );
             console.log('Like reply response:', JSON.stringify(res.data, null, 2));
             setError('');
@@ -624,7 +714,10 @@ export default function CommentSection({ comments = [], session, eventId, setIte
             // Backend trả về { message: '...', event: populatedEvent }
             // Cần lấy comments từ event
             if (res.data.event && res.data.event.comments) {
-                setItem(res.data.event.comments);
+                setItem(prev => ({
+                    ...prev,
+                    comments: res.data.event.comments
+                }));
             }
         } catch (err) {
             console.error('Error liking reply:', err.message, err.response?.data);
@@ -657,7 +750,10 @@ export default function CommentSection({ comments = [], session, eventId, setIte
             // Backend trả về { message: '...', event: populatedEvent }
             // Cần lấy comments từ event
             if (res.data.event && res.data.event.comments) {
-                setItem(res.data.event.comments);
+                setItem(prev => ({
+                    ...prev,
+                    comments: res.data.event.comments
+                }));
             }
         } catch (err) {
             console.error('Error deleting reply:', err.message, err.response?.data);
@@ -690,7 +786,10 @@ export default function CommentSection({ comments = [], session, eventId, setIte
             // Backend trả về { message: '...', event: populatedEvent }
             // Cần lấy comments từ event
             if (res.data.event && res.data.event.comments) {
-                setItem(res.data.event.comments);
+                setItem(prev => ({
+                    ...prev,
+                    comments: res.data.event.comments
+                }));
             }
         } catch (err) {
             console.error('Error deleting comment:', err.message, err.response?.data);
@@ -714,9 +813,25 @@ export default function CommentSection({ comments = [], session, eventId, setIte
         : [];
 
     return (
-        <div>
-            <div className={styles.commentForm}>
-                <h3>Bình luận</h3>
+        <div className={styles.commentContainer}>
+            {/* Comment Form Section */}
+            <div className={styles.commentFormSection}>
+                <div className={styles.commentHeader}>
+                    <h3 className={styles.commentTitle}>
+                        <i className="fa-solid fa-comments"></i> Bình luận ({sortedComments.length})
+                    </h3>
+                    <div className={styles.connectionStatus}>
+                        {socketConnected ? (
+                            <span className={styles.connected}>
+                                <i className="fa-solid fa-wifi"></i> Kết nối thời gian thực
+                            </span>
+                        ) : (
+                            <span className={styles.disconnected}>
+                                <i className="fa-solid fa-wifi-slash"></i> Mất kết nối
+                            </span>
+                        )}
+                    </div>
+                </div>
                 {session ? (
                     <form onSubmit={handleCommentSubmit} className={styles.commentForm}>
                         <div className={styles.inputWrapper}>
@@ -731,9 +846,9 @@ export default function CommentSection({ comments = [], session, eventId, setIte
                                 {comment.length}/1000
                             </span>
                         </div>
-                        <div className={styles.GroupsubmitButton}>
+                        <div className={styles.submitButtonGroup}>
                             <button type="submit" className={styles.submitButton}>
-                                <i className="fa-solid fa-paper-plane"></i> Gửi
+                                <i className="fa-solid fa-paper-plane"></i> Gửi bình luận
                             </button>
                         </div>
                     </form>
@@ -741,267 +856,290 @@ export default function CommentSection({ comments = [], session, eventId, setIte
                     <div className={styles.loginPrompt}>
                         <p>Vui lòng đăng nhập để bình luận.</p>
                         <button onClick={handleLoginRedirect} className={styles.loginButton}>
-                            Đăng nhập
+                            <i className="fa-solid fa-sign-in-alt"></i> Đăng nhập
                         </button>
                     </div>
                 )}
             </div>
+
+            {/* Comments List Section */}
             <div className={styles.commentSection} ref={commentsContainerRef}>
                 {error && <p className={styles.error}>{error}</p>}
-                {isLoadingUsers && <p>Đang tải thông tin người dùng...</p>}
+                {isLoadingUsers && <p className={styles.loading}>Đang tải thông tin người dùng...</p>}
                 {sortedComments.length === 0 ? (
-                    <p>Chưa có bình luận nào</p>
+                    <div className={styles.noComments}>
+                        <i className="fa-solid fa-comment-slash"></i>
+                        <p>Chưa có bình luận nào</p>
+                    </div>
                 ) : (
-                    sortedComments.map((comment) => {
-                        const displayUser = usersCache[comment.userId?._id] || comment.userId || { titles: [], role: null };
-                        const isLiked = session && comment.likes?.includes(userInfo?._id);
-                        const sortedReplies = (comment.replies || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-                        const isExpanded = !!expandedReplies[comment._id];
-                        const visibleReplies = isExpanded ? sortedReplies : sortedReplies.slice(0, 1);
-                        const remainingReplies = sortedReplies.length - visibleReplies.length;
+                    <div className={styles.commentsList}>
+                        {sortedComments.map((comment) => {
+                            const displayUser = usersCache[comment.userId?._id] || comment.userId || { titles: [], role: null };
+                            const isLiked = session && comment.likes?.includes(userInfo?._id);
+                            const sortedReplies = (comment.replies || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                            const isExpanded = !!expandedReplies[comment._id];
+                            const visibleReplies = isExpanded ? sortedReplies : sortedReplies.slice(0, 1);
+                            const remainingReplies = sortedReplies.length - visibleReplies.length;
 
-                        return (
-                            <div key={comment._id} className={styles.commentWrapper}>
-                                <div className={styles.commentHeader}>
-                                    <div
-                                        className={`${styles.avatar} ${getAvatarClass(displayUser?.role)}`}
-                                        onClick={() => handleShowDetails(displayUser)}
-                                        style={{ cursor: 'pointer' }}
-                                        role="button"
-                                        aria-label={`Xem chi tiết ${getDisplayName(displayUser?.fullname || 'User')}`}
-                                    >
-                                        {displayUser?.img ? (
-                                            <Image
-                                                src={displayUser.img}
-                                                alt={getDisplayName(displayUser?.fullname || 'User')}
-                                                className={styles.avatarImage}
-                                                width={40}
-                                                height={40}
-                                                onError={(e) => {
-                                                    e.target.style.display = 'none';
-                                                    e.target.nextSibling.style.display = 'flex';
-                                                    e.target.nextSibling.textContent = getInitials(displayUser?.fullname || 'User');
-                                                }}
-                                            />
-                                        ) : (
-                                            <span>{getInitials(displayUser?.fullname || 'User')}</span>
-                                        )}
-                                    </div>
-                                    <div className={styles.commentInfo}>
-                                        <span
-                                            className={`${styles.username} ${getAvatarClass(displayUser?.role)}`}
+                            return (
+                                <div key={comment._id} className={styles.commentWrapper}>
+                                    {/* Comment Header */}
+                                    <div className={styles.commentHeader}>
+                                        <div
+                                            className={`${styles.avatar} ${getAvatarClass(displayUser?.role)}`}
                                             onClick={() => handleShowDetails(displayUser)}
                                             style={{ cursor: 'pointer' }}
                                             role="button"
                                             aria-label={`Xem chi tiết ${getDisplayName(displayUser?.fullname || 'User')}`}
                                         >
-                                            {getDisplayName(displayUser?.fullname || 'User')}
-                                        </span>
-                                        {displayUser?.role && (
-                                            <span
-                                                className={`${styles.role} ${getAvatarClass(displayUser.role)}`}
-                                            >
-                                                {displayUser.role}
-                                            </span>
-                                        )}
-                                        <span className={styles.roless}>
-                                            {displayUser?.titles?.length > 0 ? displayUser.titles.join(', ') : 'Chưa có danh hiệu'}
-                                        </span>
-                                        <span className={styles.level}>
-                                            Cấp {displayUser?.level ?? 'N/A'}
-                                        </span>
-                                        <span className={styles.points}>
-                                            {displayUser?.points ?? 0} điểm
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className={styles.comment}>
-                                    <p className={styles.commentMeta}>
-                                        <i className="fa-solid fa-clock"></i> Gửi lúc: {moment.tz(comment.createdAt, 'Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm:ss')}
-                                    </p>
-                                    <p className={styles.commentContent}>{comment.content}</p>
-                                    <div className={styles.commentActions}>
-                                        <button
-                                            onClick={() => handleLikeComment(comment._id)}
-                                            disabled={!session}
-                                            className={isLiked ? styles.liked : ''}
-                                        >
-                                            <i className="fa-solid fa-heart"></i> {comment.likes?.length || 0} Thích
-                                        </button>
-                                        <button
-                                            onClick={() => setReplyingTo(comment._id)}
-                                            disabled={!session}
-                                        >
-                                            <i className="fa-solid fa-reply"></i> Trả lời
-                                        </button>
-                                        {session && userInfo?.role?.toLowerCase() === 'admin' && (
-                                            <button
-                                                onClick={() => handleDeleteComment(comment._id)}
-                                            >
-                                                <i className="fa-solid fa-trash"></i> Xóa
-                                            </button>
-                                        )}
-                                    </div>
-                                    {replyingTo === comment._id && session && (
-                                        <form onSubmit={(e) => handleReplySubmit(e, comment._id)} className={styles.replyForm}>
-                                            <div className={styles.inputWrapper}>
-                                                <textarea
-                                                    value={reply}
-                                                    onChange={handleReplyChange}
-                                                    placeholder="Nhập câu trả lời của bạn...(chú ý: bình luận sẽ bị xóa nếu sử dụng từ ngữ thô tục)"
-                                                    className={styles.commentInput}
-                                                    maxLength={1000}
+                                            {displayUser?.img ? (
+                                                <Image
+                                                    src={displayUser.img}
+                                                    alt={getDisplayName(displayUser?.fullname || 'User')}
+                                                    className={styles.avatarImage}
+                                                    width={40}
+                                                    height={40}
+                                                    onError={(e) => {
+                                                        e.target.style.display = 'none';
+                                                        e.target.nextSibling.style.display = 'flex';
+                                                        e.target.nextSibling.textContent = getInitials(displayUser?.fullname || 'User');
+                                                    }}
                                                 />
-                                                <span className={styles.charCount}>
-                                                    {reply.length}/1000
-                                                </span>
-                                            </div>
-                                            <div className={styles.GroupsubmitButton}>
-                                                <button type="submit" className={styles.submitButton}>
-                                                    <i className="fa-solid fa-paper-plane"></i> Gửi trả lời
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setReplyingTo(null)}
-                                                    className={styles.cancelButton}
-                                                >
-                                                    <i className="fa-solid fa-x"></i> Hủy
-                                                </button>
-                                            </div>
-                                        </form>
-                                    )}
-                                    {sortedReplies.length > 0 && (
-                                        <div
-                                            className={styles.replies}
-                                            ref={(el) => (repliesContainerRefs.current[comment._id] = el)}
-                                        >
-                                            {sortedReplies.length > 1 && (
-                                                <div className={styles.replyToggle}>
-                                                    {isExpanded ? (
-                                                        <button
-                                                            onClick={() => toggleReplies(comment._id)}
-                                                            className={styles.toggleButton}
-                                                        >
-                                                            <i className="fa-solid fa-chevron-up"></i> Thu gọn
-                                                        </button>
-                                                    ) : (
-                                                        <button
-                                                            onClick={() => toggleReplies(comment._id)}
-                                                            className={styles.toggleButton}
-                                                        >
-                                                            <i className="fa-solid fa-chevron-down"></i> Xem thêm phản hồi ({remainingReplies})
-                                                        </button>
-                                                    )}
-                                                </div>
+                                            ) : (
+                                                <span>{getInitials(displayUser?.fullname || 'User')}</span>
                                             )}
-                                            {visibleReplies.map((reply) => {
-                                                const replyUserId = typeof reply.userId === 'object' ? reply.userId?._id : reply.userId;
-                                                const replyUser = usersCache[replyUserId] || { fullname: 'User', role: null, img: null, titles: [] };
-                                                const isReplyLiked = session && reply.likes?.includes(userInfo?._id);
-                                                console.log('Rendering reply:', reply._id, 'replyUser:', replyUser);
-                                                return (
-                                                    <div key={reply._id} className={styles.replyWrapper}>
-                                                        <p className={styles.commentMeta}>
-                                                            <i className="fa-solid fa-clock"></i> Gửi lúc: {moment.tz(reply.createdAt, 'Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm:ss')}
-                                                        </p>
-                                                        <div className={styles.commentHeaders}>
-                                                            <div
-                                                                className={`${styles.avatar} ${getAvatarClass(replyUser?.role)}`}
-                                                                onClick={() => handleShowDetails(replyUser)}
-                                                                style={{ cursor: 'pointer' }}
-                                                                role="button"
-                                                                aria-label={`Xem chi tiết ${getDisplayName(replyUser?.fullname || 'User')}`}
-                                                            >
-                                                                {replyUser?.img ? (
-                                                                    <Image
-                                                                        src={replyUser.img}
-                                                                        alt={getDisplayName(replyUser?.fullname || 'User')}
-                                                                        className={styles.avatarImage}
-                                                                        width={24}
-                                                                        height={24}
-                                                                        onError={(e) => {
-                                                                            e.target.style.display = 'none';
-                                                                            e.target.nextSibling.style.display = 'flex';
-                                                                            e.target.nextSibling.textContent = getInitials(replyUser?.fullname || 'User');
-                                                                        }}
-                                                                    />
-                                                                ) : (
-                                                                    <span>{getInitials(replyUser?.fullname || 'User')}</span>
-                                                                )}
-                                                            </div>
-                                                            <div className={styles.commentInfos}>
-                                                                <span
-                                                                    className={`${styles.username} ${getAvatarClass(replyUser?.role)}`}
-                                                                    onClick={() => handleShowDetails(replyUser)}
-                                                                    style={{ cursor: 'pointer' }}
-                                                                    role="button"
-                                                                    aria-label={`Xem chi tiết ${getDisplayName(replyUser?.fullname || 'User')}`}
-                                                                >
-                                                                    {getDisplayName(replyUser?.fullname || 'User')}
-                                                                </span>
-                                                            </div>
-                                                            {replyUser?.role && (
-                                                                <span
-                                                                    className={`${styles.role} ${getAvatarClass(replyUser?.role)}`}
-                                                                >
-                                                                    {replyUser.role}
-                                                                </span>
-                                                            )}
-                                                            <span className={styles.roless}>
-                                                                {replyUser?.titles?.length > 0 ? replyUser.titles.join(', ') : 'Chưa có danh hiệu'}
-                                                            </span>
-                                                        </div>
-                                                        <p className={styles.commentContent}>{reply.content}</p>
-                                                        <div className={styles.replyActions}>
-                                                            <button
-                                                                onClick={() => handleLikeReply(comment._id, reply._id)}
-                                                                disabled={!session}
-                                                                className={isReplyLiked ? styles.liked : ''}
-                                                            >
-                                                                <i className="fa-solid fa-heart"></i> {reply.likes?.length || 0} Thích
-                                                            </button>
-                                                            {session && userInfo?.role?.toLowerCase() === 'admin' && (
-                                                                <button
-                                                                    onClick={() => handleDeleteReply(comment._id, reply._id)}
-                                                                >
-                                                                    <i className="fa-solid fa-trash"></i> Xóa
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
                                         </div>
-                                    )}
+                                        <div className={styles.commentInfo}>
+                                            <div className={styles.userInfo}>
+                                                <span
+                                                    className={`${styles.username} ${getAvatarClass(displayUser?.role)}`}
+                                                    onClick={() => handleShowDetails(displayUser)}
+                                                    style={{ cursor: 'pointer' }}
+                                                    role="button"
+                                                    aria-label={`Xem chi tiết ${getDisplayName(displayUser?.fullname || 'User')}`}
+                                                >
+                                                    {getDisplayName(displayUser?.fullname || 'User')}
+                                                </span>
+                                                {displayUser?.role && (
+                                                    <span className={`${styles.role} ${getAvatarClass(displayUser.role)}`}>
+                                                        {displayUser.role}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className={styles.userStats}>
+                                                <span className={styles.titles}>
+                                                    {displayUser?.titles?.length > 0 ? displayUser.titles.join(', ') : 'Chưa có danh hiệu'}
+                                                </span>
+                                                <span className={styles.level}>Cấp {displayUser?.level ?? 'N/A'}</span>
+                                                <span className={styles.points}>{displayUser?.points ?? 0} điểm</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Comment Content */}
+                                    <div className={styles.commentContent}>
+                                        <p className={styles.commentMeta}>
+                                            <i className="fa-solid fa-clock"></i>
+                                            {moment.tz(comment.createdAt, 'Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm:ss')}
+                                        </p>
+                                        <p className={styles.commentText}>{comment.content}</p>
+
+                                        {/* Comment Actions */}
+                                        <div className={styles.commentActions}>
+                                            <button
+                                                onClick={() => handleLikeComment(comment._id)}
+                                                disabled={!session}
+                                                className={`${styles.actionButton} ${isLiked ? styles.liked : ''}`}
+                                            >
+                                                <i className="fa-solid fa-heart"></i>
+                                                {comment.likes?.length || 0} Thích
+                                            </button>
+                                            <button
+                                                onClick={() => setReplyingTo(comment._id)}
+                                                disabled={!session}
+                                                className={styles.actionButton}
+                                            >
+                                                <i className="fa-solid fa-reply"></i> Trả lời
+                                            </button>
+                                            {session && userInfo?.role?.toLowerCase() === 'admin' && (
+                                                <button
+                                                    onClick={() => handleDeleteComment(comment._id)}
+                                                    className={`${styles.actionButton} ${styles.deleteButton}`}
+                                                >
+                                                    <i className="fa-solid fa-trash"></i> Xóa
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {/* Reply Form */}
+                                        {replyingTo === comment._id && session && (
+                                            <form onSubmit={(e) => handleReplySubmit(e, comment._id)} className={styles.replyForm}>
+                                                <div className={styles.inputWrapper}>
+                                                    <textarea
+                                                        value={reply}
+                                                        onChange={handleReplyChange}
+                                                        placeholder="Nhập câu trả lời của bạn...(chú ý: bình luận sẽ bị xóa nếu sử dụng từ ngữ thô tục)"
+                                                        className={styles.commentInput}
+                                                        maxLength={1000}
+                                                    />
+                                                    <span className={styles.charCount}>
+                                                        {reply.length}/1000
+                                                    </span>
+                                                </div>
+                                                <div className={styles.submitButtonGroup}>
+                                                    <button type="submit" className={styles.submitButton}>
+                                                        <i className="fa-solid fa-paper-plane"></i> Gửi trả lời
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setReplyingTo(null)}
+                                                        className={styles.cancelButton}
+                                                    >
+                                                        <i className="fa-solid fa-x"></i> Hủy
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        )}
+
+                                        {/* Replies Section */}
+                                        {sortedReplies.length > 0 && (
+                                            <div className={styles.repliesSection}>
+                                                {sortedReplies.length > 1 && (
+                                                    <div className={styles.replyToggle}>
+                                                        {isExpanded ? (
+                                                            <button
+                                                                onClick={() => toggleReplies(comment._id)}
+                                                                className={styles.toggleButton}
+                                                            >
+                                                                <i className="fa-solid fa-chevron-up"></i> Thu gọn
+                                                            </button>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => toggleReplies(comment._id)}
+                                                                className={styles.toggleButton}
+                                                            >
+                                                                <i className="fa-solid fa-chevron-down"></i>
+                                                                Xem thêm phản hồi ({remainingReplies})
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                <div className={styles.repliesList}>
+                                                    {visibleReplies.map((reply) => {
+                                                        const replyUserId = typeof reply.userId === 'object' ? reply.userId?._id : reply.userId;
+                                                        const replyUser = usersCache[replyUserId] || { fullname: 'User', role: null, img: null, titles: [] };
+                                                        const isReplyLiked = session && reply.likes?.includes(userInfo?._id);
+
+                                                        return (
+                                                            <div key={reply._id} className={styles.replyWrapper}>
+                                                                <div className={styles.replyHeader}>
+                                                                    <div
+                                                                        className={`${styles.avatar} ${getAvatarClass(replyUser?.role)} ${styles.smallAvatar}`}
+                                                                        onClick={() => handleShowDetails(replyUser)}
+                                                                        style={{ cursor: 'pointer' }}
+                                                                        role="button"
+                                                                        aria-label={`Xem chi tiết ${getDisplayName(replyUser?.fullname || 'User')}`}
+                                                                    >
+                                                                        {replyUser?.img ? (
+                                                                            <Image
+                                                                                src={replyUser.img}
+                                                                                alt={getDisplayName(replyUser?.fullname || 'User')}
+                                                                                className={styles.avatarImage}
+                                                                                width={24}
+                                                                                height={24}
+                                                                                onError={(e) => {
+                                                                                    e.target.style.display = 'none';
+                                                                                    e.target.nextSibling.style.display = 'flex';
+                                                                                    e.target.nextSibling.textContent = getInitials(replyUser?.fullname || 'User');
+                                                                                }}
+                                                                            />
+                                                                        ) : (
+                                                                            <span>{getInitials(replyUser?.fullname || 'User')}</span>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className={styles.replyInfo}>
+                                                                        <span
+                                                                            className={`${styles.username} ${getAvatarClass(replyUser?.role)}`}
+                                                                            onClick={() => handleShowDetails(replyUser)}
+                                                                            style={{ cursor: 'pointer' }}
+                                                                            role="button"
+                                                                            aria-label={`Xem chi tiết ${getDisplayName(replyUser?.fullname || 'User')}`}
+                                                                        >
+                                                                            {getDisplayName(replyUser?.fullname || 'User')}
+                                                                        </span>
+                                                                        {replyUser?.role && (
+                                                                            <span className={`${styles.role} ${getAvatarClass(replyUser?.role)}`}>
+                                                                                {replyUser.role}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className={styles.replyContent}>
+                                                                    <p className={styles.replyMeta}>
+                                                                        <i className="fa-solid fa-clock"></i>
+                                                                        {moment.tz(reply.createdAt, 'Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm:ss')}
+                                                                    </p>
+                                                                    <p className={styles.replyText}>{reply.content}</p>
+                                                                    <div className={styles.replyActions}>
+                                                                        <button
+                                                                            onClick={() => handleLikeReply(comment._id, reply._id)}
+                                                                            disabled={!session}
+                                                                            className={`${styles.actionButton} ${isReplyLiked ? styles.liked : ''}`}
+                                                                        >
+                                                                            <i className="fa-solid fa-heart"></i>
+                                                                            {reply.likes?.length || 0} Thích
+                                                                        </button>
+                                                                        {session && userInfo?.role?.toLowerCase() === 'admin' && (
+                                                                            <button
+                                                                                onClick={() => handleDeleteReply(comment._id, reply._id)}
+                                                                                className={`${styles.actionButton} ${styles.deleteButton}`}
+                                                                            >
+                                                                                <i className="fa-solid fa-trash"></i> Xóa
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        );
-                    })
+                            );
+                        })}
+                    </div>
                 )}
                 {fetchError && <p className={styles.error}>{fetchError}</p>}
-                {showModal && selectedUser && (
-                    <UserInfoModal
-                        selectedUser={selectedUser}
-                        setSelectedUser={setSelectedUser}
-                        setShowModal={setShowModal}
-                        openPrivateChat={openPrivateChat}
-                        getAvatarClass={getAvatarClass}
-                        accessToken={session?.accessToken}
+            </div>
+
+            {/* Modals and Private Chats */}
+            {showModal && selectedUser && (
+                <UserInfoModal
+                    selectedUser={selectedUser}
+                    setSelectedUser={setSelectedUser}
+                    setShowModal={setShowModal}
+                    openPrivateChat={openPrivateChat}
+                    getAvatarClass={getAvatarClass}
+                    accessToken={session?.accessToken}
+                />
+            )}
+
+            <div className={styles.privateChatsContainer}>
+                {privateChats.map((chat, index) => (
+                    <PrivateChat
+                        key={chat.receiver._id}
+                        receiver={chat.receiver}
+                        socket={socketRef.current}
+                        onClose={() => closePrivateChat(chat.receiver._id)}
+                        isMinimized={chat.isMinimized}
+                        onToggleMinimize={() => toggleMinimizePrivateChat(chat.receiver._id)}
+                        style={{ right: `${20 + index * 320}px` }}
                     />
-                )}
-                <div className={styles.privateChatsContainer}>
-                    {privateChats.map((chat, index) => (
-                        <PrivateChat
-                            key={chat.receiver._id}
-                            receiver={chat.receiver}
-                            socket={socketRef.current}
-                            onClose={() => closePrivateChat(chat.receiver._id)}
-                            isMinimized={chat.isMinimized}
-                            onToggleMinimize={() => toggleMinimizePrivateChat(chat.receiver._id)}
-                            style={{ right: `${20 + index * 320}px` }}
-                        />
-                    ))}
-                </div>
+                ))}
             </div>
         </div>
     );
