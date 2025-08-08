@@ -15,7 +15,7 @@ const getUserId = () => {
 };
 
 export const apiMB = {
-    getLottery: async (station, date, dayof, pagination = {}) => {
+    getLottery: async (station, urlDate, dayof, pagination = {}) => {
         let url = `${API_BASE_URL}/api/kqxs`;
 
         // ✅ CẢI THIỆN: Logic API call đúng với backend
@@ -25,12 +25,12 @@ export const apiMB = {
                 throw new Error('dayOfWeek cannot be empty');
             }
             url = `${API_BASE_URL}/api/kqxs/xsmb/${dayof}`;
-        } else if (station && date) {
+        } else if (station && urlDate) {
             // Logic theo ngày cụ thể - sử dụng endpoint chính với date parameter
-            if (!station || !date || station.trim() === '' || date.trim() === '') {
+            if (!station || !urlDate || station.trim() === '' || urlDate.trim() === '') {
                 throw new Error('Station and date cannot be empty');
             }
-            url = `${API_BASE_URL}/api/kqxs/xsmb-${date}`;
+            url = `${API_BASE_URL}/api/kqxs/xsmb-${urlDate}`;
         } else {
             // Logic lấy tất cả
             url = `${API_BASE_URL}/api/kqxs/xsmb`;
@@ -43,10 +43,8 @@ export const apiMB = {
             urlParams.append('limit', pagination.limit);
         }
 
-        // ✅ SỬA: Chỉ thêm date parameter nếu không có dayof và URL chưa có date
-        if (date && !dayof && !url.includes('date=')) {
-            urlParams.append('date', date);
-        }
+        // ✅ SỬA: Không thêm urlDate parameter nữa vì đã có trong URL
+        // URL đã có format: /api/kqxs/xsmb-01-08-2025
 
         if (urlParams.toString()) {
             url += `?${urlParams.toString()}`;
@@ -55,7 +53,7 @@ export const apiMB = {
         // ✅ THÊM: Debug log để kiểm tra API call
         console.log('🔍 Debug kqxsMB.js API call:', {
             station,
-            date,
+            urlDate,
             dayof,
             url,
             urlParams: urlParams.toString()

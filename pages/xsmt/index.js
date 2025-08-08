@@ -7,6 +7,7 @@ import LiveResult from './LiveResult';
 import React from 'react';
 import { useLottery } from '../../contexts/LotteryContext';
 import { useInView } from 'react-intersection-observer';
+import TableDate from '../../component/tableDateKQXS';
 
 // Print Button Component - Tối ưu hiệu suất
 const PrintButton = React.memo(({ onPrint, selectedDate }) => {
@@ -1078,6 +1079,22 @@ const KQXS = (props) => {
 
     return (
         <div ref={tableRef} className={styles.containerKQ}>
+            <TableDate />
+            <div className='groupbanner3'>
+                <a href='https://m.dktin.top/reg/104600' tabIndex={-1} aria-label="Quảng cáo">
+                    <video
+                        className='banner3'
+                        src='/banner3.mp4'
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        alt='xổ số bắc trung nam'
+                        loading="lazy"
+                        suppressHydrationWarning
+                    />
+                </a>
+            </div>
             {isLiveMode && isLiveWindow && (
                 <LiveResult
                     station={station}

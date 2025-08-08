@@ -7,6 +7,8 @@ import React from 'react';
 // import LiveResult from './LiveResult';
 import { useInView } from 'react-intersection-observer';
 import { useLottery } from '../../contexts/LotteryContext';
+import TableDate from '../../component/tableDateKQXS';
+
 
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // Cache 24 giờ
 
@@ -462,6 +464,23 @@ const KQXS = (props) => {
 
     return (
         <div className={styles.containerKQ}>
+            <TableDate />
+
+            <div className='groupbanner3'>
+                <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
+                    <video
+                        className='banner3'
+                        src='/banner3.mp4'
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        alt='xổ số bắc trung nam'
+                        loading="lazy"
+                        suppressHydrationWarning
+                    />
+                </a>
+            </div>
             {/* {isLiveMode && isLiveWindow && (
                 <LiveResult
                     station={station}

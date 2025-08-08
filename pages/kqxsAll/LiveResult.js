@@ -9,6 +9,9 @@ import { cacheStrategy } from '../../utils/cacheStrategy';
 // ✅ SIMPLIFIED: Sử dụng SSEManager thay vì globalSSEManager phức tạp
 // SSEManager đã được import và sẽ quản lý tất cả SSE connections
 
+
+// Với mã này nên nghiên cứu logic log unsubcriber và subcriber của nó với SSE. 
+
 // BỔ SUNG: Performance monitoring để theo dõi hiệu suất
 const performanceMonitor = {
     startTime: Date.now(),
@@ -35,6 +38,9 @@ const debugLog = (message, data = null) => {
         console.log(`🔍 XSMB Debug: ${message}`, data);
     }
 };
+
+// TTL ngắn cho snapshot /initial trong khung live
+const INITIAL_CACHE_TTL_MS = 10 * 1000; // 30 giây
 
 // BỔ SUNG: Tối ưu animation performance - di chuyển vào trong component
 const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFilterChange = null, filterTypes = null, isLiveWindow, isModal = false, isForum = false }) => {
@@ -74,6 +80,18 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
         year: 'numeric',
     }).replace(/\//g, '-');
     // ✅ SIMPLIFIED: Không cần các constants phức tạp nữa
+
+    // Guard thời gian live nội bộ (fallback nếu prop isLiveWindow không được truyền)
+    const isWithinLiveWindowLocal = useCallback(() => {
+        const vietTime = getVietnamTime();
+        const hours = vietTime.getHours();
+        const minutes = vietTime.getMinutes();
+        return hours === 18 && minutes >= 10 && minutes <= 33;
+    }, []);
+    // Modal luôn dựa vào kiểm tra thời gian nội bộ để tránh prop sai làm mở SSE ngoài giờ live
+    const inLiveWindow = isModal
+        ? isWithinLiveWindowLocal()
+        : (typeof isLiveWindow === 'boolean' ? isLiveWindow : isWithinLiveWindowLocal());
 
     // BỔ SUNG: Pre-calculated prize digits mapping như XSMT
     const prizeDigits = {
@@ -246,30 +264,46 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
     useEffect(() => {
         if (!setXsmbLiveData || !setIsXsmbLiveDataComplete) return;
 
+        // Guard: Modal ngoài live → KHÔNG mở SSE, KHÔNG gọi /initial (chỉ dùng API /latest ở effect riêng)
+        if (isModal && !inLiveWindow) {
+            console.log('🛑 Modal XSMB ngoài khung live → bỏ qua SSE và /initial, chỉ dùng /latest');
+            return;
+        }
+        // Guard bổ sung: nếu component (dù không phải modal) được mount ngoài live → bỏ qua SSE
+        if (!isModal && !inLiveWindow) {
+            console.log('🛑 Trang XSMB ngoài khung live → bỏ qua SSE (đã có cơ chế hậu-live ở index.js)');
+            return;
+        }
+
         // ✅ SIMPLIFIED: Sử dụng SSEManager thay vì logic phức tạp
         console.log(`🔄 Setting up SSE for ${currentStation} using SSEManager`);
 
-        // Fetch initial data
+        // Fetch initial data (TTL 30s) - chỉ trong live window
         const fetchInitialData = async () => {
             try {
-                // THÊM: Kiểm tra cache trước
+                // 1) Luôn render nhanh từ cache nếu có (resume tức thì), nhưng KHÔNG return sớm
                 const cacheStartTime = performance.now();
-                const { data: cachedData, source } = cacheStrategy.loadData();
+                const { data: cachedData, source, timestamp } = cacheStrategy.loadData();
                 const cacheLoadTime = performance.now() - cacheStartTime;
 
                 if (cachedData && mountedRef.current) {
-                    console.log(`📦 Using cached data from: ${source} (${cacheLoadTime.toFixed(2)}ms)`);
+                    console.log(`📦 Using cached resume data from: ${source} (${cacheLoadTime.toFixed(2)}ms)`);
                     setXsmbLiveData(cachedData);
                     setIsXsmbLiveDataComplete(false);
                     setIsTodayLoading(false);
                     setError(null);
-                    return; // Không fetch từ server nếu có cache valid
-                } else {
-                    console.log(`🔄 No valid cache found (${cacheLoadTime.toFixed(2)}ms), fetching from server`);
+                }
+
+                // 2) Rate-limit: chỉ gọi /initial nếu cache quá 30s hoặc không có cache
+                const now = Date.now();
+                const lastTs = Number(localStorage.getItem('xsmb_initial_ts') || 0);
+                if (now - lastTs < INITIAL_CACHE_TTL_MS && cachedData) {
+                    console.log('⏱️ Skip /initial due to TTL 30s');
+                    return;
                 }
 
                 // Existing logic unchanged
-                const response = await fetch(`https://backendkqxs-1.onrender.com/api/kqxs/${currentStation}/sse/initial?station=${currentStation}&date=${today}`);
+                const response = await fetch(`http://localhost:5000/api/kqxs/${currentStation}/sse/initial?station=${currentStation}&date=${today}`);
                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                 const serverData = await response.json();
 
@@ -279,8 +313,9 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                     setIsTodayLoading(false);
                     setError(null);
 
-                    // ✅ TỐI ƯU: Cache data mới với debounce
+                    // ✅ Cache live snapshot (debounced) và stamp TTL
                     debouncedCache(serverData, false);
+                    try { localStorage.setItem('xsmb_initial_ts', String(Date.now())); } catch { }
                 }
             } catch (error) {
                 console.error('Lỗi fetch initial data:', error);
@@ -385,7 +420,7 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                 sseManager.getStats();
             }, 100);
         };
-    }, [currentStation, today, setXsmbLiveData, setIsXsmbLiveDataComplete]);
+    }, [currentStation, today, setXsmbLiveData, setIsXsmbLiveDataComplete, isModal, inLiveWindow]);
 
     // ✅ IMPROVED: Logic animation tối ưu từ mã cũ
     useEffect(() => {
@@ -570,6 +605,53 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
             }
         }, 500);
     }, []);
+
+    // BỔ SUNG: Modal ngoài khung giờ live → lấy kết quả mới nhất từ API /xsmb/latest
+    useEffect(() => {
+        // Modal ngoài live → chỉ gọi /latest; trong live thoát ra để nhường cho SSE/initial
+        if (!isModal || inLiveWindow) return;
+        let aborted = false;
+        const fetchLatestForModal = async () => {
+            try {
+                setIsTodayLoading(true);
+                setError(null);
+                const response = await fetch(`http://localhost:5000/api/kqxs/xsmb/latest`);
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                const serverData = await response.json();
+
+                if (aborted) return;
+
+                // Chuẩn hóa ngày hiển thị theo VN nếu có
+                const formatDate = (dateString) => {
+                    if (!dateString) return today;
+                    try {
+                        const d = new Date(dateString);
+                        return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                    } catch {
+                        return today;
+                    }
+                };
+
+                const normalized = {
+                    ...serverData,
+                    drawDate: formatDate(serverData.drawDate),
+                    dayOfWeek: serverData.dayOfWeek || xsmbLiveData?.dayOfWeek || ''
+                };
+
+                setXsmbLiveData(normalized);
+                setIsXsmbLiveDataComplete(true);
+                setIsTodayLoading(false);
+            } catch (e) {
+                if (!aborted) {
+                    setError('Không thể tải dữ liệu mới nhất. Vui lòng thử lại.');
+                    setIsTodayLoading(false);
+                }
+            }
+        };
+
+        fetchLatestForModal();
+        return () => { aborted = true; };
+    }, [isModal, isLiveWindow, today, setXsmbLiveData, setIsXsmbLiveDataComplete]);
 
     return (
         <div className={styles.live}>
@@ -1055,10 +1137,11 @@ export async function getServerSideProps(context) {
 }
 
 function isWithinLiveWindow() {
+    // Live thực tế: 18:10 - 18:33 (múi giờ Việt Nam)
     const vietTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
     const hours = vietTime.getHours();
     const minutes = vietTime.getMinutes();
-    return (hours === 8 && minutes >= 32 && minutes <= 59);
+    return (hours === 18 && minutes >= 10 && minutes <= 33);
 }
 
 export default React.memo(LiveResult);

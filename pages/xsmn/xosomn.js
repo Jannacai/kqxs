@@ -8,6 +8,7 @@ import { debounce } from 'lodash';
 import Skeleton from 'react-loading-skeleton';
 import React from 'react';
 import { useLottery } from '../../contexts/LotteryContext';
+import TableDate from '../../component/tableDateKQXS';
 
 // Print Button Component - Tối ưu hiệu suất
 const PrintButton = React.memo(({ onPrint, selectedDate }) => {
@@ -68,6 +69,7 @@ const CACHE_DURATION = 24 * 60 * 60 * 1000; // Cache 24 giờ
 const LIVE_CACHE_DURATION = 40 * 60 * 1000; // Cache 40 phút cho live data
 const DAYS_PER_PAGE = 3; // Mỗi trang chứa 3 ngày gần nhất
 const VISIBLE_ITEMS = 3; // Render 3 items visible để match với DAYS_PER_PAGE
+const FINALIZE_BUFFER_MS = 3 * 1000; // Buffer 3 giây sau live window
 
 const KQXS = (props) => {
     const { liveData, isLiveDataComplete } = useLottery();
@@ -125,43 +127,144 @@ const KQXS = (props) => {
     const CACHE_KEY = `xsmn_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}`;
     const UPDATE_KEY = `xsmn_updated_${today}`; // Cờ để theo dõi cập nhật ngày hiện tại
 
-    // ✅ TỐI ƯU: Loại bỏ triggerScraperDebounced - Scheduler tự động chạy
-    // const triggerScraperDebounced = useCallback(
-    //     debounce((today, station, provinces) => {
-    //         apiMN.triggerScraper(today, station, provinces)
-    //             .then((data) => {
-    //                 console.log('Scraper kích hoạt thành công:', data.message);
-    //                 setHasTriggeredScraper(true);
-    //                 fetchData();
-    //             })
-    //             .catch((error) => {
-    //                 console.error('Lỗi khi kích hoạt scraper:', error.message);
-    //             });
-    //     }, 1000),
-    //     []
-    // );
+    // ✅ THÊM: Logic clear cache thông minh từ XSMB
+    const clearFrontCacheOnHide = useCallback(() => {
+        try {
+            const keys = [
+                CACHE_KEY,
+                `${CACHE_KEY}_time`,
+                `xsmn_data_${station}_${today}_null`,
+                `xsmn_data_${station}_${today}_null_time`,
+                `xsmn_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_1_days_${DAYS_PER_PAGE}`,
+                `xsmn_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_1_days_${DAYS_PER_PAGE}_time`,
+            ];
+            keys.forEach((k) => localStorage.removeItem(k));
+            localStorage.setItem('just_cleared_cache', Date.now().toString());
+            console.log('🗑️ Cleared front cache on LiveResult hide (XSMN)');
+        } catch (e) {
+            console.warn('Clear front cache on hide failed (XSMN):', e);
+        }
+    }, [CACHE_KEY, station, today, date, tinh, dayof, DAYS_PER_PAGE]);
 
-    const cleanOldCache = () => {
-        const now = new Date().getTime();
+    const clearCacheForToday = useCallback(() => {
+        const keysToRemove = [
+            CACHE_KEY,
+            `${CACHE_KEY}_time`,
+            `xsmn_data_${station}_${today}_null`,
+            `xsmn_data_${station}_${today}_null_time`,
+            `xsmn_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_1_days_${DAYS_PER_PAGE}`,
+            `xsmn_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_1_days_${DAYS_PER_PAGE}_time`,
+        ];
+
+        // Batch operations
+        const operations = [
+            ...keysToRemove.map(key => ({ type: 'remove', key })),
+            { type: 'remove', key: UPDATE_KEY },
+            { type: 'set', key: 'just_cleared_cache', value: Date.now().toString() }
+        ];
+
+        try {
+            operations.forEach(({ type, key, value }) => {
+                if (type === 'remove') {
+                    localStorage.removeItem(key);
+                } else if (type === 'set') {
+                    localStorage.setItem(key, value);
+                }
+            });
+        } catch (error) {
+            console.error('LocalStorage operation failed (XSMN):', error);
+        }
+        console.log('🗑️ Đã xóa cache cho XSMN');
+    }, [CACHE_KEY, station, today, date, tinh, dayof, DAYS_PER_PAGE, UPDATE_KEY]);
+
+    // ✅ THÊM: Batch localStorage operations
+    const batchLocalStorageOperation = useCallback((operations) => {
+        try {
+            operations.forEach(({ type, key, value }) => {
+                if (type === 'remove') {
+                    localStorage.removeItem(key);
+                } else if (type === 'set') {
+                    localStorage.setItem(key, value);
+                }
+            });
+        } catch (error) {
+            console.error('LocalStorage operation failed (XSMN):', error);
+        }
+    }, []);
+
+    // ✅ THÊM: Cache cleanup function
+    const cleanOldCache = useCallback(() => {
+        const now = getVietnamTime().getTime();
+        let cleanedCount = 0;
+        const operations = [];
+
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
-            if (key && key.endsWith('_time')) {
+            if (key && key.endsWith('_time') && key.includes('xsmn_data_')) {
                 const cacheTime = parseInt(localStorage.getItem(key));
                 if (now - cacheTime > CACHE_DURATION) {
-                    localStorage.removeItem(key);
-                    localStorage.removeItem(key.replace('_time', ''));
-                    console.log(`🧹 Đã xóa cache hết hạn: ${key}`);
+                    operations.push(
+                        { type: 'remove', key },
+                        { type: 'remove', key: key.replace('_time', '') }
+                    );
+                    cleanedCount++;
                 }
             }
         }
-    };
+
+        if (operations.length > 0) {
+            batchLocalStorageOperation(operations);
+            console.log(`🧹 Đã xóa ${cleanedCount} cache hết hạn (XSMN)`);
+        }
+    }, [getVietnamTime, batchLocalStorageOperation]);
+
+    // ✅ THÊM: Logic kiểm tra đã cập nhật hôm nay
+    const hasUpdatedToday = useCallback(() => {
+        const ts = parseInt(localStorage.getItem(UPDATE_KEY) || '0', 10);
+        if (!ts) return false;
+        const tsVN = new Date(new Date(ts).toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }))
+            .toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        return tsVN === today;
+    }, [UPDATE_KEY, today]);
+
+    // ✅ THÊM: Logic check live window thông minh
+    const checkLiveWindow = useCallback(() => {
+        const vietnamTime = getVietnamTime();
+        const vietnamHours = vietnamTime.getHours();
+        const vietnamMinutes = vietnamTime.getMinutes();
+        const vietnamSeconds = vietnamTime.getSeconds();
+
+        // Tạo thời gian bắt đầu và kết thúc
+        const startTime = new Date(vietnamTime);
+        startTime.setHours(16, 10, 0, 0); // 16h10
+        const endTime = new Date(startTime.getTime() + (30 * 60 * 1000)); // 16h40
+        const thresholdNewCacheTime = new Date(endTime.getTime() + FINALIZE_BUFFER_MS); // 16h40 + 3s
+
+        // Kiểm tra khung giờ trực tiếp
+        const isLive = vietnamTime >= startTime && vietnamTime <= endTime;
+        const wasLiveWindow = isInLiveWindow;
+        const isPostLiveWindow = vietnamTime > endTime;
+        const isAfterBuffer = vietnamTime >= thresholdNewCacheTime;
+
+        return {
+            isLive,
+            wasLiveWindow,
+            vietnamHours,
+            vietnamMinutes,
+            vietnamSeconds,
+            vietnamTime,
+            isPostLiveWindow,
+            isAfterBuffer,
+            thresholdNewCacheTime
+        };
+    }, [isInLiveWindow, getVietnamTime]);
 
     const isLiveWindowActive = useMemo(() => {
         const vietnamTime = getVietnamTime();
         const vietnamHours = vietnamTime.getHours();
         const vietnamMinutes = vietnamTime.getMinutes();
         return vietnamHours === 16 && vietnamMinutes >= 10 && vietnamMinutes <= 40;
-    }, []);
+    }, [getVietnamTime]);
 
     const fetchData = useCallback(async (page = currentPage, forceRefresh = false) => {
         if (isLiveWindowActive) {
@@ -182,9 +285,9 @@ const KQXS = (props) => {
             const vietnamTime = getVietnamTime();
             const vietnamHours = vietnamTime.getHours();
             const vietnamMinutes = vietnamTime.getMinutes();
+            const { isPostLiveWindow, isAfterBuffer } = checkLiveWindow();
             const isUpdateWindow = vietnamHours === 16 && vietnamMinutes >= 10 && vietnamMinutes <= 40;
-            const isPostLiveWindow = vietnamHours > 16 || (vietnamHours === 16 && vietnamMinutes > 40);
-            const hasUpdatedToday = localStorage.getItem(UPDATE_KEY);
+            const hasUpdatedTodayFlag = hasUpdatedToday();
             const now = vietnamTime; // Sử dụng vietnamTime thay vì tạo mới
 
             setIsInLiveWindow(isUpdateWindow);
@@ -194,27 +297,46 @@ const KQXS = (props) => {
             const cachedTime = localStorage.getItem(`${CACHE_KEY_PAGE}_time`);
             const cacheAge = cachedTime ? now.getTime() - parseInt(cachedTime) : Infinity;
 
-            if (cachedData && cacheAge < CACHE_DURATION && !forceRefresh) {
+            // ✅ THÊM: Logic cache thông minh từ XSMB
+            if (!forceRefresh && cachedData && cacheAge < CACHE_DURATION) {
                 console.log(`📦 Cache hit: ${CACHE_KEY_PAGE}, age: ${Math.round(cacheAge / 1000 / 60)} phút`);
-                const cachedDataParsed = JSON.parse(cachedData);
-                setPageData(prevPageData => ({
-                    ...prevPageData,
-                    [page]: cachedDataParsed
-                }));
-                setLoading(false);
-                return;
+
+                // ✅ THÊM: Kiểm tra nếu cache được tạo sau thời điểm kết thúc live + buffer thì ưu tiên sử dụng
+                const cacheTime = parseInt(localStorage.getItem(`${CACHE_KEY_PAGE}_time`) || '0');
+                const cacheDate = new Date(cacheTime);
+                const vietnamCacheTime = new Date(cacheDate.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+
+                // Sử dụng thresholdNewCacheTime từ checkLiveWindow
+                const isNewCache = vietnamCacheTime >= new Date(vietnamTime.getTime() + FINALIZE_BUFFER_MS);
+
+                // Nếu đã sau live window + buffer và hôm nay CHƯA cập nhật, bỏ qua cache cũ để fetch 1 lần hậu-live
+                if (!isNewCache && isAfterBuffer && !hasUpdatedTodayFlag) {
+                    console.log('⏭️ Bỏ qua cache cũ (trước kết thúc live + buffer) sau live window để fetch API và cập nhật cache mới (XSMN).');
+                    // Không return, tiếp tục fetch API
+                } else {
+                    console.log(`✅ Sử dụng cache: ${vietnamCacheTime.toLocaleTimeString('vi-VN')} (isNewCache=${isNewCache})`);
+                    setPageData(prevPageData => ({
+                        ...prevPageData,
+                        [page]: JSON.parse(cachedData)
+                    }));
+                    setLoading(false);
+                    return; // Không gọi API nếu cache còn valid
+                }
             } else if (cachedData && cacheAge >= CACHE_DURATION) {
                 console.log(`⏰ Cache expired: ${CACHE_KEY_PAGE}, age: ${Math.round(cacheAge / 1000 / 60)} phút`);
             } else if (!cachedData) {
                 console.log(`❌ Cache miss: ${CACHE_KEY_PAGE}`);
             }
 
+            // ✅ THÊM: Logic cache invalidation thông minh từ XSMB
             const shouldFetchFromAPI =
                 forceRefresh ||
                 (!cachedData || cacheAge >= CACHE_DURATION) ||
-                (isPostLiveWindow && !hasUpdatedToday) ||
-                (lastLiveUpdate && (now.getTime() - lastLiveUpdate) > LIVE_CACHE_DURATION) ||
-                (vietnamHours === 16 && vietnamMinutes >= 40); // Sau 16h40 - force lấy kết quả mới
+                (isPostLiveWindow && !hasUpdatedTodayFlag) || // Sau live window và chưa update
+                (lastLiveUpdate && (now.getTime() - lastLiveUpdate) > LIVE_CACHE_DURATION) || // Live data cũ
+                (vietnamHours === 16 && vietnamMinutes >= 40) || // Sau 16h40 - force lấy kết quả mới
+                (isPostLiveWindow && cacheAge > 5 * 60 * 1000) || // Sau live window và cache > 5 phút
+                (isAfterBuffer && !hasUpdatedTodayFlag); // Sau buffer và chưa update
 
             if (isUpdateWindow) {
                 console.log('🔄 Trong live window, không fetch data mới');
@@ -230,11 +352,12 @@ const KQXS = (props) => {
             }
 
             if (shouldFetchFromAPI) {
-                console.log('Fetching from API', {
+                console.log('Fetching from API (XSMN)', {
                     forceRefresh,
                     isUpdateWindow,
                     isPostLiveWindow,
-                    hasUpdatedToday: !!hasUpdatedToday,
+                    isAfterBuffer,
+                    hasUpdatedToday: !!hasUpdatedTodayFlag,
                     cacheAge: Math.round(cacheAge / 1000 / 60) + ' phút',
                     lastLiveUpdate: lastLiveUpdate ? Math.round((now.getTime() - lastLiveUpdate) / 1000 / 60) + ' phút' : 'null',
                     page,
@@ -342,13 +465,20 @@ const KQXS = (props) => {
                         });
                     }
 
-                    localStorage.setItem(CACHE_KEY_PAGE, JSON.stringify(finalData));
-                    localStorage.setItem(`${CACHE_KEY_PAGE}_time`, now.getTime().toString());
-                    if (isPostLiveWindow || forceRefresh) {
-                        localStorage.setItem(UPDATE_KEY, now.getTime().toString());
-                        setLastLiveUpdate(now.getTime());
+                    // ✅ THÊM: Logic cache thông minh từ XSMB
+                    const justClearedCache = localStorage.getItem('just_cleared_cache');
+                    if (!justClearedCache) {
+                        localStorage.setItem(CACHE_KEY_PAGE, JSON.stringify(finalData));
+                        localStorage.setItem(`${CACHE_KEY_PAGE}_time`, now.getTime().toString());
+                        if (isPostLiveWindow || forceRefresh) {
+                            localStorage.setItem(UPDATE_KEY, now.getTime().toString());
+                            setLastLiveUpdate(now.getTime());
+                        }
+                        console.log('✅ Đã cập nhật data mới từ API cho page:', page, 'với', finalData.length, 'ngày');
+                    } else {
+                        console.log('🔄 Vừa clear cache, không tạo cache mới');
+                        localStorage.removeItem('just_cleared_cache');
                     }
-                    console.log('✅ Đã cập nhật data mới từ API cho page:', page, 'với', finalData.length, 'ngày');
                 } else if (cachedData) {
                     setPageData(prevPageData => ({
                         ...prevPageData,
@@ -387,7 +517,7 @@ const KQXS = (props) => {
             console.error('Error fetching lottery data:', error);
             setLoading(false);
         }
-    }, [station, date, tinh, dayof, currentPage, lastLiveUpdate, isLiveWindowActive]);
+    }, [station, date, tinh, dayof, currentPage, lastLiveUpdate, isLiveWindowActive, hasUpdatedToday, checkLiveWindow]);
 
     const isLiveMode = useMemo(() => {
         if (!props.data3) return true;
@@ -408,6 +538,25 @@ const KQXS = (props) => {
 
     useEffect(() => {
         cleanOldCache();
+
+        // ✅ THÊM: Logic detect live window end khi mount lại
+        const detectLiveWindowEnd = () => {
+            const vietnamTime = getVietnamTime();
+            const vietnamHours = vietnamTime.getHours();
+            const vietnamMinutes = vietnamTime.getMinutes();
+
+            // Kiểm tra nếu đã qua live window (16h40) và chưa cập nhật hôm nay
+            const isPostLiveWindow = vietnamHours > 16 || (vietnamHours === 16 && vietnamMinutes > 40);
+            const hasUpdatedTodayFlag = hasUpdatedToday();
+
+            if (isPostLiveWindow && !hasUpdatedTodayFlag) {
+                console.log('🔄 Detect live window đã kết thúc khi mount lại - clear cache để đảm bảo dữ liệu mới');
+                clearFrontCacheOnHide();
+                return true; // Đã clear cache
+            }
+            return false; // Chưa clear cache
+        };
+
         if (isLiveWindowActive) {
             console.log('🔄 Live window active - chỉ load cached data');
             const CACHE_KEY_PAGE_1 = `xsmn_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_1_days_${DAYS_PER_PAGE}`;
@@ -424,7 +573,21 @@ const KQXS = (props) => {
             setLoading(false);
         } else if (!isInLiveWindow) {
             console.log('🔄 Normal mode - fetch data từ API');
-            fetchData();
+            // ✅ THÊM: Detect live window end trước khi fetch
+            const hasClearedCache = detectLiveWindowEnd();
+
+            // Force refresh nếu đã qua live window và chưa cập nhật hôm nay
+            const isPostLiveWindow = getVietnamTime().getHours() > 16 || (getVietnamTime().getHours() === 16 && getVietnamTime().getMinutes() > 40);
+            if (isPostLiveWindow && !hasUpdatedToday()) {
+                console.log('🔄 Mount lại sau live window - force refresh để đảm bảo dữ liệu mới');
+                fetchData(1, true);
+            } else if (hasClearedCache) {
+                // Nếu đã clear cache, force refresh
+                console.log('🔄 Đã clear cache do live window end - force refresh');
+                fetchData(1, true);
+            } else {
+                fetchData();
+            }
         } else {
             console.log('🔄 Trong live window, sử dụng cached data');
             const CACHE_KEY_PAGE_1 = `xsmn_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_1_days_${DAYS_PER_PAGE}`;
@@ -440,42 +603,139 @@ const KQXS = (props) => {
             }
             setLoading(false);
         }
-    }, [fetchData, isInLiveWindow, isLiveWindowActive]);
+    }, [fetchData, isInLiveWindow, isLiveWindowActive, hasUpdatedToday, clearFrontCacheOnHide]);
 
-    // BỔ SUNG: useEffect riêng để xử lý xóa cache vào 16h40 - TỐI ƯU
+    // ✅ THÊM: Logic clear cache khi unmount trong live window
     useEffect(() => {
-        let cacheCleared = false; // Flag để tránh clear cache nhiều lần
-        const checkAndClearCache = () => {
-            const vietnamTime = getVietnamTime();
-            const vietnamHours = vietnamTime.getHours();
-            const vietnamMinutes = vietnamTime.getMinutes();
-            // Chỉ check vào phút 40 để giảm số lần check
-            if (vietnamHours === 16 && vietnamMinutes === 40 && !cacheCleared) {
-                console.log('🕐 16h40 - Xóa cache để lấy kết quả mới từ database');
-                const todayCacheKey = `xsmn_data_${station}_${today}_null`;
-                localStorage.removeItem(todayCacheKey);
-                localStorage.removeItem(`${todayCacheKey}_time`);
-                localStorage.removeItem(UPDATE_KEY);
-                fetchData(true);
-                cacheCleared = true; // Mark as cleared
-                console.log('✅ Đã xóa cache và force refresh để lấy kết quả mới');
-            }
-            // Reset flag khi qua 16h41
-            if (vietnamHours === 16 && vietnamMinutes === 41) {
-                cacheCleared = false;
+        return () => {
+            // Khi component unmount trong live window, clear cache để đảm bảo mount lại sẽ thấy dữ liệu mới
+            if (isInLiveWindow) {
+                console.log('🔄 Component unmount trong live window - clear cache để đảm bảo dữ liệu mới');
+                clearFrontCacheOnHide();
             }
         };
-        checkAndClearCache();
-        const intervalId = setInterval(checkAndClearCache, 60 * 1000); // Check every minute
-        return () => clearInterval(intervalId);
-    }, [station, today, fetchData]);
+    }, [isInLiveWindow, clearFrontCacheOnHide]);
+
+    // ✅ THÊM: Logic check time thông minh từ XSMB
+    useEffect(() => {
+        let cacheClearedForLiveWindow = false; // Flag tránh clear cache nhiều lần khi LiveResult ẩn đi
+        let isActive = true; // Flag để tránh memory leak
+
+        const checkTime = () => {
+            if (!isActive) return;
+
+            try {
+                const {
+                    isLive,
+                    wasLiveWindow,
+                    vietnamHours,
+                    vietnamMinutes,
+                    vietnamSeconds,
+                    vietnamTime
+                } = checkLiveWindow();
+
+                setIsInLiveWindow(isLive);
+
+                // Log chỉ khi thay đổi
+                if (wasLiveWindow !== isLive) {
+                    console.log('Debug - Live window changed (XSMN):', {
+                        vietnamTime: vietnamTime.toLocaleTimeString(),
+                        isLive,
+                        wasLiveWindow
+                    });
+                }
+
+                // ✅ THÊM: Clear cache khi LiveResult ẩn đi - ĐÂY LÀ CƠ CHẾ DUY NHẤT
+                if (wasLiveWindow && !isLive && wasLiveWindow !== undefined && !cacheClearedForLiveWindow) {
+                    console.log('🔄 LiveResult ẩn đi - Clear cache để hiển thị kết quả mới (XSMN)');
+
+                    // Xóa cache giao diện để buộc lấy dữ liệu mới
+                    clearFrontCacheOnHide();
+
+                    setTimeout(() => {
+                        if (isActive) {
+                            console.log('🔄 Force refresh sau khi clear cache (XSMN)');
+                            fetchData(1, true);
+                        }
+                    }, 2000);
+                    cacheClearedForLiveWindow = true;
+                }
+
+                // Reset flag khi LiveResult xuất hiện lại
+                if (isLive) {
+                    cacheClearedForLiveWindow = false;
+                }
+
+                // ✅ THÊM: Loại bỏ kiểm tra trạng thái không cần thiết - Scheduler tự động chạy
+                if (
+                    isLive &&
+                    vietnamHours === hour &&
+                    vietnamMinutes === minutes2 &&
+                    vietnamSeconds <= 5 &&
+                    !hasTriggeredScraper
+                ) {
+                    // Scheduler tự động kích hoạt, chỉ log để debug
+                    if (isActive && process.env.NODE_ENV !== 'production') {
+                        console.log('🕐 Đang trong khung giờ kích hoạt XSMN scheduler (16h12)');
+                    }
+                    if (isActive) {
+                        setHasTriggeredScraper(true);
+                    }
+                }
+
+                // Reset lúc 00:00
+                if (vietnamHours === 0 && vietnamMinutes === 0 && vietnamSeconds === 0) {
+                    setHasTriggeredScraper(false);
+                    localStorage.removeItem(UPDATE_KEY);
+                    cacheClearedForLiveWindow = false;
+                }
+            } catch (error) {
+                console.error('Lỗi trong checkTime (XSMN):', error);
+            }
+        };
+
+        checkTime();
+
+        // ✅ THÊM: Interval thông minh - chậm hơn khi không trong live window
+        const getIntervalTime = () => {
+            try {
+                const { isLive } = checkLiveWindow();
+                return isLive ? 5000 : 30000; // 5s khi live, 30s khi không live
+            } catch (error) {
+                console.error('Lỗi khi tính interval (XSMN):', error);
+                return 30000; // Fallback to 30s
+            }
+        };
+
+        let intervalId = setInterval(checkTime, getIntervalTime());
+
+        // ✅ THÊM: Thay đổi interval khi cần
+        const updateInterval = () => {
+            if (!isActive) return;
+            try {
+                clearInterval(intervalId);
+                intervalId = setInterval(checkTime, getIntervalTime());
+            } catch (error) {
+                console.error('Lỗi khi update interval (XSMN):', error);
+            }
+        };
+
+        // Update interval mỗi phút
+        const intervalUpdateId = setInterval(updateInterval, 60000);
+
+        return () => {
+            isActive = false;
+            clearInterval(intervalId);
+            clearInterval(intervalUpdateId);
+        };
+    }, [hasTriggeredScraper, station, today, checkLiveWindow, clearFrontCacheOnHide, fetchData]);
 
     useEffect(() => {
         if (isLiveDataComplete && liveData && Array.isArray(liveData) && liveData.some(item => item.drawDate === today) && !isLiveWindowActive) {
-            console.log('🔄 Live data complete, cập nhật cache và force refresh');
+            console.log('🔄 Live data complete, cập nhật cache và force refresh (XSMN)');
             setPageData(prevPageData => {
                 const currentPage1Data = Array.isArray(prevPageData[1]) ? prevPageData[1] : [];
-                console.log('📊 Updating pageData[1] with live data:', {
+                console.log('📊 Updating pageData[1] with live data (XSMN):', {
                     currentPage1DataLength: currentPage1Data.length,
                     liveDataLength: liveData.length,
                     today
@@ -509,11 +769,19 @@ const KQXS = (props) => {
                     new Date(b.drawDate.split('/').reverse().join('-')) - new Date(a.drawDate.split('/').reverse().join('-'))
                 );
 
-                const CACHE_KEY_PAGE_1 = `xsmn_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_1_days_${DAYS_PER_PAGE}`;
-                localStorage.setItem(CACHE_KEY_PAGE_1, JSON.stringify(newData));
-                localStorage.setItem(`${CACHE_KEY_PAGE_1}_time`, new Date().getTime().toString());
-                localStorage.setItem(UPDATE_KEY, new Date().getTime().toString());
-                setLastLiveUpdate(new Date().getTime());
+                // ✅ THÊM: Logic cache thông minh từ XSMB
+                const justClearedCache = localStorage.getItem('just_cleared_cache');
+                if (!justClearedCache) {
+                    const CACHE_KEY_PAGE_1 = `xsmn_data_${station}_${date || 'null'}_${tinh || 'null'}_${dayof || 'null'}_page_1_days_${DAYS_PER_PAGE}`;
+                    localStorage.setItem(CACHE_KEY_PAGE_1, JSON.stringify(newData));
+                    localStorage.setItem(`${CACHE_KEY_PAGE_1}_time`, new Date().getTime().toString());
+                    localStorage.setItem(UPDATE_KEY, new Date().getTime().toString());
+                    setLastLiveUpdate(new Date().getTime());
+                    console.log('✅ Đã cập nhật cache với live data mới (XSMN)');
+                } else {
+                    console.log('🔄 Vừa clear cache, không tạo cache mới (XSMN)');
+                    localStorage.removeItem('just_cleared_cache');
+                }
 
                 return {
                     ...prevPageData,
@@ -526,8 +794,9 @@ const KQXS = (props) => {
                 [today]: prev[today] || 'all',
             }));
 
+            // ✅ THÊM: Force refresh từ API sau 5 phút để đảm bảo data consistency
             setTimeout(() => {
-                console.log('🔄 Force refresh từ API sau live window (page 1)');
+                console.log('🔄 Force refresh từ API sau live window (page 1) - XSMN');
                 fetchData(1, true);
             }, 5 * 60 * 1000);
         }
@@ -1172,6 +1441,22 @@ const KQXS = (props) => {
 
     return (
         <div ref={tableRef} className={`${styles.containerKQ} ${isLiveWindowActive ? styles.liveWindowActive : ''}`}>
+            <TableDate />
+            <div className='groupbanner3'>
+                <a href='https://m.dktin.top/reg/104600' tabIndex={-1} aria-label="Quảng cáo">
+                    <video
+                        className='banner3'
+                        src='/banner3.mp4'
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        alt='xổ số bắc trung nam'
+                        loading="lazy"
+                        suppressHydrationWarning
+                    />
+                </a>
+            </div>
             <div className={`${styles.liveResultPlaceholder} ${isLiveMode && isRunning ? styles.active : ''}`}>
                 {isLiveMode && isRunning && (
                     <div className={styles.liveResultContainer}>

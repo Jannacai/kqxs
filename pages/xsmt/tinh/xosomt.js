@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import styles from '../../../styles/kqxsMTTinh.module.css';
 import { getFilteredNumber } from "../../../library/utils/filterUtils";
 import { useRouter } from 'next/router';
+import TableDate from '../../../component/tableDateKQXS';
 
 const KQXS = (props) => {
     const [data, setData] = useState([]);
@@ -193,6 +194,7 @@ const KQXS = (props) => {
 
     return (
         <div className={styles.containerKQ}>
+            <TableDate />
             {currentData.map((dayData) => {
                 const tableKey = dayData.drawDate;
                 const currentFilter = filterTypes[tableKey] || 'all';

@@ -255,8 +255,7 @@ const XSMN = memo(({ initialData, drawDate }) => {
                     </nav>
 
                     <section>
-                        <TableDate />
-                        <div className='groupbanner3'>
+                        {/* <div className='groupbanner3'>
                             <a href='https://m.dktin.top/reg/104600' tabIndex={-1} aria-label="Quảng cáo">
                                 <video
                                     className='banner3'
@@ -270,7 +269,7 @@ const XSMN = memo(({ initialData, drawDate }) => {
                                     suppressHydrationWarning
                                 />
                             </a>
-                        </div>
+                        </div> */}
 
                         {initialData ? (
                             <KQXS data={initialData} station="xsmn">Miền Nam</KQXS>

@@ -8,7 +8,7 @@ const CACHE_KEYS = {
 };
 
 const CACHE_TTL = {
-    LIVE: 30 * 60 * 1000,    // 30 phút cho live data (tối ưu cho navigation)
+    LIVE: 10 * 1000,    // 10 giây cho live data (tối ưu cho navigation)
     COMPLETE: 24 * 60 * 60 * 1000 // 24 giờ cho complete data
 };
 
@@ -43,7 +43,7 @@ export const cacheStrategy = {
     loadData: () => {
         const now = Date.now();
         const vietnamTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
-        const isLiveHour = vietnamTime.getHours() === 18 && vietnamTime.getMinutes() >= 10 && vietnamTime.getMinutes() <= 35;
+        const isLiveHour = vietnamTime.getHours() === 18 && vietnamTime.getMinutes() >= 10 && vietnamTime.getMinutes() <= 33;
 
         // Priority 1: Nếu đang live - load live cache (chỉ cho navigation)
         if (isLiveHour) {

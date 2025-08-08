@@ -244,22 +244,8 @@ const XSMT = ({ initialData, drawDate }) => {
                     </nav>
 
                     <section>
-                        <TableDate />
-                        <div className='groupbanner3'>
-                            <a href='https://m.dktin.top/reg/104600' tabIndex={-1} aria-label="Quảng cáo">
-                                <video
-                                    className='banner3'
-                                    src='/banner3.mp4'
-                                    autoPlay
-                                    loop
-                                    muted
-                                    playsInline
-                                    alt='xổ số bắc trung nam'
-                                    loading="lazy"
-                                    suppressHydrationWarning
-                                />
-                            </a>
-                        </div>
+                        {/* <TableDate /> */}
+                       
 
                         {initialData ? (
                             <KQXS data={initialData} station="xsmt">Miền Trung</KQXS>

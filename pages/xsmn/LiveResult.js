@@ -23,6 +23,10 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
     const sseConnectionPool = useRef(new Map());
     const sseReconnectDelay = 1000;
 
+    // Thêm ref để track animation state
+    const animationStateRef = useRef({});
+    const isInitializingRef = useRef(false);
+
     const today = useMemo(() => new Date().toLocaleDateString('vi-VN', {
         day: '2-digit',
         month: '2-digit',
@@ -125,7 +129,9 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
     }, [liveData, currentFilter]);
 
     const renderPrizeValue = useCallback((tinh, prizeType, digits = 5) => {
-        const isAnimating = animatingPrizes[tinh] === prizeType && processedLiveData.find(item => item.tinh === tinh)?.[prizeType] === '...';
+        // Sử dụng ref state để tránh stale closure
+        const isAnimating = animationStateRef.current[tinh] === prizeType &&
+            processedLiveData.find(item => item.tinh === tinh)?.[prizeType] === '...';
         const className = `${styles.running_number} ${styles[`running_${digits}`]}`;
         const prizeValue = processedLiveData.find(item => item.tinh === tinh)?.[prizeType] || '...';
         const filteredValue = processedLiveData.find(item => item.tinh === tinh)?.filteredPrizes?.[prizeType] || getFilteredNumber(prizeValue, currentFilter);
@@ -156,7 +162,7 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                 )}
             </span>
         );
-    }, [animatingPrizes, processedLiveData, currentFilter]);
+    }, [processedLiveData, currentFilter]); // Loại bỏ animatingPrizes khỏi dependencies
 
     const maxRetries = 50;
     const retryInterval = 2000;
@@ -339,31 +345,51 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
     const animationTimeoutsRef = useRef(new Map());
 
     const setAnimationWithTimeout = useCallback((tinh, prizeType) => {
-        if (animationTimeoutsRef.current.has(`${tinh}-${prizeType}`)) {
-            clearTimeout(animationTimeoutsRef.current.get(`${tinh}-${prizeType}`));
+        // Kiểm tra nếu component đang unmount hoặc initializing
+        if (!mountedRef.current || isInitializingRef.current) {
+            console.log('⚠️ Bỏ qua animation - component đang unmount hoặc initializing');
+            return;
         }
 
-        requestAnimationFrame(() => {
-            setAnimatingPrizes(prev => ({
-                ...prev,
-                [tinh]: prizeType
-            }));
-        });
+        const animationKey = `${tinh}-${prizeType}`;
 
+        // Clear timeout cũ nếu có
+        if (animationTimeoutsRef.current.has(animationKey)) {
+            clearTimeout(animationTimeoutsRef.current.get(animationKey));
+            animationTimeoutsRef.current.delete(animationKey);
+        }
+
+        // Update animation state ref ngay lập tức
+        animationStateRef.current[tinh] = prizeType;
+
+        // Sử dụng setTimeout thay vì requestAnimationFrame để tránh timing issues
         const timeoutId = setTimeout(() => {
-            requestAnimationFrame(() => {
+            if (mountedRef.current) {
                 setAnimatingPrizes(prev => {
                     const newState = { ...prev };
                     if (newState[tinh] === prizeType) {
                         delete newState[tinh];
+                        // Cập nhật ref
+                        delete animationStateRef.current[tinh];
                     }
                     return newState;
                 });
-            });
-            animationTimeoutsRef.current.delete(`${tinh}-${prizeType}`);
+            }
+            animationTimeoutsRef.current.delete(animationKey);
         }, 2000);
 
-        animationTimeoutsRef.current.set(`${tinh}-${prizeType}`, timeoutId);
+        animationTimeoutsRef.current.set(animationKey, timeoutId);
+
+        // Update state với delay nhỏ để đảm bảo DOM đã sẵn sàng
+        setTimeout(() => {
+            if (mountedRef.current) {
+                setAnimatingPrizes(prev => ({
+                    ...prev,
+                    [tinh]: prizeType
+                }));
+            }
+        }, 50);
+
     }, []);
 
     const batchUpdateRef = useRef(new Map());
@@ -412,7 +438,12 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                                 // Trigger animation cho dữ liệu mới nếu component đang mounted
                                 if (mountedRef.current && updateValue && updateValue !== '...' && updateValue !== '***') {
                                     console.log(`🎬 Trigger animation cho ${updatePrizeType} = ${updateValue} (${updateTinh})`);
-                                    setAnimationWithTimeout(updateTinh, updatePrizeType);
+                                    // Delay nhỏ để đảm bảo state đã được update
+                                    setTimeout(() => {
+                                        if (mountedRef.current) {
+                                            setAnimationWithTimeout(updateTinh, updatePrizeType);
+                                        }
+                                    }, 100);
                                 }
                             }
                         });
@@ -444,15 +475,23 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
 
     useEffect(() => {
         mountedRef.current = true;
+        isInitializingRef.current = true;
         console.log('🔄 LiveResult component mounted');
 
-        // Reset animation state khi component mount
-        setAnimatingPrizes({});
-        console.log('🔄 Reset animation state');
+        // Reset animation state với delay để đảm bảo DOM đã sẵn sàng
+        setTimeout(() => {
+            if (mountedRef.current) {
+                setAnimatingPrizes({});
+                animationStateRef.current = {};
+                isInitializingRef.current = false;
+                console.log('🔄 Reset animation state completed');
+            }
+        }, 100);
 
         return () => {
             console.log('🔄 LiveResult component unmounting');
             mountedRef.current = false;
+            isInitializingRef.current = true;
 
             // Clear tất cả animation timeouts
             console.log('🧹 Clear animation timeouts...');
@@ -460,6 +499,10 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                 clearTimeout(timeoutId);
             });
             animationTimeoutsRef.current.clear();
+
+            // Clear animation state
+            setAnimatingPrizes({});
+            animationStateRef.current = {};
 
             // Clear batch update timeout
             if (batchTimeoutRef.current) {
@@ -517,9 +560,14 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
         console.log('✅ Bắt đầu thiết lập SSE cho XSMN');
         sseSetupRef.current = true;
 
-        // Reset animation state khi bắt đầu SSE setup
-        setAnimatingPrizes({});
-        console.log('🔄 Reset animation state cho SSE setup');
+        // Reset animation state với delay để đảm bảo không conflict
+        setTimeout(() => {
+            if (mountedRef.current) {
+                setAnimatingPrizes({});
+                animationStateRef.current = {};
+                console.log('🔄 Reset animation state cho SSE setup');
+            }
+        }, 150);
 
         const fetchInitialData = async (retry = 0) => {
             try {
@@ -793,7 +841,12 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                                     batchUpdateLiveData(province.tinh, prizeType, data[prizeType]);
                                     if (data[prizeType] !== '...' && data[prizeType] !== '***') {
                                         console.log(`🎬 Trigger animation từ SSE cho ${prizeType} = ${data[prizeType]} (${province.tinh})`);
-                                        setAnimationWithTimeout(province.tinh, prizeType);
+                                        // Delay để đảm bảo batch update đã hoàn thành
+                                        setTimeout(() => {
+                                            if (mountedRef.current) {
+                                                setAnimationWithTimeout(province.tinh, prizeType);
+                                            }
+                                        }, 150);
                                     }
                                 }
                             } catch (error) {
@@ -871,7 +924,12 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                                 batchUpdateLiveData(tinh, prizeType, data[prizeType]);
                                 if (data[prizeType] !== '...' && data[prizeType] !== '***') {
                                     console.log(`🎬 Trigger animation từ retry SSE cho ${prizeType} = ${data[prizeType]} (${tinh})`);
-                                    setAnimationWithTimeout(tinh, prizeType);
+                                    // Delay để đảm bảo batch update đã hoàn thành
+                                    setTimeout(() => {
+                                        if (mountedRef.current) {
+                                            setAnimationWithTimeout(tinh, prizeType);
+                                        }
+                                    }, 150);
                                 }
                             }
                         } catch (error) {
@@ -944,7 +1002,7 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
     }, [isLiveWindow, station, today, setLiveData, setIsLiveDataComplete, provincesByDay, emptyResult, debouncedLocalStorageUpdate, batchUpdateLiveData, setAnimationWithTimeout, getCachedOrFetchInitialData]);
 
     useEffect(() => {
-        if (!liveData || !liveData.length) {
+        if (!liveData || !liveData.length || isInitializingRef.current) {
             setAnimatingPrizes({});
             return;
         }
@@ -958,23 +1016,30 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
             'secondPrize_0', 'firstPrize_0', 'specialPrize_0'
         ];
 
-        setAnimatingPrizes(prev => {
-            const newAnimatingPrizes = { ...prev };
-            let hasChanges = false;
+        // Delay để đảm bảo không conflict với initialization
+        setTimeout(() => {
+            if (!mountedRef.current || isInitializingRef.current) return;
 
-            processedLiveData.forEach(stationData => {
-                const currentPrize = prev[stationData.tinh];
-                if (!currentPrize || stationData[currentPrize] !== '...') {
-                    const nextPrize = animationQueue.find(prize => stationData[prize] === '...') || null;
-                    if (nextPrize !== currentPrize) {
-                        newAnimatingPrizes[stationData.tinh] = nextPrize;
-                        hasChanges = true;
+            setAnimatingPrizes(prev => {
+                const newAnimatingPrizes = { ...prev };
+                let hasChanges = false;
+
+                processedLiveData.forEach(stationData => {
+                    const currentPrize = prev[stationData.tinh];
+                    if (!currentPrize || stationData[currentPrize] !== '...') {
+                        const nextPrize = animationQueue.find(prize => stationData[prize] === '...') || null;
+                        if (nextPrize !== currentPrize) {
+                            newAnimatingPrizes[stationData.tinh] = nextPrize;
+                            animationStateRef.current[stationData.tinh] = nextPrize;
+                            hasChanges = true;
+                        }
                     }
-                }
-            });
+                });
 
-            return hasChanges ? newAnimatingPrizes : prev;
-        });
+                return hasChanges ? newAnimatingPrizes : prev;
+            });
+        }, 200);
+
     }, [liveData]);
 
     useEffect(() => {
@@ -1128,13 +1193,13 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                                         ))}
                                     </tr>
                                     <tr>
-                                        <td className={styles.modalPrizeLabel}>G3</td>
-                                        {processedLiveData.map(stationData => (
-                                            <td key={stationData.tinh}>
+                                        <td className={`${styles.tdTitle} ${styles.g3}`}>G3</td>
+                                        {processedLiveData.map(item => (
+                                            <td key={item.tinh} className={styles.rowXS}>
                                                 <div className={styles.modalPrizeContainer}>
                                                     {[0, 1].map(idx => (
-                                                        <span key={idx} className={styles.modalPrizeNumber}>
-                                                            {renderPrizeValue(stationData.tinh, `threePrizes_${idx}`, 5)}
+                                                        <span key={idx} className={`${styles.modalPrizeNumber} ${styles.g3}`}>
+                                                            {renderPrizeValue(item.tinh, `threePrizes_${idx}`, 5)}
                                                         </span>
                                                     ))}
                                                 </div>
@@ -1166,7 +1231,7 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                                         ))}
                                     </tr>
                                     <tr>
-                                        <td className={styles.modalPrizeLabel}>ĐB</td>
+                                        <td className={`${styles.tdTitle} ${styles.highlight}`}>ĐB</td>
                                         {processedLiveData.map(stationData => (
                                             <td key={stationData.tinh}>
                                                 <div className={styles.modalPrizeContainer}>

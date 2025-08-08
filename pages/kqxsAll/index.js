@@ -5,16 +5,21 @@ import { useRouter } from 'next/router';
 import { apiMB } from "../api/kqxs/kqxsMB";
 import React from 'react';
 import LiveResult from './LiveResult';
+import TableDate from '../../component/tableDateKQXS';
+
 import { useInView } from 'react-intersection-observer';
 import { useLottery } from '../../contexts/LotteryContext';
 import { cacheStrategy } from '../../utils/cacheStrategy';
 
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // Cache 24 giờ
-const LIVE_CACHE_DURATION = 40 * 60 * 1000; // Cache 40 phút cho live data
+const LIVE_CACHE_DURATION = 33 * 60 * 1000; // Cache 40 phút cho live data
+
 const UPDATE_KEY = 'xsmb_update_timestamp';
 
-const testhour = 8;
-const testminutes = 38;
+// Giờ thực tế: live từ 18:10 đến 18:33 (múi giờ Việt Nam)
+const testhour = 18;
+const testminutes = 10;
+const testEndlive = 33;
 
 // BỔ SUNG: Helper function để lấy thời gian Việt Nam - TỐI ƯU
 let cachedVietnamTime = null;
@@ -364,11 +369,10 @@ const KQXS = (props) => {
 
     // ✅ TỐI ƯU: Sử dụng useRef để tham chiếu đến fetchData
     const fetchDataRef = useRef();
+    const scheduledPostBufferFetchRef = useRef(null);
 
     const router = useRouter();
-    const dayof = props.data4;
     const station = props.station || "xsmb";
-    const date = props.data3;
 
     const itemsPerPage = 3;
 
@@ -378,7 +382,15 @@ const KQXS = (props) => {
         year: 'numeric',
     });
 
-    const CACHE_KEY = `xsmb_data_${station}_${date || 'null'}_${dayof || 'null'}`;
+    const date = today; // Sử dụng ngày hiện tại cho cache
+    const urlDate = props.data3; // Giữ lại props.data3 cho API call
+    console.log('🔍 Debug index.js props:', { data3: props.data3, urlDate });
+
+    // Cache riêng biệt cho danh sách và ngày cụ thể
+    const LIST_CACHE_KEY = `xsmb_data_list_${station}_${date}`; // Cache cho danh sách kết quả (3 ngày/page)
+    const SPECIFIC_CACHE_KEY = `xsmb_data_specific_${station}_${urlDate}`; // Cache cho ngày cụ thể
+    const CACHE_KEY = urlDate ? SPECIFIC_CACHE_KEY : LIST_CACHE_KEY; // Chọn cache key phù hợp
+    console.log('🔍 Debug CACHE_KEY:', { urlDate, date, LIST_CACHE_KEY, SPECIFIC_CACHE_KEY, CACHE_KEY });
 
     // Hàm kiểm tra ngày hợp lệ
     const isValidDate = (dateStr) => {
@@ -415,13 +427,37 @@ const KQXS = (props) => {
         }
     }, []);
 
-    // ✅ TỐI ƯU: Hàm clear cache đơn giản và hiệu quả
+    // Xóa cache giao diện khi LiveResult ẩn đi (không động vào UPDATE_KEY)
+    const clearFrontCacheOnHide = useCallback(() => {
+        try {
+            const keys = [
+                LIST_CACHE_KEY,
+                SPECIFIC_CACHE_KEY,
+                `${LIST_CACHE_KEY}_time`,
+                `${SPECIFIC_CACHE_KEY}_time`,
+                CACHE_KEY,
+                `${CACHE_KEY}_time`,
+            ];
+            keys.forEach((k) => localStorage.removeItem(k));
+            localStorage.setItem('just_cleared_cache', Date.now().toString());
+            console.log('🗑️ Cleared front cache on LiveResult hide');
+        } catch (e) {
+            console.warn('Clear front cache on hide failed:', e);
+        }
+    }, [LIST_CACHE_KEY, SPECIFIC_CACHE_KEY, CACHE_KEY]);
+
+    // ✅ TỐI ƯU: Hàm clear cache riêng biệt cho danh sách và ngày cụ thể
     const clearCacheForToday = useCallback(() => {
         const keysToRemove = [
-            `xsmb_data_${station}_${today}_null`,
-            `xsmb_data_${station}_null_null`,
+            LIST_CACHE_KEY, // Cache cho danh sách
+            SPECIFIC_CACHE_KEY, // Cache cho ngày cụ thể
+            `xsmb_data_${station}_${date}`, // Cache cũ (backward compatibility)
+            `xsmb_data_${station}_${urlDate}`, // Cache cũ (backward compatibility)
+            `xsmb_data_${station}_null`,
             CACHE_KEY,
-            `${CACHE_KEY}_time`
+            `${CACHE_KEY}_time`,
+            `${LIST_CACHE_KEY}_time`,
+            `${SPECIFIC_CACHE_KEY}_time`
         ];
 
         // ✅ TỐI ƯU: Batch operations
@@ -432,8 +468,8 @@ const KQXS = (props) => {
         ];
 
         batchLocalStorageOperation(operations);
-        console.log('🗑️ Đã xóa cache cho ngày hôm nay');
-    }, [station, today, CACHE_KEY, batchLocalStorageOperation]);
+        console.log('🗑️ Đã xóa cache cho danh sách và ngày cụ thể');
+    }, [station, date, urlDate, CACHE_KEY, LIST_CACHE_KEY, SPECIFIC_CACHE_KEY, batchLocalStorageOperation]);
 
     // ✅ TỐI ƯU: Cache cleanup function - chỉ chạy khi cần
     const cleanOldCache = useCallback(() => {
@@ -477,20 +513,62 @@ const KQXS = (props) => {
             const vietnamHours = vietnamTime.getHours();
             const vietnamMinutes = vietnamTime.getMinutes();
 
-            // ✅ TỐI ƯU: Logic thời gian chính xác cho múi giờ Việt Nam
-            const isUpdateWindow = vietnamHours === testhour && vietnamMinutes >= testminutes && vietnamMinutes <= 33;
-            const isAfterUpdateWindow = vietnamHours > testhour || (vietnamHours === testhour && vietnamMinutes > 33);
-            const isPostLiveWindow = vietnamHours > testhour || (vietnamHours === testhour && vietnamMinutes > 33);
+            // Tính mốc thời gian bắt đầu/kết thúc live và ngưỡng finalize (kết thúc + 2 phút)
+            const startTimeRef = new Date(vietnamTime);
+            startTimeRef.setHours(testhour, testminutes, 0, 0);
+            const endTimeRef = new Date(vietnamTime);
+            endTimeRef.setHours(testhour, testEndlive, 0, 0);
+            const FINALIZE_BUFFER_MS = 3 * 1000;
+            const thresholdNewCacheTime = new Date(endTimeRef.getTime() + FINALIZE_BUFFER_MS);
 
-            // THÊM: Kiểm tra cache strategy trước
+            // ✅ SỬA: Clear cache cũ khi urlDate thay đổi - CHỈ XÓA CACHE CŨ, KHÔNG XÓA CACHE DANH SÁCH
+            if (urlDate) {
+                // Clear cache cũ (backward compatibility) - chỉ xóa cache cũ format
+                const oldCacheKey = `xsmb_data_${station}_${date}`;
+                const oldCacheData = localStorage.getItem(oldCacheKey);
+                if (oldCacheData) {
+                    localStorage.removeItem(oldCacheKey);
+                    localStorage.removeItem(`${oldCacheKey}_time`);
+                    console.log('🗑️ Đã xóa cache cũ format khi urlDate thay đổi');
+                }
+
+                // Clear cache cũ format với urlDate
+                const oldUrlDateCacheKey = `xsmb_data_${station}_${urlDate}`;
+                const oldUrlDateCacheData = localStorage.getItem(oldUrlDateCacheKey);
+                if (oldUrlDateCacheData) {
+                    localStorage.removeItem(oldUrlDateCacheKey);
+                    localStorage.removeItem(`${oldUrlDateCacheKey}_time`);
+                    console.log('🗑️ Đã xóa cache cũ format với urlDate');
+                }
+
+                // KHÔNG xóa cache danh sách hiện tại - giữ nguyên LIST_CACHE_KEY
+                console.log('✅ Giữ nguyên cache danh sách:', LIST_CACHE_KEY);
+            }
+
+            // ✅ TỐI ƯU: Logic thời gian theo mốc start/end (độ chính xác tới giây)
+            const isUpdateWindow = vietnamTime >= startTimeRef && vietnamTime <= endTimeRef;
+            const isAfterUpdateWindow = vietnamTime > endTimeRef;
+            const isPostLiveWindow = isAfterUpdateWindow;
+
+            // THÊM: Kiểm tra cache strategy trước (nhưng bỏ qua nếu đã qua live window và chưa cập nhật hôm nay)
             if (!forceRefresh) {
-                const { data: cachedData, source } = cacheStrategy.loadData();
-                if (cachedData && cacheStrategy.isDataFresh(cachedData)) {
-                    console.log(`📦 Using cached data from: ${source}`);
-                    const formattedData = formatDataForIndex(cachedData);
-                    setData(formattedData);
-                    setLoading(false);
-                    return;
+                const isPostLiveWindow = vietnamTime > endTimeRef;
+                const hasUpdatedFlag = (() => {
+                    const ts = parseInt(localStorage.getItem(UPDATE_KEY) || '0', 10);
+                    if (!ts) return false;
+                    const tsVN = new Date(new Date(ts).toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }))
+                        .toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                    return tsVN === today;
+                })();
+                if (!(isPostLiveWindow && !hasUpdatedFlag)) {
+                    const { data: cachedData, source } = cacheStrategy.loadData();
+                    if (cachedData && cacheStrategy.isDataFresh(cachedData)) {
+                        console.log(`📦 Using cached data from: ${source}`);
+                        const formattedData = formatDataForIndex(cachedData);
+                        setData(formattedData);
+                        setLoading(false);
+                        return;
+                    }
                 }
             }
 
@@ -498,36 +576,64 @@ const KQXS = (props) => {
             const cachedData = localStorage.getItem(CACHE_KEY);
             const cachedTime = localStorage.getItem(`${CACHE_KEY}_time`);
             const cacheAge = cachedTime ? vietnamTime.getTime() - parseInt(cachedTime) : Infinity;
-            const hasUpdatedToday = localStorage.getItem(UPDATE_KEY);
+            // Chuẩn hóa cờ đã cập nhật hôm nay theo ngày VN để tránh fetch lặp
+            const hasUpdatedToday = (() => {
+                const ts = parseInt(localStorage.getItem(UPDATE_KEY) || '0', 10);
+                if (!ts) return false;
+                const tsVN = new Date(new Date(ts).toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }))
+                    .toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                return tsVN === today;
+            })();
             const lastLiveUpdateTime = lastLiveUpdate;
 
-            // ✅ Tối ƯU: Logic cache thông minh - đảm bảo cache mới được sử dụng sau 18h35+
-            if (cachedData && cacheAge < CACHE_DURATION) {
+            // ✅ Tối ƯU: Logic cache thông minh - đảm bảo cache mới được sử dụng sau khi kết thúc live + buffer
+            let bypassDueToPostLive = false;
+            if (!forceRefresh && cachedData && cacheAge < CACHE_DURATION && !urlDate) {
                 console.log(`📦 Cache hit: ${CACHE_KEY}, age: ${Math.round(cacheAge / 1000 / 60)} phút`);
 
-                // ✅ Tối ƯU: Kiểm tra nếu cache được tạo sau 18h35 thì ưu tiên sử dụng
+                // ✅ Tối ƯU: Kiểm tra nếu cache được tạo sau thời điểm kết thúc live + buffer thì ưu tiên sử dụng
                 const cacheTime = parseInt(localStorage.getItem(`${CACHE_KEY}_time`) || '0');
                 const cacheDate = new Date(cacheTime);
                 const vietnamCacheTime = new Date(cacheDate.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
-                const cacheHour = vietnamCacheTime.getHours();
-                const cacheMinute = vietnamCacheTime.getMinutes();
+                const isNewCache = vietnamCacheTime >= thresholdNewCacheTime;
 
-                // Nếu cache được tạo sau 18h35, đây là cache mới và đáng tin cậy
-                const isNewCache = (cacheHour > testhour) || (cacheHour === testhour && cacheMinute >= 33);
-
-                if (isNewCache) {
-                    console.log(`✅ Sử dụng cache mới (sau 18h35): ${vietnamCacheTime.toLocaleTimeString('vi-VN')}`);
+                // Nếu đã sau live window + buffer và hôm nay CHƯA cập nhật, bỏ qua cache cũ để fetch 1 lần hậu-live
+                if (!isNewCache && (vietnamTime >= thresholdNewCacheTime) && !hasUpdatedToday) {
+                    console.log('⏭️ Bỏ qua cache cũ (trước kết thúc live + buffer) sau live window để fetch API và cập nhật cache mới.');
+                    bypassDueToPostLive = true;
+                    // không return, rơi xuống shouldFetchFromAPI
                 } else {
-                    console.log(`📦 Sử dụng cache cũ (trước 18h35): ${vietnamCacheTime.toLocaleTimeString('vi-VN')}`);
+                    console.log(`✅ Sử dụng cache: ${vietnamCacheTime.toLocaleTimeString('vi-VN')} (isNewCache=${isNewCache})`);
+                    // Nếu đã sau end nhưng chưa qua buffer và chưa cập nhật hôm nay, hẹn fetch ngay khi qua buffer
+                    if (!isNewCache && (vietnamTime > endTimeRef) && (vietnamTime < thresholdNewCacheTime) && !hasUpdatedToday) {
+                        const delay = Math.max(0, thresholdNewCacheTime.getTime() - vietnamTime.getTime() + 500);
+                        try {
+                            if (scheduledPostBufferFetchRef.current) {
+                                clearTimeout(scheduledPostBufferFetchRef.current);
+                            }
+                            scheduledPostBufferFetchRef.current = setTimeout(() => {
+                                if (fetchDataRef.current) {
+                                    console.log('⏰ Qua mốc buffer, fetch hậu-live tự động');
+                                    fetchDataRef.current(true);
+                                }
+                            }, delay);
+                        } catch (e) {
+                            console.warn('Không thể hẹn fetch hậu-live:', e);
+                        }
+                    }
+                    setData(JSON.parse(cachedData));
+                    setLoading(false);
+                    return; // Không gọi API nếu cache còn valid
                 }
-
-                setData(JSON.parse(cachedData));
-                setLoading(false);
-                return; // Không gọi API nếu cache còn valid
             } else if (cachedData && cacheAge >= CACHE_DURATION) {
                 console.log(`⏰ Cache expired: ${CACHE_KEY}, age: ${Math.round(cacheAge / 1000 / 60)} phút`);
             } else if (!cachedData) {
                 console.log(`❌ Cache miss: ${CACHE_KEY}`);
+            }
+
+            // ✅ THÊM: Nếu có urlDate, bỏ qua cache và gọi API trực tiếp
+            if (urlDate) {
+                console.log(`🔍 Có urlDate: ${urlDate}, bỏ qua cache và gọi API trực tiếp`);
             }
 
             // ✅ Tối ƯU: Kiểm tra nếu vừa clear cache thì không tạo cache mới ngay
@@ -540,32 +646,12 @@ const KQXS = (props) => {
             // Logic cache invalidation thông minh - chỉ gọi API khi thực sự cần
             const shouldFetchFromAPI =
                 forceRefresh || // Force refresh từ live data
+                urlDate || // Luôn gọi API khi có urlDate
                 (!cachedData || cacheAge >= CACHE_DURATION) || // Cache miss/expired
                 (isPostLiveWindow && !hasUpdatedToday) || // Sau live window và chưa update
                 (lastLiveUpdateTime && (vietnamTime.getTime() - lastLiveUpdateTime) > LIVE_CACHE_DURATION); // Live data cũ
 
-            // Kiểm tra ngày hợp lệ
-            if (date && !isValidDate(date)) {
-                setData([]);
-                setLoading(false);
-                setError('DỮ LIỆU CHƯA CÓ. VUI LÒNG THỬ LẠI SAU.');
-                return;
-            }
-
-            // Không gọi API nếu là ngày hiện tại và chưa đến khung giờ trực tiếp
-            if (date === today && !isUpdateWindow && !isAfterUpdateWindow) {
-                if (cachedData) {
-                    setData(JSON.parse(cachedData));
-                    setLoading(false);
-                } else {
-                    setData([]);
-                    setLoading(false);
-                    setError('Chưa có kết quả xổ số cho ngày hiện tại.');
-                }
-                return;
-            }
-
-            // Làm mới cache nếu cần thiết
+            // Gọi API trực tiếp với urlDate
             if (shouldFetchFromAPI) {
                 console.log('Fetching from API', {
                     forceRefresh,
@@ -583,7 +669,10 @@ const KQXS = (props) => {
 
                 while (retryCount < maxRetries) {
                     try {
-                        result = await apiMB.getLottery(station, date, dayof);
+                        // Sử dụng urlDate cho API call
+                        console.log('🔍 Debug index.js API call:', { station, urlDate });
+                        result = await apiMB.getLottery(station, urlDate, null);
+                        console.log('🔍 Debug index.js API result:', result);
                         break; // Thành công, thoát loop
                     } catch (error) {
                         retryCount++;
@@ -621,15 +710,30 @@ const KQXS = (props) => {
                 const cachedDataParsed = cachedData ? JSON.parse(cachedData) : [];
                 const hasNewData = JSON.stringify(formattedData) !== JSON.stringify(cachedDataParsed);
 
-                if (hasNewData) {
+                if (hasNewData || bypassDueToPostLive) {
                     setData(formattedData);
 
-                    // ✅ TỐI ƯU: Chỉ tạo cache nếu không vừa clear cache
+                    // ✅ TỐI ƯU: Cache riêng biệt cho danh sách và ngày cụ thể
                     const justClearedCache = localStorage.getItem('just_cleared_cache');
                     if (!justClearedCache) {
-                        localStorage.setItem(CACHE_KEY, JSON.stringify(formattedData));
-                        localStorage.setItem(`${CACHE_KEY}_time`, vietnamTime.getTime().toString());
-                        console.log('✅ Đã tạo cache mới');
+                        if (urlDate) {
+                            // Cache cho ngày cụ thể
+                            localStorage.setItem(SPECIFIC_CACHE_KEY, JSON.stringify(formattedData));
+                            localStorage.setItem(`${SPECIFIC_CACHE_KEY}_time`, vietnamTime.getTime().toString());
+                            console.log('✅ Đã tạo cache cho ngày cụ thể:', SPECIFIC_CACHE_KEY);
+                        } else {
+                            // Cache cho danh sách
+                            localStorage.setItem(LIST_CACHE_KEY, JSON.stringify(formattedData));
+                            localStorage.setItem(`${LIST_CACHE_KEY}_time`, vietnamTime.getTime().toString());
+                            console.log('✅ Đã tạo cache cho danh sách:', LIST_CACHE_KEY);
+                            // Chỉ đánh dấu đã cập nhật hậu-live nếu đã qua mốc kết thúc + buffer
+                            if (new Date(getVietnamTimeCached()) >= thresholdNewCacheTime || bypassDueToPostLive) {
+                                localStorage.setItem(UPDATE_KEY, getVietnamTimeCached().getTime().toString());
+                                console.log('🏁 Đặt UPDATE_KEY (hậu-live) do đã qua mốc kết thúc + buffer');
+                            } else {
+                                console.log('⏳ Chưa đặt UPDATE_KEY vì chưa qua mốc kết thúc + buffer');
+                            }
+                        }
                     } else {
                         console.log('🔄 Vừa clear cache, không tạo cache mới');
                         localStorage.removeItem('just_cleared_cache');
@@ -654,44 +758,33 @@ const KQXS = (props) => {
                 return;
             }
 
-            // Kiểm tra props.data
+            // Kiểm tra props.data - đơn giản hóa
             if (props.data && Array.isArray(props.data) && props.data.length > 0) {
-                const dayMap = {
-                    'thu-2': 'Thứ Hai',
-                    'thu-3': 'Thứ Ba',
-                    'thu-4': 'Thứ Tư',
-                    'thu-5': 'Thứ Năm',
-                    'thu-6': 'Thứ Sáu',
-                    'thu-7': 'Thứ Bảy',
-                    'chu-nhat': 'Chủ Nhật'
-                };
-                const isPropsDataValid = props.data.every(item => {
-                    const itemDate = new Date(item.drawDate).toLocaleDateString('vi-VN', {
+                const formattedData = props.data.map(item => ({
+                    ...item,
+                    drawDate: new Date(item.drawDate).toLocaleDateString('vi-VN', {
                         day: '2-digit',
                         month: '2-digit',
                         year: 'numeric',
-                    });
-                    const matchesStation = item.station === station;
-                    const matchesDate = !date || itemDate === date;
-                    const matchesDayOfWeek = !dayof || item.dayOfWeek.toLowerCase() === dayMap[dayof.toLowerCase()]?.toLowerCase();
-                    return matchesStation && matchesDate && matchesDayOfWeek;
-                });
+                    }),
+                }));
+                setData(formattedData);
 
-                if (isPropsDataValid) {
-                    const formattedData = props.data.map(item => ({
-                        ...item,
-                        drawDate: new Date(item.drawDate).toLocaleDateString('vi-VN', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric',
-                        }),
-                    }));
-                    setData(formattedData);
-                    localStorage.setItem(CACHE_KEY, JSON.stringify(formattedData));
-                    localStorage.setItem(`${CACHE_KEY}_time`, vietnamTime.getTime().toString());
-                    setLoading(false);
-                    return;
+                // Cache riêng biệt cho props.data
+                if (urlDate) {
+                    // Cache cho ngày cụ thể
+                    localStorage.setItem(SPECIFIC_CACHE_KEY, JSON.stringify(formattedData));
+                    localStorage.setItem(`${SPECIFIC_CACHE_KEY}_time`, vietnamTime.getTime().toString());
+                    console.log('✅ Đã tạo cache cho ngày cụ thể từ props:', SPECIFIC_CACHE_KEY);
+                } else {
+                    // Cache cho danh sách
+                    localStorage.setItem(LIST_CACHE_KEY, JSON.stringify(formattedData));
+                    localStorage.setItem(`${LIST_CACHE_KEY}_time`, vietnamTime.getTime().toString());
+                    console.log('✅ Đã tạo cache cho danh sách từ props:', LIST_CACHE_KEY);
                 }
+
+                setLoading(false);
+                return;
             }
 
             // Sử dụng cache nếu có và không cần làm mới
@@ -708,7 +801,7 @@ const KQXS = (props) => {
             setError('Không thể tải dữ liệu, vui lòng thử lại sau.');
             setLoading(false);
         }
-    }, [station, date, dayof, props.data, today, lastLiveUpdate, CACHE_KEY, getVietnamTimeCached, cleanOldCache]);
+    }, [station, urlDate, props.data, today, lastLiveUpdate, CACHE_KEY, getVietnamTimeCached, cleanOldCache]);
 
     // ✅ TỐI ƯU: Cập nhật ref khi fetchData thay đổi
     useEffect(() => {
@@ -722,7 +815,7 @@ const KQXS = (props) => {
     const LIVE_WINDOW_CONFIG = {
         hour: testhour, // 18h - múi giờ Việt Nam (UTC+7)
         startMinute: testminutes, // 18h10 - Bắt đầu live window
-        endMinute: 33, // 18h34 - Kết thúc live window
+        endMinute: testEndlive, // 18h34 - Kết thúc live window
         duration: 23 * 60 * 1000, // 24 phút
         scraperTriggerMinute: 14, // 18h23 - Trigger scraper
     };
@@ -756,7 +849,7 @@ const KQXS = (props) => {
     // ✅ TỐI ƯU: Logic check time tối ưu - TỐI ƯU CUỐI CÙNG để không ảnh hưởng LiveResult
     useEffect(() => {
         let cacheClearedForLiveWindow = false; // Flag tránh clear cache nhiều lần khi LiveResult ẩn đi
-        let lastCheckMinute = -1; // Tránh check cùng 1 phút nhiều lần
+        // Bỏ cơ chế chặn theo phút để phản ứng theo chu kỳ interval (5s live / 30s ngoài live)
         let isActive = true; // Flag để tránh memory leak
 
         const checkTime = () => {
@@ -771,13 +864,6 @@ const KQXS = (props) => {
                     vietnamSeconds,
                     vietnamTime
                 } = checkLiveWindow();
-
-                // ✅ TỐI ƯU: Chỉ check khi thực sự cần
-                const currentMinute = vietnamHours * 60 + vietnamMinutes;
-                if (currentMinute === lastCheckMinute) {
-                    return; // Bỏ qua nếu đã check phút này
-                }
-                lastCheckMinute = currentMinute;
 
                 setIsLiveWindow(isLive);
 
@@ -799,6 +885,9 @@ const KQXS = (props) => {
                     if (liveData && liveData.isLive) {
                         cacheStrategy.cacheCompleteData(liveData);
                     }
+
+                    // Xóa cache giao diện để buộc lấy dữ liệu mới
+                    clearFrontCacheOnHide();
 
                     setTimeout(() => {
                         if (isActive && fetchDataRef.current) {
@@ -876,30 +965,19 @@ const KQXS = (props) => {
             clearInterval(intervalId);
             clearInterval(intervalUpdateId);
         };
-    }, [hasTriggeredScraper, station, today, checkLiveWindow]); // ✅ TỐI ƯU: Loại bỏ clearCacheForToday vì chỉ dùng trong LiveResult ẩn đi
+    }, [hasTriggeredScraper, station, today, checkLiveWindow, clearFrontCacheOnHide]); // ✅ TỐI ƯU: Loại bỏ clearCacheForToday vì chỉ dùng trong LiveResult ẩn đi
 
     useEffect(() => {
-        // ✅ TỐI ƯU: Chỉ fetch data khi mount, không fetch lại mỗi lần
+        // ✅ TỐI ƯU: Fetch data khi mount hoặc khi urlDate thay đổi
         fetchData();
-    }, []); // Loại bỏ fetchData khỏi dependency để tránh re-render
+    }, [urlDate]); // Thêm urlDate vào dependency để fetch lại khi thay đổi
 
     // ✅ TỐI ƯU: Memoize các giá trị tính toán để tránh tính lại
     const isLiveMode = useMemo(() => {
-        if (!props.data3) return true;
-        if (props.data3 === today) return true;
-        const dayMap = {
-            'thu-2': 'Thứ Hai',
-            'thu-3': 'Thứ Ba',
-            'thu-4': 'Thứ Tư',
-            'thu-5': 'Thứ Năm',
-            'thu-6': 'Thứ Sáu',
-            'thu-7': 'Thứ Bảy',
-            'chu-nhat': 'Chủ Nhật'
-        };
-        const todayDayOfWeek = new Date().toLocaleString('vi-VN', { weekday: 'long' });
-        const inputDayOfWeek = dayMap[props.data3?.toLowerCase()];
-        return inputDayOfWeek && inputDayOfWeek === todayDayOfWeek;
-    }, [props.data3, today]);
+        if (!urlDate) return true; // Sử dụng urlDate thay vì props.data3
+        if (urlDate === today) return true; // Sử dụng urlDate
+        return false;
+    }, [urlDate, today]);
 
     // ✅ TỐI ƯU: Memoize getHeadAndTailNumbers để tránh tính lại
     const getHeadAndTailNumbers = useMemo(() => (data2) => {
@@ -1132,239 +1210,258 @@ const KQXS = (props) => {
     });
 
     return (
-        <div className={styles.containerKQ}>
-            {isLiveMode && isLiveWindow && (
-                <LiveResult
-                    station={station}
-                    today={today}
-                    getHeadAndTailNumbers={getHeadAndTailNumbers}
-                    handleFilterChange={handleFilterChange}
-                    filterTypes={filterTypes}
-                    isLiveWindow={isLiveWindow}
-                />
-            )}
-            {currentData.map((data2) => {
-                const tableKey = data2.drawDate + data2.tinh;
-                const currentFilter = filterTypes[tableKey] || 'all';
-                const { heads, tails } = getHeadAndTailNumbers(data2);
+        <div>
+            <TableDate />
+            <div className='groupbanner3'>
+                <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
+                    <video
+                        className='banner3'
+                        src='/banner3.mp4'
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        alt='xổ số bắc trung nam'
+                        loading="lazy"
+                        suppressHydrationWarning
+                    />
+                </a>
+            </div>
+            <div className={styles.containerKQ}>
+                {isLiveMode && isLiveWindow && (
+                    <LiveResult
+                        station={station}
+                        today={today}
+                        getHeadAndTailNumbers={getHeadAndTailNumbers}
+                        handleFilterChange={handleFilterChange}
+                        filterTypes={filterTypes}
+                        isLiveWindow={isLiveWindow}
+                    />
+                )}
+                {currentData.map((data2) => {
+                    const tableKey = data2.drawDate + data2.tinh;
+                    const currentFilter = filterTypes[tableKey] || 'all';
+                    const { heads, tails } = getHeadAndTailNumbers(data2);
 
-                return (
-                    <div key={tableKey}>
-                        <div className={styles.kqxs}>
-                            <div className={styles.header}>
-                                <div className={styles.headerTop}>
-                                    <h1 className={styles.kqxs__title}>
-                                        XSMB - Kết quả Xổ số Miền Bắc - SXMB
-                                    </h1>
-                                    <PrintButton
-                                        data2={data2}
-                                        heads={heads}
-                                        tails={tails}
-                                        currentFilter={currentFilter}
-                                        getFilteredNumber={getFilteredNumber}
-                                    />
+                    return (
+                        <div key={tableKey}>
+
+                            <div className={styles.kqxs}>
+                                <div className={styles.header}>
+                                    <div className={styles.headerTop}>
+                                        <h1 className={styles.kqxs__title}>
+                                            XSMB - Kết quả Xổ số Miền Bắc - SXMB
+                                        </h1>
+                                        <PrintButton
+                                            data2={data2}
+                                            heads={heads}
+                                            tails={tails}
+                                            currentFilter={currentFilter}
+                                            getFilteredNumber={getFilteredNumber}
+                                        />
+                                    </div>
+                                    <div className={styles.kqxs__action}>
+                                        <a className={styles.kqxs__actionLink} href="#!">{data2.station}</a>
+                                        <a className={`${styles.kqxs__actionLink} ${styles.dayOfWeek}`} href="#!">{data2.dayOfWeek}</a>
+                                        <a className={styles.kqxs__actionLink} href="#!">{data2.drawDate}</a>
+                                        <span className={styles.tentinhs}>({data2.tentinh})</span>
+                                    </div>
                                 </div>
-                                <div className={styles.kqxs__action}>
-                                    <a className={styles.kqxs__actionLink} href="#!">{data2.station}</a>
-                                    <a className={`${styles.kqxs__actionLink} ${styles.dayOfWeek}`} href="#!">{data2.dayOfWeek}</a>
-                                    <a className={styles.kqxs__actionLink} href="#!">{data2.drawDate}</a>
-                                    <span className={styles.tentinhs}>({data2.tentinh})</span>
+                                <table className={styles.tableXS}>
+                                    <tbody>
+                                        <tr>
+                                            <td className={`${styles.code} ${styles.rowXS}`}>
+                                                <span className={styles.span0}>
+                                                    {data2.maDB === '...' ? <span className={styles.ellipsis}></span> : data2.maDB}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td className={`${styles.tdTitle} ${styles.highlight}`}>ĐB</td>
+                                            <td className={styles.rowXS}>
+                                                {(data2.specialPrize || []).map((kq, index) => (
+                                                    <span
+                                                        key={`${kq}-${index}`}
+                                                        className={`${styles.span1} ${styles.highlight} ${styles.gdb}`}
+                                                    >
+                                                        {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
+                                                    </span>
+                                                ))}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td className={styles.tdTitle}>G1</td>
+                                            <td className={styles.rowXS}>
+                                                {(data2.firstPrize || []).map((kq, index) => (
+                                                    <span key={`${kq}-${index}`} className={styles.span1}>
+                                                        {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
+                                                    </span>
+                                                ))}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td className={styles.tdTitle}>G2</td>
+                                            <td className={styles.rowXS}>
+                                                {(data2.secondPrize || []).map((kq, index) => (
+                                                    <span key={`${kq}-${index}`} className={styles.span2}>
+                                                        {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
+                                                    </span>
+                                                ))}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td className={`${styles.tdTitle} ${styles.g3}`}>G3</td>
+                                            <td className={styles.rowXS}>
+                                                {(data2.threePrizes || []).slice(0, 3).map((kq, index) => (
+                                                    <span
+                                                        key={`${kq}-${index}`}
+                                                        className={`${styles.span3} ${styles.g3}`}
+                                                    >
+                                                        {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
+                                                    </span>
+                                                ))}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td className={styles.tdTitle}></td>
+                                            <td className={styles.rowXS}>
+                                                {(data2.threePrizes || []).slice(3, 6).map((kq, index) => (
+                                                    <span key={`${kq}-${index}`} className={styles.span3}>
+                                                        {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
+                                                    </span>
+                                                ))}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td className={styles.tdTitle}>G4</td>
+                                            <td className={styles.rowXS}>
+                                                {(data2.fourPrizes || []).map((kq, index) => (
+                                                    <span key={`${kq}-${index}`} className={styles.span4}>
+                                                        {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
+                                                    </span>
+                                                ))}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td className={`${styles.tdTitle} ${styles.g3}`}>G5</td>
+                                            <td className={styles.rowXS}>
+                                                {(data2.fivePrizes || []).slice(0, 3).map((kq, index) => (
+                                                    <span
+                                                        key={`${kq}-${index}`}
+                                                        className={`${styles.span3} ${styles.g3}`}
+                                                    >
+                                                        {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
+                                                    </span>
+                                                ))}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td className={styles.tdTitle}></td>
+                                            <td className={styles.rowXS}>
+                                                {(data2.fivePrizes || []).slice(3, 6).map((kq, index) => (
+                                                    <span key={`${kq}-${index}`} className={styles.span3}>
+                                                        {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
+                                                    </span>
+                                                ))}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td className={styles.tdTitle}>G6</td>
+                                            <td className={styles.rowXS}>
+                                                {(data2.sixPrizes || []).map((kq, index) => (
+                                                    <span key={`${kq}-${index}`} className={styles.span3}>
+                                                        {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
+                                                    </span>
+                                                ))}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td className={styles.tdTitle}>G7</td>
+                                            <td className={styles.rowXS}>
+                                                {(data2.sevenPrizes || []).map((kq, index) => (
+                                                    <span
+                                                        key={`${kq}-${index}`}
+                                                        className={`${styles.span4} ${styles.highlight}`}
+                                                    >
+                                                        {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
+                                                    </span>
+                                                ))}
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <div className={styles.action}>
+                                    <div aria-label="Tùy chọn lọc số" className={styles.filter__options} role="radiogroup">
+                                        <div className={styles.optionInput}>
+                                            <input
+                                                id={`filterAll-${tableKey}`}
+                                                type="radio"
+                                                name={`filterOption-${tableKey}`}
+                                                value="all"
+                                                checked={currentFilter === 'all'}
+                                                onChange={() => handleFilterChange(tableKey, 'all')}
+                                            />
+                                            <label htmlFor={`filterAll-${tableKey}`}>Đầy Đủ</label>
+                                        </div>
+                                        <div className={styles.optionInput}>
+                                            <input
+                                                id={`filterTwo-${tableKey}`}
+                                                type="radio"
+                                                name={`filterOption-${tableKey}`}
+                                                value="last2"
+                                                checked={currentFilter === 'last2'}
+                                                onChange={() => handleFilterChange(tableKey, 'last2')}
+                                            />
+                                            <label htmlFor={`filterTwo-${tableKey}`}>2 Số Đuôi</label>
+                                        </div>
+                                        <div className={styles.optionInput}>
+                                            <input
+                                                id={`filterThree-${tableKey}`}
+                                                type="radio"
+                                                name={`filterOption-${tableKey}`}
+                                                value="last3"
+                                                checked={currentFilter === 'last3'}
+                                                onChange={() => handleFilterChange(tableKey, 'last3')}
+                                            />
+                                            <label htmlFor={`filterThree-${tableKey}`}>3 Số Đuôi</label>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <table className={styles.tableXS}>
-                                <tbody>
-                                    <tr>
-                                        <td className={`${styles.code} ${styles.rowXS}`}>
-                                            <span className={styles.span0}>
-                                                {data2.maDB === '...' ? <span className={styles.ellipsis}></span> : data2.maDB}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td className={`${styles.tdTitle} ${styles.highlight}`}>ĐB</td>
-                                        <td className={styles.rowXS}>
-                                            {(data2.specialPrize || []).map((kq, index) => (
-                                                <span
-                                                    key={`${kq}-${index}`}
-                                                    className={`${styles.span1} ${styles.highlight} ${styles.gdb}`}
-                                                >
-                                                    {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
-                                                </span>
-                                            ))}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td className={styles.tdTitle}>G1</td>
-                                        <td className={styles.rowXS}>
-                                            {(data2.firstPrize || []).map((kq, index) => (
-                                                <span key={`${kq}-${index}`} className={styles.span1}>
-                                                    {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
-                                                </span>
-                                            ))}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td className={styles.tdTitle}>G2</td>
-                                        <td className={styles.rowXS}>
-                                            {(data2.secondPrize || []).map((kq, index) => (
-                                                <span key={`${kq}-${index}`} className={styles.span2}>
-                                                    {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
-                                                </span>
-                                            ))}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td className={`${styles.tdTitle} ${styles.g3}`}>G3</td>
-                                        <td className={styles.rowXS}>
-                                            {(data2.threePrizes || []).slice(0, 3).map((kq, index) => (
-                                                <span
-                                                    key={`${kq}-${index}`}
-                                                    className={`${styles.span3} ${styles.g3}`}
-                                                >
-                                                    {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
-                                                </span>
-                                            ))}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td className={styles.tdTitle}></td>
-                                        <td className={styles.rowXS}>
-                                            {(data2.threePrizes || []).slice(3, 6).map((kq, index) => (
-                                                <span key={`${kq}-${index}`} className={styles.span3}>
-                                                    {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
-                                                </span>
-                                            ))}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td className={styles.tdTitle}>G4</td>
-                                        <td className={styles.rowXS}>
-                                            {(data2.fourPrizes || []).map((kq, index) => (
-                                                <span key={`${kq}-${index}`} className={styles.span4}>
-                                                    {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
-                                                </span>
-                                            ))}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td className={`${styles.tdTitle} ${styles.g3}`}>G5</td>
-                                        <td className={styles.rowXS}>
-                                            {(data2.fivePrizes || []).slice(0, 3).map((kq, index) => (
-                                                <span
-                                                    key={`${kq}-${index}`}
-                                                    className={`${styles.span3} ${styles.g3}`}
-                                                >
-                                                    {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
-                                                </span>
-                                            ))}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td className={styles.tdTitle}></td>
-                                        <td className={styles.rowXS}>
-                                            {(data2.fivePrizes || []).slice(3, 6).map((kq, index) => (
-                                                <span key={`${kq}-${index}`} className={styles.span3}>
-                                                    {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
-                                                </span>
-                                            ))}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td className={styles.tdTitle}>G6</td>
-                                        <td className={styles.rowXS}>
-                                            {(data2.sixPrizes || []).map((kq, index) => (
-                                                <span key={`${kq}-${index}`} className={styles.span3}>
-                                                    {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
-                                                </span>
-                                            ))}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td className={styles.tdTitle}>G7</td>
-                                        <td className={styles.rowXS}>
-                                            {(data2.sevenPrizes || []).map((kq, index) => (
-                                                <span
-                                                    key={`${kq}-${index}`}
-                                                    className={`${styles.span4} ${styles.highlight}`}
-                                                >
-                                                    {kq === '...' ? <span className={styles.ellipsis}></span> : getFilteredNumber(kq, currentFilter)}
-                                                </span>
-                                            ))}
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                            <div className={styles.action}>
-                                <div aria-label="Tùy chọn lọc số" className={styles.filter__options} role="radiogroup">
-                                    <div className={styles.optionInput}>
-                                        <input
-                                            id={`filterAll-${tableKey}`}
-                                            type="radio"
-                                            name={`filterOption-${tableKey}`}
-                                            value="all"
-                                            checked={currentFilter === 'all'}
-                                            onChange={() => handleFilterChange(tableKey, 'all')}
-                                        />
-                                        <label htmlFor={`filterAll-${tableKey}`}>Đầy Đủ</label>
-                                    </div>
-                                    <div className={styles.optionInput}>
-                                        <input
-                                            id={`filterTwo-${tableKey}`}
-                                            type="radio"
-                                            name={`filterOption-${tableKey}`}
-                                            value="last2"
-                                            checked={currentFilter === 'last2'}
-                                            onChange={() => handleFilterChange(tableKey, 'last2')}
-                                        />
-                                        <label htmlFor={`filterTwo-${tableKey}`}>2 Số Đuôi</label>
-                                    </div>
-                                    <div className={styles.optionInput}>
-                                        <input
-                                            id={`filterThree-${tableKey}`}
-                                            type="radio"
-                                            name={`filterOption-${tableKey}`}
-                                            value="last3"
-                                            checked={currentFilter === 'last3'}
-                                            onChange={() => handleFilterChange(tableKey, 'last3')}
-                                        />
-                                        <label htmlFor={`filterThree-${tableKey}`}>3 Số Đuôi</label>
-                                    </div>
-                                </div>
-                            </div>
+                            <LoToTable
+                                data2={data2}
+                                heads={heads}
+                                tails={tails}
+                            />
                         </div>
-                        <LoToTable
-                            data2={data2}
-                            heads={heads}
-                            tails={tails}
-                        />
+                    );
+                })}
+                {data.length > itemsPerPage && (
+                    <div className={styles.pagination}>
+                        <a
+                            href={`/ket-qua-xo-so-mien-bac?page=${currentPage - 1}`}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                goToPage(currentPage - 1);
+                            }}
+                            className={`${styles.paginationButton} ${currentPage === 1 ? styles.disabled : ''}`}
+                        >
+                            Trước
+                        </a>
+                        <span>Trang {currentPage} / {totalPages}</span>
+                        <a
+                            href={`/ket-qua-xo-so-mien-bac?page=${currentPage + 1}`}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                goToPage(currentPage + 1);
+                            }}
+                            className={`${styles.paginationButton} ${currentPage === totalPages ? styles.disabled : ''}`}
+                        >
+                            Sau
+                        </a>
                     </div>
-                );
-            })}
-            {data.length > itemsPerPage && (
-                <div className={styles.pagination}>
-                    <a
-                        href={`/ket-qua-xo-so-mien-bac?page=${currentPage - 1}`}
-                        onClick={(e) => {
-                            e.preventDefault();
-                            goToPage(currentPage - 1);
-                        }}
-                        className={`${styles.paginationButton} ${currentPage === 1 ? styles.disabled : ''}`}
-                    >
-                        Trước
-                    </a>
-                    <span>Trang {currentPage} / {totalPages}</span>
-                    <a
-                        href={`/ket-qua-xo-so-mien-bac?page=${currentPage + 1}`}
-                        onClick={(e) => {
-                            e.preventDefault();
-                            goToPage(currentPage + 1);
-                        }}
-                        className={`${styles.paginationButton} ${currentPage === totalPages ? styles.disabled : ''}`}
-                    >
-                        Sau
-                    </a>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 };

@@ -281,22 +281,8 @@ const XSMB = ({ initialData, drawDate }) => {
                         <ListXSMN />
                     </div>
                     <div>
-                        <TableDate />
-                        <div className='groupbanner3'>
-                            <a href='https://m.dktin.top/reg/104600' tabIndex={-1}>
-                                <video
-                                    className='banner3'
-                                    src='/banner3.mp4'
-                                    autoPlay
-                                    loop
-                                    muted
-                                    playsInline
-                                    alt='xổ số bắc trung nam'
-                                    loading="lazy"
-                                    suppressHydrationWarning
-                                />
-                            </a>
-                        </div>
+                        {/* <TableDate /> */}
+                        
                         {/* Fixed height container để tránh layout shift */}
                         <div style={{ minHeight: '400px' }}>
                             {initialData ? (

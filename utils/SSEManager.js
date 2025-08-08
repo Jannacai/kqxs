@@ -7,6 +7,9 @@ class FrontendSSEManager {
         this.subscribers = new Map(); // { region: Set<callback> }
         this.connectionStatus = new Map(); // { region: 'connected'|'error'|'connecting' }
         this.reconnectAttempts = new Map(); // { region: count }
+        this.creating = new Set(); // inflight-lock khi tạo connection
+        this.lastCloseAt = new Map(); // cooldown sau khi đóng
+        this.prevLive = new Map(); // lưu trạng thái live trước đó để log khi thay đổi
 
         // Cấu hình giờ live và endpoints
         this.liveSchedule = {
@@ -23,8 +26,9 @@ class FrontendSSEManager {
                 name: 'Miền Trung'
             },
             'xsmb': {
+                // Giờ thực tế theo múi giờ Việt Nam
                 start: '18:10',
-                end: '18:34',
+                end: '18:33',
                 url: 'https://backendkqxs-1.onrender.com/api/kqxs/xsmb/sse',
                 name: 'Miền Bắc'
             }
@@ -37,17 +41,27 @@ class FrontendSSEManager {
         this.setupAutoCleanup();
     }
 
-    // Kiểm tra xem region có đang trong giờ live không
+    // Kiểm tra xem region có đang trong giờ live (theo múi giờ Việt Nam)
     isRegionLive(region) {
         const schedule = this.liveSchedule[region];
         if (!schedule) return false;
 
-        const now = new Date();
-        const currentTime = now.toTimeString().slice(0, 5); // "HH:MM"
+        // Lấy thời gian hiện tại theo múi giờ Việt Nam
+        const vietNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+        const hh = String(vietNow.getHours()).padStart(2, '0');
+        const mm = String(vietNow.getMinutes()).padStart(2, '0');
+        const currentTime = `${hh}:${mm}`; // "HH:MM" theo VN
 
         const isLive = currentTime >= schedule.start && currentTime <= schedule.end;
 
-        console.log(`🕐 Time check for ${region}: ${currentTime} (${schedule.start}-${schedule.end}) = ${isLive ? 'LIVE' : 'NOT LIVE'}`);
+        // Chỉ log khi trạng thái thay đổi và chỉ ở DEV
+        const prev = this.prevLive.get(region);
+        if (prev !== isLive) {
+            this.prevLive.set(region, isLive);
+            if (process.env.NODE_ENV === 'development') {
+                console.log(`🕐 VN time change for ${region}: ${currentTime} (${schedule.start}-${schedule.end}) → ${isLive ? 'LIVE' : 'NOT LIVE'}`);
+            }
+        }
 
         return isLive;
     }
@@ -61,10 +75,13 @@ class FrontendSSEManager {
 
         console.log(`📡 Subscribed to ${region} (${this.liveSchedule[region]?.name}) - Total subscribers: ${this.subscribers.get(region).size}`);
 
-        // Tạo connection nếu đang trong giờ live và chưa có connection
-        // TẠM THỜI: Luôn tạo connection để test, bỏ qua time-based logic
+        // Tạo connection CHỈ khi đang trong giờ live, chưa có connection và không đang tạo
         if (!this.connections.has(region)) {
-            this.createConnection(region);
+            if (this.isRegionLive(region) && !this.creating.has(region)) {
+                this.createConnection(region);
+            } else if (process.env.NODE_ENV === 'development') {
+                console.log(`⏭️ Skip creating connection for ${region} (not live or inflight)`);
+            }
         } else {
             console.log(`♻️ Reusing existing connection for ${region}`);
         }
@@ -104,8 +121,28 @@ class FrontendSSEManager {
             return;
         }
 
+        // Không tạo nếu đang inflight
+        if (this.creating.has(region)) {
+            if (process.env.NODE_ENV === 'development') {
+                console.log(`⏳ Connection creation inflight for ${region}, skip`);
+            }
+            return;
+        }
+
+        // Cooldown sau khi đóng
+        const lastClosedAt = this.lastCloseAt.get(region) || 0;
+        const now = Date.now();
+        const COOLDOWN_MS = 1200; // 1.2s
+        if (now - lastClosedAt < COOLDOWN_MS) {
+            if (process.env.NODE_ENV === 'development') {
+                console.log(`🧊 Cooldown active for ${region}, skip creating`);
+            }
+            return;
+        }
+
         console.log(`🔌 Tạo SSE connection cho ${region} (${schedule.name})`);
         this.connectionStatus.set(region, 'connecting');
+        this.creating.add(region);
 
         try {
             const connection = new EventSource(schedule.url);
@@ -115,6 +152,7 @@ class FrontendSSEManager {
                 console.log(`🔗 SSE URL: ${schedule.url}`);
                 this.connectionStatus.set(region, 'connected');
                 this.reconnectAttempts.set(region, 0);
+                this.creating.delete(region);
             };
 
             // Lắng nghe từng event type riêng biệt như XSMB
@@ -200,6 +238,7 @@ class FrontendSSEManager {
             connection.onerror = (error) => {
                 console.warn(`⚠️ SSE error cho ${region}:`, error);
                 this.connectionStatus.set(region, 'error');
+                this.creating.delete(region);
                 this.handleReconnect(region);
             };
 
@@ -208,6 +247,7 @@ class FrontendSSEManager {
         } catch (error) {
             console.error(`❌ Lỗi tạo SSE connection cho ${region}:`, error);
             this.connectionStatus.set(region, 'error');
+            this.creating.delete(region);
         }
     }
 
@@ -244,6 +284,7 @@ class FrontendSSEManager {
             }
             this.connections.delete(region);
             this.connectionStatus.delete(region);
+            this.lastCloseAt.set(region, Date.now());
         }
     }
 
@@ -256,7 +297,7 @@ class FrontendSSEManager {
                     this.closeConnection(region);
                 }
             });
-        }, 30000); // Check mỗi 30 giây
+        }, 5000); // Check mỗi 5 giây
     }
 
     // Lấy trạng thái connection

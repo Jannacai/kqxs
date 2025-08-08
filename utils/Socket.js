@@ -26,8 +26,8 @@ const getSocketUrl = () => {
 
     // Fallback URLs
     return [
-        "ws://localhost:5001",
-        "http://localhost:5001"
+        "ws://back-end-diendan.onrender.com",
+        "https://back-end-diendan.onrender.com"
     ];
 };
 

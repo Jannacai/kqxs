@@ -23,17 +23,20 @@ export const apiMT = {
             if (!dayof || dayof.trim() === '') {
                 throw new Error('dayOfWeek cannot be empty');
             }
+            // ✅ SỬA: URL đúng format cho dayof
             url = `${API_BASE_URL}/api/ketquaxs/xsmt/${dayof}`;
         } else if (station && date) {
             if (!station || !date || station.trim() === '' || date.trim() === '') {
                 throw new Error('Station and date cannot be empty');
             }
-            url = `${API_BASE_URL}/api/ketquaxs/${station}-${date}`;
+            // ✅ SỬA: URL đúng format cho station-date
+            url = `${API_BASE_URL}/api/ketquaxs/xsmt/${date}`;
         } else if (station && tinh) {
             if (!station || !tinh || station.trim() === '' || tinh.trim() === '') {
                 throw new Error('Station and date cannot be empty');
             }
-            url = `${API_BASE_URL}/api/ketquaxs/${station}/tinh/${tinh}`;
+            // ✅ SỬA: URL đúng format cho tinh
+            url = `${API_BASE_URL}/api/ketquaxs/xsmt/tinh/${tinh}`;
         } else {
             url = `${API_BASE_URL}/api/ketquaxs/xsmt`;
         }

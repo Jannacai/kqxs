@@ -8,7 +8,7 @@ const ListXSMB = dynamic(() => import('../component/listXSMB'), { ssr: false });
 const ListXSMT = dynamic(() => import('../component/listXSMT'), { ssr: false });
 const ListXSMN = dynamic(() => import('../component/listXSMN'), { ssr: false });
 const CongCuHot = dynamic(() => import('../component/CongCuHot'), { ssr: false });
-const TableDate = dynamic(() => import('../component/tableDateKQXS'), { ssr: false });
+// const TableDate = dynamic(() => import('../component/tableDateKQXS'), { ssr: false });
 const KQXS = dynamic(() => import('./kqxsAll/index'), { ssr: true });
 
 export async function getServerSideProps() {
@@ -25,10 +25,10 @@ export async function getServerSideProps() {
 export default function Home({ drawDate }) {
     // ✅ Tối ưu title theo từ khóa người dùng
     const title = `XSMB Hôm Nay ${drawDate} - Kết Quả Xổ Số Miền Bắc Nhanh Nhất | XSMB.WIN`;
-    
+
     // ✅ Tối ưu description theo search intent
     const description = `XSMB hôm nay ${drawDate} - Xem kết quả xổ số Miền Bắc ngày ${drawDate} nhanh và chính xác nhất. Tường thuật SXMB lúc 18h15 trực tiếp từ trường quay. Xem giải đặc biệt, lô tô, đầu đuôi tại xsmb.win!`;
-    
+
     const canonicalUrl = 'https://xsmb.win';
 
     return (
@@ -36,13 +36,13 @@ export default function Home({ drawDate }) {
             <Head>
                 <title>{title}</title>
                 <meta name="description" content={description} />
-                
+
                 {/* ✅ Tối ưu keywords theo từ khóa người dùng */}
                 <meta
                     name="keywords"
                     content="xổ số miền bắc, xsmb hôm nay, kết quả xổ số miền bắc, xổ số hôm nay, xsmb ngày hôm nay, kqxs miền bắc, xổ số bắc, soi cầu xsmb, thống kê xổ số miền bắc, lô tô đầu đuôi xsmb, xổ số trực tiếp, kết quả xổ số hôm nay, xsmb 2025"
                 />
-                
+
                 {/* ✅ E-A-T Signals */}
                 <meta name="author" content="XSMB.WIN" />
                 <meta name="publisher" content="XSMB.WIN" />
@@ -52,12 +52,12 @@ export default function Home({ drawDate }) {
                 <meta name="geo.placename" content="Việt Nam" />
                 <meta name="geo.position" content="10.8231;106.6297" />
                 <meta name="ICBM" content="10.8231, 106.6297" />
-                
+
                 {/* ✅ Enhanced Robots */}
                 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
                 <meta name="googlebot" content="index, follow" />
                 <meta name="bingbot" content="index, follow" />
-                
+
                 {/* ✅ Canonical & Alternate */}
                 <link rel="canonical" href={canonicalUrl} />
                 <link rel="alternate" hrefLang="vi" href={canonicalUrl} />
@@ -211,7 +211,7 @@ export default function Home({ drawDate }) {
                     <ListXSMN />
                 </div>
                 <div>
-                    <TableDate />
+                    {/* <TableDate />
                     <div className="groupbanner3">
                         <a href="https://m.dktin.top/reg/104600" tabIndex={-1}>
                             <video
@@ -226,7 +226,7 @@ export default function Home({ drawDate }) {
                                 suppressHydrationWarning
                             />
                         </a>
-                    </div>
+                    </div> */}
                     <KQXS>{"Miền Bắc"}</KQXS>
                     <div className="desc1" style={{ minHeight: '200px' }}>
                         <h1 className="heading">XSMB Hôm Nay {drawDate} - Kết Quả Xổ Số Miền Bắc Nhanh Nhất</h1>

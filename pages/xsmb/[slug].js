@@ -46,7 +46,7 @@ export default function XsmbPage() {
                 <ListXSMT></ListXSMT>
                 <ListXSMN></ListXSMN>
             </div>
-            <KQXS data5={slugDayofweek}></KQXS>
+            <KQXS data3={slugDayofweek}></KQXS>
             <div>
                 <ThongKe></ThongKe>
                 <CongCuHot />
