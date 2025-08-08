@@ -1058,7 +1058,7 @@ function isWithinLiveWindow() {
     const vietTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
     const hours = vietTime.getHours();
     const minutes = vietTime.getMinutes();
-    return (hours === 18 && minutes >= 10 && minutes <= 33);
+    return (hours === 8 && minutes >= 32 && minutes <= 59);
 }
 
 export default React.memo(LiveResult);

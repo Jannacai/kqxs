@@ -13,8 +13,8 @@ const CACHE_DURATION = 24 * 60 * 60 * 1000; // Cache 24 giờ
 const LIVE_CACHE_DURATION = 40 * 60 * 1000; // Cache 40 phút cho live data
 const UPDATE_KEY = 'xsmb_update_timestamp';
 
-const testhour = 18;
-const testminutes = 10;
+const testhour = 8;
+const testminutes = 38;
 
 // BỔ SUNG: Helper function để lấy thời gian Việt Nam - TỐI ƯU
 let cachedVietnamTime = null;
