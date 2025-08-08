@@ -303,7 +303,7 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
                 }
 
                 // Existing logic unchanged
-                const response = await fetch(`http://localhost:5000/api/kqxs/${currentStation}/sse/initial?station=${currentStation}&date=${today}`);
+                const response = await fetch(`https://backendkqxs-1.onrender.com/api/kqxs/${currentStation}/sse/initial?station=${currentStation}&date=${today}`);
                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                 const serverData = await response.json();
 
@@ -615,7 +615,7 @@ const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFi
             try {
                 setIsTodayLoading(true);
                 setError(null);
-                const response = await fetch(`http://localhost:5000/api/kqxs/xsmb/latest`);
+                const response = await fetch(`https://backendkqxs-1.onrender.com/api/kqxs/xsmb/latest`);
                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                 const serverData = await response.json();
 
