@@ -75,6 +75,7 @@ export const useNavigationOptimization = () => {
     // Tối ưu: Prefetch critical pages
     useEffect(() => {
         const criticalPages = [
+            '/diendan',
             '/ket-qua-xo-so-mien-bac',
             '/ket-qua-xo-so-mien-nam',
             '/ket-qua-xo-so-mien-trung',
