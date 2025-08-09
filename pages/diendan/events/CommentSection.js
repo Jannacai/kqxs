@@ -66,9 +66,11 @@ export default function CommentSection({ comments = [], session, eventId, setIte
 
     const fetchUserInfo = async () => {
         if (!session?.accessToken) {
-            return;
+            console.log('❌ [CommentSection] No access token for user info fetch');
+            return null;
         }
         try {
+            console.log('🔍 [CommentSection] Fetching user info from:', `${API_BASE_URL}/api/auth/me`);
             const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
                 headers: {
                     Authorization: `Bearer ${session.accessToken}`,
@@ -80,11 +82,18 @@ export default function CommentSection({ comments = [], session, eventId, setIte
                 throw new Error(`Không thể lấy thông tin: ${errorText.error}`);
             }
             const data = await res.json();
+            console.log('✅ [CommentSection] User info fetched successfully:', {
+                userId: data._id,
+                fullname: data.fullname,
+                role: data.role
+            });
             setUserInfo(data);
             setUsersCache((prev) => ({ ...prev, [data._id]: data }));
+            return data;
         } catch (error) {
-            console.error('Error fetching user info:', error);
+            console.error('❌ [CommentSection] Error fetching user info:', error);
             setFetchError(error.message);
+            return null;
         }
     };
 
@@ -148,8 +157,11 @@ export default function CommentSection({ comments = [], session, eventId, setIte
     };
 
     useEffect(() => {
-        if (session && status === 'authenticated') {
+        if (session?.accessToken) {
+            console.log('🔍 [CommentSection] Session available, fetching user info');
             fetchUserInfo();
+        } else {
+            console.log('🔍 [CommentSection] No session available for user info fetch');
         }
     }, [session]);
 
@@ -198,9 +210,20 @@ export default function CommentSection({ comments = [], session, eventId, setIte
 
     useEffect(() => {
         if (!session?.accessToken || !userInfo?._id) {
-            console.log('Skipping Socket.IO setup: missing session or userInfo');
+            console.log('🔍 [CommentSection] Skipping Socket.IO setup: missing session or userInfo', {
+                hasSession: !!session,
+                hasAccessToken: !!session?.accessToken,
+                hasUserInfo: !!userInfo,
+                userId: userInfo?._id
+            });
             return;
         }
+
+        console.log('🚀 [CommentSection] Starting Socket.IO initialization for event:', eventId, {
+            userId: userInfo._id,
+            socketConnected: socketConnected,
+            eventId: eventId
+        });
 
         mountedRef.current = true;
 
@@ -210,60 +233,97 @@ export default function CommentSection({ comments = [], session, eventId, setIte
                 let socket = getCurrentSocket();
 
                 if (!socket) {
-                    console.log('Creating new Socket.IO connection...');
+                    console.log('🔌 [CommentSection] Creating new Socket.IO connection...');
                     socket = await getSocket();
                 } else if (socket.connected) {
-                    console.log('Using existing Socket.IO connection:', socket.id);
+                    console.log('🔌 [CommentSection] Using existing Socket.IO connection:', socket.id);
                 } else {
-                    console.log('Socket exists but not connected, waiting for connection...');
+                    console.log('🔌 [CommentSection] Socket exists but not connected, waiting for connection...');
                 }
 
-                if (!mountedRef.current) return;
+                if (!mountedRef.current) {
+                    console.log('🔌 [CommentSection] Component unmounted during socket initialization');
+                    return;
+                }
 
                 socketRef.current = socket;
                 setSocketConnected(socket.connected);
 
+                console.log('🔌 [CommentSection] Socket state after initialization:', {
+                    socketId: socket.id,
+                    connected: socket.connected,
+                    eventId: eventId
+                });
+
+                // Authenticate với socket server
+                if (session?.accessToken) {
+                    console.log('🔐 [CommentSection] Authenticating socket with token...');
+                    socket.emit('authenticate', session.accessToken);
+                }
+
                 // Thêm connection listener
                 const removeListener = addConnectionListener((connected) => {
+                    console.log('🔌 [CommentSection] Connection state changed:', connected);
                     if (mountedRef.current) {
                         setSocketConnected(connected);
                         if (connected) {
-                            console.log('Socket.IO reconnected, joining event:', eventId);
+                            console.log('🔌 [CommentSection] Socket.IO reconnected, joining event:', eventId);
                             socket.emit('joinEvent', eventId);
+
+                            // Re-authenticate sau khi reconnect
+                            if (session?.accessToken) {
+                                console.log('🔐 [CommentSection] Re-authenticating after reconnect...');
+                                socket.emit('authenticate', session.accessToken);
+                            }
                         }
                     }
                 });
 
                 // Nếu đã kết nối, join event ngay lập tức
                 if (socket.connected) {
-                    console.log('Socket.IO already connected, joining event:', eventId);
+                    console.log('🔌 [CommentSection] Socket.IO already connected, joining event:', eventId);
                     socket.emit('joinEvent', eventId);
                 }
 
                 socket.on('connect', () => {
-                    console.log('Socket.IO connected for comments:', socket.id);
+                    console.log('🔌 [CommentSection] Socket.IO connected for comments:', socket.id);
                     socket.emit('joinEvent', eventId);
                     setSocketConnected(true);
+
+                    // Authenticate sau khi connect
+                    if (session?.accessToken) {
+                        console.log('🔐 [CommentSection] Authenticating after connect...');
+                        socket.emit('authenticate', session.accessToken);
+                    }
                 });
 
                 socket.on('connect_error', (err) => {
-                    console.error('Socket.IO connection error:', err.message);
+                    console.error('❌ [CommentSection] Socket.IO connection error:', err.message);
                     setSocketConnected(false);
                     setFetchError('Mất kết nối thời gian thực. Vui lòng làm mới trang.');
                 });
 
                 socket.on('disconnect', () => {
-                    console.log('Socket.IO disconnected for comments');
+                    console.log('🔌 [CommentSection] Socket.IO disconnected for comments');
                     setSocketConnected(false);
                 });
 
                 socket.on('NEW_COMMENT', (newComment) => {
-                    console.log('Received NEW_COMMENT:', JSON.stringify(newComment, null, 2));
+                    console.log('📨 [CommentSection] Received NEW_COMMENT:', {
+                        commentId: newComment._id,
+                        eventId: newComment.eventId,
+                        expectedEventId: eventId,
+                        userId: newComment.userId?._id,
+                        content: newComment.content?.substring(0, 50) + '...',
+                        isOwnComment: userInfo?._id === newComment.userId?._id
+                    });
+
                     if (mountedRef.current && newComment.eventId === eventId) {
+                        console.log('✅ [CommentSection] Processing NEW_COMMENT for current event');
                         setItem((prev) => {
                             // Kiểm tra xem comment đã tồn tại chưa
                             if (prev.comments && prev.comments.some((comment) => comment._id === newComment._id)) {
-                                console.log('Comment already exists, skipping:', newComment._id);
+                                console.log('⚠️ [CommentSection] Comment already exists, skipping:', newComment._id);
                                 return prev;
                             }
 
@@ -273,7 +333,7 @@ export default function CommentSection({ comments = [], session, eventId, setIte
                                 // Tìm và thay thế comment tạm thời
                                 const hasTempComment = prev.comments && prev.comments.some(comment => comment.isTemp && comment.content === newComment.content);
                                 if (hasTempComment) {
-                                    console.log('Replacing temp comment with real comment:', newComment._id);
+                                    console.log('🔄 [CommentSection] Replacing temp comment with real comment:', newComment._id);
                                     const filtered = prev.comments.filter(comment => !(comment.isTemp && comment.content === newComment.content));
                                     return { ...prev, comments: [newComment, ...filtered] };
                                 }
@@ -281,15 +341,32 @@ export default function CommentSection({ comments = [], session, eventId, setIte
 
                             // Thêm comment mới vào đầu array
                             const updatedComments = prev.comments ? [newComment, ...prev.comments] : [newComment];
-                            console.log('Added new comment for event:', eventId, 'total:', updatedComments.length);
+                            console.log('✅ [CommentSection] Added new comment for event:', eventId, 'total:', updatedComments.length);
                             return { ...prev, comments: updatedComments };
+                        });
+                    } else {
+                        console.log('❌ [CommentSection] Ignoring NEW_COMMENT:', {
+                            mounted: mountedRef.current,
+                            eventMatch: newComment.eventId === eventId,
+                            commentEventId: newComment.eventId,
+                            currentEventId: eventId
                         });
                     }
                 });
 
                 socket.on('NEW_REPLY', (newReply) => {
-                    console.log('Received NEW_REPLY:', JSON.stringify(newReply, null, 2));
+                    console.log('📨 [CommentSection] Received NEW_REPLY:', {
+                        replyId: newReply._id,
+                        commentId: newReply.commentId,
+                        eventId: newReply.eventId,
+                        expectedEventId: eventId,
+                        userId: newReply.userId?._id,
+                        content: newReply.content?.substring(0, 50) + '...',
+                        isOwnReply: userInfo?._id === newReply.userId?._id
+                    });
+
                     if (mountedRef.current && newReply.eventId === eventId) {
+                        console.log('✅ [CommentSection] Processing NEW_REPLY for current event');
                         setItem((prev) =>
                             prev.comments ? {
                                 ...prev,
@@ -302,7 +379,7 @@ export default function CommentSection({ comments = [], session, eventId, setIte
 
                                                 // Kiểm tra xem reply đã tồn tại chưa
                                                 if (existingReplies.some(reply => reply._id === newReply._id)) {
-                                                    console.log('Reply already exists, skipping:', newReply._id);
+                                                    console.log('⚠️ [CommentSection] Reply already exists, skipping:', newReply._id);
                                                     return existingReplies;
                                                 }
 
@@ -312,7 +389,7 @@ export default function CommentSection({ comments = [], session, eventId, setIte
                                                     // Tìm và thay thế reply tạm thời
                                                     const hasTempReply = existingReplies.some(reply => reply.isTemp && reply.content === newReply.content);
                                                     if (hasTempReply) {
-                                                        console.log('Replacing temp reply with real reply:', newReply._id);
+                                                        console.log('🔄 [CommentSection] Replacing temp reply with real reply:', newReply._id);
                                                         const filtered = existingReplies.filter(reply => !(reply.isTemp && reply.content === newReply.content));
                                                         return [...filtered, newReply];
                                                     }
@@ -320,7 +397,7 @@ export default function CommentSection({ comments = [], session, eventId, setIte
 
                                                 // Thêm reply mới vào cuối array
                                                 const updatedReplies = [...existingReplies, newReply];
-                                                console.log('Added new reply to comment:', comment._id, 'for event:', eventId, 'total replies:', updatedReplies.length);
+                                                console.log('✅ [CommentSection] Added new reply to comment:', comment._id, 'for event:', eventId, 'total replies:', updatedReplies.length);
                                                 return updatedReplies;
                                             })()
                                         }
@@ -328,12 +405,27 @@ export default function CommentSection({ comments = [], session, eventId, setIte
                                 )
                             } : prev
                         );
+                    } else {
+                        console.log('❌ [CommentSection] Ignoring NEW_REPLY:', {
+                            mounted: mountedRef.current,
+                            eventMatch: newReply.eventId === eventId,
+                            replyEventId: newReply.eventId,
+                            currentEventId: eventId
+                        });
                     }
                 });
 
                 socket.on('COMMENT_LIKED', (data) => {
-                    console.log('Received COMMENT_LIKED:', data);
+                    console.log('👍 [CommentSection] Received COMMENT_LIKED:', {
+                        commentId: data.commentId,
+                        eventId: data.eventId,
+                        expectedEventId: eventId,
+                        action: data.action,
+                        isLiked: data.isLiked
+                    });
+
                     if (mountedRef.current && data.eventId === eventId) {
+                        console.log('✅ [CommentSection] Processing COMMENT_LIKED for current event');
                         setItem((prev) =>
                             prev.comments ? {
                                 ...prev,
@@ -348,8 +440,17 @@ export default function CommentSection({ comments = [], session, eventId, setIte
                 });
 
                 socket.on('REPLY_LIKED', (data) => {
-                    console.log('Received REPLY_LIKED:', data);
+                    console.log('👍 [CommentSection] Received REPLY_LIKED:', {
+                        replyId: data.replyId,
+                        commentId: data.commentId,
+                        eventId: data.eventId,
+                        expectedEventId: eventId,
+                        action: data.action,
+                        isLiked: data.isLiked
+                    });
+
                     if (mountedRef.current && data.eventId === eventId) {
+                        console.log('✅ [CommentSection] Processing REPLY_LIKED for current event');
                         setItem((prev) =>
                             prev.comments ? {
                                 ...prev,
@@ -371,8 +472,14 @@ export default function CommentSection({ comments = [], session, eventId, setIte
                 });
 
                 socket.on('COMMENT_DELETED', (data) => {
-                    console.log('Received COMMENT_DELETED:', data);
+                    console.log('🗑️ [CommentSection] Received COMMENT_DELETED:', {
+                        commentId: data.commentId,
+                        eventId: data.eventId,
+                        expectedEventId: eventId
+                    });
+
                     if (mountedRef.current && data.eventId === eventId) {
+                        console.log('✅ [CommentSection] Processing COMMENT_DELETED for current event');
                         setItem((prev) =>
                             prev.comments ? {
                                 ...prev,
@@ -383,8 +490,15 @@ export default function CommentSection({ comments = [], session, eventId, setIte
                 });
 
                 socket.on('REPLY_DELETED', (data) => {
-                    console.log('Received REPLY_DELETED:', data);
+                    console.log('🗑️ [CommentSection] Received REPLY_DELETED:', {
+                        replyId: data.replyId,
+                        commentId: data.commentId,
+                        eventId: data.eventId,
+                        expectedEventId: eventId
+                    });
+
                     if (mountedRef.current && data.eventId === eventId) {
+                        console.log('✅ [CommentSection] Processing REPLY_DELETED for current event');
                         setItem((prev) =>
                             prev.comments ? {
                                 ...prev,
@@ -402,14 +516,24 @@ export default function CommentSection({ comments = [], session, eventId, setIte
                 });
 
                 socket.on('USER_UPDATED', (data) => {
-                    console.log('Received USER_UPDATED:', data);
+                    console.log('👤 [CommentSection] Received USER_UPDATED:', {
+                        userId: data._id,
+                        fullname: data.fullname
+                    });
+
                     if (mountedRef.current && data?._id && isValidObjectId(data._id)) {
                         setUsersCache((prev) => ({ ...prev, [data._id]: data }));
                     }
                 });
 
                 socket.on('PRIVATE_MESSAGE', (newMessage) => {
-                    console.log('Received PRIVATE_MESSAGE:', JSON.stringify(newMessage, null, 2));
+                    console.log('💬 [CommentSection] Received PRIVATE_MESSAGE:', {
+                        messageId: newMessage._id,
+                        senderId: newMessage.senderId,
+                        receiverId: newMessage.receiverId,
+                        content: newMessage.content?.substring(0, 50) + '...'
+                    });
+
                     if (mountedRef.current) {
                         setPrivateChats((prev) =>
                             prev.map((chat) =>
@@ -422,6 +546,7 @@ export default function CommentSection({ comments = [], session, eventId, setIte
                 });
 
                 return () => {
+                    console.log('🧹 [CommentSection] Cleaning up socket listeners');
                     removeListener();
                     if (socketRef.current) {
                         socketRef.current.off('connect');
@@ -438,7 +563,7 @@ export default function CommentSection({ comments = [], session, eventId, setIte
                     }
                 };
             } catch (error) {
-                console.error('Failed to initialize socket:', error);
+                console.error('❌ [CommentSection] Failed to initialize socket:', error);
                 setSocketConnected(false);
             }
         };
@@ -446,6 +571,7 @@ export default function CommentSection({ comments = [], session, eventId, setIte
         initializeSocket();
 
         return () => {
+            console.log('🧹 [CommentSection] Component unmounting, setting mountedRef to false');
             mountedRef.current = false;
         };
     }, [session?.accessToken, userInfo?._id, eventId]);
@@ -474,27 +600,181 @@ export default function CommentSection({ comments = [], session, eventId, setIte
 
     const handleCommentSubmit = async (e) => {
         e.preventDefault();
+        console.log('📝 [CommentSection] Starting comment submission...', {
+            hasSession: !!session,
+            hasEventId: !!eventId,
+            eventId: eventId,
+            commentLength: comment.length,
+            userInfo: userInfo?._id
+        });
+
         if (!session) {
+            console.log('❌ [CommentSection] No session, redirecting to login');
             router.push('/login');
             return;
         }
         if (!eventId || !isValidObjectId(eventId)) {
+            console.log('❌ [CommentSection] Invalid eventId:', eventId);
             setError('ID sự kiện không hợp lệ');
             return;
         }
         if (!comment.trim()) {
+            console.log('❌ [CommentSection] Empty comment content');
             setError('Vui lòng nhập nội dung bình luận');
             return;
         }
         if (isProfane(comment)) {
+            console.log('❌ [CommentSection] Comment contains profanity');
             setError('Bình luận chứa từ ngữ không phù hợp');
             return;
+        }
+
+        // Kiểm tra userInfo trước khi tiếp tục
+        if (!userInfo || !userInfo._id) {
+            console.log('❌ [CommentSection] No userInfo available, fetching user info first');
+            try {
+                const fetchedUser = await fetchUserInfo();
+
+                if (!fetchedUser || !fetchedUser._id) {
+                    console.log('❌ [CommentSection] Still no userInfo after fetch, redirecting to login');
+                    setError('Không thể lấy thông tin người dùng. Vui lòng đăng nhập lại.');
+                    router.push('/login');
+                    return;
+                }
+
+                // Sử dụng fetchedUser thay vì userInfo
+                console.log('✅ [CommentSection] Using fetched user info:', {
+                    userId: fetchedUser._id,
+                    fullname: fetchedUser.fullname
+                });
+
+                const commentContent = comment.trim();
+                const tempId = `temp_${Date.now()}`;
+                setComment('');
+                setError('');
+
+                console.log('📝 [CommentSection] Creating temp comment with fetched user:', {
+                    tempId: tempId,
+                    content: commentContent,
+                    eventId: eventId,
+                    userId: fetchedUser._id
+                });
+
+                try {
+                    // Tạo comment tạm thời để hiển thị ngay lập tức
+                    const tempComment = {
+                        _id: tempId,
+                        content: commentContent,
+                        userId: { _id: fetchedUser._id, fullname: fetchedUser.fullname, role: fetchedUser.role },
+                        createdAt: new Date().toISOString(),
+                        eventId: eventId,
+                        likes: [],
+                        replies: [],
+                        isTemp: true
+                    };
+
+                    // Thêm comment tạm thời vào state
+                    setItem(prev => ({
+                        ...prev,
+                        comments: [tempComment, ...(prev.comments || [])]
+                    }));
+
+                    console.log('📝 [CommentSection] Submitting comment to backend:', {
+                        url: `${API_BASE_URL}/api/events/${eventId}/comments`,
+                        content: commentContent,
+                        eventId: eventId,
+                        tempId: tempId
+                    });
+
+                    const res = await axios.post(
+                        `${API_BASE_URL}/api/events/${eventId}/comments`,
+                        { content: commentContent },
+                        {
+                            headers: {
+                                Authorization: `Bearer ${session?.accessToken}`,
+                                'Content-Type': 'application/json'
+                            },
+                            timeout: 15000 // 15 giây timeout
+                        }
+                    );
+
+                    console.log('✅ [CommentSection] Comment submitted successfully:', {
+                        responseStatus: res.status,
+                        responseData: res.data,
+                        tempId: tempId
+                    });
+
+                    // Backend trả về { message: '...', event: populatedEvent }
+                    // Cần lấy comments từ event
+                    if (res.data.event && res.data.event.comments) {
+                        console.log('🔄 [CommentSection] Updating comments from backend response:', {
+                            commentCount: res.data.event.comments.length,
+                            tempId: tempId
+                        });
+                        setItem(prev => ({
+                            ...prev,
+                            comments: res.data.event.comments
+                        }));
+                    } else {
+                        console.log('⚠️ [CommentSection] No event data in response, keeping temp comment');
+                    }
+
+                } catch (err) {
+                    console.error('❌ [CommentSection] Error submitting comment:', {
+                        error: err.message,
+                        response: err.response?.data,
+                        status: err.response?.status,
+                        tempId: tempId
+                    });
+
+                    // Xử lý các loại lỗi khác nhau
+                    let errorMessage = 'Đã có lỗi khi gửi bình luận';
+
+                    if (err.code === 'ECONNABORTED') {
+                        errorMessage = 'Kết nối bị timeout. Vui lòng thử lại.';
+                    } else if (err.response?.status === 401) {
+                        errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+                        router.push('/login');
+                    } else if (err.response?.status === 403) {
+                        errorMessage = 'Bạn không có quyền gửi bình luận.';
+                    } else if (err.response?.status === 429) {
+                        errorMessage = 'Bạn đã gửi quá nhiều bình luận. Vui lòng chờ một lúc.';
+                    } else if (err.response?.data?.message) {
+                        errorMessage = err.response.data.message;
+                    } else if (err.message.includes('Network Error')) {
+                        errorMessage = 'Lỗi kết nối mạng. Vui lòng kiểm tra kết nối internet.';
+                    }
+
+                    setError(errorMessage);
+
+                    // Xóa comment tạm thời nếu gửi thất bại
+                    console.log('🗑️ [CommentSection] Removing temp comment due to error:', tempId);
+                    setItem(prev => ({
+                        ...prev,
+                        comments: (prev.comments || []).filter(comment => comment._id !== tempId)
+                    }));
+                }
+
+                return; // Thoát khỏi hàm sau khi xử lý với fetchedUser
+            } catch (error) {
+                console.error('❌ [CommentSection] Error fetching user info:', error);
+                setError('Không thể lấy thông tin người dùng. Vui lòng đăng nhập lại.');
+                router.push('/login');
+                return;
+            }
         }
 
         const commentContent = comment.trim();
         const tempId = `temp_${Date.now()}`;
         setComment('');
         setError('');
+
+        console.log('📝 [CommentSection] Creating temp comment:', {
+            tempId: tempId,
+            content: commentContent,
+            eventId: eventId,
+            userId: userInfo._id
+        });
 
         try {
             // Tạo comment tạm thời để hiển thị ngay lập tức
@@ -515,7 +795,13 @@ export default function CommentSection({ comments = [], session, eventId, setIte
                 comments: [tempComment, ...(prev.comments || [])]
             }));
 
-            console.log('Submitting comment:', commentContent);
+            console.log('📝 [CommentSection] Submitting comment to backend:', {
+                url: `${API_BASE_URL}/api/events/${eventId}/comments`,
+                content: commentContent,
+                eventId: eventId,
+                tempId: tempId
+            });
+
             const res = await axios.post(
                 `${API_BASE_URL}/api/events/${eventId}/comments`,
                 { content: commentContent },
@@ -528,19 +814,34 @@ export default function CommentSection({ comments = [], session, eventId, setIte
                 }
             );
 
-            console.log('Comment response:', JSON.stringify(res.data, null, 2));
+            console.log('✅ [CommentSection] Comment submitted successfully:', {
+                responseStatus: res.status,
+                responseData: res.data,
+                tempId: tempId
+            });
 
             // Backend trả về { message: '...', event: populatedEvent }
             // Cần lấy comments từ event
             if (res.data.event && res.data.event.comments) {
+                console.log('🔄 [CommentSection] Updating comments from backend response:', {
+                    commentCount: res.data.event.comments.length,
+                    tempId: tempId
+                });
                 setItem(prev => ({
                     ...prev,
                     comments: res.data.event.comments
                 }));
+            } else {
+                console.log('⚠️ [CommentSection] No event data in response, keeping temp comment');
             }
 
         } catch (err) {
-            console.error('Error submitting comment:', err.message, err.response?.data);
+            console.error('❌ [CommentSection] Error submitting comment:', {
+                error: err.message,
+                response: err.response?.data,
+                status: err.response?.status,
+                tempId: tempId
+            });
 
             // Xử lý các loại lỗi khác nhau
             let errorMessage = 'Đã có lỗi khi gửi bình luận';
@@ -563,6 +864,7 @@ export default function CommentSection({ comments = [], session, eventId, setIte
             setError(errorMessage);
 
             // Xóa comment tạm thời nếu gửi thất bại
+            console.log('🗑️ [CommentSection] Removing temp comment due to error:', tempId);
             setItem(prev => ({
                 ...prev,
                 comments: (prev.comments || []).filter(comment => comment._id !== tempId)
@@ -572,32 +874,174 @@ export default function CommentSection({ comments = [], session, eventId, setIte
 
     const handleReplySubmit = async (e, commentId) => {
         e.preventDefault();
+        console.log('📝 [CommentSection] Starting reply submission...', {
+            hasSession: !!session,
+            hasEventId: !!eventId,
+            commentId: commentId,
+            replyLength: reply.length,
+            userInfo: userInfo?._id
+        });
+
         if (!session) {
+            console.log('❌ [CommentSection] No session, redirecting to login');
             router.push('/login');
             return;
         }
         if (!eventId || !isValidObjectId(eventId) || !isValidObjectId(commentId)) {
+            console.log('❌ [CommentSection] Invalid IDs:', { eventId, commentId });
             setError('ID không hợp lệ');
             return;
         }
         if (!reply.trim()) {
+            console.log('❌ [CommentSection] Empty reply content');
             setError('Vui lòng nhập nội dung trả lời');
             return;
         }
         if (isProfane(reply)) {
+            console.log('❌ [CommentSection] Reply contains profanity');
             setError('Bình luận chứa từ ngữ không phù hợp');
             return;
         }
 
+        // Kiểm tra userInfo trước khi tiếp tục
+        if (!userInfo || !userInfo._id) {
+            console.log('❌ [CommentSection] No userInfo available for reply, fetching user info first');
+            try {
+                const fetchedUser = await fetchUserInfo();
+
+                if (!fetchedUser || !fetchedUser._id) {
+                    console.log('❌ [CommentSection] Still no userInfo after fetch for reply, redirecting to login');
+                    setError('Không thể lấy thông tin người dùng. Vui lòng đăng nhập lại.');
+                    router.push('/login');
+                    return;
+                }
+
+                // Sử dụng fetchedUser thay vì userInfo
+                console.log('✅ [CommentSection] Using fetched user info for reply:', {
+                    userId: fetchedUser._id,
+                    fullname: fetchedUser.fullname
+                });
+
+                const replyContent = reply.trim();
+                const tempReplyId = `temp_${Date.now()}`;
+                setReply('');
+                setReplyingTo(null);
+                setError('');
+
+                console.log('📝 [CommentSection] Creating temp reply with fetched user:', {
+                    tempReplyId: tempReplyId,
+                    content: replyContent,
+                    commentId: commentId,
+                    userId: fetchedUser._id
+                });
+
+                try {
+                    // Tạo reply tạm thời để hiển thị ngay lập tức
+                    const tempReply = {
+                        _id: tempReplyId,
+                        content: replyContent,
+                        userId: { _id: fetchedUser._id, fullname: fetchedUser.fullname, role: fetchedUser.role },
+                        createdAt: new Date().toISOString(),
+                        commentId: commentId,
+                        likes: [],
+                        isTemp: true
+                    };
+
+                    // Thêm reply tạm thời vào state
+                    setItem(prev => ({
+                        ...prev,
+                        comments: (prev.comments || []).map(comment =>
+                            comment._id === commentId
+                                ? { ...comment, replies: [...(comment.replies || []), tempReply] }
+                                : comment
+                        )
+                    }));
+
+                    console.log('📝 [CommentSection] Submitting reply to backend:', {
+                        url: `${API_BASE_URL}/api/events/${eventId}/comments/${commentId}/reply`,
+                        content: replyContent,
+                        eventId: eventId,
+                        commentId: commentId,
+                        tempReplyId: tempReplyId
+                    });
+
+                    const res = await axios.post(
+                        `${API_BASE_URL}/api/events/${eventId}/comments/${commentId}/reply`,
+                        { content: replyContent },
+                        {
+                            headers: { Authorization: `Bearer ${session?.accessToken}` },
+                            timeout: 15000
+                        }
+                    );
+
+                    console.log('✅ [CommentSection] Reply submitted successfully:', {
+                        responseStatus: res.status,
+                        responseData: res.data,
+                        tempReplyId: tempReplyId
+                    });
+
+                    // Backend trả về { message: '...', event: populatedEvent }
+                    // Cần lấy comments từ event
+                    if (res.data.event && res.data.event.comments) {
+                        console.log('🔄 [CommentSection] Updating comments from backend response for reply:', {
+                            commentCount: res.data.event.comments.length,
+                            tempReplyId: tempReplyId
+                        });
+                        setItem(prev => ({
+                            ...prev,
+                            comments: res.data.event.comments
+                        }));
+                    } else {
+                        console.log('⚠️ [CommentSection] No event data in reply response, keeping temp reply');
+                    }
+
+                } catch (err) {
+                    console.error('❌ [CommentSection] Error submitting reply:', {
+                        error: err.message,
+                        response: err.response?.data,
+                        status: err.response?.status,
+                        tempReplyId: tempReplyId
+                    });
+                    setError(err.response?.data?.message || 'Đã có lỗi khi gửi trả lời');
+
+                    // Xóa reply tạm thời nếu gửi thất bại
+                    console.log('🗑️ [CommentSection] Removing temp reply due to error:', tempReplyId);
+                    setItem(prev => ({
+                        ...prev,
+                        comments: (prev.comments || []).map(comment =>
+                            comment._id === commentId
+                                ? { ...comment, replies: (comment.replies || []).filter(reply => reply._id !== tempReplyId) }
+                                : comment
+                        )
+                    }));
+                }
+
+                return; // Thoát khỏi hàm sau khi xử lý với fetchedUser
+            } catch (error) {
+                console.error('❌ [CommentSection] Error fetching user info for reply:', error);
+                setError('Không thể lấy thông tin người dùng. Vui lòng đăng nhập lại.');
+                router.push('/login');
+                return;
+            }
+        }
+
         const replyContent = reply.trim();
+        const tempReplyId = `temp_${Date.now()}`;
         setReply('');
         setReplyingTo(null);
         setError('');
 
+        console.log('📝 [CommentSection] Creating temp reply:', {
+            tempReplyId: tempReplyId,
+            content: replyContent,
+            commentId: commentId,
+            userId: userInfo._id
+        });
+
         try {
             // Tạo reply tạm thời để hiển thị ngay lập tức
             const tempReply = {
-                _id: `temp_${Date.now()}`,
+                _id: tempReplyId,
                 content: replyContent,
                 userId: { _id: userInfo._id, fullname: userInfo.fullname, role: userInfo.role },
                 createdAt: new Date().toISOString(),
@@ -616,37 +1060,82 @@ export default function CommentSection({ comments = [], session, eventId, setIte
                 )
             }));
 
-            console.log('Submitting reply:', replyContent);
+            console.log('📝 [CommentSection] Submitting reply to backend:', {
+                url: `${API_BASE_URL}/api/events/${eventId}/comments/${commentId}/reply`,
+                content: replyContent,
+                eventId: eventId,
+                commentId: commentId,
+                tempReplyId: tempReplyId
+            });
+
             const res = await axios.post(
                 `${API_BASE_URL}/api/events/${eventId}/comments/${commentId}/reply`,
                 { content: replyContent },
                 {
-                    headers: { Authorization: `Bearer ${session?.accessToken}` },
-                    timeout: 15000
+                    headers: {
+                        Authorization: `Bearer ${session?.accessToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 15000 // 15 giây timeout
                 }
             );
 
-            console.log('Reply response:', JSON.stringify(res.data, null, 2));
+            console.log('✅ [CommentSection] Reply submitted successfully:', {
+                responseStatus: res.status,
+                responseData: res.data,
+                tempReplyId: tempReplyId
+            });
 
             // Backend trả về { message: '...', event: populatedEvent }
             // Cần lấy comments từ event
             if (res.data.event && res.data.event.comments) {
+                console.log('🔄 [CommentSection] Updating comments from backend response for reply:', {
+                    commentCount: res.data.event.comments.length,
+                    tempReplyId: tempReplyId
+                });
                 setItem(prev => ({
                     ...prev,
                     comments: res.data.event.comments
                 }));
+            } else {
+                console.log('⚠️ [CommentSection] No event data in reply response, keeping temp reply');
             }
 
         } catch (err) {
-            console.error('Error submitting reply:', err.message, err.response?.data);
-            setError(err.response?.data?.message || 'Đã có lỗi khi gửi trả lời');
+            console.error('❌ [CommentSection] Error submitting reply:', {
+                error: err.message,
+                response: err.response?.data,
+                status: err.response?.status,
+                tempReplyId: tempReplyId
+            });
+
+            // Xử lý các loại lỗi khác nhau
+            let errorMessage = 'Đã có lỗi khi gửi trả lời';
+
+            if (err.code === 'ECONNABORTED') {
+                errorMessage = 'Kết nối bị timeout. Vui lòng thử lại.';
+            } else if (err.response?.status === 401) {
+                errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+                router.push('/login');
+            } else if (err.response?.status === 403) {
+                errorMessage = 'Bạn không có quyền gửi bình luận.';
+            } else if (err.response?.status === 429) {
+                errorMessage = 'Bạn đã gửi quá nhiều bình luận. Vui lòng chờ một lúc.';
+            } else if (err.response?.data?.message) {
+                errorMessage = err.response.data.message;
+            } else if (err.message.includes('Network Error')) {
+                errorMessage = 'Lỗi kết nối mạng. Vui lòng kiểm tra kết nối internet.';
+            }
+
+            setError(errorMessage);
 
             // Xóa reply tạm thời nếu gửi thất bại
+            console.log('🗑️ [CommentSection] Removing temp reply due to error:', tempReplyId);
             setItem(prev => ({
                 ...prev,
                 comments: (prev.comments || []).map(comment =>
                     comment._id === commentId
-                        ? { ...comment, replies: (comment.replies || []).filter(reply => reply._id !== `temp_${Date.now()}`) }
+                        ? { ...comment, replies: (comment.replies || []).filter(reply => reply._id !== tempReplyId) }
                         : comment
                 )
             }));

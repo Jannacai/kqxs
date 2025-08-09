@@ -1,4 +1,5 @@
 import '../styles/global.css';
+import '../styles/globals.css';
 import '../styles/reset.css';
 import '../styles/forum-variables.css';
 import '../styles/forum-shared.css';

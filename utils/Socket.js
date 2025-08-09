@@ -32,8 +32,18 @@ const getSocketUrl = () => {
 };
 
 export function getSocket() {
+    console.log('🔌 [Socket] getSocket() called, current socket state:', {
+        hasSocket: !!socket,
+        isConnecting: connectionState.isConnecting,
+        isConnected: connectionState.isConnected,
+        hasConnectionPromise: !!connectionPromise
+    });
+
     if (!socket) {
+        console.log('🔌 [Socket] No socket exists, creating new connection...');
         connectionPromise = createSocketConnection();
+    } else {
+        console.log('🔌 [Socket] Socket exists, returning existing promise');
     }
     return connectionPromise;
 }

@@ -1,0 +1,38 @@
+/* Global CSS Variables for Facebook Mobile Design */
+
+:root {
+	/* Facebook Color Palette */
+	--fb-primary: #1877f2;
+	--fb-secondary: #42a5f5;
+	--fb-success: #4caf50;
+	--fb-warning: #ff9800;
+	--fb-danger: #f44336;
+	--fb-light: #f0f2f5;
+	--fb-dark: #1c1e21;
+	--fb-text-primary: #050505;
+	--fb-text-secondary: #65676b;
+	--fb-text-tertiary: #8e8e93;
+	--fb-border: #dadde1;
+	--fb-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	--fb-shadow-hover: 0 4px 8px rgba(0, 0, 0, 0.15);
+	--fb-radius: 8px;
+	--fb-radius-lg: 12px;
+	--fb-spacing-xs: 4px;
+	--fb-spacing-sm: 8px;
+	--fb-spacing-md: 12px;
+	--fb-spacing-lg: 16px;
+	--fb-spacing-xl: 20px;
+	--fb-spacing-2xl: 24px;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+	:root {
+		--fb-light: #1c1e21;
+		--fb-dark: #ffffff;
+		--fb-text-primary: #ffffff;
+		--fb-text-secondary: #b0b3b8;
+		--fb-text-tertiary: #65676b;
+		--fb-border: #3e4042;
+	}
+}

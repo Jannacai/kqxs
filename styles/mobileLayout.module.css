@@ -1,0 +1,578 @@
+/* Mobile Layout Optimizations cho Diễn Đàn */
+
+/* ===== MOBILE CONTAINER LAYOUT ===== */
+.mobileLayoutContainer {
+	width: 100%;
+	max-width: 100%;
+	background: #f0f2f5;
+	min-height: 100vh;
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+		Helvetica, Arial, sans-serif;
+	overflow-x: hidden;
+}
+
+/* ===== MOBILE HEADER ===== */
+.mobileHeader {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 56px;
+	background: white;
+	border-bottom: 1px solid #dadde1;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0 16px;
+	z-index: 1000;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.mobileHeaderTitle {
+	font-size: 18px;
+	font-weight: 700;
+	color: #050505;
+}
+
+.mobileHeaderActions {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.mobileHeaderButton {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	background: #f0f2f5;
+	border: none;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.mobileHeaderButton:hover {
+	background: #dadde1;
+}
+
+/* ===== MOBILE CONTENT AREA ===== */
+.mobileContent {
+	margin-top: 56px;
+	padding: 16px;
+	padding-bottom: 80px; /* Space for bottom navigation */
+}
+
+.mobileContentInner {
+	max-width: 100%;
+	margin: 0 auto;
+}
+
+/* ===== MOBILE BOTTOM NAVIGATION ===== */
+.mobileBottomNav {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	height: 60px;
+	background: white;
+	border-top: 1px solid #dadde1;
+	display: flex;
+	align-items: center;
+	justify-content: space-around;
+	z-index: 1000;
+	box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.mobileNavItem {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 2px;
+	padding: 8px;
+	border-radius: 8px;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	color: #65676b;
+	min-height: 44px;
+	min-width: 44px;
+	justify-content: center;
+}
+
+.mobileNavItem:hover,
+.mobileNavItem.active {
+	color: #1877f2;
+	background: #f0f2f5;
+}
+
+.mobileNavIcon {
+	font-size: 20px;
+}
+
+.mobileNavLabel {
+	font-size: 10px;
+	font-weight: 600;
+}
+
+/* ===== MOBILE SECTION SPACING ===== */
+.mobileSection {
+	margin-bottom: 16px;
+}
+
+.mobileSection:last-child {
+	margin-bottom: 0;
+}
+
+/* ===== MOBILE CARD LAYOUT ===== */
+.mobileCard {
+	background: white;
+	border-radius: 12px;
+	margin-bottom: 16px;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	overflow: hidden;
+	transition: all 0.3s ease;
+}
+
+.mobileCard:hover {
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+	transform: translateY(-1px);
+}
+
+.mobileCardHeader {
+	padding: 16px;
+	border-bottom: 1px solid #f0f2f5;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.mobileCardTitle {
+	font-size: 16px;
+	font-weight: 600;
+	color: #050505;
+	margin: 0;
+}
+
+.mobileCardContent {
+	padding: 16px;
+}
+
+/* ===== MOBILE LIST ITEMS ===== */
+.mobileListItem {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 12px 0;
+	border-bottom: 1px solid #f0f2f5;
+	transition: all 0.2s ease;
+	cursor: pointer;
+	min-height: 60px;
+}
+
+.mobileListItem:last-child {
+	border-bottom: none;
+}
+
+.mobileListItem:hover {
+	background: #f8f9fa;
+}
+
+.mobileListItemAvatar {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	background: #1877f2;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: white;
+	font-weight: 600;
+	font-size: 16px;
+	flex-shrink: 0;
+	transition: all 0.2s ease;
+}
+
+.mobileListItemAvatar:hover {
+	transform: scale(1.05);
+}
+
+.mobileListItemInfo {
+	flex: 1;
+	min-width: 0;
+}
+
+.mobileListItemTitle {
+	font-size: 14px;
+	font-weight: 600;
+	color: #050505;
+	margin-bottom: 4px;
+}
+
+.mobileListItemSubtitle {
+	font-size: 12px;
+	color: #65676b;
+}
+
+.mobileListItemActions {
+	display: flex;
+	gap: 8px;
+}
+
+.mobileListItemButton {
+	padding: 6px 12px;
+	border-radius: 8px;
+	border: none;
+	font-size: 12px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	min-height: 32px;
+	min-width: 32px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.mobileListItemButton.primary {
+	background: #1877f2;
+	color: white;
+}
+
+.mobileListItemButton.secondary {
+	background: #f0f2f5;
+	color: #050505;
+}
+
+/* ===== MOBILE LOADING STATES ===== */
+.mobileLoadingContainer {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 40px 16px;
+	color: #65676b;
+}
+
+.mobileLoadingSpinner {
+	width: 24px;
+	height: 24px;
+	border: 2px solid #dadde1;
+	border-top: 2px solid #1877f2;
+	border-radius: 50%;
+	animation: spin 1s linear infinite;
+	margin-right: 12px;
+}
+
+@keyframes spin {
+	0% {
+		transform: rotate(0deg);
+	}
+	100% {
+		transform: rotate(360deg);
+	}
+}
+
+.mobileLoadingText {
+	font-size: 14px;
+	font-weight: 500;
+}
+
+/* ===== MOBILE EMPTY STATES ===== */
+.mobileEmptyContainer {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 40px 16px;
+	text-align: center;
+	color: #65676b;
+}
+
+.mobileEmptyIcon {
+	font-size: 48px;
+	margin-bottom: 16px;
+	opacity: 0.5;
+	transition: all 0.3s ease;
+}
+
+.mobileEmptyContainer:hover .mobileEmptyIcon {
+	opacity: 0.7;
+	transform: scale(1.05);
+}
+
+.mobileEmptyTitle {
+	font-size: 18px;
+	font-weight: 600;
+	color: #050505;
+	margin-bottom: 8px;
+}
+
+.mobileEmptyText {
+	font-size: 14px;
+	color: #65676b;
+	line-height: 1.4;
+}
+
+/* ===== MOBILE ERROR STATES ===== */
+.mobileErrorContainer {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 40px 16px;
+	color: #dc2626;
+	text-align: center;
+}
+
+.mobileErrorIcon {
+	font-size: 24px;
+	margin-right: 12px;
+	animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.5;
+	}
+}
+
+.mobileErrorText {
+	font-size: 14px;
+	font-weight: 600;
+}
+
+/* ===== MOBILE RESPONSIVE ADJUSTMENTS ===== */
+@media (max-width: 480px) {
+	.mobileContent {
+		padding: 12px;
+	}
+
+	.mobileCardHeader,
+	.mobileCardContent {
+		padding: 12px;
+	}
+
+	.mobileListItem {
+		padding: 10px 0;
+		min-height: 56px;
+	}
+
+	.mobileListItemAvatar {
+		width: 36px;
+		height: 36px;
+		font-size: 14px;
+	}
+
+	.mobileListItemTitle {
+		font-size: 13px;
+	}
+
+	.mobileListItemSubtitle {
+		font-size: 11px;
+	}
+
+	.mobileListItemButton {
+		padding: 4px 8px;
+		font-size: 11px;
+		min-height: 28px;
+		min-width: 28px;
+	}
+
+	.mobileEmptyIcon {
+		font-size: 40px;
+	}
+
+	.mobileEmptyTitle {
+		font-size: 16px;
+	}
+
+	.mobileEmptyText {
+		font-size: 13px;
+	}
+}
+
+/* ===== MOBILE DARK MODE ===== */
+@media (prefers-color-scheme: dark) {
+	.mobileLayoutContainer {
+		background: #18191a;
+	}
+
+	.mobileHeader {
+		background: #242526;
+		border-bottom-color: #3e4042;
+	}
+
+	.mobileHeaderTitle {
+		color: #ffffff;
+	}
+
+	.mobileHeaderButton {
+		background: #3a3b3c;
+	}
+
+	.mobileHeaderButton:hover {
+		background: #4a4b4c;
+	}
+
+	.mobileBottomNav {
+		background: #242526;
+		border-top-color: #3e4042;
+	}
+
+	.mobileNavItem {
+		color: #b0b3b8;
+	}
+
+	.mobileNavItem:hover,
+	.mobileNavItem.active {
+		color: #1877f2;
+		background: #3a3b3c;
+	}
+
+	.mobileCard {
+		background: #242526;
+	}
+
+	.mobileCardHeader {
+		border-bottom-color: #3e4042;
+	}
+
+	.mobileCardTitle {
+		color: #ffffff;
+	}
+
+	.mobileListItem {
+		border-bottom-color: #3e4042;
+	}
+
+	.mobileListItem:hover {
+		background: #3a3b3c;
+	}
+
+	.mobileListItemTitle {
+		color: #ffffff;
+	}
+
+	.mobileListItemSubtitle {
+		color: #b0b3b8;
+	}
+
+	.mobileListItemButton.secondary {
+		background: #3a3b3c;
+		color: #ffffff;
+	}
+
+	.mobileEmptyTitle {
+		color: #ffffff;
+	}
+
+	.mobileEmptyText {
+		color: #b0b3b8;
+	}
+}
+
+/* ===== MOBILE TOUCH OPTIMIZATIONS ===== */
+@media (hover: none) and (pointer: coarse) {
+	.mobileListItem {
+		min-height: 64px;
+	}
+
+	.mobileListItemButton {
+		min-height: 44px;
+		min-width: 44px;
+		padding: 8px 12px;
+	}
+
+	.mobileNavItem {
+		min-height: 48px;
+		min-width: 48px;
+	}
+
+	.mobileHeaderButton {
+		min-height: 44px;
+		min-width: 44px;
+	}
+}
+
+/* ===== MOBILE ACCESSIBILITY ===== */
+@media (prefers-reduced-motion: reduce) {
+	.mobileCard,
+	.mobileListItem,
+	.mobileListItemAvatar,
+	.mobileListItemButton,
+	.mobileNavItem,
+	.mobileHeaderButton,
+	.mobileEmptyIcon {
+		transition: none;
+	}
+
+	.mobileLoadingSpinner {
+		animation: none;
+	}
+
+	.mobileErrorIcon {
+		animation: none;
+	}
+}
+
+/* ===== MOBILE HIGH CONTRAST ===== */
+@media (prefers-contrast: high) {
+	.mobileCard {
+		border: 2px solid #000000;
+	}
+
+	.mobileListItem {
+		border-bottom: 2px solid #000000;
+	}
+
+	.mobileListItemButton {
+		border: 2px solid #000000;
+	}
+
+	.mobileNavItem {
+		border: 2px solid #000000;
+	}
+
+	.mobileHeaderButton {
+		border: 2px solid #000000;
+	}
+}
+
+/* ===== MOBILE FOCUS STATES ===== */
+.mobileListItemButton:focus,
+.mobileNavItem:focus,
+.mobileHeaderButton:focus {
+	outline: 2px solid #1877f2;
+	outline-offset: 2px;
+}
+
+.mobileListItem:focus {
+	outline: 2px solid #1877f2;
+	outline-offset: 2px;
+	border-radius: 8px;
+}
+
+/* ===== MOBILE SCROLL BEHAVIOR ===== */
+.mobileContent {
+	scroll-behavior: smooth;
+}
+
+.mobileContent::-webkit-scrollbar {
+	width: 6px;
+}
+
+.mobileContent::-webkit-scrollbar-track {
+	background: #f0f2f5;
+}
+
+.mobileContent::-webkit-scrollbar-thumb {
+	background: #dadde1;
+	border-radius: 3px;
+}
+
+.mobileContent::-webkit-scrollbar-thumb:hover {
+	background: #b0b3b8;
+}

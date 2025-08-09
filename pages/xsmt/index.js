@@ -72,7 +72,7 @@ const LIVE_WINDOW_CONFIG = {
     hour: 17, // 17h
     startMinute: 10, // 17h29
     endMinute: 40, // 17h59
-    duration: 25 * 60 * 1000, // 30 phút
+    duration: 30 * 60 * 1000, // 30 phút
     scraperTriggerMinute: 14, // 17h14
 };
 

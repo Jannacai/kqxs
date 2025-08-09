@@ -70,13 +70,13 @@ export default function GroupChat({ session: serverSession }) {
 
     // Session management
     useEffect(() => {
-        console.log('Session status:', status);
-        console.log('Server session:', JSON.stringify(serverSession, null, 2));
-        console.log('Client session:', JSON.stringify(clientSession, null, 2));
-        console.log('Used session:', JSON.stringify(session, null, 2));
+        // console.log('Session status:', status);
+        // console.log('Server session:', JSON.stringify(serverSession, null, 2));
+        // console.log('Client session:', JSON.stringify(clientSession, null, 2));
+        // console.log('Used session:', JSON.stringify(session, null, 2));
 
         if (session?.error === 'RefreshTokenExpired') {
-            console.log('Refresh token expired, redirecting to login');
+            // console.log('Refresh token expired, redirecting to login');
             setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
             signOut({ redirect: false });
             router.push('/login?error=SessionExpired');
@@ -96,16 +96,16 @@ export default function GroupChat({ session: serverSession }) {
                 timeout: 10000 // 10 second timeout
             });
 
-            console.log('Messages fetched:', res.data);
+            // console.log('Messages fetched:', res.data);
             // Backend provides messages in descending order (newest first), frontend uses .reverse() to show newest at bottom
             setMessages(res.data.messages);
             setTotalMessages(res.data.messages.length);
-            console.log('Messages set, total:', res.data.messages.length);
-            console.log('📅 Message order check:', res.data.messages.slice(0, 3).map(m => ({
-                id: m._id,
-                content: m.content.substring(0, 20),
-                createdAt: m.createdAt
-            })));
+            // console.log('Messages set, total:', res.data.messages.length);
+            // console.log('📅 Message order check:', res.data.messages.slice(0, 3).map(m => ({
+            //     id: m._id,
+            //     content: m.content.substring(0, 20),
+            //     createdAt: m.createdAt
+            // })));
         } catch (err) {
             console.error('Error fetching messages:', err.message);
             setFetchError('Không thể tải tin nhắn. Vui lòng thử lại.');
@@ -142,22 +142,22 @@ export default function GroupChat({ session: serverSession }) {
 
     // Debug messages state
     useEffect(() => {
-        console.log('📊 Messages state updated:', {
-            count: messages.length,
-            lastMessage: messages[messages.length - 1]?.content?.substring(0, 50),
-            hasTempMessages: messages.some(msg => msg.isTemp)
-        });
+        // console.log('📊 Messages state updated:', {
+        //     count: messages.length,
+        //     lastMessage: messages[messages.length - 1]?.content?.substring(0, 50),
+        //     hasTempMessages: messages.some(msg => msg.isTemp)
+        // });
     }, [messages]);
 
     // Fetch user info with optimization
     const fetchUserInfo = useCallback(async () => {
         if (!session?.accessToken) {
-            console.log('No accessToken in session');
+            // console.log('No accessToken in session');
             return;
         }
 
         try {
-            console.log('Fetching user info with token:', session.accessToken);
+            // console.log('Fetching user info with token:', session.accessToken);
             const res = await axios.get(`${API_BASE_URL}/api/auth/me`, {
                 headers: {
                     Authorization: `Bearer ${session.accessToken}`,
@@ -167,8 +167,8 @@ export default function GroupChat({ session: serverSession }) {
             });
 
             const data = res.data;
-            console.log('✅ User info fetched:', data);
-            console.log('✅ User ID:', data._id);
+            // console.log('✅ User info fetched:', data);
+            // console.log('✅ User ID:', data._id);
             setUserInfo(data);
             setUsersCache((prev) => ({ ...prev, [data._id]: data }));
         } catch (err) {
@@ -185,7 +185,7 @@ export default function GroupChat({ session: serverSession }) {
 
     useEffect(() => {
         if (session && !session.error) {
-            console.log('🔄 Starting user info fetch...');
+            // console.log('🔄 Starting user info fetch...');
             fetchUserInfo();
         }
     }, [session, fetchUserInfo]);
@@ -200,10 +200,10 @@ export default function GroupChat({ session: serverSession }) {
         } : null);
 
         if (!session?.accessToken || !currentUserInfo?._id) {
-            console.log('⚠️ Skipping Socket.IO setup: missing session or userInfo');
-            console.log('Session accessToken:', !!session?.accessToken);
-            console.log('UserInfo _id:', currentUserInfo?._id);
-            console.log('Session user:', session?.user);
+            // console.log('⚠️ Skipping Socket.IO setup: missing session or userInfo');
+            // console.log('Session accessToken:', !!session?.accessToken);
+            // console.log('UserInfo _id:', currentUserInfo?._id);
+            // console.log('Session user:', session?.user);
             return;
         }
 
@@ -211,81 +211,81 @@ export default function GroupChat({ session: serverSession }) {
 
         const initializeSocket = async () => {
             try {
-                console.log('🔄 Initializing Socket.IO for groupchat...');
-                console.log('User ID:', currentUserInfo._id);
-                console.log('Session token:', session.accessToken ? 'Present' : 'Missing');
-                console.log('API Base URL:', API_BASE_URL);
+                // console.log('🔄 Initializing Socket.IO for groupchat...');
+                // console.log('User ID:', currentUserInfo._id);
+                // console.log('Session token:', session.accessToken ? 'Present' : 'Missing');
+                // console.log('API Base URL:', API_BASE_URL);
 
                 const socket = await getSocket();
 
                 if (!mountedRef.current) {
-                    console.log('⚠️ Component unmounted during socket initialization');
+                    // console.log('⚠️ Component unmounted during socket initialization');
                     return;
                 }
 
                 socketRef.current = socket;
                 setSocketConnected(true);
-                console.log('✅ Socket reference set:', socket.id);
-                console.log('🔗 Socket connected status:', socket.connected);
-                console.log('🔗 Socket transport:', socket.io.engine.transport.name);
+                // console.log('✅ Socket reference set:', socket.id);
+                // console.log('🔗 Socket connected status:', socket.connected);
+                // console.log('🔗 Socket transport:', socket.io.engine.transport.name);
 
                 // Authenticate socket with user token
                 if (session?.accessToken) {
-                    console.log('🔐 Authenticating socket with token...');
+                    // console.log('🔐 Authenticating socket with token...');
                     socket.emit('authenticate', session.accessToken);
                 }
 
                 // Connection listener with optimization
                 const removeListener = addConnectionListener((connected) => {
-                    console.log('🔗 Connection status changed:', connected);
+                    // console.log('🔗 Connection status changed:', connected);
                     if (mountedRef.current) {
                         setSocketConnected(connected);
                         if (!connected) {
-                            console.log('⚠️ Socket connection lost, attempting reconnection...');
+                            // console.log('⚠️ Socket connection lost, attempting reconnection...');
                         }
                     }
                 });
 
-                console.log('🎯 Setting up Socket.IO event listeners...');
+                // console.log('🎯 Setting up Socket.IO event listeners...');
 
                 socket.on('connect', () => {
-                    console.log('🎉 === SOCKET.IO CONNECTED ===');
-                    console.log('✅ Socket.IO connected for chat:', socket.id);
-                    console.log('🔗 Socket transport after connect:', socket.io.engine.transport.name);
+                    // console.log('🎉 === SOCKET.IO CONNECTED ===');
+                    // console.log('✅ Socket.IO connected for chat:', socket.id);
+                    // console.log('🔗 Socket transport after connect:', socket.io.engine.transport.name);
 
-                    console.log('🔐 Attempting to join chat room...');
-                    console.log('🔐 Socket state before joinChat:', socket.connected);
+                    // console.log('🔐 Attempting to join chat room...');
+                    // console.log('🔐 Socket state before joinChat:', socket.connected);
                     socket.emit('joinChat');
-                    console.log('✅ joinChat event emitted');
+                    // console.log('✅ joinChat event emitted');
 
-                    console.log('🔐 Attempting to join private room for user:', currentUserInfo._id);
+                    // console.log('🔐 Attempting to join private room for user:', currentUserInfo._id);
                     socket.emit('joinPrivateRoom', currentUserInfo._id);
-                    console.log('✅ joinPrivateRoom event emitted');
+                    // console.log('✅ joinPrivateRoom event emitted');
 
                     setSocketConnected(true);
                     setError(''); // Clear any connection errors
-                    console.log('✅ Socket setup completed successfully');
+                    // console.log('✅ Socket setup completed successfully');
 
                     // Verify room joining
                     setTimeout(() => {
-                        console.log('🔍 Verifying room membership...');
+                        // console.log('🔍 Verifying room membership...');
                         socket.emit('getRooms');
                     }, 1000);
 
                     // Manual join chat room after a short delay to ensure connection is stable
                     setTimeout(() => {
-                        console.log('🔐 Manual joinChat attempt...');
-                        console.log('🔐 Socket state before manual joinChat:', socket.connected);
+                        // console.log('🔐 Manual joinChat attempt...');
+                        // console.log('🔐 Socket state before manual joinChat:', socket.connected);
                         socket.emit('joinChat');
-                        console.log('✅ Manual joinChat event emitted');
+                        // console.log('✅ Manual joinChat event emitted');
                     }, 500);
 
                     // Additional joinChat attempt after longer delay
                     setTimeout(() => {
-                        console.log('🔐 Final joinChat attempt...');
-                        console.log('🔐 Socket state before final joinChat:', socket.connected);
+                        // console.log('🔐 Final joinChat attempt...');
+                        // console.log('🔐 Socket state before final joinChat:', socket.connected);
                         socket.emit('joinChat');
-                        console.log('✅ Final joinChat event emitted');
+                        // console.log('✅ Final joinChat event emitted');
                     }, 2000);
                 });
 
@@ -297,16 +297,16 @@ export default function GroupChat({ session: serverSession }) {
 
                 // Add connection status listener
                 socket.on('connected', (data) => {
-                    console.log('🔗 Connection confirmed:', data);
+                    // console.log('🔗 Connection confirmed:', data);
                 });
 
                 // Add room join confirmation listeners
                 socket.on('joinedChat', (data) => {
-                    console.log('✅ Successfully joined chat room:', data);
+                    // console.log('✅ Successfully joined chat room:', data);
                 });
 
                 socket.on('joinedPrivateRoom', (data) => {
-                    console.log('✅ Successfully joined private room:', data);
+                    // console.log('✅ Successfully joined private room:', data);
                 });
 
                 socket.on('joinError', (error) => {
@@ -315,19 +315,19 @@ export default function GroupChat({ session: serverSession }) {
 
                 // Direct joinChat call after connection
                 if (socket.connected) {
-                    console.log('🔐 Direct joinChat call (socket already connected)...');
+                    // console.log('🔐 Direct joinChat call (socket already connected)...');
                     socket.emit('joinChat');
-                    console.log('✅ Direct joinChat event emitted');
+                    // console.log('✅ Direct joinChat event emitted');
                 }
 
                 // Manual join function for testing
                 const manualJoinChat = () => {
                     if (socket && socket.connected) {
-                        console.log('🔐 Manual joinChat button clicked...');
+                        // console.log('🔐 Manual joinChat button clicked...');
                         socket.emit('joinChat');
-                        console.log('✅ Manual joinChat event emitted');
+                        // console.log('✅ Manual joinChat event emitted');
                     } else {
-                        console.log('❌ Socket not connected for manual join');
+                        // console.log('❌ Socket not connected for manual join');
                     }
                 };
 
@@ -348,18 +348,18 @@ export default function GroupChat({ session: serverSession }) {
                 });
 
                 socket.on('disconnect', (reason) => {
-                    console.log('🔌 Socket.IO disconnected for chat:', reason);
+                    // console.log('🔌 Socket.IO disconnected for chat:', reason);
                     setSocketConnected(false);
 
                     // Auto-reconnect logic
                     if (reason !== 'io client disconnect' && mountedRef.current) {
-                        console.log('🔄 Scheduling auto-reconnect...');
+                        // console.log('🔄 Scheduling auto-reconnect...');
                         if (reconnectTimeoutRef.current) {
                             clearTimeout(reconnectTimeoutRef.current);
                         }
                         reconnectTimeoutRef.current = setTimeout(() => {
                             if (mountedRef.current) {
-                                console.log('🔄 Attempting auto-reconnect...');
+                                // console.log('🔄 Attempting auto-reconnect...');
                                 initializeSocket();
                             }
                         }, 3000);
@@ -368,10 +368,10 @@ export default function GroupChat({ session: serverSession }) {
 
                 // Optimized message handling
                 socket.on('NEW_MESSAGE', (newMessage) => {
-                    console.log('📨 Received NEW_MESSAGE:', JSON.stringify(newMessage, null, 2));
+                    // console.log('📨 Received NEW_MESSAGE:', JSON.stringify(newMessage, null, 2));
 
                     if (!mountedRef.current) {
-                        console.log('⚠️ Component unmounted, ignoring message');
+                        // console.log('⚠️ Component unmounted, ignoring message');
                         return;
                     }
 
@@ -381,7 +381,7 @@ export default function GroupChat({ session: serverSession }) {
                         isValidObjectId(newMessage.userId._id) &&
                         newMessage.content
                     ) {
-                        console.log('✅ Valid message received, processing...');
+                        // console.log('✅ Valid message received, processing...');
                         setUsersCache((prev) => ({
                             ...prev,
                             [newMessage.userId._id]: newMessage.userId,
@@ -390,11 +390,11 @@ export default function GroupChat({ session: serverSession }) {
                         setMessages((prev) => {
                             // Check for duplicate messages
                             if (prev.some((msg) => msg._id === newMessage._id)) {
-                                console.log('⚠️ Message already exists, skipping:', newMessage._id);
+                                // console.log('⚠️ Message already exists, skipping:', newMessage._id);
                                 return prev;
                             }
 
-                            console.log('✅ Adding new message to chat:', newMessage._id);
+                            // console.log('✅ Adding new message to chat:', newMessage._id);
                             // Add new message at the beginning since backend provides descending order (newest first)
                             const updatedMessages = [newMessage, ...prev];
                             setTotalMessages(updatedMessages.length);
@@ -414,7 +414,7 @@ export default function GroupChat({ session: serverSession }) {
                 });
 
                 socket.on('PRIVATE_MESSAGE', (newMessage) => {
-                    console.log('📨 Received PRIVATE_MESSAGE:', JSON.stringify(newMessage, null, 2));
+                    // console.log('📨 Received PRIVATE_MESSAGE:', JSON.stringify(newMessage, null, 2));
                     if (mountedRef.current) {
                         setPrivateChats((prev) =>
                             prev.map((chat) =>
@@ -427,7 +427,7 @@ export default function GroupChat({ session: serverSession }) {
                 });
 
                 socket.on('USER_STATUS_UPDATED', (updatedUser) => {
-                    console.log('👤 Received USER_STATUS_UPDATED:', updatedUser);
+                    // console.log('👤 Received USER_STATUS_UPDATED:', updatedUser);
                     if (mountedRef.current && updatedUser?._id && isValidObjectId(updatedUser._id)) {
                         setUsersCache((prev) => ({
                             ...prev,
@@ -441,7 +441,7 @@ export default function GroupChat({ session: serverSession }) {
                 });
 
                 return () => {
-                    console.log('🧹 Cleaning up socket listeners...');
+                    // console.log('🧹 Cleaning up socket listeners...');
                     removeListener();
                     if (socketRef.current) {
                         socketRef.current.off('connect');
@@ -466,7 +466,7 @@ export default function GroupChat({ session: serverSession }) {
         initializeSocket();
 
         return () => {
-            console.log('🧹 Component cleanup - unmounting');
+            // console.log('🧹 Component cleanup - unmounting');
             mountedRef.current = false;
             if (reconnectTimeoutRef.current) {
                 clearTimeout(reconnectTimeoutRef.current);
@@ -485,7 +485,7 @@ export default function GroupChat({ session: serverSession }) {
 
             if (uniqueMissingUsers.length === 0) return;
 
-            console.log('🔍 Fetching missing user details:', uniqueMissingUsers.length);
+            // console.log('🔍 Fetching missing user details:', uniqueMissingUsers.length);
 
             const fetchPromises = uniqueMissingUsers.map(async (userId) => {
                 try {
@@ -514,7 +514,7 @@ export default function GroupChat({ session: serverSession }) {
     }, [messages, usersCache, session?.accessToken]);
 
     const handleShowDetails = (user) => {
-        console.log('handleShowDetails called with user:', user);
+        // console.log('handleShowDetails called with user:', user);
         if (!user?._id || !isValidObjectId(user._id)) {
             console.error('Invalid user ID:', user?._id);
             setError('ID người dùng không hợp lệ');
@@ -575,12 +575,12 @@ export default function GroupChat({ session: serverSession }) {
             return;
         }
 
-        console.log('🚀 === MESSAGE SUBMISSION START ===');
-        console.log('📤 Submitting message:', messageContent);
-        console.log('🔗 Socket connected:', socketConnected);
-        console.log('🔗 Socket ref:', !!socketRef.current);
-        console.log('👤 Current user info:', currentUserInfo);
-        console.log('🌐 API URL:', `${API_BASE_URL}/api/groupchat`);
+        // console.log('🚀 === MESSAGE SUBMISSION START ===');
+        // console.log('📤 Submitting message:', messageContent);
+        // console.log('🔗 Socket connected:', socketConnected);
+        // console.log('🔗 Socket ref:', !!socketRef.current);
+        // console.log('👤 Current user info:', currentUserInfo);
+        // console.log('🌐 API URL:', `${API_BASE_URL}/api/groupchat`);
 
         try {
             const headers = session?.accessToken
@@ -593,7 +593,7 @@ export default function GroupChat({ session: serverSession }) {
                 { headers }
             );
 
-            console.log('Message submission response:', JSON.stringify(res.data, null, 2));
+            // console.log('Message submission response:', JSON.stringify(res.data, null, 2));
 
             // Auto-scroll to bottom after sending
             setTimeout(() => {
@@ -619,39 +619,39 @@ export default function GroupChat({ session: serverSession }) {
     };
 
     const openPrivateChat = (user) => {
-        console.log('openPrivateChat called with user:', JSON.stringify(user, null, 2));
+        // console.log('openPrivateChat called with user:', JSON.stringify(user, null, 2));
         if (!userInfo) {
             setError('Vui lòng đăng nhập để mở chat riêng');
-            console.log('Blocked: userInfo not loaded');
+            // console.log('Blocked: userInfo not loaded');
             return;
         }
         const isCurrentUserAdmin = userInfo?.role?.toLowerCase() === 'admin';
         const isTargetAdmin = user?.role?.toLowerCase() === 'admin';
         if (!isCurrentUserAdmin && !isTargetAdmin) {
             setError('Bạn chỉ có thể chat riêng với admin');
-            console.log('Blocked: User cannot open private chat with non-admin');
+            // console.log('Blocked: User cannot open private chat with non-admin');
             return;
         }
         setPrivateChats((prev) => {
             if (prev.some((chat) => chat.receiver._id === user._id)) {
-                console.log('Chat already exists, setting to not minimized:', user._id);
+                // console.log('Chat already exists, setting to not minimized:', user._id);
                 return prev.map((chat) =>
                     chat.receiver._id === user._id ? { ...chat, isMinimized: false } : chat
                 );
             }
-            console.log('Opening new private chat:', user._id);
-            console.log('privateChats updated:', [...prev, { receiver: user, isMinimized: false, messages: [] }]);
+            // console.log('Opening new private chat:', user._id);
+            // console.log('privateChats updated:', [...prev, { receiver: user, isMinimized: false, messages: [] }]);
             return [...prev, { receiver: user, isMinimized: false, messages: [] }];
         });
     };
 
     const closePrivateChat = (receiverId) => {
-        console.log('Closing private chat with user:', receiverId);
+        // console.log('Closing private chat with user:', receiverId);
         setPrivateChats((prev) => prev.filter((chat) => chat.receiver._id !== receiverId));
     };
 
     const toggleMinimizePrivateChat = (receiverId) => {
-        console.log('Toggling minimize for chat with user:', receiverId);
+        // console.log('Toggling minimize for chat with user:', receiverId);
         setPrivateChats((prev) =>
             prev.map((chat) =>
                 chat.receiver._id === receiverId ? { ...chat, isMinimized: !chat.isMinimized } : chat
@@ -749,12 +749,12 @@ export default function GroupChat({ session: serverSession }) {
                             const isOwnMessage = userInfo?._id === msg.userId?._id;
                             const messageKey = msg._id;
 
-                            console.log('🎨 Rendering message:', {
-                                key: messageKey,
-                                content: msg.content,
-                                isOwn: isOwnMessage,
-                                userId: msg.userId?._id
-                            });
+                            // console.log('🎨 Rendering message:', {
+                            //     key: messageKey,
+                            //     content: msg.content,
+                            //     isOwn: isOwnMessage,
+                            //     userId: msg.userId?._id
+                            // });
 
                             return (
                                 <div

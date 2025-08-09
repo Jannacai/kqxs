@@ -9,16 +9,16 @@
 	bottom: 0;
 	z-index: 9999;
 	background: var(--forum-bg-secondary);
-	/* overflow-y: auto; */
 	display: block !important;
 	visibility: visible !important;
 	opacity: 1 !important;
 	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
 		'Helvetica Neue', Arial, sans-serif;
+	overflow-y: auto;
 }
 
 /* Ẩn layout chính khi vào diễn đàn */
-.forumLayoutWrapper~* {
+.forumLayoutWrapper ~ * {
 	display: none !important;
 }
 
@@ -67,6 +67,12 @@
 	padding: var(--forum-spacing-2);
 	cursor: pointer;
 	box-shadow: var(--forum-shadow-lg);
+	width: 40px;
+	height: 40px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 16px;
 }
 
 .mobileMenuToggle span {
@@ -80,7 +86,13 @@
 
 @media (max-width: 768px) {
 	.mobileMenuToggle {
-		display: block;
+		display: flex;
+	}
+}
+
+@media (min-width: 769px) {
+	.mobileMenuToggle {
+		display: none;
 	}
 }
 
@@ -141,9 +153,11 @@
 	font-weight: 700;
 	color: var(--forum-primary-color);
 	margin: 0;
-	background: linear-gradient(135deg,
-			var(--forum-primary-color),
-			var(--forum-secondary-color));
+	background: linear-gradient(
+		135deg,
+		var(--forum-primary-color),
+		var(--forum-secondary-color)
+	);
 	-webkit-background-clip: text;
 	-webkit-text-fill-color: transparent;
 	background-clip: text;
@@ -179,17 +193,36 @@
 	box-shadow: var(--forum-shadow-md);
 }
 
-/* Main Layout */
+/* Main Layout - Thiết kế lại cho mobile */
 .mainLayout {
-	display: grid;
-	grid-template-columns: var(--forum-sidebar-width) 1fr var(--forum-right-sidebar-width);
-	gap: var(--forum-spacing-6);
+	display: flex;
+	flex-direction: column;
 	max-width: 1800px;
 	margin: 0 auto;
 	padding: var(--forum-spacing-6);
 	height: calc(100vh - var(--forum-header-height));
 	overflow: hidden;
 	margin-top: 20px;
+}
+
+/* Desktop Layout */
+@media (min-width: 1201px) {
+	.mainLayout {
+		display: grid;
+		grid-template-columns: var(--forum-sidebar-width) 1fr var(
+				--forum-right-sidebar-width
+			);
+		gap: var(--forum-spacing-6);
+	}
+}
+
+/* Tablet Layout */
+@media (min-width: 769px) and (max-width: 1200px) {
+	.mainLayout {
+		display: grid;
+		grid-template-columns: var(--forum-sidebar-width) 1fr 320px;
+		gap: var(--forum-spacing-4);
+	}
 }
 
 /* Left Sidebar */
@@ -202,7 +235,7 @@
 	box-shadow: var(--forum-shadow-lg);
 	border: 1px solid var(--forum-border-color);
 	height: 100%;
-	overflow-y: hidden;
+	overflow-y: auto;
 	position: sticky;
 	top: calc(var(--forum-header-height) + var(--forum-spacing-6));
 	transition: all 0.3s ease;
@@ -299,10 +332,12 @@
 	left: -100%;
 	width: 100%;
 	height: 100%;
-	background: linear-gradient(90deg,
-			transparent,
-			rgba(74, 222, 128, 0.1),
-			transparent);
+	background: linear-gradient(
+		90deg,
+		transparent,
+		rgba(74, 222, 128, 0.1),
+		transparent
+	);
 	transition: left 0.5s ease;
 }
 
@@ -317,14 +352,16 @@
 }
 
 .navButton.active {
-	background: linear-gradient(135deg,
-			var(--forum-primary-color),
-			var(--forum-primary-light));
+	background: linear-gradient(
+		135deg,
+		var(--forum-primary-color),
+		var(--forum-primary-light)
+	);
 	color: white;
 	box-shadow: var(--forum-shadow-md);
 }
 
-/* Center Content chỉnh lại layout 1 cột */
+/* Center Content - Thiết kế lại cho mobile */
 .centerContent {
 	display: flex;
 	flex-direction: column;
@@ -333,14 +370,62 @@
 	min-height: calc(100vh - var(--forum-header-height));
 	padding: var(--forum-spacing-6);
 	padding-right: var(--forum-spacing-4);
+	flex: 1;
+}
+
+/* Mobile: Content chiếm toàn bộ width */
+@media (max-width: 768px) {
+	.centerContent {
+		padding: var(--forum-spacing-4);
+		padding-right: var(--forum-spacing-4);
+		overflow: visible;
+		height: auto;
+		min-height: auto;
+	}
 }
 
 .topRow,
 .secondRow,
 .thirdRow,
-.fourthRow {
-	display: block;
+.fourthRow,
+.fifthRow,
+.sixthRow,
+.seventhRow,
+.eighthRow {
+	display: flex;
+	flex-direction: column;
 	width: 100%;
+	gap: var(--forum-spacing-6);
+}
+
+/* Desktop: Mỗi component trên 1 hàng riêng */
+@media (min-width: 769px) {
+	.topRow,
+	.secondRow,
+	.thirdRow,
+	.fourthRow,
+	.fifthRow,
+	.sixthRow,
+	.seventhRow,
+	.eighthRow {
+		display: flex;
+		flex-direction: column;
+		gap: var(--forum-spacing-6);
+	}
+
+	.contentSection {
+		width: 100%;
+		margin-bottom: var(--forum-spacing-6);
+	}
+
+	/* Xóa các class chia cột trên desktop */
+	.largeSection,
+	.mediumSection,
+	.smallSection,
+	.fullWidthSection {
+		grid-column: unset;
+		width: 100%;
+	}
 }
 
 .contentSection {
@@ -358,12 +443,45 @@
 	overflow: hidden;
 }
 
-/* Xóa các class chia cột */
-.largeSection,
-.mediumSection,
-.smallSection,
-.fullWidthSection {
-	grid-column: unset;
+/* Mobile: Tất cả section đều full width */
+@media (max-width: 768px) {
+	.contentSection {
+		margin-bottom: var(--forum-spacing-4);
+		padding: var(--forum-spacing-4);
+	}
+
+	/* Xóa các class chia cột trên mobile */
+	.largeSection,
+	.mediumSection,
+	.smallSection,
+	.fullWidthSection {
+		grid-column: unset;
+		width: 100%;
+	}
+
+	/* Đảm bảo tất cả row đều flex column trên mobile */
+	.topRow,
+	.secondRow,
+	.thirdRow,
+	.fourthRow,
+	.fifthRow,
+	.sixthRow,
+	.seventhRow,
+	.eighthRow {
+		display: flex;
+		flex-direction: column;
+		gap: var(--forum-spacing-4);
+	}
+
+	/* Ẩn các element không cần thiết khi sử dụng Facebook style */
+	.forumLayoutWrapper {
+		display: none;
+	}
+
+	/* Hiển thị Facebook mobile wrapper */
+	.fbMobileContainer {
+		display: block;
+	}
 }
 
 .centerContent::-webkit-scrollbar {
@@ -402,9 +520,11 @@
 
 .rightSidebarHeader {
 	padding: var(--forum-spacing-4) var(--forum-spacing-5);
-	background: linear-gradient(135deg,
-			var(--accent-blue-500),
-			var(--accent-blue-600));
+	background: linear-gradient(
+		135deg,
+		var(--accent-blue-500),
+		var(--accent-blue-600)
+	);
 	color: white;
 	border-radius: var(--forum-radius-xl) var(--forum-radius-xl) 0 0;
 	border-bottom: 1px solid var(--forum-border-color);
@@ -455,9 +575,11 @@
 	left: 0;
 	right: 0;
 	height: 4px;
-	background: linear-gradient(90deg,
-			var(--forum-primary-color),
-			var(--forum-accent-color));
+	background: linear-gradient(
+		90deg,
+		var(--forum-primary-color),
+		var(--forum-accent-color)
+	);
 }
 
 .contentSection:hover {
@@ -489,29 +611,16 @@
 	min-height: 200px;
 }
 
-/* Grid Layout Classes */
-.topRow {
-	/* display: grid;
-	grid-template-columns: 2fr 1fr;
-	gap: var(--forum-spacing-6); */
-}
-
-.secondRow {
-	display: grid;
-	grid-template-columns: 1fr;
-	gap: var(--forum-spacing-6);
-}
-
-.thirdRow {
-	/* display: grid;
-	grid-template-columns: 1fr 1.5fr;
-	gap: var(--forum-spacing-6); */
-}
-
-.fourthRow {
-	/* display: grid;
-	grid-template-columns: 2fr 1fr;
-	gap: var(--forum-spacing-6); */
+/* Grid Layout Classes - Đã được thay thế bằng flexbox */
+.topRow,
+.secondRow,
+.thirdRow,
+.fourthRow,
+.fifthRow,
+.sixthRow,
+.seventhRow,
+.eighthRow {
+	/* Layout đã được xử lý trong media queries */
 }
 
 .largeSection {
@@ -540,18 +649,6 @@
 	.rightSidebar {
 		width: 320px;
 	}
-
-	.topRow {
-		grid-template-columns: 1.5fr 1fr;
-	}
-
-	.thirdRow {
-		grid-template-columns: 1fr 1.2fr;
-	}
-
-	.fourthRow {
-		grid-template-columns: 1.5fr 1fr;
-	}
 }
 
 @media (max-width: 1200px) {
@@ -562,27 +659,16 @@
 	.rightSidebar {
 		width: 300px;
 	}
-
-	.topRow,
-	.secondRow,
-	.thirdRow,
-	.fourthRow {
-		grid-template-columns: 1fr;
-	}
-
-	.largeSection,
-	.mediumSection,
-	.smallSection {
-		grid-column: 1 / -1;
-	}
 }
 
 @media (max-width: 768px) {
 	.mainLayout {
-		grid-template-columns: 1fr;
+		display: flex;
+		flex-direction: column;
 		gap: var(--forum-spacing-4);
 		height: auto;
 		overflow: visible;
+		padding: var(--forum-spacing-4);
 	}
 
 	.sidebar {
@@ -594,6 +680,7 @@
 		z-index: 1001;
 		transition: left 0.3s ease;
 		border-radius: 0;
+		overflow-y: auto;
 	}
 
 	.sidebarOpen {
@@ -605,12 +692,20 @@
 	}
 
 	.centerContent {
-		padding-right: 0;
+		padding: 0;
 		overflow: visible;
 		height: auto;
+		min-height: auto;
 	}
 
+	/* Ẩn right sidebar trên mobile mặc định */
 	.rightSidebar {
+		display: none;
+	}
+
+	/* Hiển thị right sidebar khi có class .open */
+	.rightSidebar.open {
+		display: flex;
 		position: fixed;
 		bottom: 0;
 		right: 0;
@@ -618,12 +713,8 @@
 		height: 60vh;
 		z-index: 1000;
 		border-radius: var(--forum-radius-xl) var(--forum-radius-xl) 0 0;
-		transform: translateY(100%);
-		transition: transform 0.3s ease;
-	}
-
-	.rightSidebar.open {
 		transform: translateY(0);
+		transition: transform 0.3s ease;
 	}
 
 	.headerContent {
@@ -640,6 +731,7 @@
 
 	.contentSection {
 		margin-bottom: var(--forum-spacing-4);
+		padding: var(--forum-spacing-4);
 	}
 
 	.sectionHeader {
@@ -658,6 +750,16 @@
 	.backButton {
 		padding: var(--forum-spacing-2) var(--forum-spacing-3);
 		font-size: 0.75rem;
+	}
+
+	/* Ẩn right sidebar trên mobile mặc định */
+	.rightSidebar {
+		display: none;
+	}
+
+	/* Hiển thị right sidebar khi có class .open */
+	.rightSidebar.open {
+		display: flex;
 	}
 }
 
@@ -684,6 +786,10 @@
 
 	.rightSidebar {
 		height: 70vh;
+	}
+
+	.contentSection {
+		padding: var(--forum-spacing-3);
 	}
 }
 
@@ -877,9 +983,11 @@
 	text-align: center;
 	color: var(--forum-text-primary);
 	margin-bottom: var(--forum-spacing-8);
-	background: linear-gradient(135deg,
-			var(--forum-primary-color),
-			var(--forum-secondary-color));
+	background: linear-gradient(
+		135deg,
+		var(--forum-primary-color),
+		var(--forum-secondary-color)
+	);
 	-webkit-background-clip: text;
 	-webkit-text-fill-color: transparent;
 	background-clip: text;

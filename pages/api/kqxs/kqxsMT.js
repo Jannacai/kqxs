@@ -47,6 +47,12 @@ export const apiMT = {
             urlParams.append('page', pagination.page);
             urlParams.append('limit', pagination.limit);
             urlParams.append('daysPerPage', DAYS_PER_PAGE || 3);
+
+            // Thêm timestamp nếu có để đảm bảo không cache
+            if (pagination.timestamp) {
+                urlParams.append('timestamp', pagination.timestamp);
+            }
+
             url += `?${urlParams.toString()}`;
         }
 

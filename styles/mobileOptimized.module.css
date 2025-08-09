@@ -1,0 +1,481 @@
+/* Mobile Optimized Styles for Forum Components */
+
+/* Container cho tất cả component con */
+.mobileContainer {
+	width: 100%;
+	max-width: 100%;
+	overflow: hidden;
+}
+
+/* Event Component Mobile Optimization */
+.mobileEventContainer {
+	padding: 0;
+	margin: 0;
+}
+
+.mobileEventHeader {
+	padding: 12px;
+	margin-bottom: 8px;
+}
+
+.mobileEventTitle {
+	font-size: 16px;
+	font-weight: 600;
+	margin-bottom: 4px;
+}
+
+.mobileEventContent {
+	padding: 12px;
+}
+
+.mobileEventItem {
+	margin-bottom: 12px;
+	padding: 12px;
+	border-radius: 8px;
+	background: white;
+	border: 1px solid #e5e7eb;
+}
+
+.mobileEventItemTitle {
+	font-size: 14px;
+	font-weight: 600;
+	margin-bottom: 8px;
+	line-height: 1.4;
+}
+
+.mobileEventItemMeta {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	font-size: 12px;
+	color: #6b7280;
+	margin-top: 8px;
+}
+
+/* Thongbao Component Mobile Optimization */
+.mobileThongbaoContainer {
+	padding: 0;
+	margin: 0;
+}
+
+.mobileThongbaoItem {
+	padding: 12px;
+	margin-bottom: 8px;
+	border-radius: 8px;
+	background: white;
+	border: 1px solid #e5e7eb;
+}
+
+.mobileThongbaoHeader {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+.mobileThongbaoUser {
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.mobileThongbaoTime {
+	font-size: 12px;
+	color: #6b7280;
+}
+
+.mobileThongbaoContent {
+	font-size: 13px;
+	line-height: 1.4;
+}
+
+/* UserList Component Mobile Optimization */
+.mobileUserListContainer {
+	padding: 0;
+	margin: 0;
+}
+
+.mobileUserItem {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 12px;
+	margin-bottom: 8px;
+	border-radius: 8px;
+	background: white;
+	border: 1px solid #e5e7eb;
+}
+
+.mobileUserAvatar {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	background: linear-gradient(135deg, #4ade80, #22c55e);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: white;
+	font-weight: 600;
+	font-size: 14px;
+}
+
+.mobileUserInfo {
+	flex: 1;
+}
+
+.mobileUserName {
+	font-size: 14px;
+	font-weight: 600;
+	margin-bottom: 2px;
+}
+
+.mobileUserRole {
+	font-size: 12px;
+	color: #6b7280;
+}
+
+/* Vinhdanh Component Mobile Optimization */
+.mobileVinhdanhContainer {
+	padding: 0;
+	margin: 0;
+}
+
+.mobileVinhdanhItem {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 12px;
+	margin-bottom: 8px;
+	border-radius: 8px;
+	background: white;
+	border: 1px solid #e5e7eb;
+}
+
+.mobileVinhdanhRank {
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: 700;
+	font-size: 14px;
+}
+
+.mobileVinhdanhRank.top1 {
+	background: linear-gradient(135deg, #fbbf24, #f59e0b);
+	color: white;
+}
+
+.mobileVinhdanhRank.top2 {
+	background: linear-gradient(135deg, #9ca3af, #6b7280);
+	color: white;
+}
+
+.mobileVinhdanhRank.top3 {
+	background: linear-gradient(135deg, #cd7f32, #b8860b);
+	color: white;
+}
+
+.mobileVinhdanhRank.other {
+	background: #f3f4f6;
+	color: #6b7280;
+}
+
+.mobileVinhdanhInfo {
+	flex: 1;
+}
+
+.mobileVinhdanhName {
+	font-size: 14px;
+	font-weight: 600;
+	margin-bottom: 2px;
+}
+
+.mobileVinhdanhScore {
+	font-size: 12px;
+	color: #6b7280;
+}
+
+/* Leaderboard Component Mobile Optimization */
+.mobileLeaderboardContainer {
+	padding: 0;
+	margin: 0;
+}
+
+.mobileLeaderboardItem {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 12px;
+	margin-bottom: 8px;
+	border-radius: 8px;
+	background: white;
+	border: 1px solid #e5e7eb;
+}
+
+.mobileLeaderboardRank {
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: 700;
+	font-size: 14px;
+}
+
+.mobileLeaderboardRank.top1 {
+	background: linear-gradient(135deg, #fbbf24, #f59e0b);
+	color: white;
+}
+
+.mobileLeaderboardRank.top2 {
+	background: linear-gradient(135deg, #9ca3af, #6b7280);
+	color: white;
+}
+
+.mobileLeaderboardRank.top3 {
+	background: linear-gradient(135deg, #cd7f32, #b8860b);
+	color: white;
+}
+
+.mobileLeaderboardRank.other {
+	background: #f3f4f6;
+	color: #6b7280;
+}
+
+.mobileLeaderboardInfo {
+	flex: 1;
+}
+
+.mobileLeaderboardName {
+	font-size: 14px;
+	font-weight: 600;
+	margin-bottom: 2px;
+}
+
+.mobileLeaderboardPoints {
+	font-size: 12px;
+	color: #6b7280;
+}
+
+/* Lichsudangky Component Mobile Optimization */
+.mobileLichsudangkyContainer {
+	padding: 0;
+	margin: 0;
+}
+
+.mobileLichsudangkyItem {
+	padding: 12px;
+	margin-bottom: 8px;
+	border-radius: 8px;
+	background: white;
+	border: 1px solid #e5e7eb;
+}
+
+.mobileLichsudangkyHeader {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 8px;
+}
+
+.mobileLichsudangkyEvent {
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.mobileLichsudangkyDate {
+	font-size: 12px;
+	color: #6b7280;
+}
+
+.mobileLichsudangkyContent {
+	font-size: 13px;
+	line-height: 1.4;
+}
+
+/* Quydinh Component Mobile Optimization */
+.mobileQuydinhContainer {
+	padding: 0;
+	margin: 0;
+}
+
+.mobileQuydinhItem {
+	padding: 12px;
+	margin-bottom: 8px;
+	border-radius: 8px;
+	background: white;
+	border: 1px solid #e5e7eb;
+}
+
+.mobileQuydinhTitle {
+	font-size: 14px;
+	font-weight: 600;
+	margin-bottom: 8px;
+}
+
+.mobileQuydinhContent {
+	font-size: 13px;
+	line-height: 1.4;
+	color: #374151;
+}
+
+/* LatestEventDetail Component Mobile Optimization */
+.mobileLatestEventContainer {
+	padding: 0;
+	margin: 0;
+}
+
+.mobileLatestEventHeader {
+	padding: 12px;
+	margin-bottom: 8px;
+	background: linear-gradient(135deg, #fef3c7, #fde68a);
+	border-radius: 8px;
+}
+
+.mobileLatestEventTitle {
+	font-size: 16px;
+	font-weight: 700;
+	margin-bottom: 4px;
+	color: #92400e;
+}
+
+.mobileLatestEventMeta {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	font-size: 12px;
+	color: #92400e;
+}
+
+.mobileLatestEventContent {
+	padding: 12px;
+	font-size: 13px;
+	line-height: 1.5;
+	color: #374151;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+	.mobileEventItem,
+	.mobileThongbaoItem,
+	.mobileUserItem,
+	.mobileVinhdanhItem,
+	.mobileLeaderboardItem,
+	.mobileLichsudangkyItem,
+	.mobileQuydinhItem {
+		padding: 8px;
+		margin-bottom: 6px;
+	}
+
+	.mobileEventItemTitle,
+	.mobileThongbaoUser,
+	.mobileUserName,
+	.mobileVinhdanhName,
+	.mobileLeaderboardName,
+	.mobileLichsudangkyEvent,
+	.mobileQuydinhTitle,
+	.mobileLatestEventTitle {
+		font-size: 13px;
+	}
+
+	.mobileEventItemMeta,
+	.mobileThongbaoTime,
+	.mobileUserRole,
+	.mobileVinhdanhScore,
+	.mobileLeaderboardPoints,
+	.mobileLichsudangkyDate,
+	.mobileQuydinhContent,
+	.mobileLatestEventContent,
+	.mobileLatestEventMeta {
+		font-size: 11px;
+	}
+
+	.mobileUserAvatar {
+		width: 32px;
+		height: 32px;
+		font-size: 12px;
+	}
+
+	.mobileVinhdanhRank,
+	.mobileLeaderboardRank {
+		width: 28px;
+		height: 28px;
+		font-size: 12px;
+	}
+}
+
+/* Animation cho mobile */
+@keyframes slideInFromBottom {
+	from {
+		transform: translateY(100%);
+		opacity: 0;
+	}
+	to {
+		transform: translateY(0);
+		opacity: 1;
+	}
+}
+
+.mobileContainer {
+	animation: slideInFromBottom 0.3s ease-out;
+}
+
+/* Loading states cho mobile */
+.mobileLoadingContainer {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 40px 20px;
+	color: #6b7280;
+	font-size: 14px;
+}
+
+.mobileLoadingSpinner {
+	width: 20px;
+	height: 20px;
+	border: 2px solid #e5e7eb;
+	border-top: 2px solid #4ade80;
+	border-radius: 50%;
+	animation: spin 1s linear infinite;
+	margin-right: 8px;
+}
+
+@keyframes spin {
+	0% {
+		transform: rotate(0deg);
+	}
+	100% {
+		transform: rotate(360deg);
+	}
+}
+
+/* Empty states cho mobile */
+.mobileEmptyContainer {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 40px 20px;
+	color: #6b7280;
+	font-size: 14px;
+	text-align: center;
+}
+
+.mobileEmptyIcon {
+	font-size: 48px;
+	margin-bottom: 16px;
+	opacity: 0.5;
+}
+
+.mobileEmptyText {
+	font-size: 14px;
+	color: #6b7280;
+	margin-bottom: 8px;
+}
+
+.mobileEmptySubtext {
+	font-size: 12px;
+	color: #9ca3af;
+}

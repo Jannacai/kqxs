@@ -1,0 +1,828 @@
+/* Mobile-First Design cho các Component con trong Diễn Đàn */
+
+/* ===== THÔNG BÁO COMPONENT ===== */
+.mobileNotificationContainer {
+	background: white;
+	border-radius: 12px;
+	margin-bottom: 16px;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	overflow: hidden;
+	transition: all 0.3s ease;
+}
+
+.mobileNotificationContainer:hover {
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+	transform: translateY(-1px);
+}
+
+.mobileNotificationHeader {
+	padding: 16px;
+	background: linear-gradient(135deg, #1877f2, #42a5f5);
+	color: white;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.mobileNotificationTitle {
+	font-size: 18px;
+	font-weight: 700;
+	margin: 0;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.mobileNotificationStats {
+	display: flex;
+	gap: 8px;
+	font-size: 12px;
+	opacity: 0.9;
+}
+
+.mobileNotificationContent {
+	padding: 16px;
+}
+
+.mobileNotificationItem {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	padding: 12px 0;
+	border-bottom: 1px solid #f0f2f5;
+	transition: all 0.2s ease;
+	cursor: pointer;
+}
+
+.mobileNotificationItem:last-child {
+	border-bottom: none;
+}
+
+.mobileNotificationItem:hover {
+	background: #f8f9fa;
+}
+
+.mobileNotificationAvatar {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	background: #1877f2;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: white;
+	font-weight: 600;
+	font-size: 16px;
+	flex-shrink: 0;
+	transition: all 0.2s ease;
+}
+
+.mobileNotificationAvatar:hover {
+	transform: scale(1.05);
+}
+
+.mobileNotificationInfo {
+	flex: 1;
+	min-width: 0;
+}
+
+.mobileNotificationUserName {
+	font-size: 14px;
+	font-weight: 600;
+	color: #050505;
+	margin-bottom: 4px;
+}
+
+.mobileNotificationTime {
+	font-size: 12px;
+	color: #65676b;
+	margin-bottom: 8px;
+}
+
+.mobileNotificationMessage {
+	font-size: 14px;
+	color: #050505;
+	line-height: 1.4;
+	margin-bottom: 8px;
+}
+
+.mobileNotificationBadge {
+	display: inline-block;
+	padding: 4px 8px;
+	border-radius: 12px;
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	transition: all 0.2s ease;
+}
+
+.mobileNotificationBadge.reward {
+	background: #fef3c7;
+	color: #92400e;
+}
+
+.mobileNotificationBadge.event {
+	background: #dbeafe;
+	color: #1e40af;
+}
+
+.mobileNotificationBadge.registration {
+	background: #dcfce7;
+	color: #166534;
+}
+
+/* ===== USER LIST COMPONENT ===== */
+.mobileUserListContainer {
+	background: white;
+	border-radius: 12px;
+	margin-bottom: 16px;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	overflow: hidden;
+	transition: all 0.3s ease;
+}
+
+.mobileUserListContainer:hover {
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+	transform: translateY(-1px);
+}
+
+.mobileUserListHeader {
+	padding: 16px;
+	background: linear-gradient(135deg, #4caf50, #66bb6a);
+	color: white;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.mobileUserListTitle {
+	font-size: 18px;
+	font-weight: 700;
+	margin: 0;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.mobileUserListStats {
+	display: flex;
+	gap: 8px;
+	font-size: 12px;
+	opacity: 0.9;
+}
+
+.mobileUserListContent {
+	padding: 16px;
+}
+
+.mobileUserItem {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 12px 0;
+	border-bottom: 1px solid #f0f2f5;
+	transition: all 0.2s ease;
+	cursor: pointer;
+}
+
+.mobileUserItem:last-child {
+	border-bottom: none;
+}
+
+.mobileUserItem:hover {
+	background: #f8f9fa;
+}
+
+.mobileUserAvatar {
+	width: 48px;
+	height: 48px;
+	border-radius: 50%;
+	background: #1877f2;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: white;
+	font-weight: 600;
+	font-size: 18px;
+	flex-shrink: 0;
+	transition: all 0.2s ease;
+}
+
+.mobileUserAvatar:hover {
+	transform: scale(1.05);
+}
+
+.mobileUserAvatar.admin {
+	background: linear-gradient(135deg, #fbbf24, #f59e0b);
+}
+
+.mobileUserInfo {
+	flex: 1;
+	min-width: 0;
+}
+
+.mobileUserName {
+	font-size: 16px;
+	font-weight: 600;
+	color: #050505;
+	margin-bottom: 4px;
+}
+
+.mobileUserStatus {
+	font-size: 12px;
+	color: #65676b;
+	margin-bottom: 4px;
+}
+
+.mobileUserRole {
+	display: inline-block;
+	padding: 2px 6px;
+	border-radius: 8px;
+	font-size: 10px;
+	font-weight: 600;
+	text-transform: uppercase;
+	transition: all 0.2s ease;
+}
+
+.mobileUserRole.admin {
+	background: #fef3c7;
+	color: #92400e;
+}
+
+.mobileUserRole.user {
+	background: #e0f2fe;
+	color: #0277bd;
+}
+
+.mobileUserActions {
+	display: flex;
+	gap: 8px;
+}
+
+.mobileUserButton {
+	padding: 8px 16px;
+	border-radius: 8px;
+	border: none;
+	font-size: 12px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	min-height: 44px;
+	min-width: 44px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.mobileUserButton:hover {
+	transform: translateY(-1px);
+}
+
+.mobileUserButton.primary {
+	background: #1877f2;
+	color: white;
+}
+
+.mobileUserButton.primary:hover {
+	background: #166fe5;
+}
+
+.mobileUserButton.secondary {
+	background: #f0f2f5;
+	color: #050505;
+}
+
+.mobileUserButton.secondary:hover {
+	background: #e4e6eb;
+}
+
+/* ===== VINH DANH COMPONENT ===== */
+.mobileVinhDanhContainer {
+	background: white;
+	border-radius: 12px;
+	margin-bottom: 16px;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	overflow: hidden;
+	transition: all 0.3s ease;
+}
+
+.mobileVinhDanhContainer:hover {
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+	transform: translateY(-1px);
+}
+
+.mobileVinhDanhHeader {
+	padding: 16px;
+	background: linear-gradient(135deg, #fbbf24, #f59e0b);
+	color: white;
+	text-align: center;
+}
+
+.mobileVinhDanhTitle {
+	font-size: 18px;
+	font-weight: 700;
+	margin: 0 0 4px 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+}
+
+.mobileVinhDanhSubtitle {
+	font-size: 14px;
+	opacity: 0.9;
+	margin: 0;
+}
+
+.mobileVinhDanhContent {
+	padding: 16px;
+}
+
+.mobileWinnerItem {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 12px 0;
+	border-bottom: 1px solid #f0f2f5;
+	transition: all 0.2s ease;
+	cursor: pointer;
+}
+
+.mobileWinnerItem:last-child {
+	border-bottom: none;
+}
+
+.mobileWinnerItem:hover {
+	background: #f8f9fa;
+}
+
+.mobileWinnerRank {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: 700;
+	font-size: 16px;
+	flex-shrink: 0;
+	transition: all 0.2s ease;
+}
+
+.mobileWinnerRank:hover {
+	transform: scale(1.05);
+}
+
+.mobileWinnerRank.top1 {
+	background: linear-gradient(135deg, #fbbf24, #f59e0b);
+	color: white;
+}
+
+.mobileWinnerRank.top2 {
+	background: linear-gradient(135deg, #9ca3af, #6b7280);
+	color: white;
+}
+
+.mobileWinnerRank.top3 {
+	background: linear-gradient(135deg, #cd7f32, #b8860b);
+	color: white;
+}
+
+.mobileWinnerRank.other {
+	background: #f0f2f5;
+	color: #65676b;
+}
+
+.mobileWinnerInfo {
+	flex: 1;
+	min-width: 0;
+}
+
+.mobileWinnerName {
+	font-size: 16px;
+	font-weight: 600;
+	color: #050505;
+	margin-bottom: 4px;
+}
+
+.mobileWinnerPoints {
+	font-size: 14px;
+	color: #65676b;
+	margin-bottom: 4px;
+}
+
+.mobileWinnerPrize {
+	font-size: 12px;
+	color: #059669;
+	font-weight: 600;
+}
+
+/* ===== LEADERBOARD COMPONENT ===== */
+.mobileLeaderboardContainer {
+	background: white;
+	border-radius: 12px;
+	margin-bottom: 16px;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	overflow: hidden;
+	transition: all 0.3s ease;
+}
+
+.mobileLeaderboardContainer:hover {
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+	transform: translateY(-1px);
+}
+
+.mobileLeaderboardHeader {
+	padding: 16px;
+	background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+	color: white;
+	text-align: center;
+}
+
+.mobileLeaderboardTitle {
+	font-size: 18px;
+	font-weight: 700;
+	margin: 0 0 4px 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+}
+
+.mobileLeaderboardSubtitle {
+	font-size: 14px;
+	opacity: 0.9;
+	margin: 0;
+}
+
+.mobileLeaderboardContent {
+	padding: 16px;
+}
+
+.mobilePlayerItem {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 12px 0;
+	border-bottom: 1px solid #f0f2f5;
+	transition: all 0.2s ease;
+	cursor: pointer;
+}
+
+.mobilePlayerItem:last-child {
+	border-bottom: none;
+}
+
+.mobilePlayerItem:hover {
+	background: #f8f9fa;
+}
+
+.mobilePlayerRank {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: 700;
+	font-size: 16px;
+	flex-shrink: 0;
+	transition: all 0.2s ease;
+}
+
+.mobilePlayerRank:hover {
+	transform: scale(1.05);
+}
+
+.mobilePlayerRank.top1 {
+	background: linear-gradient(135deg, #fbbf24, #f59e0b);
+	color: white;
+}
+
+.mobilePlayerRank.top2 {
+	background: linear-gradient(135deg, #9ca3af, #6b7280);
+	color: white;
+}
+
+.mobilePlayerRank.top3 {
+	background: linear-gradient(135deg, #cd7f32, #b8860b);
+	color: white;
+}
+
+.mobilePlayerRank.other {
+	background: #f0f2f5;
+	color: #65676b;
+}
+
+.mobilePlayerInfo {
+	flex: 1;
+	min-width: 0;
+}
+
+.mobilePlayerName {
+	font-size: 16px;
+	font-weight: 600;
+	color: #050505;
+	margin-bottom: 4px;
+}
+
+.mobilePlayerPoints {
+	font-size: 14px;
+	color: #65676b;
+	margin-bottom: 4px;
+}
+
+.mobilePlayerTitle {
+	font-size: 12px;
+	color: #8b5cf6;
+	font-weight: 600;
+}
+
+/* ===== COMMON MOBILE STYLES ===== */
+.mobileEmptyState {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 32px 16px;
+	text-align: center;
+	color: #65676b;
+}
+
+.mobileEmptyIcon {
+	font-size: 48px;
+	margin-bottom: 16px;
+	opacity: 0.5;
+	transition: all 0.3s ease;
+}
+
+.mobileEmptyState:hover .mobileEmptyIcon {
+	opacity: 0.7;
+	transform: scale(1.05);
+}
+
+.mobileEmptyTitle {
+	font-size: 18px;
+	font-weight: 600;
+	color: #050505;
+	margin-bottom: 8px;
+}
+
+.mobileEmptyText {
+	font-size: 14px;
+	color: #65676b;
+	line-height: 1.4;
+}
+
+.mobileLoadingState {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 32px 16px;
+	color: #65676b;
+}
+
+.mobileSpinner {
+	width: 20px;
+	height: 20px;
+	border: 2px solid #dadde1;
+	border-top: 2px solid #1877f2;
+	border-radius: 50%;
+	animation: spin 1s linear infinite;
+	margin-right: 12px;
+}
+
+@keyframes spin {
+	0% {
+		transform: rotate(0deg);
+	}
+	100% {
+		transform: rotate(360deg);
+	}
+}
+
+.mobileErrorState {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 32px 16px;
+	color: #dc2626;
+	text-align: center;
+}
+
+.mobileErrorIcon {
+	font-size: 24px;
+	margin-right: 12px;
+	animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.5;
+	}
+}
+
+.mobileErrorText {
+	font-size: 14px;
+	font-weight: 600;
+}
+
+/* ===== RESPONSIVE ADJUSTMENTS ===== */
+@media (max-width: 480px) {
+	.mobileNotificationContent,
+	.mobileUserListContent,
+	.mobileVinhDanhContent,
+	.mobileLeaderboardContent {
+		padding: 12px;
+	}
+
+	.mobileNotificationItem,
+	.mobileUserItem,
+	.mobileWinnerItem,
+	.mobilePlayerItem {
+		padding: 10px 0;
+	}
+
+	.mobileNotificationAvatar,
+	.mobileUserAvatar {
+		width: 36px;
+		height: 36px;
+		font-size: 14px;
+	}
+
+	.mobileWinnerRank,
+	.mobilePlayerRank {
+		width: 36px;
+		height: 36px;
+		font-size: 14px;
+	}
+
+	.mobileNotificationUserName,
+	.mobileUserName,
+	.mobileWinnerName,
+	.mobilePlayerName {
+		font-size: 14px;
+	}
+
+	.mobileNotificationMessage {
+		font-size: 13px;
+	}
+
+	.mobileNotificationTime,
+	.mobileUserStatus,
+	.mobileWinnerPoints,
+	.mobilePlayerPoints {
+		font-size: 11px;
+	}
+
+	.mobileUserButton {
+		padding: 6px 10px;
+		font-size: 11px;
+		min-height: 40px;
+		min-width: 40px;
+	}
+
+	.mobileEmptyIcon {
+		font-size: 40px;
+	}
+
+	.mobileEmptyTitle {
+		font-size: 16px;
+	}
+
+	.mobileEmptyText {
+		font-size: 13px;
+	}
+}
+
+/* ===== DARK MODE SUPPORT ===== */
+@media (prefers-color-scheme: dark) {
+	.mobileNotificationContainer,
+	.mobileUserListContainer,
+	.mobileVinhDanhContainer,
+	.mobileLeaderboardContainer {
+		background: #242526;
+	}
+
+	.mobileNotificationItem,
+	.mobileUserItem,
+	.mobileWinnerItem,
+	.mobilePlayerItem {
+		border-bottom-color: #3a3b3c;
+	}
+
+	.mobileNotificationItem:hover,
+	.mobileUserItem:hover,
+	.mobileWinnerItem:hover,
+	.mobilePlayerItem:hover {
+		background: #3a3b3c;
+	}
+
+	.mobileNotificationUserName,
+	.mobileUserName,
+	.mobileWinnerName,
+	.mobilePlayerName,
+	.mobileEmptyTitle {
+		color: #ffffff;
+	}
+
+	.mobileNotificationMessage {
+		color: #ffffff;
+	}
+
+	.mobileNotificationTime,
+	.mobileUserStatus,
+	.mobileWinnerPoints,
+	.mobilePlayerPoints,
+	.mobileEmptyText {
+		color: #b0b3b8;
+	}
+
+	.mobileWinnerRank.other,
+	.mobilePlayerRank.other {
+		background: #3a3b3c;
+		color: #b0b3b8;
+	}
+
+	.mobileUserButton.secondary {
+		background: #3a3b3c;
+		color: #ffffff;
+	}
+
+	.mobileUserButton.secondary:hover {
+		background: #4a4b4c;
+	}
+}
+
+/* ===== TOUCH OPTIMIZATIONS ===== */
+@media (hover: none) and (pointer: coarse) {
+	.mobileNotificationItem,
+	.mobileUserItem,
+	.mobileWinnerItem,
+	.mobilePlayerItem {
+		min-height: 60px;
+	}
+
+	.mobileUserButton {
+		min-height: 48px;
+		min-width: 48px;
+		padding: 12px 16px;
+	}
+
+	.mobileNotificationAvatar,
+	.mobileUserAvatar,
+	.mobileWinnerRank,
+	.mobilePlayerRank {
+		min-width: 44px;
+		min-height: 44px;
+	}
+}
+
+/* ===== ACCESSIBILITY IMPROVEMENTS ===== */
+@media (prefers-reduced-motion: reduce) {
+	.mobileNotificationContainer,
+	.mobileUserListContainer,
+	.mobileVinhDanhContainer,
+	.mobileLeaderboardContainer,
+	.mobileNotificationAvatar,
+	.mobileUserAvatar,
+	.mobileWinnerRank,
+	.mobilePlayerRank,
+	.mobileUserButton,
+	.mobileEmptyIcon {
+		transition: none;
+	}
+
+	.mobileSpinner {
+		animation: none;
+	}
+
+	.mobileErrorIcon {
+		animation: none;
+	}
+}
+
+/* ===== HIGH CONTRAST MODE ===== */
+@media (prefers-contrast: high) {
+	.mobileNotificationContainer,
+	.mobileUserListContainer,
+	.mobileVinhDanhContainer,
+	.mobileLeaderboardContainer {
+		border: 2px solid #000000;
+	}
+
+	.mobileNotificationItem,
+	.mobileUserItem,
+	.mobileWinnerItem,
+	.mobilePlayerItem {
+		border-bottom: 2px solid #000000;
+	}
+
+	.mobileUserButton {
+		border: 2px solid #000000;
+	}
+}

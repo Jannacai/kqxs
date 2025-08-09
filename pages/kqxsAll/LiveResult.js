@@ -40,7 +40,7 @@ const debugLog = (message, data = null) => {
 };
 
 // TTL ngắn cho snapshot /initial trong khung live
-const INITIAL_CACHE_TTL_MS = 10 * 1000; // 30 giây
+const INITIAL_CACHE_TTL_MS = 20 * 1000; // 30 giây
 
 // BỔ SUNG: Tối ưu animation performance - di chuyển vào trong component
 const LiveResult = React.memo(({ station, getHeadAndTailNumbers = null, handleFilterChange = null, filterTypes = null, isLiveWindow, isModal = false, isForum = false }) => {

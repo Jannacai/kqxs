@@ -11,6 +11,12 @@ import styles from '../../styles/ListUser.module.css';
 import UserInfoModal from './modals/UserInfoModal';
 import PrivateChat from './chatrieng';
 import { FaSync } from 'react-icons/fa';
+import MobileComponentWrapper, {
+    MobileEmptyState,
+    MobileLoadingState,
+    MobileErrorState,
+    MobileUserItem
+} from './MobileComponentWrapper';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
 
@@ -196,255 +202,238 @@ export default function UserList({ session: serverSession }) {
     };
 
     return (
-        <div className={styles.container}>
-            {/* Header Section */}
-            <div className={styles.header}>
-                <div className={styles.headerContent}>
-                    <h1 className={styles.title}>
-                        <span className={styles.titleIcon}>👥</span>
-                        Thành Viên Cộng Đồng
-                    </h1>
-                    <div className={styles.stats}>
-                        <span className={styles.statItem}>
-                            <span className={styles.statIcon}>📊</span>
-                            Tổng: {totalUsers}
-                        </span>
-                        <span className={styles.statItem}>
-                            <span className={styles.statIcon}>🟢</span>
-                            Online: {onlineUsers}
-                        </span>
-                        <span className={styles.statItem}>
-                            <span className={styles.statIcon}>👤</span>
-                            Khách: {guestUsers}
-                        </span>
-                        <button
-                            onClick={handleReset}
-                            disabled={isLoading}
-                            className={styles.resetButton}
-                            title="Làm mới dữ liệu"
-                        >
-                            <FaSync className={`${styles.resetIcon} ${isLoading ? styles.spinning : ''}`} />
-                            {isLoading ? 'Đang tải...' : 'Làm mới'}
-                        </button>
+        <MobileComponentWrapper
+            componentType="userlist"
+            title="Thành Viên Cộng Đồng"
+            stats={`Tổng: ${totalUsers} | Online: ${onlineUsers} | Khách: ${guestUsers}`}
+        >
+            <div className={styles.container}>
+                {/* Header Section */}
+                <div className={styles.header}>
+                    <div className={styles.headerContent}>
+                        <h1 className={styles.title}>
+                            <span className={styles.titleIcon}>👥</span>
+                            Thành Viên Cộng Đồng
+                        </h1>
+                        <div className={styles.stats}>
+                            <span className={styles.statItem}>
+                                <span className={styles.statIcon}>📊</span>
+                                Tổng: {totalUsers}
+                            </span>
+                            <span className={styles.statItem}>
+                                <span className={styles.statIcon}>🟢</span>
+                                Online: {onlineUsers}
+                            </span>
+                            <span className={styles.statItem}>
+                                <span className={styles.statIcon}>👤</span>
+                                Khách: {guestUsers}
+                            </span>
+                            <button
+                                onClick={handleReset}
+                                disabled={isLoading}
+                                className={styles.resetButton}
+                                title="Làm mới dữ liệu"
+                            >
+                                <FaSync className={`${styles.resetIcon} ${isLoading ? styles.spinning : ''}`} />
+                                {isLoading ? 'Đang tải...' : 'Làm mới'}
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Search Section */}
-            <div className={styles.searchSection}>
-                <div className={styles.searchContainer}>
-                    <input
-                        type="text"
-                        className={styles.searchInput}
-                        placeholder="Tìm kiếm thành viên..."
-                        value={searchQuery}
-                        onChange={handleSearchChange}
-                    />
-                    <span className={styles.searchIcon}>🔍</span>
+                {/* Search Section */}
+                <div className={styles.searchSection}>
+                    <div className={styles.searchContainer}>
+                        <input
+                            type="text"
+                            className={styles.searchInput}
+                            placeholder="Tìm kiếm thành viên..."
+                            value={searchQuery}
+                            onChange={handleSearchChange}
+                        />
+                        <span className={styles.searchIcon}>🔍</span>
+                    </div>
                 </div>
-            </div>
 
-            {/* New Registrations Section */}
-            {newRegistrations.length > 0 && (
-                <div className={styles.newRegistrationsSection}>
+                {/* New Registrations Section */}
+                {newRegistrations.length > 0 && (
+                    <div className={styles.newRegistrationsSection}>
+                        <div className={styles.sectionHeader}>
+                            <h3 className={styles.sectionTitle}>
+                                <span className={styles.sectionIcon}>🆕</span>
+                                Thành Viên Mới
+                            </h3>
+                            <span className={styles.sectionCount}>{newRegistrations.length}</span>
+                        </div>
+                        <div className={styles.newRegistrationsList}>
+                            {newRegistrations.map((user) => (
+                                <div key={user._id} className={styles.newUserItem}>
+                                    <div
+                                        className={`${styles.avatar} ${getAvatarClass(user.role)}`}
+                                        onClick={() => handleShowDetails(user)}
+                                        role="button"
+                                        aria-label={`Xem chi tiết ${getDisplayName(user?.fullname || 'User')}`}
+                                    >
+                                        {user?.img ? (
+                                            <Image
+                                                src={user.img}
+                                                alt={getDisplayName(user?.fullname || 'User')}
+                                                className={styles.avatarImage}
+                                                width={32}
+                                                height={32}
+                                                onError={(e) => {
+                                                    e.target.style.display = 'none';
+                                                    e.target.nextSibling.style.display = 'flex';
+                                                }}
+                                            />
+                                        ) : (
+                                            <span className={styles.avatarInitials}>
+                                                {getInitials(user?.fullname)}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className={styles.newUserInfo}>
+                                        <span className={styles.newUserName}>
+                                            {getDisplayName(user?.fullname || 'User')}
+                                        </span>
+                                        <span className={styles.newUserTime}>
+                                            {moment.tz(user.createdAt, 'Asia/Ho_Chi_Minh').fromNow()}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Online Users Section */}
+                <div className={styles.onlineUsersSection}>
                     <div className={styles.sectionHeader}>
                         <h3 className={styles.sectionTitle}>
-                            <span className={styles.sectionIcon}>🆕</span>
-                            Thành Viên Mới
+                            <span className={styles.sectionIcon}>🟢</span>
+                            Thành Viên Online
                         </h3>
-                        <span className={styles.sectionCount}>{newRegistrations.length}</span>
+                        <span className={styles.sectionCount}>{onlineUsers}</span>
                     </div>
-                    <div className={styles.newRegistrationsList}>
-                        {newRegistrations.map((user) => (
-                            <div key={user._id} className={styles.newUserItem}>
-                                <div
-                                    className={`${styles.avatar} ${getAvatarClass(user.role)}`}
-                                    onClick={() => handleShowDetails(user)}
-                                    role="button"
-                                    aria-label={`Xem chi tiết ${getDisplayName(user?.fullname || 'User')}`}
-                                >
-                                    {user?.img ? (
-                                        <Image
-                                            src={user.img}
-                                            alt={getDisplayName(user?.fullname || 'User')}
-                                            className={styles.avatarImage}
-                                            width={32}
-                                            height={32}
-                                            onError={(e) => {
-                                                e.target.style.display = 'none';
-                                                e.target.nextSibling.style.display = 'flex';
-                                            }}
-                                        />
-                                    ) : (
-                                        <span className={styles.avatarInitials}>
-                                            {getInitials(user?.fullname)}
-                                        </span>
-                                    )}
-                                </div>
-                                <div className={styles.newUserInfo}>
-                                    <span className={styles.newUserName}>
-                                        {getDisplayName(user?.fullname || 'User')}
-                                    </span>
-                                    <span className={styles.newUserTime}>
-                                        {moment.tz(user.createdAt, 'Asia/Ho_Chi_Minh').fromNow()}
-                                    </span>
-                                </div>
+                    <div className={styles.usersList}>
+                        {users.filter(user => user.isOnline).length === 0 ? (
+                            <div className={styles.emptyState}>
+                                <span className={styles.emptyIcon}>😴</span>
+                                <p className={styles.emptyText}>Chưa có ai online</p>
                             </div>
-                        ))}
+                        ) : (
+                            users.filter(user => user.isOnline).map((user) => (
+                                <div key={user._id} className={styles.userItem}>
+                                    <div
+                                        className={`${styles.avatar} ${getAvatarClass(user.role)}`}
+                                        onClick={() => handleShowDetails(user)}
+                                        role="button"
+                                        aria-label={`Xem chi tiết ${getDisplayName(user?.fullname || 'User')}`}
+                                    >
+                                        {user?.img ? (
+                                            <Image
+                                                src={user.img}
+                                                alt={getDisplayName(user?.fullname || 'User')}
+                                                className={styles.avatarImage}
+                                                width={32}
+                                                height={32}
+                                                onError={(e) => {
+                                                    e.target.style.display = 'none';
+                                                    e.target.nextSibling.style.display = 'flex';
+                                                }}
+                                            />
+                                        ) : (
+                                            <span className={styles.avatarInitials}>
+                                                {getInitials(user?.fullname)}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className={styles.userInfo}>
+                                        <span className={styles.userName}>
+                                            {getDisplayName(user?.fullname || 'User')}
+                                        </span>
+                                        <span className={styles.userStatus}>
+                                            <span className={styles.onlineIndicator}>🟢</span>
+                                            Online
+                                        </span>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
                 </div>
-            )}
 
-            {/* Online Users Section */}
-            <div className={styles.onlineUsersSection}>
-                <div className={styles.sectionHeader}>
-                    <h3 className={styles.sectionTitle}>
-                        <span className={styles.sectionIcon}>🟢</span>
-                        Thành Viên Online
-                    </h3>
-                    <span className={styles.sectionCount}>{onlineUsers}</span>
+                {/* All Users Section */}
+                <div className={styles.allUsersSection}>
+                    <div className={styles.sectionHeader}>
+                        <h3 className={styles.sectionTitle}>
+                            <span className={styles.sectionIcon}>👥</span>
+                            Tất Cả Thành Viên
+                        </h3>
+                        <span className={styles.sectionCount}>{users.length}</span>
+                    </div>
+                    <div className={styles.usersList}>
+                        {isLoading ? (
+                            <MobileLoadingState text="Đang tải danh sách thành viên..." />
+                        ) : fetchError ? (
+                            <MobileErrorState text={fetchError} />
+                        ) : users.length === 0 ? (
+                            <MobileEmptyState
+                                icon="👥"
+                                title="Chưa có thành viên"
+                                text="Chưa có thành viên nào trong hệ thống."
+                            />
+                        ) : (
+                            users.map((user) => (
+                                <MobileUserItem
+                                    key={user._id}
+                                    user={user}
+                                    status={user.isOnline ? '🟢 Online' : `⚫ ${formatOfflineDuration(user.lastActive)}`}
+                                    role={user.role}
+                                    onChat={openPrivateChat}
+                                    onView={handleShowDetails}
+                                />
+                            ))
+                        )}
+                    </div>
                 </div>
-                <div className={styles.usersList}>
-                    {users.filter(user => user.isOnline).length === 0 ? (
-                        <div className={styles.emptyState}>
-                            <span className={styles.emptyIcon}>😴</span>
-                            <p className={styles.emptyText}>Chưa có ai online</p>
-                        </div>
-                    ) : (
-                        users.filter(user => user.isOnline).map((user) => (
-                            <div key={user._id} className={styles.userItem}>
-                                <div
-                                    className={`${styles.avatar} ${getAvatarClass(user.role)}`}
-                                    onClick={() => handleShowDetails(user)}
-                                    role="button"
-                                    aria-label={`Xem chi tiết ${getDisplayName(user?.fullname || 'User')}`}
-                                >
-                                    {user?.img ? (
-                                        <Image
-                                            src={user.img}
-                                            alt={getDisplayName(user?.fullname || 'User')}
-                                            className={styles.avatarImage}
-                                            width={32}
-                                            height={32}
-                                            onError={(e) => {
-                                                e.target.style.display = 'none';
-                                                e.target.nextSibling.style.display = 'flex';
-                                            }}
-                                        />
-                                    ) : (
-                                        <span className={styles.avatarInitials}>
-                                            {getInitials(user?.fullname)}
-                                        </span>
-                                    )}
-                                </div>
-                                <div className={styles.userInfo}>
-                                    <span className={styles.userName}>
-                                        {getDisplayName(user?.fullname || 'User')}
-                                    </span>
-                                    <span className={styles.userStatus}>
-                                        <span className={styles.onlineIndicator}>🟢</span>
-                                        Online
-                                    </span>
-                                </div>
-                            </div>
-                        ))
-                    )}
-                </div>
-            </div>
 
-            {/* All Users Section */}
-            <div className={styles.allUsersSection}>
-                <div className={styles.sectionHeader}>
-                    <h3 className={styles.sectionTitle}>
-                        <span className={styles.sectionIcon}>👥</span>
-                        Tất Cả Thành Viên
-                    </h3>
-                    <span className={styles.sectionCount}>{users.length}</span>
-                </div>
-                <div className={styles.usersList}>
-                    {users.length === 0 ? (
-                        <div className={styles.emptyState}>
-                            <span className={styles.emptyIcon}>👥</span>
-                            <p className={styles.emptyText}>Chưa có thành viên nào</p>
-                        </div>
-                    ) : (
-                        users.map((user) => (
-                            <div key={user._id} className={styles.userItem}>
-                                <div
-                                    className={`${styles.avatar} ${getAvatarClass(user.role)}`}
-                                    onClick={() => handleShowDetails(user)}
-                                    role="button"
-                                    aria-label={`Xem chi tiết ${getDisplayName(user?.fullname || 'User')}`}
-                                >
-                                    {user?.img ? (
-                                        <Image
-                                            src={user.img}
-                                            alt={getDisplayName(user?.fullname || 'User')}
-                                            className={styles.avatarImage}
-                                            width={32}
-                                            height={32}
-                                            onError={(e) => {
-                                                e.target.style.display = 'none';
-                                                e.target.nextSibling.style.display = 'flex';
-                                            }}
-                                        />
-                                    ) : (
-                                        <span className={styles.avatarInitials}>
-                                            {getInitials(user?.fullname)}
-                                        </span>
-                                    )}
-                                </div>
-                                <div className={styles.userInfo}>
-                                    <span className={styles.userName}>
-                                        {getDisplayName(user?.fullname || 'User')}
-                                    </span>
-                                    <span className={styles.userStatus}>
-                                        {user.isOnline
-                                            ? <span className={styles.onlineIndicator}>🟢 Online</span>
-                                            : <span className={styles.offlineIndicator}>⚫ {formatOfflineDuration(user.lastActive)}</span>}
-                                    </span>
-                                </div>
-                            </div>
-                        ))
-                    )}
-                </div>
-            </div>
+                {/* Error Display */}
+                {fetchError && (
+                    <div className={styles.errorContainer}>
+                        <span className={styles.errorIcon}>⚠️</span>
+                        <span className={styles.errorText}>{fetchError}</span>
+                    </div>
+                )}
 
-            {/* Error Display */}
-            {fetchError && (
-                <div className={styles.errorContainer}>
-                    <span className={styles.errorIcon}>⚠️</span>
-                    <span className={styles.errorText}>{fetchError}</span>
-                </div>
-            )}
-
-            {/* User Info Modal */}
-            {showModal && selectedUser && (
-                <UserInfoModal
-                    selectedUser={selectedUser}
-                    setSelectedUser={setSelectedUser}
-                    setShowModal={setShowModal}
-                    openPrivateChat={openPrivateChat}
-                    getAvatarClass={getAvatarClass}
-                    accessToken={session?.accessToken}
-                />
-            )}
-
-            {/* Private Chats */}
-            <div className={styles.privateChatsContainer}>
-                {privateChats.map((chat, index) => (
-                    <PrivateChat
-                        key={chat.receiver._id}
-                        receiver={chat.receiver}
-                        socket={null}
-                        onClose={() => closePrivateChat(chat.receiver._id)}
-                        isMinimized={chat.isMinimized}
-                        onToggleMinimize={() => toggleMinimizePrivateChat(chat.receiver._id)}
-                        messages={chat.messages}
-                        style={{ right: `${20 + index * 320}px` }}
+                {/* User Info Modal */}
+                {showModal && selectedUser && (
+                    <UserInfoModal
+                        selectedUser={selectedUser}
+                        setSelectedUser={setSelectedUser}
+                        setShowModal={setShowModal}
+                        openPrivateChat={openPrivateChat}
+                        getAvatarClass={getAvatarClass}
+                        accessToken={session?.accessToken}
                     />
-                ))}
+                )}
+
+                {/* Private Chats */}
+                <div className={styles.privateChatsContainer}>
+                    {privateChats.map((chat, index) => (
+                        <PrivateChat
+                            key={chat.receiver._id}
+                            receiver={chat.receiver}
+                            socket={null}
+                            onClose={() => closePrivateChat(chat.receiver._id)}
+                            isMinimized={chat.isMinimized}
+                            onToggleMinimize={() => toggleMinimizePrivateChat(chat.receiver._id)}
+                            messages={chat.messages}
+                            style={{ right: `${20 + index * 320}px` }}
+                        />
+                    ))}
+                </div>
             </div>
-        </div>
+        </MobileComponentWrapper>
     );
 }

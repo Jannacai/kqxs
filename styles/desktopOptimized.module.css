@@ -1,0 +1,544 @@
+/* Desktop Optimized Styles for Forum Components */
+
+/* Container cho tất cả component con trên desktop */
+.desktopContainer {
+	width: 100%;
+	max-width: 100%;
+	overflow: hidden;
+}
+
+/* Event Component Desktop Optimization */
+.desktopEventContainer {
+	padding: 0;
+	margin: 0;
+}
+
+.desktopEventHeader {
+	padding: 20px;
+	margin-bottom: 16px;
+	background: linear-gradient(135deg, #fef3c7, #fde68a);
+	border-radius: 12px;
+}
+
+.desktopEventTitle {
+	font-size: 20px;
+	font-weight: 700;
+	margin-bottom: 8px;
+	color: #92400e;
+}
+
+.desktopEventContent {
+	padding: 20px;
+}
+
+.desktopEventItem {
+	margin-bottom: 16px;
+	padding: 20px;
+	border-radius: 12px;
+	background: white;
+	border: 1px solid #e5e7eb;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	transition: all 0.3s ease;
+}
+
+.desktopEventItem:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.desktopEventItemTitle {
+	font-size: 18px;
+	font-weight: 600;
+	margin-bottom: 12px;
+	line-height: 1.4;
+	color: #1f2937;
+}
+
+.desktopEventItemMeta {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	font-size: 14px;
+	color: #6b7280;
+	margin-top: 12px;
+	padding-top: 12px;
+	border-top: 1px solid #e5e7eb;
+}
+
+/* Thongbao Component Desktop Optimization */
+.desktopThongbaoContainer {
+	padding: 0;
+	margin: 0;
+}
+
+.desktopThongbaoItem {
+	padding: 20px;
+	margin-bottom: 16px;
+	border-radius: 12px;
+	background: white;
+	border: 1px solid #e5e7eb;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	transition: all 0.3s ease;
+}
+
+.desktopThongbaoItem:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.desktopThongbaoHeader {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-bottom: 12px;
+}
+
+.desktopThongbaoUser {
+	font-size: 16px;
+	font-weight: 600;
+	color: #1f2937;
+}
+
+.desktopThongbaoTime {
+	font-size: 14px;
+	color: #6b7280;
+}
+
+.desktopThongbaoContent {
+	font-size: 15px;
+	line-height: 1.6;
+	color: #374151;
+}
+
+/* UserList Component Desktop Optimization */
+.desktopUserListContainer {
+	padding: 0;
+	margin: 0;
+}
+
+.desktopUserItem {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	padding: 20px;
+	margin-bottom: 16px;
+	border-radius: 12px;
+	background: white;
+	border: 1px solid #e5e7eb;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	transition: all 0.3s ease;
+}
+
+.desktopUserItem:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.desktopUserAvatar {
+	width: 48px;
+	height: 48px;
+	border-radius: 50%;
+	background: linear-gradient(135deg, #4ade80, #22c55e);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: white;
+	font-weight: 600;
+	font-size: 18px;
+}
+
+.desktopUserInfo {
+	flex: 1;
+}
+
+.desktopUserName {
+	font-size: 16px;
+	font-weight: 600;
+	margin-bottom: 4px;
+	color: #1f2937;
+}
+
+.desktopUserRole {
+	font-size: 14px;
+	color: #6b7280;
+}
+
+/* Vinhdanh Component Desktop Optimization */
+.desktopVinhdanhContainer {
+	padding: 0;
+	margin: 0;
+}
+
+.desktopVinhdanhItem {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	padding: 20px;
+	margin-bottom: 16px;
+	border-radius: 12px;
+	background: white;
+	border: 1px solid #e5e7eb;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	transition: all 0.3s ease;
+}
+
+.desktopVinhdanhItem:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.desktopVinhdanhRank {
+	width: 48px;
+	height: 48px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: 700;
+	font-size: 18px;
+}
+
+.desktopVinhdanhRank.top1 {
+	background: linear-gradient(135deg, #fbbf24, #f59e0b);
+	color: white;
+}
+
+.desktopVinhdanhRank.top2 {
+	background: linear-gradient(135deg, #9ca3af, #6b7280);
+	color: white;
+}
+
+.desktopVinhdanhRank.top3 {
+	background: linear-gradient(135deg, #cd7f32, #b8860b);
+	color: white;
+}
+
+.desktopVinhdanhRank.other {
+	background: #f3f4f6;
+	color: #6b7280;
+}
+
+.desktopVinhdanhInfo {
+	flex: 1;
+}
+
+.desktopVinhdanhName {
+	font-size: 16px;
+	font-weight: 600;
+	margin-bottom: 4px;
+	color: #1f2937;
+}
+
+.desktopVinhdanhScore {
+	font-size: 14px;
+	color: #6b7280;
+}
+
+/* Leaderboard Component Desktop Optimization */
+.desktopLeaderboardContainer {
+	padding: 0;
+	margin: 0;
+}
+
+.desktopLeaderboardItem {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	padding: 20px;
+	margin-bottom: 16px;
+	border-radius: 12px;
+	background: white;
+	border: 1px solid #e5e7eb;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	transition: all 0.3s ease;
+}
+
+.desktopLeaderboardItem:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.desktopLeaderboardRank {
+	width: 48px;
+	height: 48px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: 700;
+	font-size: 18px;
+}
+
+.desktopLeaderboardRank.top1 {
+	background: linear-gradient(135deg, #fbbf24, #f59e0b);
+	color: white;
+}
+
+.desktopLeaderboardRank.top2 {
+	background: linear-gradient(135deg, #9ca3af, #6b7280);
+	color: white;
+}
+
+.desktopLeaderboardRank.top3 {
+	background: linear-gradient(135deg, #cd7f32, #b8860b);
+	color: white;
+}
+
+.desktopLeaderboardRank.other {
+	background: #f3f4f6;
+	color: #6b7280;
+}
+
+.desktopLeaderboardInfo {
+	flex: 1;
+}
+
+.desktopLeaderboardName {
+	font-size: 16px;
+	font-weight: 600;
+	margin-bottom: 4px;
+	color: #1f2937;
+}
+
+.desktopLeaderboardPoints {
+	font-size: 14px;
+	color: #6b7280;
+}
+
+/* Lichsudangky Component Desktop Optimization */
+.desktopLichsudangkyContainer {
+	padding: 0;
+	margin: 0;
+}
+
+.desktopLichsudangkyItem {
+	padding: 20px;
+	margin-bottom: 16px;
+	border-radius: 12px;
+	background: white;
+	border: 1px solid #e5e7eb;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	transition: all 0.3s ease;
+}
+
+.desktopLichsudangkyItem:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.desktopLichsudangkyHeader {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 12px;
+}
+
+.desktopLichsudangkyEvent {
+	font-size: 16px;
+	font-weight: 600;
+	color: #1f2937;
+}
+
+.desktopLichsudangkyDate {
+	font-size: 14px;
+	color: #6b7280;
+}
+
+.desktopLichsudangkyContent {
+	font-size: 15px;
+	line-height: 1.6;
+	color: #374151;
+}
+
+/* Quydinh Component Desktop Optimization */
+.desktopQuydinhContainer {
+	padding: 0;
+	margin: 0;
+}
+
+.desktopQuydinhItem {
+	padding: 20px;
+	margin-bottom: 16px;
+	border-radius: 12px;
+	background: white;
+	border: 1px solid #e5e7eb;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	transition: all 0.3s ease;
+}
+
+.desktopQuydinhItem:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.desktopQuydinhTitle {
+	font-size: 16px;
+	font-weight: 600;
+	margin-bottom: 12px;
+	color: #1f2937;
+}
+
+.desktopQuydinhContent {
+	font-size: 15px;
+	line-height: 1.6;
+	color: #374151;
+}
+
+/* LatestEventDetail Component Desktop Optimization */
+.desktopLatestEventContainer {
+	padding: 0;
+	margin: 0;
+}
+
+.desktopLatestEventHeader {
+	padding: 24px;
+	margin-bottom: 16px;
+	background: linear-gradient(135deg, #fef3c7, #fde68a);
+	border-radius: 12px;
+}
+
+.desktopLatestEventTitle {
+	font-size: 24px;
+	font-weight: 700;
+	margin-bottom: 8px;
+	color: #92400e;
+}
+
+.desktopLatestEventMeta {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	font-size: 14px;
+	color: #92400e;
+}
+
+.desktopLatestEventContent {
+	padding: 24px;
+	font-size: 16px;
+	line-height: 1.6;
+	color: #374151;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+	.desktopEventItem,
+	.desktopThongbaoItem,
+	.desktopUserItem,
+	.desktopVinhdanhItem,
+	.desktopLeaderboardItem,
+	.desktopLichsudangkyItem,
+	.desktopQuydinhItem {
+		padding: 16px;
+		margin-bottom: 12px;
+	}
+
+	.desktopEventItemTitle,
+	.desktopThongbaoUser,
+	.desktopUserName,
+	.desktopVinhdanhName,
+	.desktopLeaderboardName,
+	.desktopLichsudangkyEvent,
+	.desktopQuydinhTitle,
+	.desktopLatestEventTitle {
+		font-size: 15px;
+	}
+
+	.desktopEventItemMeta,
+	.desktopThongbaoTime,
+	.desktopUserRole,
+	.desktopVinhdanhScore,
+	.desktopLeaderboardPoints,
+	.desktopLichsudangkyDate,
+	.desktopQuydinhContent,
+	.desktopLatestEventContent,
+	.desktopLatestEventMeta {
+		font-size: 13px;
+	}
+
+	.desktopUserAvatar {
+		width: 40px;
+		height: 40px;
+		font-size: 16px;
+	}
+
+	.desktopVinhdanhRank,
+	.desktopLeaderboardRank {
+		width: 40px;
+		height: 40px;
+		font-size: 16px;
+	}
+}
+
+/* Animation cho desktop */
+@keyframes slideInFromTop {
+	from {
+		transform: translateY(-20px);
+		opacity: 0;
+	}
+	to {
+		transform: translateY(0);
+		opacity: 1;
+	}
+}
+
+.desktopContainer {
+	animation: slideInFromTop 0.3s ease-out;
+}
+
+/* Loading states cho desktop */
+.desktopLoadingContainer {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 60px 40px;
+	color: #6b7280;
+	font-size: 16px;
+}
+
+.desktopLoadingSpinner {
+	width: 24px;
+	height: 24px;
+	border: 2px solid #e5e7eb;
+	border-top: 2px solid #4ade80;
+	border-radius: 50%;
+	animation: spin 1s linear infinite;
+	margin-right: 12px;
+}
+
+@keyframes spin {
+	0% {
+		transform: rotate(0deg);
+	}
+	100% {
+		transform: rotate(360deg);
+	}
+}
+
+/* Empty states cho desktop */
+.desktopEmptyContainer {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 60px 40px;
+	color: #6b7280;
+	font-size: 16px;
+	text-align: center;
+}
+
+.desktopEmptyIcon {
+	font-size: 64px;
+	margin-bottom: 24px;
+	opacity: 0.5;
+}
+
+.desktopEmptyText {
+	font-size: 18px;
+	color: #6b7280;
+	margin-bottom: 12px;
+}
+
+.desktopEmptySubtext {
+	font-size: 14px;
+	color: #9ca3af;
+}

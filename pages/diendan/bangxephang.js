@@ -9,7 +9,7 @@ import star1 from '../asset/img/start 1.png';
 import PrivateChat from './chatrieng';
 import UserInfoModal from './modals/UserInfoModal';
 import styles from '../../styles/Leaderboard.module.css';
-import { FaSync } from 'react-icons/fa';
+import { FaSync, FaCrown, FaMedal, FaTrophy, FaUser, FaFire } from 'react-icons/fa';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL3 || 'http://localhost:5001';
 
@@ -37,7 +37,6 @@ const Leaderboard = () => {
     const fetchLeaderboard = async () => {
         setIsLoading(true);
         try {
-            // console.log('Fetching leaderboard from:', `${API_BASE_URL}/api/users/leaderboard`);
             const headers = session?.accessToken
                 ? { Authorization: `Bearer ${session.accessToken}`, 'Content-Type': 'application/json' }
                 : { 'Content-Type': 'application/json' };
@@ -45,7 +44,6 @@ const Leaderboard = () => {
                 headers,
                 params: { limit: 50, sortBy },
             });
-            // console.log('Leaderboard data:', res.data.users);
             setPlayers(res.data.users || []);
             setError('');
         } catch (err) {
@@ -68,7 +66,6 @@ const Leaderboard = () => {
     }, [status, sortBy]);
 
     const handleShowDetails = (player) => {
-        // console.log('handleShowDetails called with player:', player);
         if (!player?._id) {
             console.error('Invalid player ID:', player?._id);
             setError('ID người chơi không hợp lệ');
@@ -80,7 +77,6 @@ const Leaderboard = () => {
     };
 
     const handleToggleTitles = (playerId) => {
-        // console.log('handleToggleTitles called for playerId:', playerId);
         setExpandedTitles((prev) => ({
             ...prev,
             [playerId]: !prev[playerId],
@@ -88,8 +84,6 @@ const Leaderboard = () => {
     };
 
     const openPrivateChat = (player) => {
-        // console.log('openPrivateChat called with player:', player);
-        // console.log('Current user:', session?.user);
         if (!session?.user) {
             setError('Vui lòng đăng nhập để mở chat riêng');
             return;
@@ -102,24 +96,19 @@ const Leaderboard = () => {
         }
         setPrivateChats((prev) => {
             if (prev.some((chat) => chat.receiver._id === player._id)) {
-                console.log('Chat already open, unminimizing');
                 return prev.map((chat) =>
                     chat.receiver._id === player._id ? { ...chat, isMinimized: false } : chat
                 );
             }
-            // console.log('Opening new chat with:', player);
-            // console.log('privateChats updated:', [...prev, { receiver: player, isMinimized: false, messages: [] }]);
             return [...prev, { receiver: player, isMinimized: false, messages: [] }];
         });
     };
 
     const closePrivateChat = (receiverId) => {
-        // console.log('Closing private chat with ID:', receiverId);
         setPrivateChats((prev) => prev.filter((chat) => chat.receiver._id !== receiverId));
     };
 
     const toggleMinimizePrivateChat = (receiverId) => {
-        // console.log('Toggling minimize for chat with ID:', receiverId);
         setPrivateChats((prev) =>
             prev.map((chat) =>
                 chat.receiver._id === receiverId ? { ...chat, isMinimized: !chat.isMinimized } : chat
@@ -148,10 +137,22 @@ const Leaderboard = () => {
         return avatarColors[firstChar] || styles.avatarA;
     };
 
-    // Hàm reset để reload dữ liệu
     const handleReset = () => {
-        // console.log('Resetting leaderboard data...');
         fetchLeaderboard();
+    };
+
+    const getRankIcon = (index) => {
+        if (index === 0) return <FaCrown className={styles.rankIcon} />;
+        if (index === 1) return <FaMedal className={styles.rankIcon} />;
+        if (index === 2) return <FaTrophy className={styles.rankIcon} />;
+        return null;
+    };
+
+    const getRankClass = (index) => {
+        if (index === 0) return styles.rankGold;
+        if (index === 1) return styles.rankSilver;
+        if (index === 2) return styles.rankBronze;
+        return styles.rankNormal;
     };
 
     const renderPlayer = (player, index) => {
@@ -169,24 +170,26 @@ const Leaderboard = () => {
                         : 'tanthu';
 
         return (
-            <div key={player._id} className={styles.playerItem}>
-                {/* Rank Badge */}
-                <div className={styles.rankBadge}>
-                    <span className={styles.rankNumber}>{index + 1}</span>
-                    {index < 3 && <div className={`${styles.rankCrown} ${styles[`rank${index + 1}`]}`}>👑</div>}
+            <div key={player._id} className={`${styles.playerCard} ${getRankClass(index)}`}>
+                {/* Rank Section */}
+                <div className={styles.rankSection}>
+                    <div className={styles.rankBadge}>
+                        {getRankIcon(index)}
+                        <span className={styles.rankNumber}>{index + 1}</span>
+                    </div>
                 </div>
 
                 {/* Player Content */}
                 <div className={styles.playerContent}>
-                    {/* Avatar Section */}
-                    <div className={styles.avatarSection}>
+                    {/* Avatar */}
+                    <div className={styles.avatarContainer}>
                         {player.img ? (
                             <Image
                                 src={player.img}
                                 alt={fullname}
                                 className={styles.avatarImage}
-                                width={48}
-                                height={48}
+                                width={56}
+                                height={56}
                                 onClick={() => handleShowDetails(player)}
                                 role="button"
                                 aria-label={`Xem chi tiết ${fullname}`}
@@ -210,15 +213,8 @@ const Leaderboard = () => {
                     {/* Player Info */}
                     <div className={styles.playerInfo}>
                         <div className={styles.playerHeader}>
-                            <span
-                                className={styles.playerName}
-                                onClick={() => handleShowDetails(player)}
-                                role="button"
-                                aria-label={`Xem chi tiết ${fullname}`}
-                            >
-                                {fullname}
-                            </span>
-                            <div className={styles.titleSection}>
+                            <h3 className={styles.playerName}>{fullname}</h3>
+                            <div className={styles.titleContainer}>
                                 <span className={`${styles.titleBadge} ${styles[titleClass]}`}>
                                     {highestTitle}
                                 </span>
@@ -236,11 +232,8 @@ const Leaderboard = () => {
 
                         {/* Expanded Titles */}
                         {expandedTitles[player._id] && player.titles?.length > 1 && (
-                            <div
-                                className={styles.expandedTitles}
-                                ref={(el) => (titleRefs.current[player._id] = el)}
-                            >
-                                {player.titles.map((title, index) => {
+                            <div className={styles.expandedTitles}>
+                                {player.titles.map((title, titleIndex) => {
                                     const titleClass = title.toLowerCase().includes('học giả')
                                         ? 'hocgia'
                                         : title.toLowerCase().includes('chuyên gia')
@@ -251,7 +244,7 @@ const Leaderboard = () => {
                                                     ? 'thanchotso'
                                                     : 'tanthu';
                                     return (
-                                        <span key={index} className={`${styles.titleBadge} ${styles[titleClass]}`}>
+                                        <span key={titleIndex} className={`${styles.titleBadge} ${styles[titleClass]}`}>
                                             {title}
                                         </span>
                                     );
@@ -260,14 +253,15 @@ const Leaderboard = () => {
                         )}
                     </div>
 
-                    {/* Stats Section */}
-                    <div className={styles.statsSection}>
+                    {/* Stats */}
+                    <div className={styles.statsContainer}>
                         <div className={styles.statItem}>
-                            <span className={styles.statLabel}>
-                                {sortBy === 'winCount' ? 'Trúng' : 'Điểm'}
-                            </span>
+                            <FaFire className={styles.statIcon} />
                             <span className={styles.statValue}>
                                 {sortBy === 'winCount' ? player.winCount || 0 : player.points || 0}
+                            </span>
+                            <span className={styles.statLabel}>
+                                {sortBy === 'winCount' ? 'Trúng' : 'Điểm'}
                             </span>
                         </div>
                     </div>
@@ -278,39 +272,38 @@ const Leaderboard = () => {
 
     return (
         <div className={styles.container}>
-            {/* Header Section */}
+            {/* Header */}
             <div className={styles.header}>
                 <div className={styles.headerContent}>
-                    <h1 className={styles.title}>
-                        <span className={styles.titleIcon}>🏆</span>
-                        Top 50 Thánh Bảng
-                    </h1>
-                    <div className={styles.stats}>
-                        <span className={styles.statItem}>
-                            <span className={styles.statIcon}>👥</span>
-                            Tổng: {players.length}
-                        </span>
+                    <div className={styles.titleSection}>
+                        <FaTrophy className={styles.headerIcon} />
+                        <h1 className={styles.title}>Top 50 Thánh Bảng</h1>
+                    </div>
+                    <div className={styles.headerStats}>
+                        <div className={styles.statBadge}>
+                            <FaUser className={styles.statIcon} />
+                            <span>{players.length}</span>
+                        </div>
                         <button
                             onClick={handleReset}
                             disabled={isLoading}
-                            className={styles.resetButton}
+                            className={styles.refreshButton}
                             title="Làm mới dữ liệu"
                         >
-                            <FaSync className={`${styles.resetIcon} ${isLoading ? styles.spinning : ''}`} />
-                            {isLoading ? 'Đang tải...' : 'Làm mới'}
+                            <FaSync className={`${styles.refreshIcon} ${isLoading ? styles.spinning : ''}`} />
                         </button>
                     </div>
                 </div>
             </div>
 
-            {/* Filter Section */}
+            {/* Filter */}
             <div className={styles.filterSection}>
-                <div className={styles.sortOptions}>
-                    <label className={styles.sortLabel}>Sắp xếp theo:</label>
+                <div className={styles.filterContent}>
+                    <label className={styles.filterLabel}>Sắp xếp:</label>
                     <select
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value)}
-                        className={styles.sortSelect}
+                        className={styles.filterSelect}
                     >
                         <option value="points">Điểm số</option>
                         <option value="winCount">Số lần trúng</option>
@@ -318,18 +311,19 @@ const Leaderboard = () => {
                 </div>
             </div>
 
-            {/* Loading & Error States */}
+            {/* Loading State */}
             {isLoading && (
-                <div className={styles.loadingContainer}>
+                <div className={styles.loadingState}>
                     <div className={styles.loadingSpinner}></div>
-                    <span className={styles.loadingText}>Đang tải bảng xếp hạng...</span>
+                    <p className={styles.loadingText}>Đang tải bảng xếp hạng...</p>
                 </div>
             )}
 
+            {/* Error State */}
             {error && (
-                <div className={styles.errorContainer}>
+                <div className={styles.errorState}>
                     <span className={styles.errorIcon}>⚠️</span>
-                    <span className={styles.errorText}>{error}</span>
+                    <p className={styles.errorText}>{error}</p>
                 </div>
             )}
 
@@ -337,16 +331,16 @@ const Leaderboard = () => {
             <div className={styles.playerList}>
                 {players.length === 0 && !isLoading ? (
                     <div className={styles.emptyState}>
-                        <span className={styles.emptyIcon}>📊</span>
-                        <p className={styles.emptyText}>Chưa có người chơi nào.</p>
+                        <div className={styles.emptyIcon}>📊</div>
+                        <h3 className={styles.emptyTitle}>Chưa có người chơi</h3>
+                        <p className={styles.emptyText}>Chưa có người chơi nào trong hệ thống.</p>
                     </div>
                 ) : (
-                    players.map((player, index) => {
-                        // console.log('Rendering player:', player);
-                        return renderPlayer(player, index);
-                    })
+                    players.map((player, index) => renderPlayer(player, index))
                 )}
             </div>
+
+            {/* User Info Modal */}
             {showModal && selectedPlayer && (
                 <UserInfoModal
                     selectedUser={selectedPlayer}
@@ -357,6 +351,8 @@ const Leaderboard = () => {
                     accessToken={session?.accessToken}
                 />
             )}
+
+            {/* Private Chats */}
             <div className={styles.privateChatsContainer}>
                 {privateChats.map((chat, index) => (
                     <PrivateChat
